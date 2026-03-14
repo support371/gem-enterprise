@@ -297,7 +297,28 @@ export const GemAssist = () => {
                         : "bg-secondary text-foreground"
                     )}
                   >
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    {message.role === "user" ? (
+                      <p className="whitespace-pre-wrap">{message.content}</p>
+                    ) : (
+                      <div className="prose prose-sm prose-invert max-w-none [&_p]:m-0 [&_ul]:my-1 [&_li]:my-0 [&_a]:text-primary [&_a]:no-underline hover:[&_a]:underline [&_strong]:text-foreground">
+                        <ReactMarkdown
+                          components={{
+                            a: ({ href, children }) => {
+                              if (href?.startsWith("/")) {
+                                return (
+                                  <Link to={href} onClick={() => setIsOpen(false)} className="text-primary hover:underline">
+                                    {children}
+                                  </Link>
+                                );
+                              }
+                              return <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>;
+                            },
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               ))}
