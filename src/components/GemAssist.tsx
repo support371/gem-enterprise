@@ -4,7 +4,8 @@ import { MessageCircle, X, Send, Bot, User, Loader2, ArrowRight, Zap, Shield, Al
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import ReactMarkdown from "react-markdown";
 
 type Message = {
   role: "user" | "assistant";
