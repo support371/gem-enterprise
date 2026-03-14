@@ -15,14 +15,13 @@ interface ContactFormData {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const data: ContactFormData = await req.json();
-    
+
     // Validate required fields
     if (!data.fullName || !data.email || !data.company || !data.role || !data.topic || !data.message) {
       return new Response(
@@ -31,7 +30,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(data.email)) {
       return new Response(
@@ -40,34 +38,40 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Log the submission (in production, you'd store this in a database or send via email)
-    console.log("Contact form submission received:", {
+    // Initialize Supabase client with service role for RLS bypass
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Save to database
+    const { error: dbError } = await supabase
+      .from("contact_submissions")
+      .insert({
+        full_name: data.fullName,
+        email: data.email,
+        company: data.company,
+        role: data.role,
+        topic: data.topic,
+        message: data.message,
+      });
+
+    if (dbError) {
+      console.error("Database insert error:", dbError);
+      throw new Error("Failed to save submission");
+    }
+
+    console.log("Contact form saved:", {
       fullName: data.fullName,
       email: data.email,
       company: data.company,
-      role: data.role,
       topic: data.topic,
-      messageLength: data.message.length,
       timestamp: new Date().toISOString(),
     });
 
-    // For now, just acknowledge receipt
-    // In production, you could:
-    // 1. Store in a contacts table
-    // 2. Send an email notification via Resend
-    // 3. Create a CRM entry
-
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Contact form received successfully" 
-      }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      JSON.stringify({ success: true, message: "Contact form received successfully" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-
   } catch (error) {
     console.error("Contact form error:", error);
     return new Response(
