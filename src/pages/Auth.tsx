@@ -151,96 +151,94 @@ export default function Auth() {
 
           {/* Title */}
           <h1 className="text-2xl font-bold text-foreground text-center mb-2">
-            {isSignUp ? "Create your account" : "Welcome back"}
+            {isForgotPassword ? "Reset password" : isSignUp ? "Create your account" : "Welcome back"}
           </h1>
           <p className="text-sm text-muted-foreground text-center mb-8">
-            {isSignUp 
-              ? "Join thousands of security professionals" 
-              : "Sign in to access your dashboard"}
+            {isForgotPassword 
+              ? "We'll send you a link to reset your password"
+              : isSignUp 
+                ? "Join thousands of security professionals" 
+                : "Sign in to access your dashboard"}
           </p>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={errors.email ? "border-destructive" : ""}
-              />
-              {errors.email && (
-                <p className="text-xs text-destructive">{errors.email}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={errors.password ? "border-destructive" : ""}
-              />
-              {errors.password && (
-                <p className="text-xs text-destructive">{errors.password}</p>
-              )}
-            </div>
-
-            {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={errors.confirmPassword ? "border-destructive" : ""}
-                />
-                {errors.confirmPassword && (
-                  <p className="text-xs text-destructive">{errors.confirmPassword}</p>
-                )}
+          {isForgotPassword ? (
+            resetSent ? (
+              <div className="text-center space-y-4">
+                <CheckCircle className="w-12 h-12 text-primary mx-auto" />
+                <p className="text-foreground font-medium">Check your email</p>
+                <p className="text-sm text-muted-foreground">We sent a password reset link to <strong>{email}</strong></p>
+                <button type="button" onClick={() => { setIsForgotPassword(false); setResetSent(false); }} className="text-primary hover:text-primary/80 font-medium text-sm">
+                  Back to sign in
+                </button>
               </div>
-            )}
+            ) : (
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} className={errors.email ? "border-destructive" : ""} />
+                  {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+                </div>
+                <Button type="submit" variant="hero" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" />Sending...</> : "Send reset link"}
+                </Button>
+                <div className="text-center">
+                  <button type="button" onClick={() => { setIsForgotPassword(false); setErrors({}); }} className="text-primary hover:text-primary/80 font-medium text-sm">
+                    Back to sign in
+                  </button>
+                </div>
+              </form>
+            )
+          ) : (
+            <>
+              {/* Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} className={errors.email ? "border-destructive" : ""} />
+                  {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
+                </div>
 
-            <Button 
-              type="submit" 
-              variant="hero" 
-              className="w-full" 
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  {isSignUp ? "Creating account..." : "Signing in..."}
-                </>
-              ) : (
-                isSignUp ? "Create account" : "Sign in"
-              )}
-            </Button>
-          </form>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password">Password</Label>
+                    {!isSignUp && (
+                      <button type="button" onClick={() => { setIsForgotPassword(true); setErrors({}); }} className="text-xs text-primary hover:text-primary/80">
+                        Forgot password?
+                      </button>
+                    )}
+                  </div>
+                  <Input id="password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} className={errors.password ? "border-destructive" : ""} />
+                  {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
+                </div>
 
-          {/* Toggle */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  setIsSignUp(!isSignUp);
-                  setErrors({});
-                }}
-                className="text-primary hover:text-primary/80 font-medium"
-              >
-                {isSignUp ? "Sign in" : "Sign up"}
-              </button>
-            </p>
-          </div>
+                {isSignUp && (
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm Password</Label>
+                    <Input id="confirmPassword" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className={errors.confirmPassword ? "border-destructive" : ""} />
+                    {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
+                  </div>
+                )}
+
+                <Button type="submit" variant="hero" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" />{isSignUp ? "Creating account..." : "Signing in..."}</>
+                  ) : (
+                    isSignUp ? "Create account" : "Sign in"
+                  )}
+                </Button>
+              </form>
+
+              {/* Toggle */}
+              <div className="mt-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+                  <button type="button" onClick={() => { setIsSignUp(!isSignUp); setErrors({}); }} className="text-primary hover:text-primary/80 font-medium">
+                    {isSignUp ? "Sign in" : "Sign up"}
+                  </button>
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
