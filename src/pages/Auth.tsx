@@ -59,6 +59,22 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      setErrors({ email: "Please enter your email address" });
+      return;
+    }
+    setIsSubmitting(true);
+    const { error } = await resetPassword(email);
+    setIsSubmitting(false);
+    if (error) {
+      toast({ variant: "destructive", title: "Reset failed", description: error.message });
+    } else {
+      setResetSent(true);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -86,7 +102,7 @@ export default function Auth() {
         } else {
           toast({
             title: "Account created",
-            description: "Welcome to GEM Cybersecurity!",
+            description: "Please check your email to verify your account.",
           });
         }
       } else {
