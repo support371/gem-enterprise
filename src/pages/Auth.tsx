@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,13 +26,18 @@ export default function Auth() {
 
   const { user, signIn, signUp, resetPassword } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
 
   useEffect(() => {
     if (user) {
-      navigate("/dashboard");
+      // Return to the originally requested portal route, or fall back to /portal
+      const from = location.state?.from;
+      const dest =
+        typeof from === "string" && from.startsWith("/portal") ? from : "/portal";
+      navigate(dest, { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, location.state]);
 
   const validateForm = (): boolean => {
     try {

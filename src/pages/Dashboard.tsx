@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
-import { 
-  Shield, 
-  BookOpen, 
-  FileText, 
-  ArrowRight, 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Shield,
+  BookOpen,
+  FileText,
+  ArrowRight,
   LogOut,
-  User,
   Lock,
   Eye,
   Zap
@@ -41,6 +41,19 @@ export default function Dashboard() {
 
   if (!user) return null;
 
+  const avatarUrl: string = (user.user_metadata?.avatar_url as string) || "";
+  const displayName: string =
+    (user.user_metadata?.full_name as string) ||
+    (user.user_metadata?.name as string) ||
+    user.email?.split("@")[0] ||
+    "User";
+  const initials = displayName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
   const quickLinks = [
     { icon: Shield, label: "Trust Center", href: "/trust-center", description: "Compliance & certifications" },
     { icon: BookOpen, label: "Solutions", href: "/solutions", description: "Security services" },
@@ -57,18 +70,21 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation />
-      
+
       <main className="flex-1 pt-24 pb-16">
         <div className="container mx-auto px-4">
           {/* Welcome Header */}
           <div className="mb-12">
             <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <User className="w-6 h-6 text-primary" />
-              </div>
+              <Avatar className="w-14 h-14 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
+                <AvatarImage src={avatarUrl} alt={displayName} />
+                <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
               <div>
                 <h1 className="text-3xl font-bold text-foreground">
-                  Welcome back
+                  Welcome back{displayName ? `, ${displayName.split(" ")[0]}` : ""}
                 </h1>
                 <p className="text-muted-foreground">{user.email}</p>
               </div>
@@ -116,6 +132,25 @@ export default function Dashboard() {
 
             {/* Sidebar */}
             <div className="space-y-6">
+              {/* Profile Card */}
+              <div className="glass-panel rounded-2xl p-6">
+                <div className="flex flex-col items-center text-center gap-3">
+                  <Avatar className="w-20 h-20 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
+                    <AvatarImage src={avatarUrl} alt={displayName} />
+                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold text-foreground">{displayName}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
+                  <span className="text-xs font-medium px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
+                    Enterprise Member
+                  </span>
+                </div>
+              </div>
+
               {/* Security Status */}
               <div className="glass-panel rounded-2xl p-6">
                 <h2 className="text-lg font-semibold text-foreground mb-4">Security Status</h2>
@@ -135,8 +170,8 @@ export default function Dashboard() {
               {/* Account Actions */}
               <div className="glass-panel rounded-2xl p-6">
                 <h2 className="text-lg font-semibold text-foreground mb-4">Account</h2>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   className="w-full justify-start text-muted-foreground hover:text-destructive"
                   onClick={handleSignOut}
                 >
