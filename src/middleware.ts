@@ -1,0 +1,94 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getSessionFromRequest, resolveAccessDestination } from "@/lib/auth";
+
+// Routes that require authentication
+const PROTECTED_PREFIXES = ["/app", "/kyc", "/decision", "/portal", "/access"];
+
+// Routes that require admin role
+const ADMIN_PREFIXES = ["/app/admin"];
+
+// Public routes (always accessible, no redirect even if authenticated)
+const ALWAYS_PUBLIC = [
+  "/",
+  "/intel",
+  "/assets",
+  "/community",
+  "/hub",
+  "/about",
+  "/contact",
+  "/resources",
+  "/services",
+  "/company",
+  "/get-started",
+  "/eligibility",
+  "/privacy",
+  "/terms",
+  "/compliance-notice",
+  "/client-login",
+  "/api/health",
+  "/api/routes",
+];
+
+function isProtected(pathname: string): boolean {
+  return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+
+function isAdminRoute(pathname: string): boolean {
+  return ADMIN_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+
+function isAuthRoute(pathname: string): boolean {
+  return pathname === "/client-login";
+}
+
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Skip API and static routes
+  if (
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/api/") ||
+    pathname.includes(".") // static files
+  ) {
+    return NextResponse.next();
+  }
+
+  const session = await getSessionFromRequest(request);
+
+  // Redirect authenticated users away from login page
+  if (isAuthRoute(pathname) && session) {
+    const dest = resolveAccessDestination(session);
+    return NextResponse.redirect(new URL(dest, request.url));
+  }
+
+  // Protected route checks
+  if (isProtected(pathname)) {
+    if (!session) {
+      const loginUrl = new URL("/client-login", request.url);
+      loginUrl.searchParams.set("next", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Session exists — check admin requirement
+    if (isAdminRoute(pathname)) {
+      if (session.role !== "admin" && session.role !== "internal") {
+        return NextResponse.redirect(new URL("/app/dashboard", request.url));
+      }
+    }
+
+    // Inject session info into headers for server components
+    const response = NextResponse.next();
+    response.headers.set("x-user-id", session.userId);
+    response.headers.set("x-user-role", session.role);
+    response.headers.set("x-kyc-status", session.kycStatus);
+    return response;
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|favicon.svg|robots.txt|placeholder.svg).*)",
+  ],
+};
