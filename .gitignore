@@ -15,6 +15,10 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Package manager lock files (use npm only)
+bun.lock
+bun.lockb
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
