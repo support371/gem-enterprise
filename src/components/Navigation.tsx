@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Shield, Menu, X, Github, Lock, Users, Newspaper, Mail, Radar, Building2 } from "lucide-react";
+import { Shield, Menu, X, Github, Lock, Newspaper, Mail, Radar, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,13 +16,11 @@ import {
 
 const navLinks = [
   { label: "Home", href: "/", icon: null },
-  { label: "About", href: "/trust-center", icon: null },
-  { label: "Leadership", href: "/resources", icon: Users },
+  { label: "Trust Center", href: "/trust-center", icon: null },
   { label: "Pricing", href: "/pricing", icon: null },
-  { label: "Community", href: "/blog", icon: null },
-  { label: "News & Newsletter", href: "/blog", icon: Newspaper },
+  { label: "Resources", href: "/resources", icon: null },
+  { label: "Blog", href: "/blog", icon: Newspaper },
   { label: "Contact", href: "/contact", icon: Mail },
-  { label: "Access", href: "/dashboard", icon: Lock },
 ];
 
 const serviceCategories = [
@@ -98,14 +96,14 @@ export const Navigation = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-1">
-          {navLinks.slice(0, 3).map((link) => (
+          {navLinks.slice(0, 2).map((link) => (
             <Link
               key={link.label}
               to={link.href}
               className={cn(
                 "px-3 py-2 text-sm font-medium transition-colors duration-200 relative group flex items-center gap-1",
-                isActive(link.href) 
-                  ? "text-foreground" 
+                isActive(link.href)
+                  ? "text-foreground"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -170,7 +168,7 @@ export const Navigation = () => {
             </NavigationMenuList>
           </NavigationMenu>
 
-          {navLinks.slice(3, 6).map((link) => (
+          {navLinks.slice(2).map((link) => (
             <Link
               key={link.label}
               to={link.href}
@@ -228,7 +226,7 @@ export const Navigation = () => {
       {isMobileOpen && (
         <div className="lg:hidden glass-panel mt-2 mx-4 rounded-xl p-4 animate-scale-in border border-border/50">
           <nav className="flex flex-col gap-1">
-            {navLinks.slice(0, 3).map((link) => (
+            {navLinks.slice(0, 2).map((link) => (
               <Link
                 key={link.label}
                 to={link.href}
@@ -270,7 +268,7 @@ export const Navigation = () => {
               </div>
             </div>
 
-            {navLinks.slice(3).map((link) => (
+            {navLinks.slice(2).map((link) => (
               <Link
                 key={link.label}
                 to={link.href}
