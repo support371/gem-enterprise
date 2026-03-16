@@ -71,7 +71,7 @@ export const CTASection = () => {
                 </Link>
               </Button>
               <Button variant="glass" size="lg" asChild>
-                <a href="tel:+1-555-GEM-SECURE" className="flex items-center gap-2">
+                <a href="tel:+14017022460" className="flex items-center gap-2">
                   <Phone className="w-4 h-4" />
                   Call Now
                 </a>

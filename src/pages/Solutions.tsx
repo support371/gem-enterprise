@@ -10,6 +10,11 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+const colorMap: Record<string, string> = {
+  primary: "bg-primary/10 text-primary group-hover:bg-primary/20",
+  accent: "bg-accent/10 text-accent-foreground group-hover:bg-accent/20",
+};
+
 const solutions = [
   {
     id: "cyber-defense",
@@ -81,8 +86,8 @@ const Solutions = () => {
                     className="group block glass-panel rounded-2xl p-8 hover:border-primary/30 transition-all duration-300 bento-card"
                   >
                     <div className="flex items-start gap-4 mb-6">
-                      <div className={`w-12 h-12 rounded-xl bg-${solution.color}/10 flex items-center justify-center shrink-0 group-hover:bg-${solution.color}/20 transition-colors`}>
-                        <solution.icon className={`w-6 h-6 text-${solution.color}`} />
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-colors ${colorMap[solution.color]}`}>
+                        <solution.icon className="w-6 h-6" />
                       </div>
                       <div className="flex-1">
                         <h2 className="text-xl font-bold text-foreground mb-1 group-hover:text-primary transition-colors">
