@@ -3,10 +3,10 @@ import { Link } from "react-router-dom";
 
 const footerLinks = {
   Solutions: [
-    { label: "Threat Detection", href: "/solutions/threat-monitoring" },
-    { label: "SOC Services", href: "/solutions/soc-services" },
-    { label: "Asset Recovery", href: "/solutions/asset-recovery" },
-    { label: "Cloud Security", href: "/solutions/cloud-security" },
+    { label: "Cyber Defense", href: "/solutions/cyber-defense" },
+    { label: "Threat Detection", href: "/solutions/threat-detection" },
+    { label: "Digital Asset Protection", href: "/solutions/digital-asset-protection" },
+    { label: "Trust & Real-Asset Security", href: "/solutions/trust-security" },
   ],
   Company: [
     { label: "About Us", href: "/trust-center" },
