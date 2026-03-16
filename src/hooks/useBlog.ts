@@ -186,7 +186,7 @@ export function useUpsertPost() {
       if (post.id) {
         const { data, error } = await supabase
           .from("blog_posts")
-          .update(payload)
+          .update(payload as any)
           .eq("id", post.id)
           .select()
           .single();
@@ -195,7 +195,7 @@ export function useUpsertPost() {
       } else {
         const { data, error } = await supabase
           .from("blog_posts")
-          .insert(payload)
+          .insert(payload as any)
           .select()
           .single();
         if (error) throw error;

@@ -10,6 +10,8 @@ import Solutions from "./pages/Solutions";
 import SolutionDetail from "./pages/SolutionDetail";
 import Resources from "./pages/Resources";
 import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
+import BlogManage from "./pages/BlogManage";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import ResetPassword from "./pages/ResetPassword";
