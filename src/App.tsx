@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import TrustCenter from "./pages/TrustCenter";
 import Solutions from "./pages/Solutions";
 import SolutionDetail from "./pages/SolutionDetail";
+import Pricing from "./pages/Pricing";
 import Resources from "./pages/Resources";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
