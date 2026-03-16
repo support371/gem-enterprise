@@ -4,6 +4,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { PublicOnlyRoute } from "@/components/auth/PublicOnlyRoute";
+
+// Public site pages
 import Index from "./pages/Index";
 import TrustCenter from "./pages/TrustCenter";
 import Solutions from "./pages/Solutions";
@@ -19,9 +23,18 @@ import ResetPassword from "./pages/ResetPassword";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
+// Portal pages
+import Portal from "./pages/portal/Portal";
+import PortalTasks from "./pages/portal/PortalTasks";
+import PortalIncidents from "./pages/portal/PortalIncidents";
+import PortalTeam from "./pages/portal/PortalTeam";
+import PortalActivity from "./pages/portal/PortalActivity";
+import PortalSettings from "./pages/portal/PortalSettings";
+
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+// Legacy guard for non-portal protected routes (blog manage, dashboard)
+const LegacyProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
   if (isLoading) return null;
   if (!user) return <Navigate to="/login" replace />;
@@ -36,6 +49,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            {/* ── Public site ───────────────────────────────────────────── */}
             <Route path="/" element={<Index />} />
             <Route path="/trust-center" element={<TrustCenter />} />
             <Route path="/solutions" element={<Solutions />} />
@@ -44,11 +58,68 @@ const App = () => (
             <Route path="/resources" element={<Resources />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
-            <Route path="/blog/manage" element={<ProtectedRoute><BlogManage /></ProtectedRoute>} />
-            <Route path="/login" element={<Auth />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/blog/manage" element={<LegacyProtectedRoute><BlogManage /></LegacyProtectedRoute>} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+
+            {/* ── Auth ──────────────────────────────────────────────────── */}
+            {/* /auth  → portal-aware: preserves return path, wraps with PublicOnlyRoute */}
+            <Route path="/auth" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
+            {/* /login → legacy entry point (blog manage, dashboard) — kept for backward compat */}
+            <Route path="/login" element={<Auth />} />
+            <Route path="/dashboard" element={<LegacyProtectedRoute><Dashboard /></LegacyProtectedRoute>} />
+
+            {/* ── Portal (auth + RBAC gated) ────────────────────────────── */}
+            <Route
+              path="/portal"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "analyst", "viewer"]}>
+                  <Portal />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/portal/tasks"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "analyst"]}>
+                  <PortalTasks />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/portal/incidents"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "analyst"]}>
+                  <PortalIncidents />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/portal/team"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <PortalTeam />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/portal/activity"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "analyst"]}>
+                  <PortalActivity />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/portal/settings"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <PortalSettings />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ── Catch-all ─────────────────────────────────────────────── */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
