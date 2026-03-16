@@ -792,6 +792,7 @@ export const navigationMenu: NavSection[] = [
       { label: "Leadership & Vision", path: "/company#leadership", description: "Executive leadership and mission" },
       { label: "Executive Board", path: "/company#board", description: "Board of directors" },
       { label: "Teams", path: "/company#teams", description: "Expert teams and divisions" },
+      { label: "Personnel Board", path: "/personnel", description: "GEM & ATR personnel directory with AI Overseer" },
       { label: "Partners & Trustees", path: "/company#partners", description: "Strategic partners and trustees" },
       { label: "Compliance Notice", path: "/compliance-notice", description: "Regulatory compliance disclosures" },
     ],
