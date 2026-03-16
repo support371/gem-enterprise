@@ -18,6 +18,7 @@ const navLinks = [
   { label: "Home", href: "/", icon: null },
   { label: "About", href: "/trust-center", icon: null },
   { label: "Leadership", href: "/resources", icon: Users },
+  { label: "Pricing", href: "/pricing", icon: null },
   { label: "Community", href: "/blog", icon: null },
   { label: "News & Newsletter", href: "/blog", icon: Newspaper },
   { label: "Contact", href: "/contact", icon: Mail },

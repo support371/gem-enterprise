@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import TrustCenter from "./pages/TrustCenter";
 import Solutions from "./pages/Solutions";
 import SolutionDetail from "./pages/SolutionDetail";
+import Pricing from "./pages/Pricing";
 import Resources from "./pages/Resources";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/trust-center" element={<TrustCenter />} />
             <Route path="/solutions" element={<Solutions />} />
             <Route path="/solutions/:slug" element={<SolutionDetail />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/resources" element={<Resources />} />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:slug" element={<BlogPost />} />
