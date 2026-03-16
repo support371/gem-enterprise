@@ -29,3 +29,6 @@ bun.lockb
 *.njsproj
 *.sln
 *.sw?
+
+# TypeScript build info
+*.tsbuildinfo
