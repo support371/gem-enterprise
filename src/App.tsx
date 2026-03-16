@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { evaluateAccessRedirect, publicMenus, publicRoutes, readDb, writeDb } from "@/lib/platform";
+import PortalDashboardPage from "@/pages/portal/PortalDashboardPage";
 
 const queryClient = new QueryClient();
 
@@ -158,7 +159,7 @@ function AdminPage({ mode }: { mode: "kyc" | "approvals" | "users" | "allocation
 }
 
 const protectedRoutes = [
-  "/app", "/app/dashboard", "/app/products", "/app/products/cyber", "/app/products/financial", "/app/products/real-estate", "/app/portfolios", "/app/documents", "/app/compliance", "/app/profile", "/app/settings", "/app/security", "/app/notifications", "/app/messages"
+  "/app", "/app/products", "/app/products/cyber", "/app/products/financial", "/app/products/real-estate", "/app/portfolios", "/app/documents", "/app/compliance", "/app/profile", "/app/settings", "/app/security", "/app/notifications", "/app/messages"
 ];
 
 function AppRoutes() {
@@ -170,6 +171,9 @@ function AppRoutes() {
       ))}
 
       {protectedRoutes.map((path) => <Route key={path} path={path} element={<Shell><ProtectedRoute><AppPage title={path} /></ProtectedRoute></Shell>} />)}
+
+      <Route path="/portal/dashboard" element={<Shell><ProtectedRoute><PortalDashboardPage /></ProtectedRoute></Shell>} />
+      <Route path="/app/dashboard" element={<Shell><ProtectedRoute><PortalDashboardPage /></ProtectedRoute></Shell>} />
       <Route path="/app/portfolios/:portfolioId" element={<Shell><ProtectedRoute><AppPage title="Portfolio Detail" /></ProtectedRoute></Shell>} />
       <Route path="/app/support" element={<Shell><ProtectedRoute><SupportPage /></ProtectedRoute></Shell>} />
       <Route path="/app/requests" element={<Shell><ProtectedRoute><RequestPage /></ProtectedRoute></Shell>} />

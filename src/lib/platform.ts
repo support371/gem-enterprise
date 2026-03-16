@@ -184,5 +184,5 @@ export function evaluateAccessRedirect(user: PlatformUser | null): string {
   if (user.entitlements.includes("cyber")) return "/app/products/cyber";
   if (user.entitlements.includes("financial")) return "/app/products/financial";
   if (user.entitlements.includes("real-estate")) return "/app/products/real-estate";
-  return "/app/dashboard";
+  return "/portal/dashboard";
 }
