@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   ChevronRight,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -55,6 +56,12 @@ const navItems: NavItem[] = [
     href: "/portal/activity",
     icon: Activity,
     allowedRoles: ["admin", "manager", "analyst"],
+  },
+  {
+    label: "Alliance Trust",
+    href: "/portal/alliance-trust",
+    icon: Building2,
+    allowedRoles: ["admin", "manager", "analyst", "viewer"],
   },
   {
     label: "Settings",

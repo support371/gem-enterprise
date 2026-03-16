@@ -30,6 +30,7 @@ import PortalIncidents from "./pages/portal/PortalIncidents";
 import PortalTeam from "./pages/portal/PortalTeam";
 import PortalActivity from "./pages/portal/PortalActivity";
 import PortalSettings from "./pages/portal/PortalSettings";
+import AllianceTrust from "./pages/portal/AllianceTrust";
 
 const queryClient = new QueryClient();
 
@@ -107,6 +108,14 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={["admin", "manager", "analyst"]}>
                   <PortalActivity />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/portal/alliance-trust"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "analyst", "viewer"]}>
+                  <AllianceTrust />
                 </ProtectedRoute>
               }
             />
