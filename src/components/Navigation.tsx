@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Shield, Menu, X, ChevronDown, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Shield, Menu, ChevronDown, ChevronUp } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -13,401 +13,301 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+import { navigationMenu } from "@/lib/siteRoutes";
+import { cn } from "@/lib/utils";
 
-// ─── Desktop nav sections ────────────────────────────────────────────────────
-const desktopSections = [
-  { label: "Home", href: "/" },
-  {
-    label: "Intel",
-    children: [
-      { label: "Threat Intelligence", href: "/solutions/threat-detection" },
-      { label: "Reports", href: "/resources" },
-      { label: "Monitoring", href: "/solutions/cyber-defense" },
-      { label: "Intel Briefs", href: "/blog" },
-      { label: "Architecture Specs", href: "/resources" },
-    ],
-  },
-  {
-    label: "Services",
-    href: "/solutions",
-    children: [
-      { label: "Cybersecurity", href: "/solutions/cyber-defense" },
-      { label: "Financial", href: "/solutions/trust-security" },
-      { label: "Real Estate", href: "/solutions/asset-management" },
-      { label: "Assessments", href: "/solutions/cyber-defense" },
-      { label: "Consultations", href: "/contact" },
-    ],
-  },
-  { label: "Community", href: "/blog" },
-  {
-    label: "Hub",
-    children: [
-      { label: "Command Center", href: "/dashboard" },
-      { label: "Documents", href: "/resources" },
-      { label: "Support Access", href: "/contact" },
-      { label: "Requests", href: "/contact" },
-      { label: "Client Portal", href: "/dashboard" },
-    ],
-  },
-  {
-    label: "Resources",
-    href: "/resources",
-    children: [
-      { label: "Market Insights", href: "/resources" },
-      { label: "Templates", href: "/resources" },
-      { label: "Bots", href: "/resources" },
-      { label: "News", href: "/blog" },
-      { label: "FAQ", href: "/pricing" },
-    ],
-  },
-  {
-    label: "Company",
-    href: "/trust-center",
-    children: [
-      { label: "About", href: "/trust-center" },
-      { label: "Leadership & Vision", href: "/trust-center" },
-      { label: "Executive Board", href: "/trust-center" },
-      { label: "Teams", href: "/trust-center" },
-      { label: "Partners & Trustees", href: "/trust-center" },
-      { label: "Compliance Notice", href: "/trust-center" },
-    ],
-  },
-];
-
-// ─── Mobile accordion sections (mirrors images exactly) ──────────────────────
-const mobileSections = [
-  { id: "home", label: "HOME", href: "/" },
-  {
-    id: "intel",
-    label: "INTEL",
-    children: [
-      { label: "Threat Intelligence", href: "/solutions/threat-detection" },
-      { label: "Reports", href: "/resources" },
-      { label: "Monitoring", href: "/solutions/cyber-defense" },
-      { label: "Intel Briefs", href: "/blog" },
-      { label: "Architecture Specs", href: "/resources" },
-    ],
-  },
-  {
-    id: "services",
-    label: "SERVICES",
-    children: [
-      { label: "Cybersecurity", href: "/solutions/cyber-defense" },
-      { label: "Financial", href: "/solutions/trust-security" },
-      { label: "Real Estate", href: "/solutions/asset-management" },
-      { label: "Assessments", href: "/solutions/cyber-defense" },
-      { label: "Consultations", href: "/contact" },
-    ],
-  },
-  { id: "community", label: "COMMUNITY", href: "/blog" },
-  {
-    id: "hub",
-    label: "HUB",
-    children: [
-      { label: "Command Center", href: "/dashboard" },
-      { label: "Documents", href: "/resources" },
-      { label: "Support Access", href: "/contact" },
-      { label: "Requests", href: "/contact" },
-      { label: "Client Portal", href: "/dashboard" },
-    ],
-  },
-  {
-    id: "resources",
-    label: "RESOURCES",
-    children: [
-      { label: "Market Insights", href: "/resources" },
-      { label: "Templates", href: "/resources" },
-      { label: "Bots", href: "/resources" },
-      { label: "News", href: "/blog" },
-      { label: "FAQ", href: "/pricing" },
-    ],
-  },
-  {
-    id: "company",
-    label: "COMPANY",
-    children: [
-      { label: "About", href: "/trust-center" },
-      { label: "Leadership & Vision", href: "/trust-center" },
-      { label: "Executive Board", href: "/trust-center" },
-      { label: "Teams", href: "/trust-center" },
-      { label: "Partners & Trustees", href: "/trust-center" },
-      { label: "Compliance Notice", href: "/trust-center" },
-    ],
-  },
-];
-
-export const Navigation = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+export function Navigation() {
+  const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [openSection, setOpenSection] = useState<string | null>(null);
-  const { user, signOut } = useAuth();
-  const location = useLocation();
 
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setIsMobileOpen(false);
+  const closeMobile = () => {
+    setMobileOpen(false);
     setOpenSection(null);
-  }, [location.pathname]);
-
-  // Prevent body scroll when mobile menu is open
-  useEffect(() => {
-    document.body.style.overflow = isMobileOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [isMobileOpen]);
-
-  const isActive = (href: string) => {
-    if (href === "/") return location.pathname === "/";
-    return location.pathname.startsWith(href);
   };
 
-  const toggleSection = (id: string) =>
-    setOpenSection((prev) => (prev === id ? null : id));
+  const toggleSection = (label: string) => {
+    setOpenSection((prev) => (prev === label ? null : label));
+  };
+
+  const isActive = (path: string) => {
+    const base = path.split("#")[0];
+    if (base === "/") return pathname === "/";
+    return pathname === base || pathname.startsWith(base + "/");
+  };
+
+  const isSectionActive = (sectionPath: string) => {
+    const base = sectionPath.split("#")[0];
+    if (base === "/") return pathname === "/";
+    return pathname === base || pathname.startsWith(base + "/");
+  };
 
   return (
-    <>
-      {/* ── Top bar ─────────────────────────────────────────────────────────── */}
-      <header
-        className={cn(
-          "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-          isScrolled ? "glass-panel py-2 border-b border-border/50" : "py-4 bg-transparent"
-        )}
-      >
-        <div className="container mx-auto px-4 flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-              <Shield className="w-5 h-5 text-primary transition-all duration-300 group-hover:scale-110" />
-            </div>
-            <span className="text-lg font-bold tracking-tight">
-              <span className="text-gradient-primary">GEM</span>
-              <span className="text-foreground/80 ml-1 hidden sm:inline">ENTERPRISE</span>
+    <header className="sticky top-0 z-50 w-full border-b border-white/[0.07] bg-[#131a26]/90 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-screen-xl items-center justify-between px-4 sm:px-6 lg:px-8">
+
+        {/* ── Logo ──────────────────────────────────────────────── */}
+        <Link
+          href="/"
+          className="group flex shrink-0 items-center gap-2.5"
+          onClick={closeMobile}
+        >
+          <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-[hsl(185,100%,45%)]/10 ring-1 ring-[hsl(185,100%,45%)]/30 transition-all group-hover:bg-[hsl(185,100%,45%)]/20 group-hover:ring-[hsl(185,100%,45%)]/60">
+            <Shield className="h-4.5 w-4.5 text-[hsl(185,100%,45%)]" strokeWidth={2} />
+          </div>
+          <div className="flex flex-col leading-none">
+            <span className="text-base font-bold tracking-widest text-[hsl(185,100%,45%)]">
+              GEM
             </span>
-          </Link>
+            <span className="text-[10px] font-semibold tracking-[0.25em] text-white/40 uppercase">
+              Enterprise
+            </span>
+          </div>
+        </Link>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1">
-            {desktopSections.map((section) =>
-              section.children ? (
-                <NavigationMenu key={section.label}>
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger
-                        className={cn(
-                          "px-3 py-2 text-sm font-medium bg-transparent hover:bg-transparent transition-colors",
-                          section.href && isActive(section.href)
-                            ? "text-foreground"
-                            : "text-muted-foreground hover:text-foreground"
-                        )}
-                      >
-                        {section.label}
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <div className="w-52 p-2 bg-background border border-border rounded-xl shadow-lg">
-                          {section.children.map((child) => (
-                            <NavigationMenuLink key={child.href + child.label} asChild>
-                              <Link
-                                to={child.href}
-                                className="block px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
-                              >
-                                {child.label}
-                              </Link>
-                            </NavigationMenuLink>
-                          ))}
+        {/* ── Desktop mega-menu ─────────────────────────────────── */}
+        <div className="hidden lg:flex lg:flex-1 lg:justify-center">
+          <NavigationMenu>
+            <NavigationMenuList className="gap-0.5">
+              {navigationMenu.map((section) => (
+                <NavigationMenuItem key={section.group}>
+                  <NavigationMenuTrigger
+                    className={cn(
+                      "h-9 rounded-md bg-transparent px-3 py-2 text-sm font-medium transition-all",
+                      "text-white/60 hover:bg-white/5 hover:text-white",
+                      "data-[state=open]:bg-[hsl(185,100%,45%)]/10 data-[state=open]:text-[hsl(185,100%,45%)]",
+                      isSectionActive(section.path) &&
+                        "text-[hsl(185,100%,45%)]"
+                    )}
+                  >
+                    {section.label}
+                  </NavigationMenuTrigger>
+
+                  <NavigationMenuContent>
+                    <div className="w-[540px] rounded-xl border border-white/10 bg-[#0e1420] p-5 shadow-2xl shadow-black/50">
+                      {/* Dropdown header */}
+                      <div className="mb-4 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[hsl(185,100%,45%)]">
+                            {section.label}
+                          </p>
                         </div>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-              ) : (
-                <Link
-                  key={section.label}
-                  to={section.href!}
-                  className={cn(
-                    "px-3 py-2 text-sm font-medium transition-colors duration-200 relative",
-                    isActive(section.href!)
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {section.label}
-                  {isActive(section.href!) && (
-                    <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
-                  )}
-                </Link>
-              )
-            )}
-          </nav>
+                        <Link
+                          href={section.path}
+                          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/40 transition-colors hover:bg-white/5 hover:text-[hsl(185,100%,45%)]"
+                        >
+                          View all
+                          <ArrowRight className="h-3 w-3" />
+                        </Link>
+                      </div>
 
-          {/* Desktop Auth */}
-          <div className="hidden lg:flex items-center gap-2">
-            <ThemeToggle />
-            {user ? (
-              <>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link to="/dashboard">Hub</Link>
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => signOut()}>
-                  Sign Out
-                </Button>
-              </>
-            ) : (
-              <Button variant="hero" size="sm" asChild>
-                <Link to="/login">Client Login</Link>
-              </Button>
-            )}
-          </div>
+                      <div className="mb-4 h-px bg-white/[0.07]" />
 
-          {/* Mobile hamburger */}
-          <button
-            className="lg:hidden p-2 text-foreground"
-            onClick={() => setIsMobileOpen(true)}
-            aria-label="Open menu"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-        </div>
-      </header>
-
-      {/* ── Full-screen mobile overlay ──────────────────────────────────────── */}
-      {isMobileOpen && (
-        <div className="fixed inset-0 z-[60] bg-background flex flex-col overflow-y-auto">
-          {/* Overlay header */}
-          <div className="flex items-center justify-between px-5 py-5 shrink-0">
-            <Link
-              to="/"
-              onClick={() => setIsMobileOpen(false)}
-              className="text-xl font-bold tracking-tight"
-            >
-              <span className="text-gradient-primary">GEM</span>
-              <span className="text-primary">.</span>
-            </Link>
-            <button
-              onClick={() => setIsMobileOpen(false)}
-              className="text-foreground/60 hover:text-foreground transition-colors"
-              aria-label="Close menu"
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Divider */}
-          <div className="border-t border-border/40" />
-
-          {/* Accordion sections */}
-          <nav className="flex-1">
-            {mobileSections.map((section) => {
-              const hasChildren = !!section.children;
-              const isOpen = openSection === section.id;
-
-              return (
-                <div key={section.id}>
-                  {hasChildren ? (
-                    <>
-                      {/* Collapsible header */}
-                      <button
-                        className="w-full flex items-center justify-between px-5 py-4 text-left"
-                        onClick={() => toggleSection(section.id)}
-                      >
-                        <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
-                          {section.label}
-                        </span>
-                        {isOpen ? (
-                          <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                        )}
-                      </button>
-
-                      {/* Sub-items */}
-                      {isOpen && (
-                        <div className="pb-2">
-                          {section.children!.map((child, i) => {
-                            const isLast = i === section.children!.length - 1;
-                            return (
+                      {/* 2-column grid of items */}
+                      <ul className="grid grid-cols-2 gap-1.5">
+                        {section.items.map((item) => (
+                          <li key={item.path}>
+                            <NavigationMenuLink asChild>
                               <Link
-                                key={child.href + child.label}
-                                to={child.href}
-                                onClick={() => setIsMobileOpen(false)}
+                                href={item.path}
                                 className={cn(
-                                  "block px-5 py-3 text-base transition-colors hover:text-foreground",
-                                  isLast
-                                    ? "font-semibold text-foreground"
-                                    : "font-normal text-muted-foreground"
+                                  "group/item block rounded-lg px-3 py-3 transition-all",
+                                  "hover:bg-white/[0.04]",
+                                  isActive(item.path)
+                                    ? "bg-[hsl(185,100%,45%)]/[0.08] ring-1 ring-[hsl(185,100%,45%)]/20"
+                                    : ""
                                 )}
                               >
-                                {child.label}
+                                <span
+                                  className={cn(
+                                    "block text-sm font-semibold leading-none transition-colors",
+                                    isActive(item.path)
+                                      ? "text-[hsl(185,100%,45%)]"
+                                      : "text-white/85 group-hover/item:text-white"
+                                  )}
+                                >
+                                  {item.label}
+                                </span>
+                                <span className="mt-1.5 block text-xs leading-snug text-white/40 group-hover/item:text-white/55">
+                                  {item.description}
+                                </span>
                               </Link>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    /* Simple top-level link */
-                    <Link
-                      to={section.href!}
-                      onClick={() => setIsMobileOpen(false)}
-                      className="flex items-center justify-between w-full px-5 py-4"
-                    >
-                      <span className="text-xs font-semibold tracking-widest text-muted-foreground uppercase">
-                        {section.label}
-                      </span>
-                      <ChevronDown className="w-4 h-4 text-muted-foreground opacity-40" />
-                    </Link>
-                  )}
-                  <div className="border-t border-border/40" />
-                </div>
-              );
-            })}
-
-            {/* Standalone bottom links */}
-            <div className="px-5 pt-4 pb-2 space-y-4">
-              <Link
-                to="/contact"
-                onClick={() => setIsMobileOpen(false)}
-                className="block text-base text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Contact
-              </Link>
-              <Link
-                to="/login"
-                onClick={() => setIsMobileOpen(false)}
-                className="block text-base text-primary font-medium hover:text-primary/80 transition-colors"
-              >
-                KYC Status
-              </Link>
-            </div>
-          </nav>
-
-          {/* Client Login button */}
-          <div className="px-5 pb-8 pt-4 shrink-0">
-            {user ? (
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => { signOut(); setIsMobileOpen(false); }}
-              >
-                Sign Out
-              </Button>
-            ) : (
-              <Button
-                className="w-full bg-foreground text-background hover:bg-foreground/90 font-semibold text-base h-14 rounded-xl"
-                asChild
-              >
-                <Link to="/login" onClick={() => setIsMobileOpen(false)}>
-                  Client Login
-                </Link>
-              </Button>
-            )}
-          </div>
+                            </NavigationMenuLink>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              ))}
+            </NavigationMenuList>
+          </NavigationMenu>
         </div>
-      )}
-    </>
+
+        {/* ── Desktop utility actions ───────────────────────────── */}
+        <div className="hidden lg:flex lg:items-center lg:gap-2">
+          <Link
+            href="/contact"
+            className="rounded-md px-3 py-2 text-sm font-medium text-white/55 transition-colors hover:bg-white/5 hover:text-white"
+          >
+            Contact
+          </Link>
+
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="border border-white/10 bg-transparent text-white/70 hover:border-white/20 hover:bg-white/5 hover:text-white"
+          >
+            <Link href="/client-login">Client Login</Link>
+          </Button>
+
+          <Button
+            asChild
+            size="sm"
+            className="bg-[hsl(185,100%,45%)] font-semibold text-[#131a26] shadow-[0_0_20px_hsl(185,100%,45%,0.35)] transition-all hover:bg-[hsl(185,100%,50%)] hover:shadow-[0_0_28px_hsl(185,100%,45%,0.5)]"
+          >
+            <Link href="/get-started">Get Started</Link>
+          </Button>
+        </div>
+
+        {/* ── Mobile hamburger ──────────────────────────────────── */}
+        <button
+          type="button"
+          aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-nav"
+          className="flex items-center justify-center rounded-md p-2 text-white/60 transition-colors hover:bg-white/5 hover:text-white lg:hidden"
+          onClick={() => setMobileOpen((prev) => !prev)}
+        >
+          {mobileOpen ? (
+            <X className="h-5 w-5" aria-hidden="true" />
+          ) : (
+            <Menu className="h-5 w-5" aria-hidden="true" />
+          )}
+        </button>
+      </div>
+
+      {/* ── Mobile slide-down panel ───────────────────────────────── */}
+      <div
+        id="mobile-nav"
+        aria-hidden={!mobileOpen}
+        className={cn(
+          "overflow-hidden transition-[max-height] duration-300 ease-in-out lg:hidden",
+          mobileOpen ? "max-h-[calc(100dvh-4rem)]" : "max-h-0"
+        )}
+      >
+        <nav className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-white/[0.07] bg-[#0e1420] px-4 py-4">
+          {/* Nav sections */}
+          <ul className="space-y-0.5" role="list">
+            {navigationMenu.map((section) => (
+              <li key={section.group}>
+                <button
+                  type="button"
+                  aria-expanded={openSection === section.label}
+                  className={cn(
+                    "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-white/5",
+                    isSectionActive(section.path)
+                      ? "text-[hsl(185,100%,45%)]"
+                      : "text-white/70 hover:text-white"
+                  )}
+                  onClick={() => toggleSection(section.label)}
+                >
+                  {section.label}
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 text-white/30 transition-transform duration-200",
+                      openSection === section.label && "rotate-180 text-[hsl(185,100%,45%)]"
+                    )}
+                    aria-hidden="true"
+                  />
+                </button>
+
+                <div
+                  className={cn(
+                    "overflow-hidden transition-all duration-250 ease-in-out",
+                    openSection === section.label
+                      ? "max-h-[30rem] opacity-100"
+                      : "max-h-0 opacity-0"
+                  )}
+                >
+                  <ul className="ml-3 mt-1 space-y-0.5 border-l border-white/[0.07] pl-3">
+                    {/* Parent section link */}
+                    <li>
+                      <Link
+                        href={section.path}
+                        className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold uppercase tracking-widest text-[hsl(185,100%,45%)]/70 transition-colors hover:text-[hsl(185,100%,45%)]"
+                        onClick={closeMobile}
+                      >
+                        All {section.label}
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    </li>
+
+                    {section.items.map((item) => (
+                      <li key={item.path}>
+                        <Link
+                          href={item.path}
+                          className={cn(
+                            "block rounded-md px-2 py-2 transition-colors hover:bg-white/5",
+                            isActive(item.path)
+                              ? "text-[hsl(185,100%,45%)]"
+                              : "text-white/55 hover:text-white"
+                          )}
+                          onClick={closeMobile}
+                        >
+                          <span className="block text-sm font-medium leading-none">
+                            {item.label}
+                          </span>
+                          <span className="mt-1 block text-xs text-white/35">
+                            {item.description}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          {/* Utility actions */}
+          <div className="mt-5 space-y-2 border-t border-white/[0.07] pt-5">
+            <Link
+              href="/contact"
+              className="block rounded-lg px-3 py-2.5 text-sm font-medium text-white/60 transition-colors hover:bg-white/5 hover:text-white"
+              onClick={closeMobile}
+            >
+              Contact
+            </Link>
+
+            <Button
+              asChild
+              variant="ghost"
+              className="w-full justify-start border border-white/10 bg-transparent text-white/70 hover:border-white/20 hover:bg-white/5 hover:text-white"
+            >
+              <Link href="/client-login" onClick={closeMobile}>
+                Client Login
+              </Link>
+            </Button>
+
+            <Button
+              asChild
+              className="w-full bg-[hsl(185,100%,45%)] font-semibold text-[#131a26] shadow-[0_0_20px_hsl(185,100%,45%,0.3)] hover:bg-[hsl(185,100%,50%)]"
+            >
+              <Link href="/get-started" onClick={closeMobile}>
+                Get Started
+              </Link>
+            </Button>
+          </div>
+
+          {/* Mobile bottom compliance note */}
+          <p className="mt-5 px-1 text-[11px] leading-relaxed text-white/25">
+            GEM Enterprise is for qualified clients only. Access requires KYC
+            verification and compliance approval.
+          </p>
+        </nav>
+      </div>
+    </header>
   );
-};
+}
