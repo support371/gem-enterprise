@@ -415,7 +415,7 @@ export default function BlogManage() {
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold text-foreground truncate">{post.title}</h3>
                       {post.featured && (
-                        <Star className="w-4 h-4 text-yellow-500 shrink-0" />
+                        <Star className="w-4 h-4 text-primary shrink-0" />
                       )}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
