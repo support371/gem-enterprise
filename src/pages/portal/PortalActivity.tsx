@@ -1,5 +1,11 @@
 import { Activity, CheckCircle2, AlertTriangle, LogIn, Settings, FileText, Trash2 } from "lucide-react";
 import { PortalLayout } from "@/components/portal/PortalLayout";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+function getActorAvatar(actor: string): string {
+  if (actor === "System") return "";
+  return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(actor)}&backgroundColor=1e3a5f,0f172a&textColor=60a5fa&fontSize=38&fontWeight=600`;
+}
 
 type EventType = "login" | "incident" | "task" | "system" | "settings" | "document" | "delete";
 
@@ -71,18 +77,32 @@ export default function PortalActivity() {
               const color = eventColor[event.type];
               return (
                 <div key={event.id} className="flex items-start gap-4 px-5 py-4">
-                  {/* Icon */}
-                  <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${color}`}>
-                    <Icon className="w-3.5 h-3.5" />
-                  </div>
+                  {/* Actor Avatar */}
+                  {event.actor === "System" ? (
+                    <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 mt-0.5 ${color}`}>
+                      <Icon className="w-3.5 h-3.5" />
+                    </div>
+                  ) : (
+                    <Avatar className="w-8 h-8 shrink-0 mt-0.5 ring-1 ring-border">
+                      <AvatarImage src={getActorAvatar(event.actor)} alt={event.actor} />
+                      <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                        {event.actor.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground">
-                      <span className="font-medium">{event.actor}</span>{" "}
-                      <span className="text-muted-foreground">{event.action}</span>{" "}
-                      <span className="font-medium text-primary">{event.resource}</span>
-                    </p>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <div className={`w-5 h-5 rounded border flex items-center justify-center ${color}`}>
+                        <Icon className="w-2.5 h-2.5" />
+                      </div>
+                      <p className="text-sm text-foreground">
+                        <span className="font-medium">{event.actor}</span>{" "}
+                        <span className="text-muted-foreground">{event.action}</span>{" "}
+                        <span className="font-medium text-primary">{event.resource}</span>
+                      </p>
+                    </div>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs text-muted-foreground">{event.timestamp}</span>
                       <span className="text-xs font-mono text-muted-foreground/50">{event.id}</span>

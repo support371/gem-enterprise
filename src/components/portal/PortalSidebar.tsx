@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole, Role } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface NavItem {
   label: string;
@@ -137,13 +138,37 @@ export function PortalSidebar({ className }: PortalSidebarProps) {
       {/* User Footer */}
       <div className="px-3 py-4 border-t border-sidebar-border space-y-3">
         {role && (
-          <div className="px-3 py-2 rounded-lg bg-sidebar-accent/50">
-            <p className="text-xs font-medium text-sidebar-foreground truncate">
-              {user?.email}
-            </p>
-            <p className="text-xs text-sidebar-foreground/50 mt-0.5">
-              {roleLabel[role]}
-            </p>
+          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-sidebar-accent/50">
+            <Avatar className="w-8 h-8 shrink-0 ring-1 ring-primary/20">
+              <AvatarImage
+                src={(user?.user_metadata?.avatar_url as string) || ""}
+                alt={
+                  (user?.user_metadata?.full_name as string) ||
+                  user?.email?.split("@")[0] ||
+                  "User"
+                }
+              />
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                {(
+                  (user?.user_metadata?.full_name as string) ||
+                  user?.email?.split("@")[0] ||
+                  "U"
+                )
+                  .split(" ")
+                  .map((n: string) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-medium text-sidebar-foreground truncate">
+                {user?.email}
+              </p>
+              <p className="text-xs text-sidebar-foreground/50 mt-0.5">
+                {roleLabel[role]}
+              </p>
+            </div>
           </div>
         )}
         <Button

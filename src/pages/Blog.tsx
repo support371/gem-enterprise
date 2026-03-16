@@ -3,9 +3,31 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { GemAssist } from "@/components/GemAssist";
 import { AnimatedSection, StaggerContainer, StaggerItem } from "@/components/AnimatedSection";
-import { Newspaper, Clock, ArrowRight, User, Tag } from "lucide-react";
+import { Newspaper, Clock, ArrowRight, Tag } from "lucide-react";
 import { Link } from "react-router-dom";
 import { usePublishedPosts, useCategories } from "@/hooks/useBlog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+// Curated cybersecurity Unsplash cover images cycled deterministically by post index
+const COVER_IMAGES = [
+  "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=450&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1510511459019-5dda7724fd87?w=800&h=450&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=800&h=450&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=800&h=450&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=800&h=450&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800&h=450&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&h=450&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=800&h=450&fit=crop&auto=format",
+];
+
+function getPostCoverImage(postId: string, index: number): string {
+  // Use index for deterministic cycling, fallback to hash of id
+  return COVER_IMAGES[index % COVER_IMAGES.length];
+}
+
+function getAuthorAvatar(authorName: string): string {
+  return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorName)}&backgroundColor=1e3a5f,0f172a&textColor=60a5fa&fontSize=38&fontWeight=600`;
+}
 
 const Blog = () => {
   const [activeCategory, setActiveCategory] = useState("all");
@@ -84,7 +106,14 @@ const Blog = () => {
                       {featuredPosts.map((post, index) => (
                         <AnimatedSection key={post.id} delay={index * 0.1}>
                           <Link to={`/blog/${post.slug}`} className="group block">
-                            <div className="aspect-video bg-gradient-to-br from-primary/10 to-accent/10 rounded-xl mb-4" />
+                            <div className="aspect-video rounded-xl mb-4 overflow-hidden bg-secondary">
+                              <img
+                                src={getPostCoverImage(post.id, index)}
+                                alt={post.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                loading="lazy"
+                              />
+                            </div>
                             <div className="flex items-center gap-3 mb-3">
                               <span className="px-2 py-1 rounded bg-primary/10 text-primary text-xs font-medium">
                                 {post.category?.name || "Uncategorized"}
@@ -110,9 +139,12 @@ const Blog = () => {
                               </div>
                             )}
                             <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-                                <User className="w-5 h-5 text-muted-foreground" />
-                              </div>
+                              <Avatar className="w-10 h-10 ring-1 ring-border">
+                                <AvatarImage src={getAuthorAvatar(post.author_name)} alt={post.author_name} />
+                                <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                                  {post.author_name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                                </AvatarFallback>
+                              </Avatar>
                               <div>
                                 <div className="text-sm font-medium text-foreground">
                                   {post.author_name}
@@ -151,7 +183,14 @@ const Blog = () => {
                             to={`/blog/${post.slug}`}
                             className="group flex flex-col md:flex-row gap-6 glass-panel rounded-xl p-6 hover:border-primary/30 transition-all"
                           >
-                            <div className="md:w-48 aspect-video md:aspect-square bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg shrink-0" />
+                            <div className="md:w-48 aspect-video md:aspect-square rounded-lg shrink-0 overflow-hidden bg-secondary">
+                              <img
+                                src={getPostCoverImage(post.id, featuredPosts.length + regularPosts.indexOf(post))}
+                                alt={post.title}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                loading="lazy"
+                              />
+                            </div>
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-2">
                                 <span className="text-xs text-primary font-medium">

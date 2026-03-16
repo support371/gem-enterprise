@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { PortalLayout } from "@/components/portal/PortalLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const stats = [
   { label: "Active Incidents", value: "3", delta: "+1 today", icon: AlertTriangle, accent: "text-destructive", bg: "bg-destructive/10", border: "border-destructive/20" },
@@ -45,22 +46,43 @@ export default function Portal() {
     ? { admin: "Administrator", manager: "Manager", analyst: "Analyst", viewer: "Viewer" }[role]
     : "User";
 
+  const avatarUrl: string = (user?.user_metadata?.avatar_url as string) || "";
+  const displayName: string =
+    (user?.user_metadata?.full_name as string) ||
+    (user?.user_metadata?.name as string) ||
+    user?.email?.split("@")[0] ||
+    "User";
+  const initials = displayName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
   return (
     <PortalLayout>
       <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Shield className="w-5 h-5 text-primary" />
-              <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-                GEM Fortress Portal
-              </span>
+          <div className="flex items-center gap-4">
+            <Avatar className="w-12 h-12 ring-2 ring-primary/20 ring-offset-2 ring-offset-background shrink-0">
+              <AvatarImage src={avatarUrl} alt={displayName} />
+              <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <Shield className="w-4 h-4 text-primary" />
+                <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
+                  GEM Fortress Portal
+                </span>
+              </div>
+              <h1 className="text-2xl font-bold text-foreground">Security Overview</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Welcome back, <span className="text-foreground font-medium">{displayName}</span>
+              </p>
             </div>
-            <h1 className="text-2xl font-bold text-foreground">Security Overview</h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Welcome back, <span className="text-foreground font-medium">{user?.email}</span>
-            </p>
           </div>
           <span className="shrink-0 text-xs font-medium px-3 py-1.5 rounded-full border bg-primary/10 text-primary border-primary/20">
             {roleLabel}

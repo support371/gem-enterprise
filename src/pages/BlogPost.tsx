@@ -3,9 +3,30 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { GemAssist } from "@/components/GemAssist";
 import { AnimatedSection } from "@/components/AnimatedSection";
-import { ArrowLeft, Clock, User, Tag, Calendar } from "lucide-react";
+import { ArrowLeft, Clock, Tag, Calendar } from "lucide-react";
 import { usePostBySlug } from "@/hooks/useBlog";
 import ReactMarkdown from "react-markdown";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+const COVER_IMAGES = [
+  "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200&h=600&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1510511459019-5dda7724fd87?w=1200&h=600&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=1200&h=600&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=1200&h=600&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1200&h=600&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&h=600&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&h=600&fit=crop&auto=format",
+  "https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=1200&h=600&fit=crop&auto=format",
+];
+
+function getPostCoverImage(postId: string): string {
+  const charCode = postId.charCodeAt(postId.length - 1) || 0;
+  return COVER_IMAGES[charCode % COVER_IMAGES.length];
+}
+
+function getAuthorAvatar(authorName: string): string {
+  return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorName)}&backgroundColor=1e3a5f,0f172a&textColor=60a5fa&fontSize=38&fontWeight=600`;
+}
 
 export default function BlogPost() {
   const { slug } = useParams<{ slug: string }>();
@@ -77,9 +98,12 @@ export default function BlogPost() {
               )}
 
               <div className="flex items-center gap-4 mb-8 pb-8 border-b border-border">
-                <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center">
-                  <User className="w-6 h-6 text-muted-foreground" />
-                </div>
+                <Avatar className="w-12 h-12 ring-2 ring-border">
+                  <AvatarImage src={getAuthorAvatar(post.author_name)} alt={post.author_name} />
+                  <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                    {post.author_name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
                   <div className="font-medium text-foreground">
                     {post.author_name}
@@ -102,6 +126,15 @@ export default function BlogPost() {
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* Cover image */}
+              <div className="aspect-video rounded-xl overflow-hidden bg-secondary mb-10">
+                <img
+                  src={getPostCoverImage(post.id)}
+                  alt={post.title}
+                  className="w-full h-full object-cover"
+                />
               </div>
 
               {post.tags && post.tags.length > 0 && (

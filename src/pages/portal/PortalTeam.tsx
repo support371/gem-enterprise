@@ -1,5 +1,11 @@
 import { Users, Mail, Shield, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { PortalLayout } from "@/components/portal/PortalLayout";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+// DiceBear initials-style avatars for team members
+function getMemberAvatar(name: string): string {
+  return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=1e3a5f,0f172a&textColor=60a5fa&fontSize=38&fontWeight=600`;
+}
 
 type MemberRole = "admin" | "manager" | "analyst" | "viewer";
 type OnlineStatus = "Online" | "Away" | "Offline";
@@ -79,11 +85,12 @@ export default function PortalTeam() {
             >
               {/* Avatar + Status */}
               <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <span className="text-sm font-bold text-primary">
+                <Avatar className="w-10 h-10 ring-2 ring-border group-hover:ring-primary/30 transition-colors">
+                  <AvatarImage src={getMemberAvatar(member.name)} alt={member.name} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
                     {member.name.split(" ").map((n) => n[0]).join("")}
-                  </span>
-                </div>
+                  </AvatarFallback>
+                </Avatar>
                 <div className="flex items-center gap-1.5">
                   <StatusIcon status={member.status} />
                   <span className={`text-xs font-medium ${statusText[member.status]}`}>
