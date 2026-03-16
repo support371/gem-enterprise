@@ -29,6 +29,7 @@ export const GemAssist = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -143,7 +144,7 @@ export const GemAssist = () => {
   const handleQuickAction = (action: typeof quickActions[0]) => {
     if (action.label === "Live Agent") {
       setIsOpen(false);
-      window.location.href = "/contact";
+      navigate("/contact");
       return;
     }
     handleSend(action.message);
@@ -243,7 +244,7 @@ export const GemAssist = () => {
                     <p className="text-sm text-muted-foreground">
                       How can I assist you today?
                     </p>
-                    <p className="text-[10px] text-muted-foreground/60 mt-2">02:23 PM</p>
+                    <p className="text-[10px] text-muted-foreground/60 mt-2">{new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
                   </div>
                   
                   {/* Quick Action Chips */}

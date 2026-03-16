@@ -3,10 +3,10 @@ import { Link } from "react-router-dom";
 
 const footerLinks = {
   Solutions: [
-    { label: "Threat Detection", href: "/solutions/threat-monitoring" },
-    { label: "SOC Services", href: "/solutions/soc-services" },
-    { label: "Asset Recovery", href: "/solutions/asset-recovery" },
-    { label: "Cloud Security", href: "/solutions/cloud-security" },
+    { label: "Cyber Defense", href: "/solutions/cyber-defense" },
+    { label: "Threat Detection", href: "/solutions/threat-detection" },
+    { label: "Digital Asset Protection", href: "/solutions/digital-asset-protection" },
+    { label: "Trust & Real-Asset Security", href: "/solutions/trust-security" },
   ],
   Company: [
     { label: "About Us", href: "/trust-center" },
@@ -79,13 +79,13 @@ export const Footer = () => {
             
             {/* Contact Info */}
             <div className="space-y-3 mb-6">
-              <a href="tel:+1-555-GEM-SECURE" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <a href="tel:+14017022460" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <Phone className="w-4 h-4" />
-                +1-555-GEM-SECURE
+                +1 (401) 702-2460
               </a>
-              <a href="mailto:contact@gemcybersecurity.com" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <a href="mailto:Assist@gemcybersecurityassist.com" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
                 <Mail className="w-4 h-4" />
-                contact@gemcybersecurity.com
+                Assist@gemcybersecurityassist.com
               </a>
             </div>
 
