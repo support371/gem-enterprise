@@ -13,6 +13,7 @@ import {
   BookOpen,
   FileText,
   ChevronDown,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "react-router-dom";
@@ -60,18 +61,28 @@ const resourceLinks = [
     href: "/blog",
     icon: Newspaper,
     description: "Insights, threat intelligence, and cybersecurity news from our experts.",
+    external: false,
   },
   {
     title: "Resources",
     href: "/resources",
     icon: FileText,
     description: "Whitepapers, guides, and tools to strengthen your security posture.",
+    external: false,
   },
   {
     title: "Trust Center",
     href: "/trust-center",
     icon: BookOpen,
     description: "Our security policies, compliance certifications, and transparency reports.",
+    external: false,
+  },
+  {
+    title: "GEM Sentinel",
+    href: "/gem-sentinel",
+    icon: Shield,
+    description: "GEM Sentinel Trust — our full security & compliance portal site.",
+    external: false,
   },
 ];
 
@@ -197,7 +208,7 @@ export const Navigation = () => {
                   Learn
                 </NavigationMenuTrigger>
                 <NavigationMenuContent>
-                  <div className="w-[380px] p-5 bg-background border border-border rounded-xl shadow-lg">
+                  <div className="w-[400px] p-5 bg-background border border-border rounded-xl shadow-lg">
                     <h4 className="text-sm font-semibold text-foreground mb-4">Resources & Trust</h4>
                     <div className="space-y-1">
                       {resourceLinks.map((item) => (
@@ -206,17 +217,32 @@ export const Navigation = () => {
                             to={item.href}
                             className="group flex items-start gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors"
                           >
-                            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                            <div className={cn(
+                              "w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors",
+                              item.title === "GEM Sentinel"
+                                ? "bg-primary/20 group-hover:bg-primary/30"
+                                : "bg-primary/10 group-hover:bg-primary/20"
+                            )}>
                               <item.icon className="w-4 h-4 text-primary" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h5 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                                {item.title}
-                              </h5>
+                              <div className="flex items-center gap-2">
+                                <h5 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                                  {item.title}
+                                </h5>
+                                {item.title === "GEM Sentinel" && (
+                                  <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 leading-none">
+                                    Site
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
                                 {item.description}
                               </p>
                             </div>
+                            {item.title === "GEM Sentinel" && (
+                              <ExternalLink className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
+                            )}
                           </Link>
                         </NavigationMenuLink>
                       ))}
@@ -349,7 +375,12 @@ export const Navigation = () => {
                     onClick={() => setIsMobileOpen(false)}
                   >
                     <item.icon className="w-4 h-4 text-primary shrink-0" />
-                    {item.title}
+                    <span className="flex-1">{item.title}</span>
+                    {item.title === "GEM Sentinel" && (
+                      <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20 leading-none shrink-0">
+                        Site
+                      </span>
+                    )}
                   </Link>
                 ))}
               </div>

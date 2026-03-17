@@ -22,6 +22,7 @@ import Dashboard from "./pages/Dashboard";
 import ResetPassword from "./pages/ResetPassword";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
+import GemSentinel from "./pages/GemSentinel";
 
 // Portal pages
 import Portal from "./pages/portal/Portal";
@@ -62,6 +63,7 @@ const App = () => (
             <Route path="/blog/manage" element={<LegacyProtectedRoute><BlogManage /></LegacyProtectedRoute>} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/gem-sentinel" element={<GemSentinel />} />
 
             {/* ── Auth ──────────────────────────────────────────────────── */}
             {/* /auth  → portal-aware: preserves return path, wraps with PublicOnlyRoute */}
