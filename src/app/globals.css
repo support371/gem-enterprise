@@ -62,6 +62,12 @@
     --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 
+    /* ATR / Alliance Trust Realty theme */
+    --atr-primary: 222 47% 11%;     /* Deep Navy */
+    --atr-secondary: 45 29% 47%;    /* Muted Gold */
+    --atr-gold: 43 74% 66%;         /* Light Gold */
+    --atr-accent: 197 37% 24%;      /* Teal */
+
     /* Sidebar */
     --sidebar-background: 220 15% 10%;
     --sidebar-foreground: var(--cloud-dancer);
