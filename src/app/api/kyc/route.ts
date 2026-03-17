@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
           userId: session.userId,
           entityType,
           status: "started",
-          formData: formData ?? {},
+          formData: (formData ?? {}) as Prisma.InputJsonValue,
         },
       });
 
@@ -57,14 +58,14 @@ export async function POST(request: NextRequest) {
           action: "kyc_start",
           resource: "kyc_application",
           resourceId: application.id,
-          metadata: { entityType },
+          metadata: { entityType } as Prisma.InputJsonValue,
         },
       });
     } else {
       application = await db.kYCApplication.update({
         where: { id: existing.id },
         data: {
-          formData: formData ?? existing.formData ?? {},
+          formData: (formData ?? existing.formData ?? {}) as Prisma.InputJsonValue,
           status: "in_progress",
           entityType,
         },

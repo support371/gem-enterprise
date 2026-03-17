@@ -180,11 +180,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </main>
       </div>
 
-      <style jsx global>{`
-        @media (max-width: 1023px) {
-          .sidebar-label { display: block; }
-        }
-      `}</style>
     </div>
   )
 }
