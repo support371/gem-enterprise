@@ -70,6 +70,25 @@
     --atr-gold: 43 74% 66%;         /* Light Gold */
     --atr-accent: 197 37% 24%;      /* Teal */
 
+    /* ── Service color tokens ──────────────────────────────── */
+    /* Cybersecurity — electric cyan family */
+    --svc-cyber:       185 100% 45%;
+    --svc-cyber-muted: 185 100% 45% / 0.12;
+
+    /* Financial — violet/purple family */
+    --svc-financial:       270 60% 65%;
+    --svc-financial-muted: 270 60% 65% / 0.12;
+
+    /* Real Estate — amber/gold family */
+    --svc-realty:       38 92% 60%;
+    --svc-realty-muted: 38 92% 60% / 0.12;
+
+    /* Surface elevation layers (dark) */
+    --surface-0: 220 15% 10%;
+    --surface-1: 220 15% 13%;
+    --surface-2: 220 15% 16%;
+    --surface-3: 220 15% 20%;
+
     /* Sidebar */
     --sidebar-background: 220 15% 10%;
     --sidebar-foreground: var(--cloud-dancer);
@@ -121,6 +140,20 @@
     --sidebar-accent-foreground: 220 15% 12%;
     --sidebar-border: 220 10% 88%;
     --sidebar-ring: 185 100% 35%;
+
+    /* Service tokens — light mode */
+    --svc-cyber:       185 100% 35%;
+    --svc-cyber-muted: 185 100% 35% / 0.1;
+    --svc-financial:       270 55% 50%;
+    --svc-financial-muted: 270 55% 50% / 0.1;
+    --svc-realty:       38 85% 45%;
+    --svc-realty-muted: 38 85% 45% / 0.1;
+
+    /* Surface elevation layers (light) */
+    --surface-0: 220 20% 99%;
+    --surface-1: 220 15% 97%;
+    --surface-2: 220 15% 94%;
+    --surface-3: 220 15% 90%;
   }
 }
 
@@ -164,6 +197,26 @@
     @apply -translate-y-1;
     box-shadow: var(--shadow-lg), var(--shadow-glow);
   }
+
+  /* Service-themed card accents */
+  .svc-cyber-card     { border-left: 3px solid hsl(var(--svc-cyber)); }
+  .svc-financial-card { border-left: 3px solid hsl(var(--svc-financial)); }
+  .svc-realty-card    { border-left: 3px solid hsl(var(--svc-realty)); }
+
+  /* Progress bar track */
+  .progress-track {
+    @apply h-1.5 rounded-full overflow-hidden;
+    background: hsl(var(--surface-3));
+  }
+  .progress-fill-cyber     { background: hsl(var(--svc-cyber)); }
+  .progress-fill-financial { background: hsl(var(--svc-financial)); }
+  .progress-fill-realty    { background: hsl(var(--svc-realty)); }
+
+  /* Active sidebar link */
+  .nav-active {
+    @apply text-white bg-white/10;
+  }
+  .nav-active svg { color: hsl(var(--electric-cyan)) !important; }
 }
 
 @layer utilities {
