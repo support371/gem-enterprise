@@ -61,6 +61,8 @@
     /* Typography */
     --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
+    --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+    --font-sans-atr: 'Manrope', 'Inter', system-ui, -apple-system, sans-serif;
 
     /* ATR / Alliance Trust Realty theme */
     --atr-primary: 222 47% 11%;     /* Deep Navy */
