@@ -1,93 +1,121 @@
-# Deployment – Gem-Assist (Vercel)
+# GEM Enterprise — Deployment Checklist
 
-## Overview
+## Stack
 
-This guide provides instructions for deploying and managing the Gem-Assist project on Vercel.
+Next.js 16 · Prisma · PostgreSQL · Vercel
 
-## Vercel Project Mapping
+---
 
--   **Project:** `gem-assist-s7kb`
--   **Production Branch:** `main`
--   **Preview Branches:** All Pull Request branches will automatically generate Preview deployments.
+## Vercel Project Settings
 
-## Branching & Release Workflow
+Add all secrets via **Vercel dashboard → Project → Settings → Environment Variables**
+or `vercel env add`. Never commit real values.
 
-The project follows a standard Git flow:
+### Required — Database
 
-1.  Create a feature branch from `main`.
-2.  Submit a Pull Request to `main`.
-3.  The PR is automatically deployed to a Preview environment on Vercel for review.
-4.  Once approved, the PR is merged into `main`, which triggers a Production deployment.
+| Variable | Environments | Notes |
+|----------|-------------|-------|
+| `DATABASE_URL` | Production, Preview | PostgreSQL URL. Use a connection pooler for serverless (PgBouncer / Neon / Supabase pooler). Format: `postgresql://USER:PASS@HOST:PORT/DB?sslmode=require` |
 
-## Required Environment Variables
+### Required — Authentication
 
-The following environment variables must be configured in your Vercel project:
+| Variable | Environments | Notes |
+|----------|-------------|-------|
+| `JWT_SECRET` | Production, Preview | **Minimum 32 chars.** Generate: `openssl rand -hex 32`. App throws at startup if absent or uses the default dev value. |
 
--   `TOOLHOUSE_API_KEY`
--   `VITE_SUPABASE_URL`
--   `VITE_SUPABASE_PUBLISHABLE_KEY`
+### Required — AI Governance
 
-*Note: There are no `GITHUB_CLIENT_ID` or `GITHUB_CLIENT_SECRET` variables as Supabase handles the GitHub OAuth integration.*
+| Variable | Environments | Notes |
+|----------|-------------|-------|
+| `ANTHROPIC_API_KEY` | Production, Preview | Anthropic key for GEM Concierge chat. If absent the widget uses rule-based fallback replies — no build failure. |
+| `NEXT_PUBLIC_AI_DISCLOSURE_TEXT` | Production, Preview | Disclosure text shown before first AI message. SHA-256 is stored in `consent_records`. Keep stable — changing it invalidates prior consent receipts. |
 
-## Local Run Instructions
+### Required — Email
 
-1.  **Install Dependencies:**
-    ```bash
-    npm install
-    ```
-2.  **Run Development Server:**
-    ```bash
-    npm run dev
-    ```
-3.  **Build for Production:**
-    ```bash
-    npm run build
-    ```
+| Variable | Environments | Notes |
+|----------|-------------|-------|
+| `SMTP_HOST` | Production | SMTP server hostname |
+| `SMTP_PORT` | Production | 587 (TLS) or 465 (SSL) |
+| `SMTP_USER` | Production | SMTP username |
+| `SMTP_PASS` | Production | SMTP password or app-password |
+| `EMAIL_FROM` | Production | e.g. `GEM Enterprise <noreply@gem-enterprise.com>` |
 
-## Vercel Deployment Steps (Dashboard)
+### Required — Application
 
-1.  **Connect Repository:** In the Vercel dashboard, import the `support371/Gem-Assist` GitHub repository.
-2.  **Configure Project:**
-    -   Set the **Framework Preset** to "Vite".
-    -   Set the **Production Branch** to `main`.
-3.  **Add Environment Variables:** In the project settings under "Environment Variables," add the variables listed above.
-4.  **Deploy:** Trigger a deployment. Subsequent pushes to `main` will automatically deploy to Production.
+| Variable | Environments | Notes |
+|----------|-------------|-------|
+| `NEXT_PUBLIC_APP_URL` | Production | Canonical URL, e.g. `https://gem-enterprise.com` |
+| `NEXT_PUBLIC_APP_NAME` | All | Display name. Default: `GEM Enterprise` |
+| `AUDIT_ENABLED` | Production | Set `true` to write audit events to the database. |
 
-## Vercel Deployment Steps (CLI)
+### First-deployment only — Admin bootstrap
 
-1.  **Log in to Vercel:**
-    ```bash
-    vercel login
-    ```
-2.  **Link Project:**
-    ```bash
-    vercel link --project gem-assist-s7kb
-    ```
-3.  **Add Environment Variables:**
-    ```bash
-    vercel env add TOOLHOUSE_API_KEY <value>
-    vercel env add VITE_SUPABASE_URL <value>
-    vercel env add VITE_SUPABASE_PUBLISHABLE_KEY <value>
-    ```
-4.  **Deploy to Production:**
-    ```bash
-    vercel --prod
-    ```
+| Variable | Environment | Notes |
+|----------|-------------|-------|
+| `ADMIN_EMAIL` | Production | Email for the initial admin account. |
+| `ADMIN_INITIAL_PASSWORD` | Production | Temporary password. **Change immediately after first login.** |
+
+---
+
+## Vercel CLI Setup
+
+```bash
+vercel link --project gem-enterprise
+
+vercel secrets add database_url      "postgresql://..."
+vercel secrets add jwt_secret        "$(openssl rand -hex 32)"
+vercel secrets add anthropic_api_key "sk-ant-..."
+vercel secrets add next_public_ai_disclosure_text "GEM Concierge is an AI assistant..."
+vercel secrets add smtp_host         "smtp.example.com"
+vercel secrets add smtp_port         "587"
+vercel secrets add smtp_user         "noreply@gem-enterprise.com"
+vercel secrets add smtp_pass         "..."
+vercel secrets add next_public_app_url "https://gem-enterprise.com"
+```
+
+---
+
+## First Deployment Steps
+
+1. Set all env vars above in Vercel.
+2. Push to `main` — Vercel runs `npm run db:generate && npm run build` automatically.
+3. **Apply database migrations** (Vercel does not run this automatically):
+   ```bash
+   DATABASE_URL="<production-url>" npx prisma migrate deploy
+   ```
+4. **Seed initial admin** (once):
+   ```bash
+   DATABASE_URL="<production-url>" npm run db:seed
+   ```
+5. Verify `/api/health` returns `200`.
+
+---
+
+## Preview Deployments
+
+Use a **separate preview database** (`DATABASE_URL` pointing to a different DB)
+to avoid polluting production data. Preview branches are auto-deployed by Vercel
+on every PR.
+
+---
 
 ## Post-Deploy Verification Checklist
 
--   [ ] Homepage loads correctly.
--   [ ] `/about`, `/solutions`, `/trust-center`, and `/resources` pages are accessible.
--   [ ] `/contact` form submits successfully.
--   [ ] `/login` page loads and GitHub authentication is successful.
--   [ ] `/dashboard` is protected and only accessible after login.
--   [ ] `/api/health` returns `{ "ok": true }`.
--   [ ] `/api/gem-assist` is functional and the `TOOLHOUSE_API_KEY` is not exposed client-side.
--   [ ] Theme toggle (light/dark) works and persists across page loads.
+- [ ] `/api/health` returns `{ "ok": true }`
+- [ ] Homepage loads; navigation works
+- [ ] `/client-login` accepts credentials; session cookie is set
+- [ ] `/app/dashboard` is accessible after login; redirects to `/client-login` when unauthenticated
+- [ ] `/app/admin` is accessible only for `admin` / `internal` roles
+- [ ] KYC flow (`/kyc/start` → `/kyc/status`) completes without errors
+- [ ] GEM Concierge chat widget requires disclosure acceptance before first message
+- [ ] AI escalation routes to advisor message for financial/legal/security queries
+- [ ] Audit log entries appear in `audit_logs` table after login and AI session open
+
+---
 
 ## Security Notes
 
--   **Never expose `TOOLHOUSE_API_KEY` client-side.** It should only be used in serverless functions.
--   Do not use the `NEXT_PUBLIC_` prefix for secrets.
--   Redeploy the application in Vercel after making any changes to environment variables.
--   Keep Preview and Production environment variables separate and appropriately configured for each environment.
+- **`JWT_SECRET`** must not use the default dev value in production. The app throws at startup if it does.
+- **`ANTHROPIC_API_KEY`** must never use the `NEXT_PUBLIC_` prefix.
+- Rotate `JWT_SECRET` and re-deploy to invalidate all active sessions.
+- `consent_records` are append-only. Do not delete rows from this table.
