@@ -114,6 +114,27 @@ enum AuditAction {
   request_submitted
   document_viewed
   password_reset
+  support_session_started
+  support_session_closed
+  support_consent_given
+  support_escalated
+  support_booking_created
+  ai_session_opened
+  ai_message_responded
+  ai_message_escalated
+  ai_session_closed
+}
+
+enum SupportSessionStatus {
+  active
+  escalated
+  closed
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  cancelled
 }
 
 // ─── Core Models ──────────────────────────────────────────────────────────────
@@ -535,4 +556,103 @@ model SuppressionList {
   suppressedAt DateTime @default(now())
 
   @@map("suppression_list")
+}
+
+// ─── Support Chat Sessions ────────────────────────────────────────────────────
+
+model SupportSession {
+  id            String               @id @default(cuid())
+  userId        String?
+  userTier      String               @default("standard")
+  status        SupportSessionStatus @default(active)
+  consentGiven  Boolean              @default(false)
+  consentAt     DateTime?
+  messages      Json                 @default("[]")
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  bookings      SupportBooking[]
+  escalations   SupportEscalation[]
+
+  @@map("support_sessions")
+}
+
+model SupportEscalation {
+  id          String   @id @default(cuid())
+  sessionId   String
+  reason      String
+  queue       String?
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  session     SupportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("support_escalations")
+}
+
+model SupportBooking {
+  id          String        @id @default(cuid())
+  sessionId   String?
+  userId      String?
+  name        String
+  email       String
+  subject     String
+  preferredAt DateTime?
+  status      BookingStatus @default(pending)
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  session     SupportSession? @relation(fields: [sessionId], references: [id])
+
+  @@map("support_bookings")
+}
+
+// ─── AI Governance ────────────────────────────────────────────────────────────
+
+model AiRun {
+  id                   String    @id @default(cuid())
+  profileId            String
+  modelVersion         String
+  promptClass          String    @default("GENERAL")
+  consentReceiptId     String
+  disclosureTextHash   String
+  transcriptPointer    String?
+  escalationTriggered  Boolean   @default(false)
+  escalationReason     String?
+  outputStatus         String    @default("open")  // open | closed | escalated
+  messageCount         Int       @default(0)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  consentRecord        ConsentRecord?
+  escalationEvents     AiEscalationEvent[]
+
+  @@map("ai_runs")
+}
+
+model ConsentRecord {
+  id                 String   @id @default(cuid())
+  aiRunId            String   @unique
+  userId             String?
+  disclosureTextHash String
+  consentGivenAt     DateTime @default(now())
+  ipAddress          String?
+  userAgent          String?
+
+  aiRun              AiRun    @relation(fields: [aiRunId], references: [id], onDelete: Cascade)
+
+  @@map("consent_records")
+}
+
+model AiEscalationEvent {
+  id             String   @id @default(cuid())
+  aiRunId        String
+  restrictedClass String
+  messagePreview String
+  createdAt      DateTime @default(now())
+
+  aiRun          AiRun    @relation(fields: [aiRunId], references: [id], onDelete: Cascade)
+
+  @@map("ai_escalation_events")
 }

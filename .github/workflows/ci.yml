@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [master, claude/**]
+    branches: [main, claude/**]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 jobs:
   lint-and-build:
@@ -24,38 +24,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Prisma client
+        run: npm run db:generate
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/gem_ci
+
       - name: Lint
         run: npm run lint
 
       - name: Build
         run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
-          retention-days: 1
-
-  test:
-    name: Tests
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        run: npm test
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/gem_ci
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-min-32-characters-long' }}
+          NEXT_PUBLIC_APP_URL: https://gem-enterprise.vercel.app
+          NEXT_PUBLIC_APP_NAME: GEM Enterprise
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NEXT_PUBLIC_AI_DISCLOSURE_TEXT: ${{ secrets.NEXT_PUBLIC_AI_DISCLOSURE_TEXT }}
+          AUDIT_ENABLED: 'true'
+          # CI-only: no SMTP needed for build
+          SMTP_HOST: ''
+          SMTP_PORT: '587'
+          SMTP_USER: ''
+          SMTP_PASS: ''

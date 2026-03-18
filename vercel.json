@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run db:generate && npm run build",
   "installCommand": "npm ci",
   "env": {
     "DATABASE_URL": "@database_url",
@@ -8,6 +8,11 @@
     "SMTP_HOST": "@smtp_host",
     "SMTP_PORT": "@smtp_port",
     "SMTP_USER": "@smtp_user",
-    "SMTP_PASS": "@smtp_pass"
+    "SMTP_PASS": "@smtp_pass",
+    "ANTHROPIC_API_KEY": "@anthropic_api_key",
+    "AUDIT_ENABLED": "true",
+    "NEXT_PUBLIC_APP_URL": "@next_public_app_url",
+    "NEXT_PUBLIC_APP_NAME": "GEM Enterprise",
+    "NEXT_PUBLIC_AI_DISCLOSURE_TEXT": "@next_public_ai_disclosure_text"
   }
 }

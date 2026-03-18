@@ -1,15 +1,15 @@
-import { InMemorySupportSessionStore } from "./stores/in-memory-support-session-store";
+import { PrismaSupportSessionStore } from "./stores/prisma-support-session-store";
 
-// ─── Singleton Store Instance ─────────────────────────────────────────────────
+// ─── Store Instance ───────────────────────────────────────────────────────────
+// Uses the Prisma-backed store in all environments.
 // Survives hot-reload in dev via globalThis.
-// Replace with a DB-backed store in production without changing callers.
 
 const globalForStore = globalThis as unknown as {
-  supportStore: InMemorySupportSessionStore | undefined;
+  supportStore: PrismaSupportSessionStore | undefined;
 };
 
 export const supportStore =
-  globalForStore.supportStore ?? new InMemorySupportSessionStore();
+  globalForStore.supportStore ?? new PrismaSupportSessionStore();
 
 if (process.env.NODE_ENV !== "production") {
   globalForStore.supportStore = supportStore;
