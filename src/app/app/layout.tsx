@@ -22,7 +22,9 @@ import {
   ChevronRight,
   LogOut,
   Menu,
+  UserCheck,
 } from 'lucide-react'
+import { AIChatWidget } from '@/components/AIChatWidget'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -44,6 +46,7 @@ const clientNavGroups = [
       { href: '/app/dashboard',  icon: LayoutDashboard, label: 'Dashboard' },
       { href: '/app/portfolios', icon: Briefcase,        label: 'Portfolios' },
       { href: '/app/products',   icon: Package,          label: 'Products' },
+      { href: '/app/profiles',   icon: UserCheck,        label: 'Profiles' },
     ],
   },
   {
@@ -257,6 +260,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+
+      {/* Governed AI chat widget — disclosure shown before first message (ADR-003) */}
+      <AIChatWidget profileId="PRF-005" profileName="Platform Support" />
     </div>
   )
 }
