@@ -1,4 +1,4 @@
-import { MessageSquare, Shield, ThumbsUp, Clock, Pin, Tag } from "lucide-react";
+import { MessageSquare, Shield, ThumbsUp, Clock, Pin } from "lucide-react";
 import { PortalLayout } from "@/components/portal/PortalLayout";
 
 const threads = [
@@ -101,7 +101,7 @@ export default function PortalCommunity() {
           </div>
           <div className="divide-y divide-border/40">
             {threads.map((thread) => (
-              <div key={thread.id} className="px-5 py-4 hover:bg-sidebar-accent/30 transition-colors cursor-pointer">
+              <div key={thread.id} className="px-5 py-4">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
                     <span className="text-xs font-bold text-primary">{thread.author[0]}</span>
