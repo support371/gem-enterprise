@@ -53,7 +53,7 @@ Likely failure path:
 
 ### Required env vars
 - `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
 
 No secrets should be hardcoded.
 

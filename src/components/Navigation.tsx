@@ -13,6 +13,7 @@ import {
   BookOpen,
   FileText,
   ChevronDown,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "react-router-dom";
@@ -257,9 +258,9 @@ export const Navigation = () => {
           {user ? (
             <>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/dashboard" className="flex items-center gap-2">
+                <Link to="/portal" className="flex items-center gap-2">
                   <Lock className="w-4 h-4" />
-                  Access
+                  Dashboard
                 </Link>
               </Button>
               <Button variant="outline" size="sm" onClick={() => signOut()}>
@@ -267,12 +268,17 @@ export const Navigation = () => {
               </Button>
             </>
           ) : (
-            <Button variant="hero" size="sm" asChild>
-              <Link to="/login" className="flex items-center gap-2">
-                <Github className="w-4 h-4" />
-                Login with GitHub
-              </Link>
-            </Button>
+            <>
+              <Button variant="ghost" size="sm" asChild>
+                <Link to="/auth">Sign In</Link>
+              </Button>
+              <Button variant="hero" size="sm" asChild>
+                <Link to="/register" className="flex items-center gap-2">
+                  Get Started
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </Button>
+            </>
           )}
         </div>
 
@@ -383,7 +389,7 @@ export const Navigation = () => {
               {user ? (
                 <>
                   <Button variant="ghost" className="justify-start" asChild>
-                    <Link to="/dashboard" onClick={() => setIsMobileOpen(false)}>
+                    <Link to="/portal" onClick={() => setIsMobileOpen(false)}>
                       <Lock className="w-4 h-4 mr-2" />
                       Dashboard
                     </Link>
@@ -393,12 +399,17 @@ export const Navigation = () => {
                   </Button>
                 </>
               ) : (
-                <Button variant="hero" asChild>
-                  <Link to="/login" onClick={() => setIsMobileOpen(false)} className="flex items-center gap-2">
-                    <Github className="w-4 h-4" />
-                    Login with GitHub
-                  </Link>
-                </Button>
+                <>
+                  <Button variant="ghost" className="justify-start" asChild>
+                    <Link to="/auth" onClick={() => setIsMobileOpen(false)}>Sign In</Link>
+                  </Button>
+                  <Button variant="hero" asChild>
+                    <Link to="/register" onClick={() => setIsMobileOpen(false)} className="flex items-center gap-2">
+                      Get Started
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </>
               )}
             </div>
           </nav>

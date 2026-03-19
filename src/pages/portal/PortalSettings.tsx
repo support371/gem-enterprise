@@ -1,11 +1,11 @@
 import { useState } from "react";
-import { Settings, Building2, Shield, Bell, CheckCircle2, Upload } from "lucide-react";
+import { Settings, Building2, Shield, Bell, CheckCircle2, UserCircle, ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { PortalLayout } from "@/components/portal/PortalLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 
 interface ToggleProps {
@@ -46,19 +46,6 @@ export default function PortalSettings() {
   const { user } = useAuth();
   const [saved, setSaved] = useState(false);
 
-  const avatarUrl: string = (user?.user_metadata?.avatar_url as string) || "";
-  const displayName: string =
-    (user?.user_metadata?.full_name as string) ||
-    (user?.user_metadata?.name as string) ||
-    user?.email?.split("@")[0] ||
-    "User";
-  const initials = displayName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
-
   // Organization
   const [orgName, setOrgName] = useState("GEM Enterprise Security");
   const [timezone, setTimezone] = useState("America/New_York");
@@ -95,31 +82,25 @@ export default function PortalSettings() {
           </p>
         </div>
 
-        {/* Profile */}
+        {/* Profile link */}
         <section className="glass-panel rounded-xl border border-border/50 p-5">
-          <div className="flex items-center gap-2 pb-3 border-b border-border/40 mb-5">
-            <Settings className="w-4 h-4 text-primary" />
-            <h2 className="text-sm font-semibold text-foreground">Profile</h2>
-          </div>
-          <div className="flex items-center gap-5">
-            <div className="relative group">
-              <Avatar className="w-20 h-20 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
-                <AvatarImage src={avatarUrl} alt={displayName} />
-                <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="absolute inset-0 rounded-full bg-background/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
-                <Upload className="w-5 h-5 text-foreground" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <UserCircle className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Your Profile</p>
+                <p className="text-xs text-muted-foreground">{user?.email}</p>
               </div>
             </div>
-            <div className="flex-1 space-y-1">
-              <p className="text-sm font-semibold text-foreground">{displayName}</p>
-              <p className="text-xs text-muted-foreground">{user?.email}</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Profile photo is synced from your login provider.
-              </p>
-            </div>
+            <Link
+              to="/profile"
+              className="flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
+            >
+              Edit profile
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         </section>
 

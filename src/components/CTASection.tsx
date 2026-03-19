@@ -54,12 +54,20 @@ export const CTASection = () => {
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
               <Button variant="hero" size="xl" asChild className="group">
-                <Link to="/contact" className="flex items-center gap-3">
+                <Link to="/register" className="flex items-center gap-3">
                   <div className="text-left">
-                    <span className="font-semibold block">Schedule Enterprise Consultation</span>
-                    <span className="text-xs opacity-80">Free security assessment & custom solution design</span>
+                    <span className="font-semibold block">Get Started Free</span>
+                    <span className="text-xs opacity-80">Create your account in minutes</span>
                   </div>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </Button>
+              <Button variant="glass" size="xl" asChild className="group">
+                <Link to="/contact" className="flex items-center gap-3">
+                  <div className="text-left">
+                    <span className="font-semibold block">Talk to Sales</span>
+                    <span className="text-xs opacity-80">Free security assessment</span>
+                  </div>
                 </Link>
               </Button>
             </div>

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { PublicOnlyRoute } from "@/components/auth/PublicOnlyRoute";
+import { Loader2, Shield } from "lucide-react";
 
 // Public site pages
 import Index from "./pages/Index";
@@ -23,22 +24,56 @@ import ResetPassword from "./pages/ResetPassword";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
+// Onboarding flow
+import Register from "./pages/Register";
+import KYC from "./pages/KYC";
+import KYCStatus from "./pages/KYCStatus";
+import Handoff from "./pages/Handoff";
+
 // Portal pages
 import Portal from "./pages/portal/Portal";
+import PortalServices from "./pages/portal/PortalServices";
 import PortalTasks from "./pages/portal/PortalTasks";
 import PortalIncidents from "./pages/portal/PortalIncidents";
+import PortalCommunity from "./pages/portal/PortalCommunity";
+import PortalWorkspace from "./pages/portal/PortalWorkspace";
 import PortalTeam from "./pages/portal/PortalTeam";
 import PortalActivity from "./pages/portal/PortalActivity";
 import PortalSettings from "./pages/portal/PortalSettings";
 import AllianceTrust from "./pages/portal/AllianceTrust";
 
-const queryClient = new QueryClient();
+// Standalone portal pages
+import Profile from "./pages/Profile";
+import Support from "./pages/Support";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+function AuthLoadingSpinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+          <Shield className="w-6 h-6 text-primary animate-pulse" />
+        </div>
+        <Loader2 className="w-5 h-5 text-muted-foreground animate-spin" />
+      </div>
+    </div>
+  );
+}
 
 // Legacy guard for non-portal protected routes (blog manage, dashboard)
 const LegacyProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
-  if (isLoading) return null;
-  if (!user) return <Navigate to="/login" replace />;
+  if (isLoading) return <AuthLoadingSpinner />;
+  if (!user) return <Navigate to="/auth" replace />;
   return <>{children}</>;
 };
 
@@ -64,18 +99,39 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* ── Auth ──────────────────────────────────────────────────── */}
-            {/* /auth  → portal-aware: preserves return path, wraps with PublicOnlyRoute */}
             <Route path="/auth" element={<PublicOnlyRoute><Auth /></PublicOnlyRoute>} />
-            {/* /login → legacy entry point (blog manage, dashboard) — kept for backward compat */}
             <Route path="/login" element={<Auth />} />
             <Route path="/dashboard" element={<LegacyProtectedRoute><Dashboard /></LegacyProtectedRoute>} />
 
+            {/* ── Onboarding flow ───────────────────────────────────────── */}
+            <Route path="/register" element={<PublicOnlyRoute><Register /></PublicOnlyRoute>} />
+            <Route path="/kyc" element={<ProtectedRoute><KYC /></ProtectedRoute>} />
+            <Route path="/kyc/status" element={<ProtectedRoute><KYCStatus /></ProtectedRoute>} />
+            <Route path="/handoff" element={<ProtectedRoute><Handoff /></ProtectedRoute>} />
+
             {/* ── Portal (auth + RBAC gated) ────────────────────────────── */}
+            {/* /portal/dashboard → same component as /portal */}
+            <Route
+              path="/portal/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "analyst", "viewer"]}>
+                  <Portal />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/portal"
               element={
                 <ProtectedRoute allowedRoles={["admin", "manager", "analyst", "viewer"]}>
                   <Portal />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/portal/services"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "analyst", "viewer"]}>
+                  <PortalServices />
                 </ProtectedRoute>
               }
             />
@@ -92,6 +148,22 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={["admin", "manager", "analyst"]}>
                   <PortalIncidents />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/portal/community"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "analyst", "viewer"]}>
+                  <PortalCommunity />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/portal/workspace"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "analyst", "viewer"]}>
+                  <PortalWorkspace />
                 </ProtectedRoute>
               }
             />
@@ -124,6 +196,32 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <PortalSettings />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ── Standalone portal pages ───────────────────────────────── */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "analyst", "viewer"]}>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Navigate to="/portal/settings" replace />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/support"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "analyst", "viewer"]}>
+                  <Support />
                 </ProtectedRoute>
               }
             />

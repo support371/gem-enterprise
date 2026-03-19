@@ -55,7 +55,7 @@ export default function ResetPassword() {
       toast({ variant: "destructive", title: "Update failed", description: error.message });
     } else {
       setIsSuccess(true);
-      setTimeout(() => navigate("/dashboard"), 2000);
+      setTimeout(() => navigate("/portal"), 2000);
     }
   };
 
@@ -64,7 +64,7 @@ export default function ResetPassword() {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <p className="text-muted-foreground">Invalid or expired reset link.</p>
-          <Link to="/login" className="text-primary hover:underline">Back to sign in</Link>
+          <Link to="/auth" className="text-primary hover:underline">Back to sign in</Link>
         </div>
       </div>
     );
@@ -76,7 +76,7 @@ export default function ResetPassword() {
       <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px]" />
 
       <div className="relative z-10 w-full max-w-md px-4">
-        <Link to="/login" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
+        <Link to="/auth" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-8">
           <ArrowLeft className="w-4 h-4" />
           Back to sign in
         </Link>

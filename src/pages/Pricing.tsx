@@ -85,13 +85,13 @@ const Pricing = () => {
               </p>
               <div className="flex flex-wrap justify-center gap-4">
                 <Button variant="hero" size="lg" asChild>
-                  <Link to="/contact">
-                    Request Quote
+                  <Link to="/register">
+                    Get Started
                     <ArrowRight className="w-4 h-4" />
                   </Link>
                 </Button>
                 <Button variant="glass" size="lg" asChild>
-                  <Link to="/solutions">View Solutions</Link>
+                  <Link to="/contact">Request Quote</Link>
                 </Button>
               </div>
             </AnimatedSection>
