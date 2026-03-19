@@ -29,12 +29,15 @@ export default function Auth() {
   const location = useLocation();
   const { toast } = useToast();
 
+  const SAFE_RETURN_PREFIXES = ["/portal", "/profile", "/support", "/settings", "/kyc"];
+
   useEffect(() => {
     if (user) {
-      // Return to the originally requested portal route, or fall back to /portal
       const from = location.state?.from;
       const dest =
-        typeof from === "string" && from.startsWith("/portal") ? from : "/portal";
+        typeof from === "string" && SAFE_RETURN_PREFIXES.some((p) => from.startsWith(p))
+          ? from
+          : "/portal";
       navigate(dest, { replace: true });
     }
   }, [user, navigate, location.state]);

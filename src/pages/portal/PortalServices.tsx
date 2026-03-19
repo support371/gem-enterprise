@@ -1,4 +1,4 @@
-import { Shield, CheckCircle2, Clock, ArrowRight, Zap, Lock, Globe, Server } from "lucide-react";
+import { Shield, CheckCircle2, Clock, Zap, Lock, Globe, Server } from "lucide-react";
 import { PortalLayout } from "@/components/portal/PortalLayout";
 
 const services = [
@@ -115,7 +115,6 @@ export default function PortalServices() {
                   </div>
                 </div>
               </div>
-              <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0 mt-1" />
             </div>
           ))}
         </div>

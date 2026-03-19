@@ -21,7 +21,7 @@ export default function Handoff() {
     user?.email?.split("@")[0] ||
     "there";
 
-  // Auto-redirect after 8 seconds
+  // Auto-redirect after 3 seconds
   useEffect(() => {
     const timer = setTimeout(() => navigate("/portal/dashboard"), 3000);
     return () => clearTimeout(timer);

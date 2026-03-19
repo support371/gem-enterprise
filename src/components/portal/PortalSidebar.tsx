@@ -121,7 +121,7 @@ export function PortalSidebar({ className }: PortalSidebarProps) {
       ? location.pathname === "/portal" || location.pathname === "/portal/dashboard"
       : location.pathname === href || location.pathname.startsWith(href + "/");
 
-  const SidebarContent = () => (
+  const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 py-5 border-b border-sidebar-border">
@@ -263,7 +263,7 @@ export function PortalSidebar({ className }: PortalSidebarProps) {
           className
         )}
       >
-        <SidebarContent />
+        {sidebarContent}
       </aside>
 
       {/* Desktop sidebar */}
@@ -273,7 +273,7 @@ export function PortalSidebar({ className }: PortalSidebarProps) {
           className
         )}
       >
-        <SidebarContent />
+        {sidebarContent}
       </aside>
     </>
   );
