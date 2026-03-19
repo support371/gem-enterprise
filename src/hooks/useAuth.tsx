@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, supabaseConfigError } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   user: User | null;
@@ -15,12 +15,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function ConfigErrorScreen() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="w-full max-w-sm text-center space-y-4">
+        <h1 className="text-xl font-bold text-foreground">Configuration Error</h1>
+        <p className="text-sm text-muted-foreground">{supabaseConfigError}</p>
+      </div>
+    </div>
+  );
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Skip Supabase initialization if config is missing
+    if (supabaseConfigError) {
+      setIsLoading(false);
+      return;
+    }
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -40,6 +57,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Render config error after hooks (rules of hooks compliance)
+  if (supabaseConfigError) {
+    return <ConfigErrorScreen />;
+  }
+
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -55,7 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl,
+        emailRedirectTo: `${window.location.origin}/kyc`,
         data: metadata,
       },
     });

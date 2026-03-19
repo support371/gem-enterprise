@@ -9,6 +9,8 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 
+const SAFE_RETURN_PREFIXES = ["/portal", "/profile", "/support", "/settings", "/kyc", "/handoff"];
+
 const authSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -35,7 +37,7 @@ export default function Auth() {
     if (user) {
       const from = location.state?.from;
       const dest =
-        typeof from === "string" && SAFE_RETURN_PREFIXES.some((p) => from.startsWith(p))
+        typeof from === "string" && SAFE_RETURN_PREFIXES.some((p) => from === p || from.startsWith(p + "/"))
           ? from
           : "/portal";
       navigate(dest, { replace: true });

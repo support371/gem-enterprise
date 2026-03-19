@@ -18,7 +18,7 @@ export function PublicOnlyRoute({ children }: PublicOnlyRouteProps) {
   if (user) {
     const from = location.state?.from;
     const dest =
-      typeof from === "string" && SAFE_RETURN_PREFIXES.some((p) => from.startsWith(p))
+      typeof from === "string" && SAFE_RETURN_PREFIXES.some((p) => from === p || from.startsWith(p + "/"))
         ? from
         : "/portal";
     return <Navigate to={dest} replace />;
