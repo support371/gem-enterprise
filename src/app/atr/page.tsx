@@ -131,117 +131,93 @@ export default function ATRPage() {
 
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
       <section
-        className="relative min-h-[90vh] w-full overflow-hidden flex items-center"
+        className="relative h-screen w-full overflow-hidden"
         style={{
           backgroundImage: "url('https://images.unsplash.com/photo-1486325212027-8081e485255e?w=1920&q=80')",
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
-        <div className="absolute inset-0" style={{ background: "rgba(10,15,30,0.65)" }} />
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)", backgroundSize: "50px 50px" }} />
+        <div className="absolute inset-0" style={{ background: "rgba(10,15,30,0.62)" }} />
 
-        <div className="relative container mx-auto px-4 z-10 py-20">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-8">
-              <div className="inline-block px-5 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-[0.25em] rounded-full">
-                Real Estate & Investor Services
-              </div>
-              <h1
-                className="text-5xl md:text-7xl font-black leading-[1.05] tracking-tighter text-white"
-                style={{ fontFamily: "var(--font-serif, 'Playfair Display', serif)" }}
-              >
-                The Evolution
-                <br />
-                <span className="bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">
-                  of Excellence
-                </span>
-              </h1>
-              <p className="text-xl text-slate-300 font-light max-w-xl leading-relaxed">
-                Alliance Trust Realty, powered by GEM Cybersecurity Assist, helps clients navigate
-                property opportunities, financing decisions, and investor support through a secure
-                digital operating model.
-              </p>
+        {/* Centered video controls */}
+        <div className="absolute inset-0 flex items-center justify-center gap-10 z-10">
+          <button onClick={() => {}} aria-label="Skip back 10 seconds" className="flex items-center gap-1.5 text-white/60 hover:text-white transition-colors font-mono text-sm">
+            <ChevronLeft className="w-4 h-4" />
+            10
+          </button>
+          <button
+            onClick={() => setIsPlaying((p) => !p)}
+            aria-label={isPlaying ? "Pause" : "Play"}
+            className="w-16 h-16 rounded-full border-2 border-white/50 hover:border-white flex items-center justify-center bg-white/5 hover:bg-white/15 backdrop-blur-sm transition-all"
+          >
+            {isPlaying ? <Pause className="w-6 h-6 text-white" /> : <Play className="w-6 h-6 text-white ml-0.5" />}
+          </button>
+          <button onClick={() => {}} aria-label="Skip forward 10 seconds" className="flex items-center gap-1.5 text-white/60 hover:text-white transition-colors font-mono text-sm">
+            10
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
 
-              {/* Video Controls */}
-              <div className="flex items-center gap-8 pt-2">
-                <button onClick={() => {}} aria-label="Skip back 10 seconds" className="flex items-center gap-1 text-white/80 hover:text-white transition-colors">
-                  <ChevronLeft className="w-5 h-5" />
-                  <span className="text-sm font-medium tracking-wide">10</span>
-                </button>
-                <button
-                  onClick={() => setIsPlaying((p) => !p)}
-                  aria-label={isPlaying ? "Pause" : "Play"}
-                  className="w-16 h-16 rounded-full border-2 border-white/70 hover:border-white flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-sm transition-all"
+        {/* Bottom-left title overlay */}
+        <div className="absolute bottom-12 left-8 lg:left-14 max-w-xl z-10">
+          <p className="text-xs tracking-[0.3em] text-amber-400/80 uppercase mb-3 font-medium">Our Story</p>
+          <h1
+            className="text-4xl lg:text-6xl text-white leading-tight"
+            style={{ fontFamily: "var(--font-serif, 'Playfair Display', serif)" }}
+          >
+            The Evolution<br />of Excellence
+          </h1>
+        </div>
+
+        {/* Bottom-right CTAs */}
+        <div className="absolute bottom-12 right-8 lg:right-14 z-10 flex flex-col sm:flex-row gap-3">
+          <Link href="/atr/invest">
+            <Button size="lg" className="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-7 rounded-full">
+              Schedule Consultation <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
+          <Link href="/atr/buy">
+            <Button size="lg" variant="outline" className="text-white border-white/30 hover:bg-white/10 font-semibold px-7 rounded-full backdrop-blur-sm">
+              Explore Properties
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* ── OUR STORY ──────────────────────────────────────────────────────── */}
+      <section className="py-24 px-6 lg:px-16" style={{ background: "#f8fafc" }}>
+        <div className="max-w-4xl mx-auto">
+          <p className="text-xs tracking-[0.3em] text-amber-600 uppercase mb-5 font-medium">Our Story</p>
+          <h2
+            className="text-4xl lg:text-5xl mb-8 leading-snug"
+            style={{ fontFamily: "var(--font-serif, 'Playfair Display', serif)", color: "hsl(222,47%,11%)" }}
+          >
+            The Evolution of Excellence
+          </h2>
+          <p className="text-lg text-slate-600 leading-relaxed max-w-3xl">
+            From pioneering cybersecurity solutions to mastering regulatory compliance and real
+            estate investment, The Alliance Enterprise represents the convergence of three critical
+            pillars of modern business success. We combine institutional discipline with
+            client-first design — delivering secure, transparent, and high-conviction investment
+            experiences across every engagement.
+          </p>
+          <div className="grid grid-cols-3 gap-8 mt-14">
+            {[
+              { value: "$2.8B+", label: "Assets Under Management" },
+              { value: "23%", label: "Avg. Annual Returns" },
+              { value: "500+", label: "Enterprise Clients" },
+            ].map((s) => (
+              <div key={s.label} className="flex flex-col gap-1 border-l-2 border-amber-400 pl-5">
+                <span
+                  className="text-3xl font-bold"
+                  style={{ fontFamily: "var(--font-serif, 'Playfair Display', serif)", color: "hsl(222,47%,11%)" }}
                 >
-                  {isPlaying ? <Pause className="w-6 h-6 text-white" /> : <Play className="w-6 h-6 text-white ml-0.5" />}
-                </button>
-                <button onClick={() => {}} aria-label="Skip forward 10 seconds" className="flex items-center gap-1 text-white/80 hover:text-white transition-colors">
-                  <span className="text-sm font-medium tracking-wide">10</span>
-                  <ChevronRight className="w-5 h-5" />
-                </button>
+                  {s.value}
+                </span>
+                <span className="text-sm text-slate-500 tracking-wide">{s.label}</span>
               </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                {[
-                  { value: "$2.5B+", label: "Portfolio Value" },
-                  { value: "12.4%", label: "Avg. ROI" },
-                  { value: "5,000+", label: "Properties Managed" },
-                ].map((s, i) => (
-                  <div key={i} className="text-center p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl">
-                    <div className="text-2xl md:text-3xl font-black bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">
-                      {s.value}
-                    </div>
-                    <div className="text-xs text-slate-400 mt-1 font-medium">{s.label}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                <Link href="/atr/invest">
-                  <Button size="lg" className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black px-10 py-7 text-base rounded-full shadow-2xl shadow-amber-500/30 group">
-                    Schedule Consultation <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </Link>
-                <Link href="/atr/buy">
-                  <Button size="lg" variant="outline" className="text-white border-white/20 hover:bg-white/10 font-black px-10 py-7 text-base rounded-full backdrop-blur-md">
-                    Explore Opportunities
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            {/* Investment Dashboard Card */}
-            <div className="hidden lg:block">
-              <div className="bg-white/[0.98] backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-white/20">
-                <div className="mb-6">
-                  <h3 className="text-2xl font-black text-slate-900" style={{ fontFamily: "var(--font-serif, 'Playfair Display', serif)" }}>
-                    Investment Dashboard
-                  </h3>
-                  <p className="text-slate-500 text-sm mt-1">Real-time portfolio tracking and analytics</p>
-                </div>
-                <div className="space-y-4">
-                  {[
-                    { label: "Portfolio Value", value: "$1,247,500", change: "+12.4% this quarter", positive: true, icon: "bg-blue-600", iconEl: DollarSign },
-                    { label: "Total ROI", value: "18.7%", change: "+2.3% from last year", positive: true, icon: "bg-emerald-600", iconEl: TrendingUp },
-                    { label: "Monthly Income", value: "$8,450", change: "Stable across 12 properties", positive: false, icon: "bg-amber-600", iconEl: BarChart3 },
-                  ].map((m, i) => (
-                    <div key={i} className="p-5 bg-gray-50 rounded-2xl border border-gray-200 hover:border-blue-300 transition-colors">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-gray-500">{m.label}</span>
-                        <div className={`w-9 h-9 ${m.icon} rounded-xl flex items-center justify-center text-white text-sm`}>
-                          <m.iconEl className="h-4 w-4" />
-                        </div>
-                      </div>
-                      <div className="text-3xl font-black text-slate-900">{m.value}</div>
-                      <div className={`text-sm font-semibold mt-1 ${m.positive ? "text-emerald-600" : "text-gray-500"}`}>
-                        {m.positive && "↑ "}{m.change}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
