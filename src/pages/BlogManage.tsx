@@ -66,7 +66,7 @@ export default function BlogManage() {
   const [tagDialogOpen, setTagDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && !user) navigate("/login");
+    if (!authLoading && !user) navigate("/auth");
   }, [user, authLoading, navigate]);
 
   if (authLoading || !user) return null;
