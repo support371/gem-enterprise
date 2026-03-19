@@ -23,7 +23,7 @@ export default function Handoff() {
 
   // Auto-redirect after 8 seconds
   useEffect(() => {
-    const timer = setTimeout(() => navigate("/portal/dashboard"), 8000);
+    const timer = setTimeout(() => navigate("/portal/dashboard"), 3000);
     return () => clearTimeout(timer);
   }, [navigate]);
 

@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
-import { Shield, Clock, CheckCircle2, Mail, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Shield, Clock, CheckCircle2, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 const steps = [
@@ -75,17 +74,13 @@ export default function KYCStatus() {
           </p>
         </div>
 
-        <Button asChild className="w-full">
-          <Link to="/handoff">
-            I've been approved — continue
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Link>
-        </Button>
-        <p className="text-xs text-muted-foreground mt-4">
-          Questions?{" "}
+        <p className="text-sm text-muted-foreground">
+          Once approved, you'll receive an email with a link to access the portal.
+          If you haven't heard back after 2 business days, please{" "}
           <Link to="/support" className="text-primary hover:underline">
-            Contact support
+            contact support
           </Link>
+          .
         </p>
 
         {/* Progress */}

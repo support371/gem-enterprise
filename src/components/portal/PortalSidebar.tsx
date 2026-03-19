@@ -118,8 +118,8 @@ export function PortalSidebar({ className }: PortalSidebarProps) {
 
   const isActive = (href: string) =>
     href === "/portal"
-      ? location.pathname === "/portal"
-      : location.pathname.startsWith(href);
+      ? location.pathname === "/portal" || location.pathname === "/portal/dashboard"
+      : location.pathname === href || location.pathname.startsWith(href + "/");
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">

@@ -46,7 +46,15 @@ import AllianceTrust from "./pages/portal/AllianceTrust";
 import Profile from "./pages/Profile";
 import Support from "./pages/Support";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function AuthLoadingSpinner() {
   return (
@@ -102,10 +110,14 @@ const App = () => (
             <Route path="/handoff" element={<ProtectedRoute><Handoff /></ProtectedRoute>} />
 
             {/* ── Portal (auth + RBAC gated) ────────────────────────────── */}
-            {/* /portal/dashboard → canonical dashboard URL */}
+            {/* /portal/dashboard → same component as /portal */}
             <Route
               path="/portal/dashboard"
-              element={<Navigate to="/portal" replace />}
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "analyst", "viewer"]}>
+                  <Portal />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="/portal"
@@ -199,7 +211,11 @@ const App = () => (
             />
             <Route
               path="/settings"
-              element={<Navigate to="/portal/settings" replace />}
+              element={
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <Navigate to="/portal/settings" replace />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="/support"

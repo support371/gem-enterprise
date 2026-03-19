@@ -183,6 +183,7 @@ export default function Support() {
               <AlertTriangle className="w-4 h-4 text-primary" />
               Your Tickets
             </h2>
+            <span className="text-xs text-muted-foreground italic">Sample data — live tickets coming soon</span>
           </div>
           <div className="divide-y divide-border/40">
             {tickets.map((t) => (
