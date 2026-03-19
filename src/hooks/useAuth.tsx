@@ -1,11 +1,13 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
-import { supabase, supabaseConfigError } from "@/integrations/supabase/client";
+import { supabase, isSupabaseConfigured, authUnavailableReason } from "@/integrations/supabase/client";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
+  isConfigured: boolean;
+  authUnavailableReason: string | null;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, metadata?: Record<string, string>) => Promise<{ error: Error | null; needsEmailConfirmation: boolean }>;
   signOut: () => Promise<void>;
@@ -15,16 +17,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function ConfigErrorScreen() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm text-center space-y-4">
-        <h1 className="text-xl font-bold text-foreground">Configuration Error</h1>
-        <p className="text-sm text-muted-foreground">{supabaseConfigError}</p>
-      </div>
-    </div>
-  );
-}
+const getConfigError = () =>
+  new Error(authUnavailableReason || "Supabase is not configured.");
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -32,31 +26,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Skip Supabase initialization if config is missing
-    if (supabaseConfigError) {
+    if (!isSupabaseConfigured || !supabase) {
+      setSession(null);
+      setUser(null);
       setIsLoading(false);
       return;
     }
 
-    // onAuthStateChange fires INITIAL_SESSION on mount (Supabase JS v2),
-    // covering the existing-session check. No separate getSession() needed.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (_event, nextSession) => {
+        setSession(nextSession);
+        setUser(nextSession?.user ?? null);
         setIsLoading(false);
       }
     );
 
+    supabase.auth.getSession()
+      .then(({ data: { session: nextSession } }) => {
+        setSession(nextSession);
+        setUser(nextSession?.user ?? null);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        setSession(null);
+        setUser(null);
+        setIsLoading(false);
+      });
+
     return () => subscription.unsubscribe();
   }, []);
 
-  // Render config error after hooks (rules of hooks compliance)
-  if (supabaseConfigError) {
-    return <ConfigErrorScreen />;
-  }
-
   const signIn = async (email: string, password: string) => {
+    if (!isSupabaseConfigured || !supabase) {
+      return { error: getConfigError() };
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -65,20 +69,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signUp = async (email: string, password: string, metadata?: Record<string, string>) => {
+    if (!isSupabaseConfigured || !supabase) {
+      return { error: getConfigError(), needsEmailConfirmation: false };
+    }
+
+    const redirectUrl = `${window.location.origin}/`;
+    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/kyc`,
+        emailRedirectTo: redirectUrl,
         data: metadata,
       },
     });
-    // data.session is null when email confirmation is required
+
     const needsEmailConfirmation = !error && !data.session;
     return { error: error as Error | null, needsEmailConfirmation };
   };
 
   const resetPassword = async (email: string) => {
+    if (!isSupabaseConfigured || !supabase) {
+      return { error: getConfigError() };
+    }
+
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
@@ -86,16 +100,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updatePassword = async (password: string) => {
+    if (!isSupabaseConfigured || !supabase) {
+      return { error: getConfigError() };
+    }
+
     const { error } = await supabase.auth.updateUser({ password });
     return { error: error as Error | null };
   };
 
   const signOut = async () => {
+    if (!isSupabaseConfigured || !supabase) return;
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isLoading, signIn, signUp, signOut, resetPassword, updatePassword }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        isLoading,
+        isConfigured: isSupabaseConfigured,
+        authUnavailableReason,
+        signIn,
+        signUp,
+        signOut,
+        resetPassword,
+        updatePassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
