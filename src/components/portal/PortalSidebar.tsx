@@ -13,6 +13,11 @@ import {
   X,
   ChevronRight,
   Building2,
+  Briefcase,
+  MessageSquare,
+  FolderOpen,
+  UserCircle,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -35,6 +40,12 @@ const navItems: NavItem[] = [
     allowedRoles: ["admin", "manager", "analyst", "viewer"],
   },
   {
+    label: "Services",
+    href: "/portal/services",
+    icon: Briefcase,
+    allowedRoles: ["admin", "manager", "analyst", "viewer"],
+  },
+  {
     label: "Tasks",
     href: "/portal/tasks",
     icon: ClipboardList,
@@ -45,6 +56,18 @@ const navItems: NavItem[] = [
     href: "/portal/incidents",
     icon: AlertTriangle,
     allowedRoles: ["admin", "manager", "analyst"],
+  },
+  {
+    label: "Community",
+    href: "/portal/community",
+    icon: MessageSquare,
+    allowedRoles: ["admin", "manager", "analyst", "viewer"],
+  },
+  {
+    label: "Workspace",
+    href: "/portal/workspace",
+    icon: FolderOpen,
+    allowedRoles: ["admin", "manager", "analyst", "viewer"],
   },
   {
     label: "Team",
@@ -136,9 +159,38 @@ export function PortalSidebar({ className }: PortalSidebarProps) {
       </nav>
 
       {/* User Footer */}
-      <div className="px-3 py-4 border-t border-sidebar-border space-y-3">
+      <div className="px-3 py-4 border-t border-sidebar-border space-y-1">
+        {/* Profile & Support links */}
+        <Link
+          to="/profile"
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+            location.pathname === "/profile"
+              ? "bg-sidebar-primary text-sidebar-primary-foreground"
+              : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          )}
+        >
+          <UserCircle className="w-4 h-4 shrink-0" />
+          <span className="flex-1">Profile</span>
+        </Link>
+        <Link
+          to="/support"
+          onClick={() => setMobileOpen(false)}
+          className={cn(
+            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+            location.pathname === "/support"
+              ? "bg-sidebar-primary text-sidebar-primary-foreground"
+              : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          )}
+        >
+          <HelpCircle className="w-4 h-4 shrink-0" />
+          <span className="flex-1">Support</span>
+        </Link>
+
+        {/* User card */}
         {role && (
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-sidebar-accent/50">
+          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-sidebar-accent/50 mt-2">
             <Avatar className="w-8 h-8 shrink-0 ring-1 ring-primary/20">
               <AvatarImage
                 src={(user?.user_metadata?.avatar_url as string) || ""}
