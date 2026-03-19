@@ -35,7 +35,6 @@ export default function Profile() {
     .toUpperCase()
     .slice(0, 2);
 
-  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
@@ -57,7 +56,6 @@ export default function Profile() {
       toast({ title: "Failed to update password", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Password updated successfully" });
-      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     }

@@ -23,7 +23,7 @@ export default function Handoff() {
 
   // Auto-redirect after 8 seconds
   useEffect(() => {
-    const timer = setTimeout(() => navigate("/portal"), 8000);
+    const timer = setTimeout(() => navigate("/portal/dashboard"), 8000);
     return () => clearTimeout(timer);
   }, [navigate]);
 
@@ -65,7 +65,7 @@ export default function Handoff() {
         </div>
 
         <Button asChild size="lg" className="w-full">
-          <Link to="/portal">
+          <Link to="/portal/dashboard">
             Go to Dashboard
             <ArrowRight className="w-4 h-4 ml-2" />
           </Link>
