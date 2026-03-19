@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { error: getConfigError(), needsEmailConfirmation: false };
     }
 
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = `${window.location.origin}/kyc`;
     
     const { data, error } = await supabase.auth.signUp({
       email,
