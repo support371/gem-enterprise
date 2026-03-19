@@ -20,6 +20,12 @@ const footerLinks = {
     { label: "Documentation", href: "/resources" },
     { label: "API", href: "/resources" },
   ],
+  Portal: [
+    { label: "Sign In", href: "/auth" },
+    { label: "Create Account", href: "/register" },
+    { label: "Client Dashboard", href: "/portal" },
+    { label: "Support", href: "/support" },
+  ],
   Legal: [
     { label: "Privacy Policy", href: "/trust-center" },
     { label: "Terms of Service", href: "/trust-center" },
