@@ -40,7 +40,7 @@ GEM Enterprise is a secure, invite-only platform that provides institutional and
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 15 (App Router) |
+| Framework | Next.js 16 (App Router) |
 | Language | TypeScript 5 |
 | ORM | Prisma 5 |
 | Database | PostgreSQL 15+ |
@@ -293,22 +293,65 @@ The following redirects are configured to maintain backward compatibility:
 
 | Variable | Required | Description |
 |---|---|---|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `JWT_SECRET` | Yes | JWT signing secret, min 32 chars. App throws at startup in production if absent or default. |
+| `ANTHROPIC_API_KEY` | No | Anthropic key for GEM Concierge chat. Falls back to rule-based replies if absent. |
+| `NEXT_PUBLIC_AI_DISCLOSURE_TEXT` | Yes | Disclosure text shown before first AI message. SHA-256 stored in `consent_records`. |
 | `NEXT_PUBLIC_APP_URL` | Yes | Canonical public URL of the application |
 | `NEXT_PUBLIC_APP_NAME` | Yes | Display name used in UI and emails |
-| `NODE_ENV` | Yes | `development`, `test`, or `production` |
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `JWT_SECRET` | Yes | Secret key for signing JWTs (min 32 chars) |
-| `ADMIN_EMAIL` | Yes | Email address for the seeded admin account |
-| `ADMIN_INITIAL_PASSWORD` | Yes | Initial password for the seeded admin account |
 | `SMTP_HOST` | Yes | SMTP server hostname |
-| `SMTP_PORT` | Yes | SMTP server port (typically `587` or `465`) |
+| `SMTP_PORT` | Yes | SMTP server port (`587` or `465`) |
 | `SMTP_USER` | Yes | SMTP authentication username |
 | `SMTP_PASS` | Yes | SMTP authentication password |
 | `EMAIL_FROM` | Yes | From address used in outbound emails |
-| `AUDIT_ENABLED` | No | Set to `true` to enable compliance audit logging |
+| `ADMIN_EMAIL` | Yes | Email address for the seeded admin account (seed script only) |
+| `ADMIN_INITIAL_PASSWORD` | Yes | Temporary password for seeded admin. Change immediately after first login. |
+| `AUDIT_ENABLED` | No | Set to `true` to persist compliance audit events to the database |
 | `VERCEL_URL` | Auto | Auto-injected by Vercel at build time |
 
 See [`.env.example`](.env.example) for a copy-paste template.
+
+---
+
+## Vercel Environment Setup
+
+> Add variables in **Vercel Dashboard → Project → Settings → Environment Variables**.
+> Do not place real values in `vercel.json`. See [`DEPLOYMENT.md`](DEPLOYMENT.md) for full steps.
+
+**Required before first deploy:**
+
+```bash
+# Add each via Vercel CLI or the dashboard
+vercel env add DATABASE_URL
+vercel env add JWT_SECRET                       # openssl rand -hex 32
+vercel env add NEXT_PUBLIC_AI_DISCLOSURE_TEXT
+vercel env add NEXT_PUBLIC_APP_URL
+vercel env add NEXT_PUBLIC_APP_NAME
+vercel env add SMTP_HOST
+vercel env add SMTP_PORT
+vercel env add SMTP_USER
+vercel env add SMTP_PASS
+vercel env add EMAIL_FROM
+vercel env add ADMIN_EMAIL
+vercel env add ADMIN_INITIAL_PASSWORD
+vercel env add AUDIT_ENABLED
+# Optional — enables live AI chat:
+vercel env add ANTHROPIC_API_KEY
+```
+
+**After adding variables, force a redeploy** (build-time variables are baked in at build):
+
+```bash
+vercel redeploy --force
+```
+
+**Apply database migrations** (Vercel does not run this automatically):
+
+```bash
+DATABASE_URL="<production-url>" npx prisma migrate deploy
+```
+
+Full ordered steps including smoke tests: [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
 ---
 
@@ -415,55 +458,20 @@ All `/app/*` routes are protected by `middleware.ts`, which validates the JWT on
 
 ## Deployment (Vercel)
 
-### 1. Connect Repository
+See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the complete ordered deployment guide including:
 
-1. Go to [vercel.com/new](https://vercel.com/new).
-2. Import your GitHub repository.
-3. Vercel auto-detects the Next.js framework from `vercel.json`.
+- All required environment variables and where to add them
+- Exact Vercel CLI commands
+- `prisma migrate deploy` steps
+- Full smoke test checklist covering auth, support consent, AI governance, and escalation
 
-### 2. Set Environment Variables in Vercel Dashboard
+Quick summary:
 
-Navigate to **Project Settings → Environment Variables** and add the following secrets:
-
-| Vercel Secret Name | Maps To |
-|---|---|
-| `database_url` | `DATABASE_URL` |
-| `jwt_secret` | `JWT_SECRET` |
-| `smtp_host` | `SMTP_HOST` |
-| `smtp_port` | `SMTP_PORT` |
-| `smtp_user` | `SMTP_USER` |
-| `smtp_pass` | `SMTP_PASS` |
-
-Also set the plain (non-secret) variables directly:
-
-- `NEXT_PUBLIC_APP_URL`
-- `NEXT_PUBLIC_APP_NAME`
-- `ADMIN_EMAIL`
-- `ADMIN_INITIAL_PASSWORD`
-- `EMAIL_FROM`
-- `AUDIT_ENABLED`
-
-### 3. Deploy
-
-Push to `main` to trigger a production deployment, or click **Deploy** in the Vercel dashboard.
-
-### 4. Pull Environment Variables Locally
-
-```bash
-vercel env pull .env.local
-```
-
-This syncs the Vercel environment variables to your local `.env.local` file.
-
-### Post-Deployment Database Setup
-
-After the first deployment, run migrations and seed against the production database:
-
-```bash
-# Using the Vercel CLI or a direct connection
-npx prisma migrate deploy
-npx prisma db seed
-```
+1. Add all env vars in Vercel Dashboard → Project → Settings → Environment Variables
+2. Force redeploy: `vercel redeploy --force`
+3. Apply migrations: `DATABASE_URL="..." npx prisma migrate deploy`
+4. Seed admin: `npm run db:seed`
+5. Run smoke tests from [`DEPLOYMENT.md`](DEPLOYMENT.md)
 
 ---
 
