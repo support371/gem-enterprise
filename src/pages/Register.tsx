@@ -18,6 +18,7 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,15 +31,44 @@ export default function Register() {
       return;
     }
     setLoading(true);
-    const { error } = await signUp(email, password, { full_name: fullName });
+    const { error, needsEmailConfirmation } = await signUp(email, password, { full_name: fullName });
     setLoading(false);
     if (error) {
       toast({ title: "Registration failed", description: error.message, variant: "destructive" });
       return;
     }
+    if (needsEmailConfirmation) {
+      setEmailSent(true);
+      return;
+    }
     toast({ title: "Account created", description: "Proceeding to identity verification." });
     navigate("/kyc");
   };
+
+  if (emailSent) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-md text-center">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
+            <Mail className="w-6 h-6 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Check your email</h1>
+          <p className="text-sm text-muted-foreground mb-6">
+            We've sent a confirmation link to{" "}
+            <span className="text-foreground font-medium">{email}</span>.
+            Please verify your email address, then sign in to continue with identity verification.
+          </p>
+          <Link
+            to="/auth"
+            className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+          >
+            Go to sign in
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
