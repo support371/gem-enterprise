@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Navigation } from "@/components/Navigation";
@@ -41,18 +42,24 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Middleware injects x-is-portal for authenticated /app/* and /access/* routes.
+  // Suppress the marketing Navigation + Footer so the portal sidebar layout
+  // renders without a colliding top nav bar.
+  const headersList = await headers();
+  const isPortal = headersList.get("x-is-portal") === "1";
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
         <Providers>
-          <Navigation />
-          <main className="min-h-screen">{children}</main>
-          <Footer />
+          {!isPortal && <Navigation />}
+          <main className={isPortal ? undefined : "min-h-screen"}>{children}</main>
+          {!isPortal && <Footer />}
         </Providers>
       </body>
     </html>

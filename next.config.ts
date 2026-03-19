@@ -26,6 +26,10 @@ const nextConfig: NextConfig = {
       { source: "/login",               destination: "/client-login",            permanent: true },
       { source: "/dashboard",           destination: "/app/dashboard",           permanent: true },
       { source: "/portal/:path*",       destination: "/app/:path*",              permanent: true },
+      // Root-level portal shortcuts — accessible from external links and support docs
+      { source: "/profile",             destination: "/app/profile",             permanent: false },
+      { source: "/settings",            destination: "/app/settings",            permanent: false },
+      { source: "/support",             destination: "/app/support",             permanent: false },
     ];
   },
 

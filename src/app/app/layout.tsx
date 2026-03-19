@@ -50,6 +50,14 @@ const clientNavGroups = [
     ],
   },
   {
+    label: 'Portal',
+    items: [
+      { href: '/app/services',   icon: Package,          label: 'Services' },
+      { href: '/app/community',  icon: Users,            label: 'Community' },
+      { href: '/app/workspace',  icon: MessageSquare,    label: 'Workspace' },
+    ],
+  },
+  {
     label: 'Operations',
     items: [
       { href: '/app/documents',     icon: FileText,        label: 'Documents' },

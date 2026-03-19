@@ -53,7 +53,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const session = await getSessionFromRequest(request);
+  // Wrap session resolution so a misconfigured JWT_SECRET never crashes the
+  // middleware and results in a 500 for every request. On error we treat the
+  // request as unauthenticated and let the normal route logic handle it.
+  let session = null;
+  try {
+    session = await getSessionFromRequest(request);
+  } catch (err) {
+    console.error("[middleware] session read failed:", err);
+    // Fall through — session remains null, protected routes will redirect to login
+  }
 
   // Redirect authenticated users away from login page
   if (isAuthRoute(pathname) && session) {
@@ -81,6 +90,10 @@ export async function middleware(request: NextRequest) {
     response.headers.set("x-user-id", session.userId);
     response.headers.set("x-user-role", session.role);
     response.headers.set("x-kyc-status", session.kycStatus);
+    // Tell the root layout to suppress marketing nav/footer on portal pages
+    if (pathname.startsWith("/app") || pathname.startsWith("/access")) {
+      response.headers.set("x-is-portal", "1");
+    }
     return response;
   }
 
