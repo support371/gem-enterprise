@@ -257,9 +257,9 @@ export const Navigation = () => {
           {user ? (
             <>
               <Button variant="ghost" size="sm" asChild>
-                <Link to="/dashboard" className="flex items-center gap-2">
+                <Link to="/portal" className="flex items-center gap-2">
                   <Lock className="w-4 h-4" />
-                  Access
+                  Dashboard
                 </Link>
               </Button>
               <Button variant="outline" size="sm" onClick={() => signOut()}>
@@ -268,9 +268,9 @@ export const Navigation = () => {
             </>
           ) : (
             <Button variant="hero" size="sm" asChild>
-              <Link to="/login" className="flex items-center gap-2">
+              <Link to="/auth" className="flex items-center gap-2">
                 <Github className="w-4 h-4" />
-                Login with GitHub
+                Sign In
               </Link>
             </Button>
           )}
@@ -383,7 +383,7 @@ export const Navigation = () => {
               {user ? (
                 <>
                   <Button variant="ghost" className="justify-start" asChild>
-                    <Link to="/dashboard" onClick={() => setIsMobileOpen(false)}>
+                    <Link to="/portal" onClick={() => setIsMobileOpen(false)}>
                       <Lock className="w-4 h-4 mr-2" />
                       Dashboard
                     </Link>
@@ -394,9 +394,9 @@ export const Navigation = () => {
                 </>
               ) : (
                 <Button variant="hero" asChild>
-                  <Link to="/login" onClick={() => setIsMobileOpen(false)} className="flex items-center gap-2">
+                  <Link to="/auth" onClick={() => setIsMobileOpen(false)} className="flex items-center gap-2">
                     <Github className="w-4 h-4" />
-                    Login with GitHub
+                    Sign In
                   </Link>
                 </Button>
               )}
