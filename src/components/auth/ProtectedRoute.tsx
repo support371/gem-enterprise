@@ -4,6 +4,11 @@ import { useUserRole, Role } from "@/hooks/useUserRole";
 import { AccessDenied } from "./AccessDenied";
 import { AuthLoadingScreen } from "./AuthLoadingScreen";
 
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+  allowedRoles?: Role[];
+}
+
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { user, isLoading: authLoading } = useAuth();
   const { role, loading: roleLoading } = useUserRole();

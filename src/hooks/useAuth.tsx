@@ -38,21 +38,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // Set up auth state listener FIRST
+    // onAuthStateChange fires INITIAL_SESSION on mount (Supabase JS v2),
+    // covering the existing-session check. No separate getSession() needed.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
       }
     );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
 
     return () => subscription.unsubscribe();
   }, []);
@@ -71,8 +65,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signUp = async (email: string, password: string, metadata?: Record<string, string>) => {
-    const redirectUrl = `${window.location.origin}/kyc`;
-    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
