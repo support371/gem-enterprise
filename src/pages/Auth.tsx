@@ -8,8 +8,7 @@ import { Shield, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-
-const SAFE_RETURN_PREFIXES = ["/portal", "/profile", "/support", "/settings", "/kyc", "/handoff"];
+import { isSafeReturnPath } from "@/lib/authReturnPaths";
 
 const authSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -31,15 +30,10 @@ export default function Auth() {
   const location = useLocation();
   const { toast } = useToast();
 
-  const SAFE_RETURN_PREFIXES = ["/portal", "/profile", "/support", "/settings", "/kyc"];
-
   useEffect(() => {
     if (user) {
       const from = location.state?.from;
-      const dest =
-        typeof from === "string" && SAFE_RETURN_PREFIXES.some((p) => from === p || from.startsWith(p + "/"))
-          ? from
-          : "/portal";
+      const dest = isSafeReturnPath(from) ? from : "/portal";
       navigate(dest, { replace: true });
     }
   }, [user, navigate, location.state]);
