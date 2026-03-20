@@ -64,10 +64,10 @@ const documents = [
   },
 ];
 
-const classificationBadge: Record<string, string> = {
-  Internal: "bg-primary/10 text-primary border-primary/20",
-  Confidential: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-  Restricted: "bg-destructive/10 text-destructive border-destructive/20",
+const classificationConfig: Record<string, { badge: string; iconColor: string }> = {
+  Internal:     { badge: "bg-primary/10 text-primary border-primary/20",                icon: "text-primary" },
+  Confidential: { badge: "bg-orange-500/10 text-orange-400 border-orange-500/20",       icon: "text-orange-400" },
+  Restricted:   { badge: "bg-destructive/10 text-destructive border-destructive/20",     icon: "text-destructive" },
 };
 
 const typeBadge = "bg-muted text-muted-foreground border-border";
@@ -75,11 +75,11 @@ const typeBadge = "bg-muted text-muted-foreground border-border";
 export default function PortalWorkspace() {
   return (
     <PortalLayout>
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
         {/* Header */}
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Shield className="w-4 h-4 text-primary" />
+            <Shield className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
               GEM Fortress Portal
             </span>
@@ -92,7 +92,7 @@ export default function PortalWorkspace() {
 
         {/* Documents Table */}
         <div className="glass-panel rounded-xl border border-border/50 overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 bg-primary/[0.03]">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <FolderOpen className="w-4 h-4 text-primary" />
               Documents
@@ -100,36 +100,43 @@ export default function PortalWorkspace() {
             <span className="text-xs text-muted-foreground">{documents.length} files</span>
           </div>
           <div className="divide-y divide-border/40">
-            {documents.map((doc) => (
-              <div key={doc.id} className="px-5 py-4 flex items-center gap-4 hover:bg-sidebar-accent/30 transition-colors">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                  <doc.icon className="w-4 h-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <p className="text-sm font-medium text-foreground truncate">{doc.name}</p>
+            {documents.map((doc) => {
+              const cfg = classificationConfig[doc.classification] || classificationConfig["Internal"];
+              return (
+                <div
+                  key={doc.id}
+                  className="px-5 py-4 flex items-center gap-4 card-hover-row group"
+                >
+                  <div className={`w-9 h-9 rounded-lg bg-card border border-border flex items-center justify-center shrink-0 transition-colors group-hover:border-primary/30 group-hover:bg-primary/5`}>
+                    <doc.icon className={`w-4 h-4 ${cfg.iconColor}`} />
                   </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${typeBadge}`}>
-                      {doc.type}
-                    </span>
-                    <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${classificationBadge[doc.classification]}`}>
-                      {doc.classification}
-                    </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate mb-1">{doc.name}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${typeBadge}`}>
+                        {doc.type}
+                      </span>
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${cfg.badge}`}>
+                        {doc.classification}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="hidden md:flex items-center gap-4 text-xs text-muted-foreground shrink-0">
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    <span>{doc.updatedAt}</span>
+                  <div className="hidden md:flex items-center gap-4 text-xs text-muted-foreground shrink-0">
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      <span>{doc.updatedAt}</span>
+                    </div>
+                    <span className="font-mono text-foreground/40">{doc.size}</span>
                   </div>
-                  <span className="text-foreground/50">{doc.size}</span>
+                  <button
+                    className="shrink-0 p-2 rounded-lg border border-transparent hover:border-primary/30 hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all duration-150"
+                    title={`Download ${doc.name}`}
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
                 </div>
-                <button className="shrink-0 p-2 rounded-lg hover:bg-sidebar-accent text-muted-foreground hover:text-foreground transition-colors">
-                  <Download className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

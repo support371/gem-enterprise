@@ -60,26 +60,33 @@ const threads = [
 ];
 
 const tagColors: Record<string, string> = {
-  MFA: "bg-primary/10 text-primary border-primary/20",
+  MFA:              "bg-primary/10 text-primary border-primary/20",
   "Best Practices": "bg-success/10 text-success border-success/20",
-  CVE: "bg-destructive/10 text-destructive border-destructive/20",
-  Patching: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-  SIEM: "bg-primary/10 text-primary border-primary/20",
-  Alerts: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  "Zero Trust": "bg-success/10 text-success border-success/20",
-  Deployment: "bg-primary/10 text-primary border-primary/20",
-  IR: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-  Documentation: "bg-muted text-muted-foreground border-border",
+  CVE:              "bg-destructive/10 text-destructive border-destructive/20",
+  Patching:         "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  SIEM:             "bg-primary/10 text-primary border-primary/20",
+  Alerts:           "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+  "Zero Trust":     "bg-success/10 text-success border-success/20",
+  Deployment:       "bg-primary/10 text-primary border-primary/20",
+  IR:               "bg-orange-500/10 text-orange-400 border-orange-500/20",
+  Documentation:    "bg-muted text-muted-foreground border-border",
+};
+
+const roleInitialColor: Record<string, string> = {
+  Administrator: "bg-destructive/10 border-destructive/20 text-destructive",
+  Manager:       "bg-primary/10 border-primary/20 text-primary",
+  Analyst:       "bg-success/10 border-success/20 text-success",
+  Viewer:        "bg-muted border-border text-muted-foreground",
 };
 
 export default function PortalCommunity() {
   return (
     <PortalLayout>
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
         {/* Header */}
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Shield className="w-4 h-4 text-primary" />
+            <Shield className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
               GEM Fortress Portal
             </span>
@@ -92,7 +99,7 @@ export default function PortalCommunity() {
 
         {/* Threads */}
         <div className="glass-panel rounded-xl border border-border/50 overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 bg-primary/[0.03]">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-primary" />
               Discussions
@@ -101,21 +108,25 @@ export default function PortalCommunity() {
           </div>
           <div className="divide-y divide-border/40">
             {threads.map((thread) => (
-              <div key={thread.id} className="px-5 py-4">
+              <div
+                key={thread.id}
+                className={`px-5 py-4 card-hover-row transition-colors ${thread.pinned ? "border-l-2 border-primary bg-primary/[0.025]" : "border-l-2 border-transparent"}`}
+              >
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-xs font-bold text-primary">{thread.author[0]}</span>
+                  {/* Author avatar — color-coded by role */}
+                  <div className={`w-8 h-8 rounded-full border flex items-center justify-center shrink-0 mt-0.5 text-xs font-bold ${roleInitialColor[thread.role] || "bg-primary/10 border-primary/20 text-primary"}`}>
+                    {thread.author[0]}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1.5">
                       {thread.pinned && (
                         <Pin className="w-3 h-3 text-primary shrink-0" />
                       )}
-                      <p className="text-sm font-medium text-foreground leading-snug">
+                      <p className="text-sm font-semibold text-foreground leading-snug">
                         {thread.title}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap mb-2">
+                    <div className="flex items-center gap-1.5 flex-wrap mb-2.5">
                       {thread.tags.map((tag) => (
                         <span
                           key={tag}
@@ -125,21 +136,21 @@ export default function PortalCommunity() {
                         </span>
                       ))}
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground/70">{thread.author}</span>
-                      <span>{thread.role}</span>
-                      <div className="flex items-center gap-1">
-                        <MessageSquare className="w-3 h-3" />
-                        <span>{thread.replies}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <ThumbsUp className="w-3 h-3" />
-                        <span>{thread.likes}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{thread.time}</span>
-                      </div>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                      <span className="font-semibold text-foreground/70">{thread.author}</span>
+                      <span className="text-muted-foreground/60">{thread.role}</span>
+                      <span className="flex items-center gap-1">
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        {thread.replies}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                        {thread.likes}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        {thread.time}
+                      </span>
                     </div>
                   </div>
                 </div>

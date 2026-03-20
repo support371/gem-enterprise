@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, Mail, Shield, Camera, Save } from "lucide-react";
+import { User, Mail, Shield, Camera, Save, KeyRound } from "lucide-react";
 import { PortalLayout } from "@/components/portal/PortalLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -10,10 +10,17 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 
 const roleLabel: Record<string, string> = {
-  admin: "Administrator",
+  admin:   "Administrator",
   manager: "Manager",
   analyst: "Analyst",
-  viewer: "Viewer",
+  viewer:  "Viewer",
+};
+
+const roleBadgeColor: Record<string, string> = {
+  admin:   "bg-destructive/10 text-destructive border-destructive/20",
+  manager: "bg-primary/10 text-primary border-primary/20",
+  analyst: "bg-success/10 text-success border-success/20",
+  viewer:  "bg-muted text-muted-foreground border-border",
 };
 
 export default function Profile() {
@@ -63,11 +70,11 @@ export default function Profile() {
 
   return (
     <PortalLayout>
-      <div className="p-6 lg:p-8 max-w-3xl mx-auto space-y-8">
+      <div className="p-6 lg:p-8 max-w-3xl mx-auto space-y-6 animate-fade-in">
         {/* Header */}
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Shield className="w-4 h-4 text-primary" />
+            <Shield className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
               GEM Fortress Portal
             </span>
@@ -79,50 +86,53 @@ export default function Profile() {
         </div>
 
         {/* Identity Card */}
-        <div className="glass-panel rounded-xl border border-border/50 p-6">
+        <div className="glass-panel rounded-xl border border-border/50 p-6 relative gradient-top-border">
           <h2 className="text-sm font-semibold text-foreground mb-5 flex items-center gap-2">
             <User className="w-4 h-4 text-primary" />
             Identity
           </h2>
-          <div className="flex items-center gap-5 mb-6">
-            <div className="relative">
-              <Avatar className="w-16 h-16 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
+
+          {/* Avatar + info row */}
+          <div className="flex items-center gap-5 mb-6 p-4 rounded-xl bg-sidebar-accent/30 border border-sidebar-border/50">
+            <div className="relative shrink-0">
+              <Avatar className="w-16 h-16 ring-2 ring-primary/30 ring-offset-2 ring-offset-background shadow-[0_0_16px_hsl(var(--electric-cyan)/0.2)]">
                 <AvatarImage src={avatarUrl} alt={displayName} />
-                <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
+                <AvatarFallback className="bg-primary/15 text-primary text-xl font-bold">
                   {initials}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center cursor-not-allowed">
                 <Camera className="w-3 h-3 text-primary" />
               </div>
             </div>
             <div>
-              <p className="text-base font-semibold text-foreground">{displayName}</p>
-              <p className="text-sm text-muted-foreground">{user?.email}</p>
+              <p className="text-base font-bold text-foreground">{displayName}</p>
+              <p className="text-sm text-muted-foreground mt-0.5">{user?.email}</p>
               {role && (
-                <span className="inline-block mt-1.5 text-xs font-medium px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20">
+                <span className={`inline-block mt-2 text-xs font-semibold px-2.5 py-1 rounded-full border ${roleBadgeColor[role] || "bg-primary/10 text-primary border-primary/20"}`}>
                   {roleLabel[role] || role}
                 </span>
               )}
             </div>
           </div>
+
           <div className="grid gap-4">
             <div>
-              <Label className="text-xs text-muted-foreground">Display name</Label>
+              <Label className="text-xs text-muted-foreground font-medium">Display name</Label>
               <Input
                 value={displayName}
                 readOnly
-                className="mt-1 bg-sidebar-accent/30 cursor-not-allowed"
+                className="mt-1.5 bg-sidebar-accent/20 cursor-not-allowed text-foreground/70 border-sidebar-border"
               />
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Email address</Label>
-              <div className="relative mt-1">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Label className="text-xs text-muted-foreground font-medium">Email address</Label>
+              <div className="relative mt-1.5">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/60" />
                 <Input
                   value={user?.email || ""}
                   readOnly
-                  className="pl-9 bg-sidebar-accent/30 cursor-not-allowed"
+                  className="pl-9 bg-sidebar-accent/20 cursor-not-allowed text-foreground/70 border-sidebar-border"
                 />
               </div>
             </div>
@@ -132,12 +142,12 @@ export default function Profile() {
         {/* Password Change */}
         <div className="glass-panel rounded-xl border border-border/50 p-6">
           <h2 className="text-sm font-semibold text-foreground mb-5 flex items-center gap-2">
-            <Shield className="w-4 h-4 text-primary" />
+            <KeyRound className="w-4 h-4 text-primary" />
             Change Password
           </h2>
           <form onSubmit={handlePasswordChange} className="grid gap-4">
             <div>
-              <Label htmlFor="new-password" className="text-xs text-muted-foreground">
+              <Label htmlFor="new-password" className="text-xs text-muted-foreground font-medium">
                 New password
               </Label>
               <Input
@@ -146,11 +156,11 @@ export default function Profile() {
                 placeholder="••••••••"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="mt-1"
+                className="mt-1.5"
               />
             </div>
             <div>
-              <Label htmlFor="confirm-password" className="text-xs text-muted-foreground">
+              <Label htmlFor="confirm-password" className="text-xs text-muted-foreground font-medium">
                 Confirm new password
               </Label>
               <Input
@@ -159,33 +169,39 @@ export default function Profile() {
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1"
+                className="mt-1.5"
               />
             </div>
-            <Button type="submit" disabled={saving || !newPassword || !confirmPassword} className="w-fit">
+            <Button
+              type="submit"
+              disabled={saving || !newPassword || !confirmPassword}
+              className="w-fit"
+            >
               <Save className="w-4 h-4 mr-2" />
               {saving ? "Updating…" : "Update Password"}
             </Button>
           </form>
         </div>
 
-        {/* Account Info */}
+        {/* Account Details */}
         <div className="glass-panel rounded-xl border border-border/50 p-6">
           <h2 className="text-sm font-semibold text-foreground mb-4">Account Details</h2>
-          <dl className="grid gap-3 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">User ID</dt>
-              <dd className="font-mono text-xs text-foreground/70 truncate max-w-[200px]">{user?.id}</dd>
+          <dl className="grid gap-3">
+            <div className="flex items-center justify-between py-2 border-b border-border/40">
+              <dt className="text-sm text-muted-foreground">User ID</dt>
+              <dd className="font-mono text-xs text-foreground/60 truncate max-w-[220px] bg-sidebar-accent/30 px-2 py-1 rounded border border-sidebar-border">
+                {user?.id}
+              </dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">Account created</dt>
-              <dd className="text-foreground/70">
+            <div className="flex items-center justify-between py-2 border-b border-border/40">
+              <dt className="text-sm text-muted-foreground">Account created</dt>
+              <dd className="text-sm text-foreground/70 font-medium">
                 {user?.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}
               </dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">Last sign in</dt>
-              <dd className="text-foreground/70">
+            <div className="flex items-center justify-between py-2">
+              <dt className="text-sm text-muted-foreground">Last sign in</dt>
+              <dd className="text-sm text-foreground/70 font-medium">
                 {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : "—"}
               </dd>
             </div>

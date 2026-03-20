@@ -11,7 +11,6 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronRight,
   Building2,
   Briefcase,
   MessageSquare,
@@ -102,6 +101,13 @@ const roleLabel: Record<Role, string> = {
   viewer: "Viewer",
 };
 
+const roleDot: Record<Role, string> = {
+  admin:   "bg-destructive",
+  manager: "bg-primary",
+  analyst: "bg-success",
+  viewer:  "bg-muted-foreground",
+};
+
 interface PortalSidebarProps {
   className?: string;
 }
@@ -124,18 +130,19 @@ export function PortalSidebar({ className }: PortalSidebarProps) {
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center gap-2 px-4 py-5 border-b border-sidebar-border">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+      <div className="flex items-center gap-2.5 px-4 py-5 border-b border-sidebar-border">
+        <div className="w-8 h-8 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0 shadow-[0_0_12px_hsl(var(--electric-cyan)/0.2)]">
           <Shield className="w-4 h-4 text-primary" />
         </div>
         <span className="text-sm font-bold leading-tight">
           <span className="text-gradient-primary">GEM</span>
-          <span className="text-sidebar-foreground/70 ml-1">Portal</span>
+          <span className="text-sidebar-foreground/60 ml-1">Portal</span>
         </span>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-0.5">
+        <p className="section-label">Navigation</p>
         {visibleItems.map((item) => {
           const active = isActive(item.href);
           return (
@@ -144,54 +151,61 @@ export function PortalSidebar({ className }: PortalSidebarProps) {
               to={item.href}
               onClick={() => setMobileOpen(false)}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
                 active
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  ? "bg-primary/10 text-primary border-l-2 border-primary pl-[10px]"
+                  : "text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-l-2 border-transparent pl-[10px]"
               )}
             >
-              <item.icon className="w-4 h-4 shrink-0" />
+              <item.icon className={cn("w-4 h-4 shrink-0", active ? "text-primary" : "")} />
               <span className="flex-1">{item.label}</span>
-              {active && <ChevronRight className="w-3 h-3 opacity-60" />}
+              {active && (
+                <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+              )}
             </Link>
           );
         })}
-      </nav>
 
-      {/* User Footer */}
-      <div className="px-3 py-4 border-t border-sidebar-border space-y-1">
-        {/* Profile & Support links */}
+        <p className="section-label mt-3">Account</p>
         <Link
           to="/profile"
           onClick={() => setMobileOpen(false)}
           className={cn(
-            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 border-l-2",
             location.pathname === "/profile"
-              ? "bg-sidebar-primary text-sidebar-primary-foreground"
-              : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              ? "bg-primary/10 text-primary border-primary pl-[10px]"
+              : "text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-transparent pl-[10px]"
           )}
         >
-          <UserCircle className="w-4 h-4 shrink-0" />
+          <UserCircle className={cn("w-4 h-4 shrink-0", location.pathname === "/profile" ? "text-primary" : "")} />
           <span className="flex-1">Profile</span>
+          {location.pathname === "/profile" && (
+            <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+          )}
         </Link>
         <Link
           to="/support"
           onClick={() => setMobileOpen(false)}
           className={cn(
-            "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 border-l-2",
             location.pathname === "/support"
-              ? "bg-sidebar-primary text-sidebar-primary-foreground"
-              : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              ? "bg-primary/10 text-primary border-primary pl-[10px]"
+              : "text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground border-transparent pl-[10px]"
           )}
         >
-          <HelpCircle className="w-4 h-4 shrink-0" />
+          <HelpCircle className={cn("w-4 h-4 shrink-0", location.pathname === "/support" ? "text-primary" : "")} />
           <span className="flex-1">Support</span>
+          {location.pathname === "/support" && (
+            <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+          )}
         </Link>
+      </nav>
 
-        {/* User card */}
+      {/* User Footer */}
+      <div className="px-3 pb-4 pt-3 border-t border-sidebar-border space-y-2">
         {role && (
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-sidebar-accent/50 mt-2">
-            <Avatar className="w-8 h-8 shrink-0 ring-1 ring-primary/20">
+          <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-sidebar-accent/40 border border-sidebar-border/60">
+            <Avatar className="w-8 h-8 shrink-0 ring-2 ring-primary/25 ring-offset-1 ring-offset-sidebar">
               <AvatarImage
                 src={(user?.user_metadata?.avatar_url as string) || ""}
                 alt={
@@ -200,7 +214,7 @@ export function PortalSidebar({ className }: PortalSidebarProps) {
                   "User"
                 }
               />
-              <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+              <AvatarFallback className="bg-primary/15 text-primary text-xs font-bold">
                 {(
                   (user?.user_metadata?.full_name as string) ||
                   user?.email?.split("@")[0] ||
@@ -214,19 +228,20 @@ export function PortalSidebar({ className }: PortalSidebarProps) {
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-sidebar-foreground truncate">
+              <p className="text-xs font-semibold text-sidebar-foreground truncate">
                 {user?.email}
               </p>
-              <p className="text-xs text-sidebar-foreground/50 mt-0.5">
-                {roleLabel[role]}
-              </p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", roleDot[role])} />
+                <p className="text-xs text-sidebar-foreground/50">{roleLabel[role]}</p>
+              </div>
             </div>
           </div>
         )}
         <Button
           variant="ghost"
           size="sm"
-          className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+          className="w-full justify-start text-sidebar-foreground/60 hover:text-destructive hover:bg-destructive/10 transition-colors"
           onClick={() => signOut()}
         >
           <LogOut className="w-4 h-4 mr-2" />
@@ -240,7 +255,7 @@ export function PortalSidebar({ className }: PortalSidebarProps) {
     <>
       {/* Mobile toggle button */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-sidebar-background border border-sidebar-border text-sidebar-foreground"
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-sidebar-background border border-sidebar-border text-sidebar-foreground shadow-lg"
         onClick={() => setMobileOpen(!mobileOpen)}
         aria-label="Toggle sidebar"
       >
@@ -258,7 +273,7 @@ export function PortalSidebar({ className }: PortalSidebarProps) {
       {/* Mobile drawer */}
       <aside
         className={cn(
-          "lg:hidden fixed inset-y-0 left-0 z-40 w-64 bg-sidebar-background border-r border-sidebar-border transform transition-transform duration-200",
+          "lg:hidden fixed inset-y-0 left-0 z-40 w-64 bg-sidebar-background border-r border-sidebar-border transform transition-transform duration-200 ease-out",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
           className
         )}

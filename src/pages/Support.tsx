@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { HelpCircle, Shield, Send, AlertTriangle, Clock, CheckCircle2, ChevronDown, ChevronUp } from "lucide-react";
+import { HelpCircle, Shield, Send, AlertTriangle, Clock, ChevronDown } from "lucide-react";
 import { PortalLayout } from "@/components/portal/PortalLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const tickets = [
   {
@@ -31,15 +32,15 @@ const tickets = [
 ];
 
 const statusBadge: Record<string, string> = {
-  Open: "bg-primary/10 text-primary border-primary/20",
-  "In Progress": "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-  Resolved: "bg-success/10 text-success border-success/20",
+  Open:        "bg-primary/10 text-primary border-primary/20",
+  "In Progress":"bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+  Resolved:    "bg-success/10 text-success border-success/20",
 };
 
 const priorityBadge: Record<string, string> = {
-  High: "bg-destructive/10 text-destructive border-destructive/20",
+  High:   "bg-destructive/10 text-destructive border-destructive/20",
   Medium: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-  Low: "bg-muted text-muted-foreground border-border",
+  Low:    "bg-muted text-muted-foreground border-border",
 };
 
 const faqs = [
@@ -79,11 +80,11 @@ export default function Support() {
 
   return (
     <PortalLayout>
-      <div className="p-6 lg:p-8 max-w-4xl mx-auto space-y-8">
+      <div className="p-6 lg:p-8 max-w-4xl mx-auto space-y-8 animate-fade-in">
         {/* Header */}
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Shield className="w-4 h-4 text-primary" />
+            <Shield className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
               GEM Fortress Portal
             </span>
@@ -96,30 +97,30 @@ export default function Support() {
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* New Ticket Form */}
-          <div className="glass-panel rounded-xl border border-border/50 p-6">
+          <div className="glass-panel rounded-xl border border-border/50 p-6 relative gradient-top-border">
             <h2 className="text-sm font-semibold text-foreground mb-5 flex items-center gap-2">
               <Send className="w-4 h-4 text-primary" />
               New Ticket
             </h2>
             <form onSubmit={handleSubmit} className="grid gap-4">
               <div>
-                <Label htmlFor="subject" className="text-xs text-muted-foreground">Subject</Label>
+                <Label htmlFor="subject" className="text-xs text-muted-foreground font-medium">Subject</Label>
                 <Input
                   id="subject"
                   placeholder="Briefly describe your issue"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  className="mt-1"
+                  className="mt-1.5"
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="priority" className="text-xs text-muted-foreground">Priority</Label>
+                <Label htmlFor="priority" className="text-xs text-muted-foreground font-medium">Priority</Label>
                 <select
                   id="priority"
                   value={priority}
                   onChange={(e) => setPriority(e.target.value)}
-                  className="mt-1 w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  className="mt-1.5 w-full flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 text-foreground"
                 >
                   <option>Low</option>
                   <option>Medium</option>
@@ -127,7 +128,7 @@ export default function Support() {
                 </select>
               </div>
               <div>
-                <Label htmlFor="message" className="text-xs text-muted-foreground">Message</Label>
+                <Label htmlFor="message" className="text-xs text-muted-foreground font-medium">Message</Label>
                 <textarea
                   id="message"
                   rows={5}
@@ -135,10 +136,14 @@ export default function Support() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   required
-                  className="mt-1 w-full flex rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
+                  className="mt-1.5 w-full flex rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none text-foreground"
                 />
               </div>
-              <Button type="submit" disabled={submitting || !subject.trim() || !message.trim()} className="w-fit">
+              <Button
+                type="submit"
+                disabled={submitting || !subject.trim() || !message.trim()}
+                className="w-fit"
+              >
                 <Send className="w-4 h-4 mr-2" />
                 {submitting ? "Submitting…" : "Submit Ticket"}
               </Button>
@@ -151,22 +156,31 @@ export default function Support() {
               <HelpCircle className="w-4 h-4 text-primary" />
               Frequently Asked
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {faqs.map((faq, i) => (
-                <div key={i} className="border border-border/50 rounded-lg overflow-hidden">
+                <div
+                  key={i}
+                  className={cn(
+                    "border rounded-lg overflow-hidden transition-colors duration-150",
+                    openFaq === i
+                      ? "border-primary/30 bg-primary/[0.04]"
+                      : "border-border/50"
+                  )}
+                >
                   <button
-                    className="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-medium text-foreground hover:bg-sidebar-accent/30 transition-colors"
+                    className="w-full flex items-center justify-between px-4 py-3 text-left text-sm font-medium text-foreground hover:bg-sidebar-accent/25 transition-colors"
                     onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   >
                     <span>{faq.q}</span>
-                    {openFaq === i ? (
-                      <ChevronUp className="w-4 h-4 text-muted-foreground shrink-0 ml-2" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0 ml-2" />
-                    )}
+                    <ChevronDown
+                      className={cn(
+                        "w-4 h-4 text-muted-foreground shrink-0 ml-2 transition-transform duration-200",
+                        openFaq === i ? "rotate-180 text-primary" : ""
+                      )}
+                    />
                   </button>
                   {openFaq === i && (
-                    <div className="px-4 pb-4 text-sm text-muted-foreground border-t border-border/50 pt-3">
+                    <div className="px-4 pb-4 text-sm text-muted-foreground border-t border-border/40 pt-3 animate-fade-in">
                       {faq.a}
                     </div>
                   )}
@@ -178,32 +192,32 @@ export default function Support() {
 
         {/* Recent Tickets */}
         <div className="glass-panel rounded-xl border border-border/50 overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 bg-primary/[0.03]">
             <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-primary" />
               Your Tickets
             </h2>
-            <span className="text-xs text-muted-foreground italic">Sample data — live tickets coming soon</span>
+            <span className="text-xs text-muted-foreground italic">Sample data</span>
           </div>
           <div className="divide-y divide-border/40">
             {tickets.map((t) => (
-              <div key={t.id} className="px-5 py-4 flex items-center gap-4">
+              <div key={t.id} className="px-5 py-4 flex items-center gap-4 card-hover-row">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-mono text-muted-foreground">{t.id}</span>
+                    <span className="text-xs font-mono text-muted-foreground/70">{t.id}</span>
                     <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${priorityBadge[t.priority]}`}>
                       {t.priority}
                     </span>
                   </div>
-                  <p className="text-sm text-foreground truncate">{t.subject}</p>
+                  <p className="text-sm text-foreground truncate font-medium">{t.subject}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <span className={`text-xs font-medium px-2 py-0.5 rounded border ${statusBadge[t.status]}`}>
                     {t.status}
                   </span>
-                  <div className="flex items-center gap-1 mt-1 justify-end">
-                    <Clock className="w-3 h-3 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">{t.created}</span>
+                  <div className="flex items-center gap-1 mt-1.5 justify-end text-muted-foreground">
+                    <Clock className="w-3 h-3" />
+                    <span className="text-xs">{t.created}</span>
                   </div>
                 </div>
               </div>

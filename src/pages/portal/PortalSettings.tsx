@@ -17,23 +17,25 @@ interface ToggleProps {
 
 function SettingToggle({ enabled, onChange, label, description }: ToggleProps) {
   return (
-    <div className="flex items-start justify-between gap-4 py-3">
+    <div className="flex items-start justify-between gap-4 py-3.5">
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{description}</p>
+        <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{description}</p>
       </div>
       <button
         type="button"
         onClick={onChange}
-        className={cn(
-          "relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none",
-          enabled ? "bg-primary" : "bg-secondary"
-        )}
         aria-pressed={enabled}
+        className={cn(
+          "relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background mt-0.5",
+          enabled
+            ? "bg-primary shadow-[0_0_8px_hsl(var(--electric-cyan)/0.35)]"
+            : "bg-secondary"
+        )}
       >
         <span
           className={cn(
-            "inline-block h-4 w-4 rounded-full bg-background shadow transform transition-transform duration-200",
+            "inline-block h-4 w-4 rounded-full bg-background shadow-sm transform transition-transform duration-200",
             enabled ? "translate-x-4" : "translate-x-0"
           )}
         />
@@ -69,11 +71,11 @@ export default function PortalSettings() {
 
   return (
     <PortalLayout>
-      <div className="p-6 lg:p-8 max-w-3xl mx-auto space-y-8">
+      <div className="p-6 lg:p-8 max-w-3xl mx-auto space-y-6 animate-fade-in">
         {/* Header */}
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Settings className="w-5 h-5 text-primary" />
+            <Settings className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-mono text-muted-foreground uppercase tracking-wider">Settings</span>
           </div>
           <h1 className="text-2xl font-bold text-foreground">Portal Settings</h1>
@@ -82,11 +84,11 @@ export default function PortalSettings() {
           </p>
         </div>
 
-        {/* Profile link */}
-        <section className="glass-panel rounded-xl border border-border/50 p-5">
+        {/* Profile quick-link — prominent */}
+        <section className="glass-panel rounded-xl border border-primary/20 p-4 bg-primary/[0.04]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center">
                 <UserCircle className="w-5 h-5 text-primary" />
               </div>
               <div>
@@ -96,7 +98,7 @@ export default function PortalSettings() {
             </div>
             <Link
               to="/profile"
-              className="flex items-center gap-1.5 text-xs text-primary hover:underline font-medium"
+              className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
             >
               Edit profile
               <ArrowRight className="w-3.5 h-3.5" />
@@ -107,13 +109,15 @@ export default function PortalSettings() {
         {/* Organization */}
         <section className="glass-panel rounded-xl border border-border/50 p-5 space-y-5">
           <div className="flex items-center gap-2 pb-3 border-b border-border/40">
-            <Building2 className="w-4 h-4 text-primary" />
+            <div className="w-6 h-6 rounded bg-[hsl(38_90%_55%/0.15)] flex items-center justify-center">
+              <Building2 className="w-3.5 h-3.5 text-[hsl(38_90%_60%)]" />
+            </div>
             <h2 className="text-sm font-semibold text-foreground">Organization</h2>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="orgName" className="text-xs">Organization Name</Label>
+              <Label htmlFor="orgName" className="text-xs text-muted-foreground font-medium">Organization Name</Label>
               <Input
                 id="orgName"
                 value={orgName}
@@ -122,7 +126,7 @@ export default function PortalSettings() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="timezone" className="text-xs">Timezone</Label>
+              <Label htmlFor="timezone" className="text-xs text-muted-foreground font-medium">Timezone</Label>
               <Input
                 id="timezone"
                 value={timezone}
@@ -132,7 +136,7 @@ export default function PortalSettings() {
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="contactEmail" className="text-xs">Security Contact Email</Label>
+            <Label htmlFor="contactEmail" className="text-xs text-muted-foreground font-medium">Security Contact Email</Label>
             <Input
               id="contactEmail"
               type="email"
@@ -145,8 +149,10 @@ export default function PortalSettings() {
 
         {/* Security */}
         <section className="glass-panel rounded-xl border border-border/50 p-5">
-          <div className="flex items-center gap-2 pb-3 border-b border-border/40 mb-2">
-            <Shield className="w-4 h-4 text-primary" />
+          <div className="flex items-center gap-2 pb-3 border-b border-border/40 mb-1">
+            <div className="w-6 h-6 rounded bg-primary/15 flex items-center justify-center">
+              <Shield className="w-3.5 h-3.5 text-primary" />
+            </div>
             <h2 className="text-sm font-semibold text-foreground">Security Policies</h2>
           </div>
           <div className="divide-y divide-border/30">
@@ -179,8 +185,10 @@ export default function PortalSettings() {
 
         {/* Notifications */}
         <section className="glass-panel rounded-xl border border-border/50 p-5">
-          <div className="flex items-center gap-2 pb-3 border-b border-border/40 mb-2">
-            <Bell className="w-4 h-4 text-primary" />
+          <div className="flex items-center gap-2 pb-3 border-b border-border/40 mb-1">
+            <div className="w-6 h-6 rounded bg-success/15 flex items-center justify-center">
+              <Bell className="w-3.5 h-3.5 text-success" />
+            </div>
             <h2 className="text-sm font-semibold text-foreground">Notifications</h2>
           </div>
           <div className="divide-y divide-border/30">
@@ -206,9 +214,9 @@ export default function PortalSettings() {
         </section>
 
         {/* Save */}
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center justify-end gap-3 pt-2">
           {saved && (
-            <div className="flex items-center gap-1.5 text-sm text-success">
+            <div className="flex items-center gap-1.5 text-sm text-success animate-fade-in">
               <CheckCircle2 className="w-4 h-4" />
               Settings saved
             </div>
