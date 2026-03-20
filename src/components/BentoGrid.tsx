@@ -1,8 +1,8 @@
-import { Shield, Lock, Eye, Cpu, Network, AlertTriangle, FileSearch, Users, Play, Image, ArrowRight, Bot, Building2, Briefcase, Scale } from "lucide-react";
+import { Shield, Eye, Bot, Building2, Briefcase, Scale, FileSearch, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { Play, Image, ArrowRight } from "lucide-react";
 
 interface BentoCardProps {
   title: string;
@@ -20,17 +20,17 @@ interface BentoCardProps {
 }
 
 const categoryStyles = {
-  core: "bg-primary/10 text-primary border-primary/20",
+  core:       "bg-primary/10 text-primary border-primary/20",
   automation: "bg-success/10 text-success border-success/20",
-  recovery: "bg-accent/20 text-accent-foreground border-accent/20",
-  legal: "bg-secondary text-secondary-foreground border-secondary",
+  recovery:   "bg-accent/20 text-accent-foreground border-accent/20",
+  legal:      "bg-secondary text-secondary-foreground border-secondary",
 };
 
-const BentoCard = ({ 
-  title, 
-  description, 
-  icon: Icon, 
-  className, 
+const BentoCard = ({
+  title,
+  description,
+  icon: Icon,
+  className,
   accentColor = "cyan",
   size = "md",
   category,
@@ -47,11 +47,7 @@ const BentoCard = ({
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5 }}
+    <div
       className={cn(
         "group relative glass-panel rounded-2xl p-6 bento-card cursor-pointer overflow-hidden",
         size === "lg" && "p-8",
@@ -60,7 +56,7 @@ const BentoCard = ({
     >
       {/* Gradient overlay on hover */}
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br from-primary/5 via-transparent to-transparent" />
-      
+
       <div className="relative z-10 h-full flex flex-col">
         {/* Category Badge */}
         {category && (
@@ -80,14 +76,14 @@ const BentoCard = ({
         )}>
           <Icon className="w-6 h-6 text-muted-foreground group-hover:scale-110 transition-transform duration-300" />
         </div>
-        
+
         <h3 className={cn(
           "font-semibold text-foreground mb-2 transition-colors duration-300",
           size === "lg" ? "text-xl" : "text-lg"
         )}>
           {title}
         </h3>
-        
+
         <p className={cn(
           "text-muted-foreground leading-relaxed flex-1",
           size === "lg" ? "text-base" : "text-sm"
@@ -129,7 +125,7 @@ const BentoCard = ({
 
         {/* Learn More Link */}
         <div className="mt-4 pt-2">
-          <Link 
+          <Link
             to={link}
             className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors group/link"
           >
@@ -141,7 +137,7 @@ const BentoCard = ({
 
       {/* Corner accent */}
       <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-primary/10 to-transparent rounded-bl-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-    </motion.div>
+    </div>
   );
 };
 
@@ -238,16 +234,10 @@ export const BentoGrid = () => {
     <section id="solutions" className="py-24 relative">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.02] to-transparent" />
-      
+
       <div className="container mx-auto px-4 relative z-10">
-        {/* Section Header */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="max-w-3xl mx-auto text-center mb-16"
-        >
+        {/* Section Header — plain div, no framer-motion */}
+        <div className="max-w-3xl mx-auto text-center mb-16">
           <div className="inline-flex items-center gap-2 text-primary text-sm font-medium mb-4">
             <span>Core Solutions</span>
           </div>
@@ -259,7 +249,7 @@ export const BentoGrid = () => {
             Integrated solutions combining advanced cybersecurity, asset recovery, and real estate services
             with AI-powered automation and federal compliance standards.
           </p>
-        </motion.div>
+        </div>
 
         {/* View All Button */}
         <div className="flex justify-center mb-12">
@@ -273,7 +263,7 @@ export const BentoGrid = () => {
 
         {/* Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 max-w-6xl mx-auto">
-          {capabilities.map((capability, index) => (
+          {capabilities.map((capability) => (
             <BentoCard
               key={capability.title}
               title={capability.title}

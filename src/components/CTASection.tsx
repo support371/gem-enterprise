@@ -1,13 +1,12 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, MessageSquare, Phone, CheckCircle2, Shield, Clock, Headphones, Zap } from "lucide-react";
+import { ArrowRight, Phone, Shield, Clock, Headphones, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 
 const features = [
-  { icon: Zap, label: "Quick Setup" },
-  { icon: Headphones, label: "24/7 Support" },
-  { icon: Shield, label: "SOC 2 Certified" },
-  { icon: Clock, label: "99.9% Uptime" },
+  { icon: Zap,       label: "Quick Setup" },
+  { icon: Headphones,label: "24/7 Support" },
+  { icon: Shield,    label: "SOC 2 Certified" },
+  { icon: Clock,     label: "99.9% Uptime" },
 ];
 
 export const CTASection = () => {
@@ -16,16 +15,11 @@ export const CTASection = () => {
       {/* Background Effects */}
       <div className="absolute inset-0 cyber-grid opacity-20" />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[200px]" />
-      
+
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-5xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="glass-panel rounded-3xl p-8 md:p-12 lg:p-16 text-center glow-cyan border border-primary/20"
-          >
+          {/* Plain div — no framer-motion wrapper */}
+          <div className="glass-panel rounded-3xl p-8 md:p-12 lg:p-16 text-center glow-cyan border border-primary/20">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
               Ready to Secure Your{" "}
               <span className="text-gradient-primary">Enterprise</span>?
@@ -50,7 +44,7 @@ export const CTASection = () => {
                 );
               })}
             </div>
-            
+
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
               <Button variant="hero" size="xl" asChild className="group">
@@ -74,9 +68,7 @@ export const CTASection = () => {
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button variant="glass" size="lg" asChild>
-                <Link to="/solutions">
-                  Watch Demo
-                </Link>
+                <Link to="/solutions">Watch Demo</Link>
               </Button>
               <Button variant="glass" size="lg" asChild>
                 <a href="tel:+14017022460" className="flex items-center gap-2">
@@ -85,7 +77,7 @@ export const CTASection = () => {
                 </a>
               </Button>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from "react";
-import { motion, useInView } from "framer-motion";
 import { TrendingUp, Users, Shield, DollarSign } from "lucide-react";
 
 interface StatItem {
@@ -12,34 +11,34 @@ interface StatItem {
 }
 
 const stats: StatItem[] = [
-  { 
-    value: 99, 
-    suffix: "%", 
-    label: "Uptime", 
+  {
+    value: 99,
+    suffix: "%",
+    label: "Uptime",
     description: "Enterprise Reliability",
     icon: Shield,
     growth: "+23%"
   },
-  { 
-    value: 500, 
-    suffix: "+", 
-    label: "Enterprise Clients", 
+  {
+    value: 500,
+    suffix: "+",
+    label: "Enterprise Clients",
     description: "Fortune 500 companies trust our security solutions",
     icon: Users,
     growth: "+15%"
   },
-  { 
-    value: 2.4, 
-    suffix: "M+", 
-    label: "Threats Blocked", 
+  {
+    value: 2.4,
+    suffix: "M+",
+    label: "Threats Blocked",
     description: "Real-time threat detection and mitigation",
     icon: Shield,
     growth: "+41%"
   },
-  { 
-    value: 50, 
-    suffix: "M+", 
-    label: "Assets Protected", 
+  {
+    value: 50,
+    suffix: "M+",
+    label: "Assets Protected",
     description: "Total value of client assets under protection",
     icon: DollarSign,
     growth: "+41%"
@@ -50,19 +49,34 @@ export const StatsSection = () => {
   const [animatedStats, setAnimatedStats] = useState(stats.map(() => 0));
   const [hasAnimated, setHasAnimated] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
-  const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
+
+  // Replace framer-motion useInView with native IntersectionObserver
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !hasAnimated) {
+          setHasAnimated(true);
+        }
+      },
+      { threshold: 0.1, rootMargin: "-100px" }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasAnimated]);
 
   useEffect(() => {
-    if (!isInView || hasAnimated) return;
-    
-    setHasAnimated(true);
-    
+    if (!hasAnimated) return;
+
     const timers = stats.map((stat, index) => {
       const duration = 2000;
       const steps = 60;
       const increment = stat.value / steps;
       let current = 0;
-      
+
       return setInterval(() => {
         current += increment;
         if (current >= stat.value) {
@@ -77,22 +91,16 @@ export const StatsSection = () => {
     });
 
     return () => timers.forEach(t => clearInterval(t));
-  }, [isInView, hasAnimated]);
+  }, [hasAnimated]);
 
   return (
     <section ref={sectionRef} className="py-24 relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5" />
-      
+
       <div className="container mx-auto px-4 relative z-10">
-        {/* Main Uptime Card */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="max-w-4xl mx-auto mb-12"
-        >
+        {/* Main Uptime Card — plain div, no framer-motion */}
+        <div className="max-w-4xl mx-auto mb-12">
           <div className="glass-panel rounded-2xl p-8 md:p-12 text-center border border-primary/20 glow-cyan">
             <div className="flex items-center justify-center gap-2 mb-4">
               <span className="text-6xl md:text-8xl font-bold text-gradient-primary">
@@ -118,23 +126,19 @@ export const StatsSection = () => {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
-        {/* Stats Grid */}
+        {/* Stats Grid — plain divs, no framer-motion */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {stats.slice(1).map((stat, index) => {
             const Icon = stat.icon;
-            const displayValue = stat.suffix === "M+" 
+            const displayValue = stat.suffix === "M+"
               ? animatedStats[index + 1].toFixed(1)
               : Math.round(animatedStats[index + 1]);
-            
+
             return (
-              <motion.div
+              <div
                 key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
                 className="glass-panel rounded-2xl p-6 border border-border/50 hover:border-primary/30 transition-all group"
               >
                 <div className="flex items-start justify-between mb-4">
@@ -148,21 +152,21 @@ export const StatsSection = () => {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex items-baseline gap-1 mb-2">
                   <span className="text-4xl font-bold text-foreground">
                     {displayValue}
                   </span>
                   <span className="text-xl text-primary font-bold">{stat.suffix}</span>
                 </div>
-                
+
                 <h4 className="text-lg font-semibold text-foreground mb-1">
                   {stat.label}
                 </h4>
                 <p className="text-sm text-muted-foreground">
                   {stat.description}
                 </p>
-              </motion.div>
+              </div>
             );
           })}
         </div>
