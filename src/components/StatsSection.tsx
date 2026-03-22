@@ -57,8 +57,9 @@ export const StatsSection = () => {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !hasAnimated) {
+        if (entries[0].isIntersecting) {
           setHasAnimated(true);
+          observer.disconnect();
         }
       },
       { threshold: 0.1, rootMargin: "-100px" }
@@ -66,7 +67,7 @@ export const StatsSection = () => {
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [hasAnimated]);
+  }, []);
 
   useEffect(() => {
     if (!hasAnimated) return;

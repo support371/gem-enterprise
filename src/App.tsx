@@ -199,7 +199,7 @@ const App = () => (
             <Route
               path="/settings"
               element={
-                <ProtectedRoute allowedRoles={["admin", "manager", "analyst", "viewer"]}>
+                <ProtectedRoute allowedRoles={["admin"]}>
                   <Navigate to="/portal/settings" replace />
                 </ProtectedRoute>
               }

@@ -4,7 +4,6 @@ export const SAFE_RETURN_PREFIXES = [
   "/portal",
   "/profile",
   "/support",
-  "/settings",
   "/kyc",
   "/handoff",
 ];
