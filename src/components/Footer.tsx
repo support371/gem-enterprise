@@ -1,5 +1,9 @@
-import { Shield, Phone, Mail, MapPin } from "lucide-react";
+import { useState } from "react";
+import { Shield, Phone, Mail, Send, Loader2, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
 
 const footerLinks = {
   Solutions: [
@@ -33,6 +37,50 @@ const supportTeams = [
   { name: "Real Estate", status: "Online" },
   { name: "Technical Support", status: "Online" },
 ];
+
+function NewsletterSignup() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setStatus("loading");
+    try {
+      const { error } = await supabase.functions.invoke("mailchimp-subscribe", {
+        body: { email },
+      });
+      setStatus(error ? "error" : "success");
+    } catch {
+      setStatus("error");
+    }
+  };
+
+  if (status === "success") {
+    return (
+      <div className="flex items-center gap-2 text-sm text-success">
+        <CheckCircle2 className="w-4 h-4 shrink-0" />
+        <span>You're subscribed!</span>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex gap-2 max-w-xs">
+      <Input
+        type="email"
+        placeholder="your@email.com"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="h-9 text-sm"
+        required
+      />
+      <Button type="submit" size="sm" variant="hero" disabled={status === "loading"} className="shrink-0">
+        {status === "loading" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+      </Button>
+    </form>
+  );
+}
 
 export const Footer = () => {
   return (
@@ -89,12 +137,17 @@ export const Footer = () => {
               </a>
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-6">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
               </span>
               <span>All Systems Operational</span>
+            </div>
+
+            <div>
+              <p className="text-xs font-medium text-foreground mb-2">Security briefings, straight to you</p>
+              <NewsletterSignup />
             </div>
           </div>
 

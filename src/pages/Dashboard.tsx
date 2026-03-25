@@ -1,30 +1,95 @@
-import { useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
-import { 
-  Shield, 
-  BookOpen, 
-  FileText, 
-  ArrowRight, 
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Shield,
+  BookOpen,
+  FileText,
+  ArrowRight,
   LogOut,
   User,
   Lock,
   Eye,
-  Zap
+  Zap,
+  Mail,
+  CheckCircle2,
+  Loader2,
+  Link2,
+  Unlink,
 } from "lucide-react";
+
+type MailchimpStatus = {
+  connected: boolean;
+  connectedAt?: string;
+  authUrl?: string;
+};
 
 export default function Dashboard() {
   const { user, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { toast } = useToast();
+  const [mailchimp, setMailchimp] = useState<MailchimpStatus | null>(null);
+  const [mcLoading, setMcLoading] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
       navigate("/login");
     }
   }, [user, isLoading, navigate]);
+
+  const fetchMailchimpStatus = useCallback(async () => {
+    const { data, error } = await supabase.functions.invoke("mailchimp-connect", {
+      method: "GET",
+    });
+    if (!error && data) setMailchimp(data as MailchimpStatus);
+  }, []);
+
+  useEffect(() => {
+    if (user) fetchMailchimpStatus();
+  }, [user, fetchMailchimpStatus]);
+
+  // Handle OAuth callback: Mailchimp redirects back with ?code=xxx
+  useEffect(() => {
+    const code = searchParams.get("code");
+    if (!code || !user) return;
+
+    setMcLoading(true);
+    setSearchParams({}, { replace: true });
+
+    supabase.functions
+      .invoke("mailchimp-connect", { body: { code } })
+      .then(({ error }) => {
+        if (error) {
+          toast({ variant: "destructive", title: "Mailchimp connection failed", description: error.message });
+        } else {
+          toast({ title: "Mailchimp connected!", description: "Your audience is now linked." });
+          fetchMailchimpStatus();
+        }
+      })
+      .finally(() => setMcLoading(false));
+  }, [searchParams, user, setSearchParams, toast, fetchMailchimpStatus]);
+
+  const handleMailchimpConnect = () => {
+    if (mailchimp?.authUrl) window.location.href = mailchimp.authUrl;
+  };
+
+  const handleMailchimpDisconnect = async () => {
+    setMcLoading(true);
+    const { error } = await supabase.functions.invoke("mailchimp-connect", { method: "DELETE" });
+    if (error) {
+      toast({ variant: "destructive", title: "Failed to disconnect Mailchimp" });
+    } else {
+      toast({ title: "Mailchimp disconnected" });
+      setMailchimp((prev) => (prev ? { ...prev, connected: false } : null));
+    }
+    setMcLoading(false);
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -132,11 +197,64 @@ export default function Dashboard() {
                 </div>
               </div>
 
+              {/* Mailchimp Integration */}
+              <div className="glass-panel rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Mail className="w-4 h-4 text-primary" />
+                  </div>
+                  <h2 className="text-lg font-semibold text-foreground">Mailchimp</h2>
+                </div>
+
+                {mailchimp === null ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <span>Checking status…</span>
+                  </div>
+                ) : mailchimp.connected ? (
+                  <>
+                    <div className="flex items-center gap-2 text-sm text-success mb-4">
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Connected</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Contact form submissions and newsletter signups are syncing to your Mailchimp audience.
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="w-full justify-start text-muted-foreground hover:text-destructive"
+                      disabled={mcLoading}
+                      onClick={handleMailchimpDisconnect}
+                    >
+                      {mcLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Unlink className="w-4 h-4 mr-2" />}
+                      Disconnect
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Connect Mailchimp to sync contact form leads and newsletter signups to your audience.
+                    </p>
+                    <Button
+                      variant="hero"
+                      size="sm"
+                      className="w-full"
+                      disabled={mcLoading || !mailchimp.authUrl}
+                      onClick={handleMailchimpConnect}
+                    >
+                      {mcLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+                      Connect Mailchimp
+                    </Button>
+                  </>
+                )}
+              </div>
+
               {/* Account Actions */}
               <div className="glass-panel rounded-2xl p-6">
                 <h2 className="text-lg font-semibold text-foreground mb-4">Account</h2>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   className="w-full justify-start text-muted-foreground hover:text-destructive"
                   onClick={handleSignOut}
                 >

@@ -151,6 +151,30 @@ export type Database = {
         }
         Relationships: []
       }
+      mailchimp_tokens: {
+        Row: {
+          access_token: string
+          connected_at: string
+          connected_by: string | null
+          id: string
+          server_prefix: string
+        }
+        Insert: {
+          access_token: string
+          connected_at?: string
+          connected_by?: string | null
+          id?: string
+          server_prefix: string
+        }
+        Update: {
+          access_token?: string
+          connected_at?: string
+          connected_by?: string | null
+          id?: string
+          server_prefix?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

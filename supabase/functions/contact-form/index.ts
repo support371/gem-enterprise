@@ -1,5 +1,20 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+async function computeSubscriberHash(email: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(email.toLowerCase());
+  try {
+    // @ts-ignore – Deno runtime accepts "MD5"
+    const hashBuffer = await crypto.subtle.digest("MD5", msgBuffer);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  } catch {
+    return Array.from(msgBuffer)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+  }
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -67,6 +82,41 @@ Deno.serve(async (req) => {
       topic: data.topic,
       timestamp: new Date().toISOString(),
     });
+
+    // Subscribe contact to Mailchimp audience (best-effort; doesn't block the response)
+    const audienceId = Deno.env.get("MAILCHIMP_AUDIENCE_ID");
+    if (audienceId) {
+      const { data: tokenRow } = await supabase
+        .from("mailchimp_tokens")
+        .select("access_token, server_prefix")
+        .order("connected_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (tokenRow) {
+        const [firstName, ...rest] = data.fullName.trim().split(" ");
+        const lastName = rest.join(" ");
+        const subscriberHash = await computeSubscriberHash(data.email);
+        const mcUrl =
+          `https://${tokenRow.server_prefix}.api.mailchimp.com/3.0/lists/${audienceId}/members/${subscriberHash}`;
+
+        await fetch(mcUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${tokenRow.access_token}`,
+          },
+          body: JSON.stringify({
+            email_address: data.email.toLowerCase(),
+            status_if_new: "subscribed",
+            merge_fields: {
+              FNAME: firstName,
+              ...(lastName ? { LNAME: lastName } : {}),
+            },
+          }),
+        }).catch((err) => console.error("Mailchimp subscribe error:", err));
+      }
+    }
 
     return new Response(
       JSON.stringify({ success: true, message: "Contact form received successfully" }),
