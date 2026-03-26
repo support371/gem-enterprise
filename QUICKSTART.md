@@ -1,85 +1,42 @@
-# Quick Start Guide for Gem Enterprise
+# Quick Start Guide
 
 ## Development Setup
 1. Clone the repository:
-   ```bash
+   ```
    git clone https://github.com/support371/gem-enterprise.git
    cd gem-enterprise
    ```
-
 2. Install dependencies:
-   ```bash
+   ```
    npm install
    ```
+3. Set up the environment variables:
+   - Create a `.env` file based on `.env.example` and populate it with your configurations.
 
-3. Set up your local environment:
-   - Copy `.env.example` to `.env` and fill the required fields.
-   - The key environment variables include:
-     - `DATABASE_URL`
-     - `API_KEY`
-     - `NODE_ENV` (set to `development`)
+## Routes
+- **GET /** - Home route
+- **POST /api/login** - Authenticate user
+- **GET /api/user** - Get user data
 
-## Vercel Deployment Steps
-1. Install the Vercel CLI:
-   ```bash
-   npm install -g vercel
-   ```
+## Authentication Flow
+1. User navigates to the login page.
+2. User enters credentials and submits.
+3. Backend verifies credentials and returns a token if successful.
+4. Token is stored in local storage for subsequent requests.
 
-2. Log in to Vercel:
-   ```bash
-   vercel login
-   ```
+## Deployment on Vercel
+1. Push your code to GitHub.
+2. Go to [Vercel](https://vercel.com) and login.
+3. Import your GitHub repository.
+4. Vercel will automatically build and deploy your application.
 
-3. Deploy your application:
-   ```bash
-   vercel
-   ```
-
-4. Follow the prompts to complete the deployment.
-
-## Environment Variables
-- **Required:**
-  - `DATABASE_URL`: The URL of your database.
-  - `API_KEY`: Your application API key.
-- **Optional:**
-  - `NODE_ENV`: Environment for the application (e.g., development or production).
-
-## Post-deployment Checklist
-- Ensure the application is accessible at the provided Vercel URL.
-- Verify all environment variables are set correctly in the Vercel dashboard.
-- Conduct smoke testing to validate critical functionalities.
+## Troubleshooting
+- Ensure you have the correct node version installed (Check .nvmrc).
+- Check the console for any error messages during the build or runtime.
 
 ## Project Structure
-```
-/  # Root directory
-│
-├── src/  # Source code
-│   ├── components/  # UI components
-│   ├── pages/  # Application pages
-│   ├── utils/  # Utility functions
-│   └── styles/  # Stylesheets
-│
-├── public/  # Static files
-├── tests/  # Test cases
-└── .env  # Environment variable file
-```
+- **/src** - Contains all the source code.
+- **/public** - Contains static files.
+- **/tests** - Contains all test files.
 
-## Technology Stack
-- **Frontend:** React.js
-- **Backend:** Node.js + Express
-- **Database:** MongoDB
-- **Deployment:** Vercel
-
-## Key Features
-- Easy-to-use user interface.
-- Efficient data management through REST APIs.
-- Responsive design for mobile and desktop.
-
-## Troubleshooting Guide
-- **Issue:** Application fails to start.
-  - **Solution:** Check the `.env` file for missing or incorrect environment variables.
-
-- **Issue:** Deployment fails on Vercel.
-  - **Solution:** Ensure all required dependencies are listed in `package.json` and configure necessary environment variables.
-
-For further support, check the [GitHub Issues](https://github.com/support371/gem-enterprise/issues) or contact the development team.
+This quick start guide should get you up and running with the project quickly!
