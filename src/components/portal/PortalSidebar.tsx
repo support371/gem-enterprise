@@ -17,6 +17,7 @@ import {
   FolderOpen,
   UserCircle,
   HelpCircle,
+  Globe,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -84,6 +85,12 @@ const navItems: NavItem[] = [
     label: "Alliance Trust",
     href: "/portal/alliance-trust",
     icon: Building2,
+    allowedRoles: ["admin", "manager", "analyst", "viewer"],
+  },
+  {
+    label: "Global Gateway",
+    href: "/global-gateway",
+    icon: Globe,
     allowedRoles: ["admin", "manager", "analyst", "viewer"],
   },
   {

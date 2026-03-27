@@ -41,6 +41,9 @@ import PortalTeam from "./pages/portal/PortalTeam";
 import PortalActivity from "./pages/portal/PortalActivity";
 import PortalSettings from "./pages/portal/PortalSettings";
 import AllianceTrust from "./pages/portal/AllianceTrust";
+import GlobalGateway from "./pages/portal/GlobalGateway";
+import GlobalGatewayConnect from "./pages/portal/GlobalGatewayConnect";
+import GlobalGatewayMailchimp from "./pages/portal/GlobalGatewayMailchimp";
 
 // Standalone portal pages
 import Profile from "./pages/Profile";
@@ -183,6 +186,32 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={["admin"]}>
                   <PortalSettings />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* ── Global Gateway ────────────────────────────────────────── */}
+            <Route
+              path="/global-gateway"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "analyst", "viewer"]}>
+                  <GlobalGateway />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/global-gateway/connect"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager", "analyst", "viewer"]}>
+                  <GlobalGatewayConnect />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/global-gateway/mailchimp"
+              element={
+                <ProtectedRoute allowedRoles={["admin", "manager"]}>
+                  <GlobalGatewayMailchimp />
                 </ProtectedRoute>
               }
             />
