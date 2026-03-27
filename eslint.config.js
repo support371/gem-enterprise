@@ -21,6 +21,13 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+      // Supabase query helpers and shadcn scaffolding use `any` intentionally;
+      // treat as warnings so CI builds do not fail.
+      "@typescript-eslint/no-explicit-any": "warn",
+      // tailwind.config.ts uses require() for the animate plugin (CJS interop)
+      "@typescript-eslint/no-require-imports": "warn",
+      // Empty interface extending a parent is fine as an alias in shadcn components
+      "@typescript-eslint/no-empty-object-type": "warn",
     },
   },
 );

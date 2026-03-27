@@ -26,6 +26,9 @@ export default function ResetPassword() {
       setIsRecovery(true);
     }
 
+    // supabase client is null when env vars are not configured — guard before calling
+    if (!supabase) return;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         setIsRecovery(true);
