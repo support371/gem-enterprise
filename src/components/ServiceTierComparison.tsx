@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Check, X, Shield, Zap, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -69,13 +68,7 @@ export const ServiceTierComparison = () => {
   return (
     <section className="py-16">
       <div className="container mx-auto px-4">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-12"
-        >
+        <div className="text-center mb-12 animate-fade-in">
           <div className="inline-flex items-center gap-2 text-primary text-sm font-medium mb-4">
             <Zap className="w-4 h-4" />
             <span>Compare Plans</span>
@@ -86,20 +79,16 @@ export const ServiceTierComparison = () => {
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Select the protection level that matches your organization's security requirements
           </p>
-        </motion.div>
+        </div>
 
         {/* Tier Cards - Mobile */}
         <div className="lg:hidden space-y-6 mb-8">
           {tiers.map((tier, index) => {
             const Icon = tier.icon;
             return (
-              <motion.div
+              <div
                 key={tier.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className={`glass-panel rounded-2xl p-6 border ${
+                className={`glass-panel rounded-2xl p-6 border animate-fade-in ${
                   tier.popular ? "border-primary" : "border-border/50"
                 } relative`}
               >
@@ -120,19 +109,13 @@ export const ServiceTierComparison = () => {
                 <Button variant={tier.popular ? "hero" : "glass"} className="w-full" asChild>
                   <Link to="/contact">Request Quote</Link>
                 </Button>
-              </motion.div>
+              </div>
             );
           })}
         </div>
 
         {/* Comparison Table - Desktop */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="hidden lg:block glass-panel rounded-2xl overflow-hidden border border-border/50"
-        >
+        <div className="hidden lg:block glass-panel rounded-2xl overflow-hidden border border-border/50 animate-fade-in">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -200,17 +183,13 @@ export const ServiceTierComparison = () => {
               </tfoot>
             </table>
           </div>
-        </motion.div>
+        </div>
 
         {/* Mobile Feature Accordion */}
         <div className="lg:hidden space-y-4">
           {features.map((feature, index) => (
-            <motion.div
+            <div
               key={feature.name}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.3, delay: index * 0.02 }}
               className="glass-panel rounded-xl p-4"
             >
               <h4 className="font-medium text-foreground mb-3">{feature.name}</h4>
@@ -228,7 +207,7 @@ export const ServiceTierComparison = () => {
                   <FeatureCell value={feature.enterprise} />
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>

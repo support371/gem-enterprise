@@ -11,7 +11,8 @@ type Message = {
   content: string;
 };
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gem-assist`;
+const _supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const CHAT_URL = _supabaseUrl ? `${_supabaseUrl}/functions/v1/gem-assist` : null;
 
 const quickActions = [
   { label: "Services",   message: "Tell me about your security services.",           icon: Shield },
@@ -43,6 +44,9 @@ export const GemAssist = () => {
   }, [isOpen]);
 
   const streamChat = useCallback(async (userMessages: Message[]) => {
+    if (!CHAT_URL) {
+      throw new Error("AI assistant is not configured. Missing VITE_SUPABASE_URL.");
+    }
     const resp = await fetch(CHAT_URL, {
       method: "POST",
       headers: {

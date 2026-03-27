@@ -1,5 +1,4 @@
-import { motion, useInView } from "framer-motion";
-import { useRef, ReactNode } from "react";
+import { useEffect, useRef, useState, ReactNode } from "react";
 
 interface AnimatedSectionProps {
   children: ReactNode;
@@ -8,19 +7,37 @@ interface AnimatedSectionProps {
 }
 
 export const AnimatedSection = ({ children, className, delay = 0 }: AnimatedSectionProps) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: "-100px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <motion.div
+    <div
       ref={ref}
-      initial={{ opacity: 0, y: 40 }}
-      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
-      transition={{ duration: 0.6, delay, ease: "easeOut" }}
       className={className}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(40px)",
+        transition: `opacity 0.6s ease ${delay}s, transform 0.6s ease ${delay}s`,
+      }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 };
 
@@ -31,23 +48,16 @@ interface FadeInProps {
   direction?: "up" | "down" | "left" | "right";
 }
 
-export const FadeIn = ({ children, className, delay = 0, direction = "up" }: FadeInProps) => {
-  const directionOffset = {
-    up: { y: 30 },
-    down: { y: -30 },
-    left: { x: 30 },
-    right: { x: -30 },
-  };
-
+export const FadeIn = ({ children, className, delay = 0 }: FadeInProps) => {
   return (
-    <motion.div
-      initial={{ opacity: 0, ...directionOffset[direction] }}
-      animate={{ opacity: 1, x: 0, y: 0 }}
-      transition={{ duration: 0.5, delay, ease: "easeOut" }}
+    <div
       className={className}
+      style={{
+        animationDelay: `${delay}s`,
+      }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 };
 
@@ -57,38 +67,10 @@ interface StaggerContainerProps {
   staggerDelay?: number;
 }
 
-export const StaggerContainer = ({ children, className, staggerDelay = 0.1 }: StaggerContainerProps) => {
-  return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={{
-        hidden: { opacity: 0 },
-        visible: {
-          opacity: 1,
-          transition: {
-            staggerChildren: staggerDelay,
-          },
-        },
-      }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
+export const StaggerContainer = ({ children, className }: StaggerContainerProps) => {
+  return <div className={className}>{children}</div>;
 };
 
 export const StaggerItem = ({ children, className }: { children: ReactNode; className?: string }) => {
-  return (
-    <motion.div
-      variants={{
-        hidden: { opacity: 0, y: 20 },
-        visible: { opacity: 1, y: 0 },
-      }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
+  return <div className={className}>{children}</div>;
 };

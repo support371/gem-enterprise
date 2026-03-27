@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Quote, Building2, Shield, Heart, Star } from "lucide-react";
 
 // Import client headshots
@@ -20,13 +19,13 @@ interface Testimonial {
   featured?: boolean;
 }
 
-// Company logos as styled text/icons for enterprise look
-const companyLogos: Record<string, { abbr: string; color: string }> = {
-  "Fortune 100 Financial Institution": { abbr: "F100", color: "primary" },
-  "Global Manufacturing Corp": { abbr: "GMC", color: "accent" },
-  "Healthcare Network": { abbr: "HN", color: "success" },
-  "TechCorp": { abbr: "TC", color: "primary" },
-  "SecureTech": { abbr: "ST", color: "accent" },
+// Full Tailwind class strings — dynamic construction gets purged at build time
+const companyLogos: Record<string, { abbr: string; bg: string; text: string }> = {
+  "Fortune 100 Financial Institution": { abbr: "F100", bg: "bg-primary/10", text: "text-primary" },
+  "Global Manufacturing Corp":         { abbr: "GMC",  bg: "bg-accent/20",   text: "text-accent-foreground" },
+  "Healthcare Network":                { abbr: "HN",   bg: "bg-success/10",  text: "text-success" },
+  "TechCorp":                          { abbr: "TC",   bg: "bg-primary/10",  text: "text-primary" },
+  "SecureTech":                        { abbr: "ST",   bg: "bg-accent/20",   text: "text-accent-foreground" },
 };
 
 const testimonials: Testimonial[] = [
@@ -105,16 +104,10 @@ export const TestimonialsSection = () => {
     <section className="py-24 relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-accent/5 to-transparent" />
-      
+
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-16"
-        >
+        <div className="text-center mb-16 animate-fade-in">
           <div className="inline-flex items-center gap-2 text-primary text-sm font-medium mb-4">
             <span>Client Success Stories</span>
           </div>
@@ -124,29 +117,23 @@ export const TestimonialsSection = () => {
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             See how enterprises worldwide leverage our security platform to protect their most valuable assets
           </p>
-        </motion.div>
+        </div>
 
         {/* Featured Testimonial */}
         {featured && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="max-w-4xl mx-auto mb-12"
-          >
+          <div className="max-w-4xl mx-auto mb-12 animate-fade-in">
             <div className="glass-panel rounded-2xl p-8 md:p-10 border border-primary/20 relative overflow-hidden">
               {/* Quote Icon */}
               <Quote className="absolute top-6 right-6 w-12 h-12 text-primary/10" />
-              
+
               {/* Company Logo & Author with Photo */}
               <div className="flex items-start justify-between gap-4 mb-6">
                 <div className="flex items-center gap-4">
                   {/* Client Photo */}
                   <div className="relative">
                     <div className="w-16 h-16 rounded-full ring-2 ring-primary/20 overflow-hidden">
-                      <img 
-                        src={featured.avatar} 
+                      <img
+                        src={featured.avatar}
                         alt={featured.author}
                         className="w-full h-full object-cover"
                       />
@@ -161,19 +148,21 @@ export const TestimonialsSection = () => {
                     <p className="text-sm text-primary font-medium">{featured.company}</p>
                   </div>
                 </div>
-                
+
                 {/* Company Logo Badge */}
-                <div className="hidden sm:flex items-center gap-2 glass-panel rounded-lg px-4 py-2 border border-border/50">
-                  <div className={`w-10 h-10 rounded-lg bg-${companyLogos[featured.company]?.color || 'primary'}/10 flex items-center justify-center`}>
-                    <span className={`text-sm font-bold text-${companyLogos[featured.company]?.color || 'primary'}`}>
-                      {companyLogos[featured.company]?.abbr || 'CO'}
-                    </span>
+                {companyLogos[featured.company] && (
+                  <div className="hidden sm:flex items-center gap-2 glass-panel rounded-lg px-4 py-2 border border-border/50">
+                    <div className={`w-10 h-10 rounded-lg ${companyLogos[featured.company].bg} flex items-center justify-center`}>
+                      <span className={`text-sm font-bold ${companyLogos[featured.company].text}`}>
+                        {companyLogos[featured.company].abbr}
+                      </span>
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs text-muted-foreground">Verified</p>
+                      <p className="text-xs font-semibold text-foreground">Enterprise Client</p>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <p className="text-xs text-muted-foreground">Verified</p>
-                    <p className="text-xs font-semibold text-foreground">Enterprise Client</p>
-                  </div>
-                </div>
+                )}
               </div>
 
               <blockquote className="text-lg md:text-xl text-foreground/90 mb-8 leading-relaxed italic">
@@ -192,7 +181,7 @@ export const TestimonialsSection = () => {
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* Other Testimonials Grid */}
@@ -200,23 +189,20 @@ export const TestimonialsSection = () => {
           {others.map((testimonial, index) => {
             const Icon = companyIcons[testimonial.companyType as keyof typeof companyIcons] || Building2;
             const logoInfo = companyLogos[testimonial.company];
-            
+
             return (
-              <motion.div
+              <div
                 key={testimonial.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="glass-panel rounded-xl p-6 border border-border/50 hover:border-primary/30 transition-all group"
+                className="glass-panel rounded-xl p-6 border border-border/50 hover:border-primary/30 transition-all group animate-fade-in"
+                style={{ animationDelay: `${index * 100}ms` }}
               >
                 {/* Header with Photo and Company Logo */}
                 <div className="flex items-start justify-between gap-3 mb-4">
                   <div className="flex items-center gap-3">
                     {/* Client Photo */}
                     <div className="w-12 h-12 rounded-full ring-2 ring-border group-hover:ring-primary/30 transition-colors overflow-hidden">
-                      <img 
-                        src={testimonial.avatar} 
+                      <img
+                        src={testimonial.avatar}
                         alt={testimonial.author}
                         className="w-full h-full object-cover"
                       />
@@ -226,12 +212,16 @@ export const TestimonialsSection = () => {
                       <p className="text-xs text-muted-foreground">{testimonial.role}</p>
                     </div>
                   </div>
-                  
+
                   {/* Company Logo Badge */}
-                  <div className={`w-10 h-10 rounded-lg bg-${logoInfo?.color || 'secondary'}/10 flex items-center justify-center shrink-0`}>
-                    <span className={`text-xs font-bold text-${logoInfo?.color || 'muted-foreground'}`}>
-                      {logoInfo?.abbr || <Icon className="w-5 h-5" />}
-                    </span>
+                  <div className={`w-10 h-10 rounded-lg ${logoInfo?.bg ?? "bg-secondary/50"} flex items-center justify-center shrink-0`}>
+                    {logoInfo ? (
+                      <span className={`text-xs font-bold ${logoInfo.text}`}>
+                        {logoInfo.abbr}
+                      </span>
+                    ) : (
+                      <Icon className="w-5 h-5 text-muted-foreground" />
+                    )}
                   </div>
                 </div>
 
@@ -252,7 +242,7 @@ export const TestimonialsSection = () => {
                     ))}
                   </div>
                 )}
-              </motion.div>
+              </div>
             );
           })}
         </div>
