@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Shield, Zap, CheckCircle2, Clock, Building2, Activity, ChevronDown } from "lucide-react";
+import { ArrowRight, Shield, Lock, Eye, Zap, CheckCircle2, Clock, Building2, Activity, ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import socImage from "@/assets/soc-operations-center.jpg";
-import { NetworkParticles } from "@/components/NetworkParticles";
 
 type AudienceType = "ciso" | "it-ops" | "founder";
 
@@ -66,25 +65,17 @@ export const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-20 pb-16 overflow-hidden">
-      {/* Network Particle Animation Background */}
-      <div className="absolute inset-0">
-        <NetworkParticles />
-      </div>
-
-      {/* Background Effects */}
-      <div className="absolute inset-0 cyber-grid opacity-20" />
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+      {/* Background Effects — no canvas, no RAF competition */}
+      <div className="absolute inset-0 cyber-grid opacity-20 pointer-events-none" />
+      <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/8 rounded-full blur-[150px] animate-pulse-slow" />
         <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-accent/15 rounded-full blur-[120px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
         <div className="absolute top-1/2 right-1/3 w-[300px] h-[300px] bg-primary/5 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '4s' }} />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
-        {/* Enterprise Badge */}
-        <div
-          className="flex justify-center lg:justify-start mb-8 animate-fade-in"
-          style={{ animationDelay: '0ms' }}
-        >
+        {/* Enterprise Badge — visible immediately, no opacity-0 init */}
+        <div className="flex justify-center lg:justify-start mb-8">
           <div className="inline-flex items-center gap-2 glass-panel px-5 py-2.5 rounded-full border border-primary/20">
             <Shield className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-foreground">Enterprise Security Platform</span>
@@ -96,30 +87,21 @@ export const HeroSection = () => {
           {/* Left: Content */}
           <div className="text-center lg:text-left">
             {/* Headline */}
-            <h1
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-[1.1] animate-fade-in"
-              style={{ animationDelay: '80ms' }}
-            >
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-[1.1]">
               <span className="text-foreground">Next-Generation</span>
               <br />
-              <span className="text-gradient-primary">Security &amp; Trust</span>
+              <span className="text-gradient-primary">Security & Trust</span>
               <br />
               <span className="text-foreground">Solutions</span>
             </h1>
 
             {/* Subheadline */}
-            <p
-              className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8 animate-fade-in"
-              style={{ animationDelay: '160ms' }}
-            >
+            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8">
               {currentContent.subheadline}
             </p>
 
             {/* Stats Cards */}
-            <div
-              className="grid grid-cols-3 gap-3 mb-8 animate-fade-in"
-              style={{ animationDelay: '240ms' }}
-            >
+            <div className="grid grid-cols-3 gap-3 mb-8">
               {heroStats.map((stat, index) => {
                 const Icon = stat.icon;
                 return (
@@ -145,10 +127,7 @@ export const HeroSection = () => {
             </div>
 
             {/* CTAs */}
-            <div
-              className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6 animate-fade-in"
-              style={{ animationDelay: '320ms' }}
-            >
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6">
               <Button variant="hero" size="lg" asChild className="group">
                 <Link to="/solutions" className="flex items-center gap-3">
                   <Zap className="w-5 h-5" />
@@ -167,10 +146,7 @@ export const HeroSection = () => {
             </div>
 
             {/* Trust Badges */}
-            <div
-              className="flex flex-wrap items-center justify-center lg:justify-start gap-4 animate-fade-in"
-              style={{ animationDelay: '400ms' }}
-            >
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
               {trustBadges.map((badge) => (
                 <div key={badge} className="flex items-center gap-2 text-muted-foreground">
                   <span className="w-2 h-2 rounded-full bg-success" />
@@ -181,10 +157,7 @@ export const HeroSection = () => {
           </div>
 
           {/* Right: SOC Dashboard Visual */}
-          <div
-            className="relative animate-fade-in"
-            style={{ animationDelay: '200ms' }}
-          >
+          <div className="relative">
             {/* Main Dashboard Card */}
             <div className="relative">
               {/* SOC Image with Gradient Border */}
@@ -194,9 +167,8 @@ export const HeroSection = () => {
                     src={socImage}
                     alt="Security Operations Center with multiple monitoring screens displaying real-time cybersecurity dashboards"
                     className="w-full h-full object-cover"
-                    loading="eager"
                   />
-                  {/* Overlay gradient for better text readability */}
+                  {/* Overlay gradient */}
                   <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-background/20" />
 
                   {/* Floating Status Cards */}
@@ -234,10 +206,7 @@ export const HeroSection = () => {
               </div>
 
               {/* Floating Metric Cards */}
-              <div
-                className="absolute -bottom-6 -left-6 glass-panel rounded-xl p-4 border border-primary/20 shadow-lg animate-fade-in"
-                style={{ animationDelay: '450ms' }}
-              >
+              <div className="absolute -bottom-6 -left-6 glass-panel rounded-xl p-4 border border-primary/20 shadow-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
                     <CheckCircle2 className="w-5 h-5 text-success" />
@@ -249,13 +218,10 @@ export const HeroSection = () => {
                 </div>
               </div>
 
-              <div
-                className="absolute -top-4 -right-4 glass-panel rounded-xl p-4 border border-primary/20 shadow-lg animate-fade-in"
-                style={{ animationDelay: '500ms' }}
-              >
+              <div className="absolute -top-4 -right-4 glass-panel rounded-xl p-4 border border-primary/20 shadow-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-primary" />
+                    <Eye className="w-5 h-5 text-primary" />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-foreground">24/7 Monitoring</p>
@@ -268,7 +234,7 @@ export const HeroSection = () => {
         </div>
 
         {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-muted-foreground animate-fade-in" style={{ animationDelay: '600ms' }}>
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-muted-foreground">
           <span className="text-xs font-medium">Scroll to explore</span>
           <ChevronDown className="w-5 h-5 animate-bounce" />
         </div>

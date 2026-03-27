@@ -66,8 +66,7 @@ export const TrustSection = () => {
             {trustPillars.map((pillar, index) => (
               <div
                 key={pillar.title}
-                className="group glass-panel rounded-xl p-6 hover:border-primary/30 transition-all duration-300 animate-fade-in"
-                style={{ animationDelay: `${index * 0.1}s` }}
+                className="group glass-panel rounded-xl p-6 hover:border-primary/30 transition-all duration-300"
               >
                 <div className="flex items-start gap-4">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors duration-300">
