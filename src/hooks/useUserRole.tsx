@@ -27,8 +27,10 @@ export function useUserRole(): UserRoleResult {
     queryFn: async (): Promise<Role | null> => {
       if (!user) return null;
 
-      const { data, error: queryError } = await (supabase as any)
-        .from("user_roles")
+      if (!supabase) throw new Error("Supabase is not configured.");
+
+      const { data, error: queryError } = await supabase
+        .from("user_roles" as never)
         .select("role")
         .eq("user_id", user.id)
         .single();
