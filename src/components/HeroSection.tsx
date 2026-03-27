@@ -2,9 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Shield, Lock, Eye, Zap, CheckCircle2, Clock, Building2, Activity, ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import socImage from "@/assets/soc-operations-center.jpg";
-import { NetworkParticles } from "@/components/NetworkParticles";
 
 type AudienceType = "ciso" | "it-ops" | "founder";
 
@@ -31,12 +29,12 @@ const heroStats = [
 
 const trustBadges = [
   "SOC 2 Certified",
-  "Federal Compliant", 
+  "Federal Compliant",
   "24/7 Support"
 ];
 
 export const HeroSection = () => {
-  const [audience, setAudience] = useState<AudienceType>("ciso");
+  const [audience] = useState<AudienceType>("ciso");
   const [animatedStats, setAnimatedStats] = useState(heroStats.map(() => 0));
 
   const currentContent = audienceContent[audience];
@@ -47,7 +45,7 @@ export const HeroSection = () => {
       const steps = 60;
       const increment = stat.value / steps;
       let current = 0;
-      
+
       return setInterval(() => {
         current += increment;
         if (current >= stat.value) {
@@ -67,72 +65,47 @@ export const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-20 pb-16 overflow-hidden">
-      {/* Network Particle Animation Background */}
-      <div className="absolute inset-0">
-        <NetworkParticles />
-      </div>
-      
-      {/* Background Effects */}
-      <div className="absolute inset-0 cyber-grid opacity-20" />
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+      {/* Background Effects — no canvas, no RAF competition */}
+      <div className="absolute inset-0 cyber-grid opacity-20 pointer-events-none" />
+      <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/8 rounded-full blur-[150px] animate-pulse-slow" />
         <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-accent/15 rounded-full blur-[120px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
         <div className="absolute top-1/2 right-1/3 w-[300px] h-[300px] bg-primary/5 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '4s' }} />
       </div>
-      
+
       <div className="container mx-auto px-4 relative z-10">
-        {/* Enterprise Badge */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex justify-center lg:justify-start mb-8"
-        >
+        {/* Enterprise Badge — visible immediately, no opacity-0 init */}
+        <div className="flex justify-center lg:justify-start mb-8">
           <div className="inline-flex items-center gap-2 glass-panel px-5 py-2.5 rounded-full border border-primary/20">
             <Shield className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium text-foreground">Enterprise Security Platform</span>
           </div>
-        </motion.div>
+        </div>
 
         {/* Main Grid Layout */}
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 max-w-7xl mx-auto items-center">
           {/* Left: Content */}
           <div className="text-center lg:text-left">
             {/* Headline */}
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-[1.1]"
-            >
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-[1.1]">
               <span className="text-foreground">Next-Generation</span>
               <br />
               <span className="text-gradient-primary">Security & Trust</span>
               <br />
               <span className="text-foreground">Solutions</span>
-            </motion.h1>
+            </h1>
 
             {/* Subheadline */}
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8"
-            >
+            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8">
               {currentContent.subheadline}
-            </motion.p>
+            </p>
 
             {/* Stats Cards */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="grid grid-cols-3 gap-3 mb-8"
-            >
+            <div className="grid grid-cols-3 gap-3 mb-8">
               {heroStats.map((stat, index) => {
                 const Icon = stat.icon;
                 return (
-                  <div 
+                  <div
                     key={stat.label}
                     className="glass-panel rounded-xl p-4 border border-border/50 hover:border-primary/30 transition-colors"
                   >
@@ -151,15 +124,10 @@ export const HeroSection = () => {
                   </div>
                 );
               })}
-            </motion.div>
+            </div>
 
             {/* CTAs */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6"
-            >
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6">
               <Button variant="hero" size="lg" asChild className="group">
                 <Link to="/solutions" className="flex items-center gap-3">
                   <Zap className="w-5 h-5" />
@@ -175,45 +143,34 @@ export const HeroSection = () => {
                   {currentContent.secondaryCta}
                 </Link>
               </Button>
-            </motion.div>
+            </div>
 
             {/* Trust Badges */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-              className="flex flex-wrap items-center justify-center lg:justify-start gap-4"
-            >
-              {trustBadges.map((badge, index) => (
+            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
+              {trustBadges.map((badge) => (
                 <div key={badge} className="flex items-center gap-2 text-muted-foreground">
                   <span className="w-2 h-2 rounded-full bg-success" />
                   <span className="text-sm font-medium">{badge}</span>
                 </div>
               ))}
-            </motion.div>
+            </div>
           </div>
 
           {/* Right: SOC Dashboard Visual */}
-          <motion.div 
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="relative"
-          >
+          <div className="relative">
             {/* Main Dashboard Card */}
             <div className="relative">
               {/* SOC Image with Gradient Border */}
               <div className="relative glass-panel rounded-2xl p-1 glow-cyan overflow-hidden">
                 <div className="relative aspect-[16/10] rounded-xl overflow-hidden">
-                  {/* Actual SOC Image */}
-                  <img 
-                    src={socImage} 
+                  <img
+                    src={socImage}
                     alt="Security Operations Center with multiple monitoring screens displaying real-time cybersecurity dashboards"
                     className="w-full h-full object-cover"
                   />
-                  {/* Overlay gradient for better text readability */}
+                  {/* Overlay gradient */}
                   <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-background/20" />
-                  
+
                   {/* Floating Status Cards */}
                   <div className="absolute top-4 left-4 glass-panel rounded-lg px-3 py-2 flex items-center gap-2 backdrop-blur-md">
                     <span className="relative flex h-2 w-2">
@@ -249,12 +206,7 @@ export const HeroSection = () => {
               </div>
 
               {/* Floating Metric Cards */}
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.6 }}
-                className="absolute -bottom-6 -left-6 glass-panel rounded-xl p-4 border border-primary/20 shadow-lg"
-              >
+              <div className="absolute -bottom-6 -left-6 glass-panel rounded-xl p-4 border border-primary/20 shadow-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
                     <CheckCircle2 className="w-5 h-5 text-success" />
@@ -264,14 +216,9 @@ export const HeroSection = () => {
                     <p className="text-xs text-success">Active</p>
                   </div>
                 </div>
-              </motion.div>
+              </div>
 
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.7 }}
-                className="absolute -top-4 -right-4 glass-panel rounded-xl p-4 border border-primary/20 shadow-lg"
-              >
+              <div className="absolute -top-4 -right-4 glass-panel rounded-xl p-4 border border-primary/20 shadow-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                     <Eye className="w-5 h-5 text-primary" />
@@ -281,21 +228,16 @@ export const HeroSection = () => {
                     <p className="text-xs text-primary">Online</p>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* Scroll Indicator */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 1 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-muted-foreground"
-        >
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-muted-foreground">
           <span className="text-xs font-medium">Scroll to explore</span>
           <ChevronDown className="w-5 h-5 animate-bounce" />
-        </motion.div>
+        </div>
       </div>
     </section>
   );

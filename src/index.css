@@ -160,7 +160,8 @@
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans);
     background-image: var(--gradient-mesh);
-    background-attachment: fixed;
+    /* background-attachment: fixed removed — causes iOS Safari paint failure
+       where body background clips all non-fixed content, leaving a blank page */
   }
   
   ::selection {
@@ -243,6 +244,10 @@
   .animate-glow {
     animation: glow 2s ease-in-out infinite alternate;
   }
+
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out both;
+  }
 }
 
 @keyframes float {
@@ -253,4 +258,9 @@
 @keyframes glow {
   from { box-shadow: 0 0 20px hsl(var(--electric-cyan) / 0.3); }
   to { box-shadow: 0 0 40px hsl(var(--electric-cyan) / 0.6); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
