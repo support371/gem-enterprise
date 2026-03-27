@@ -1,73 +1,85 @@
-# Welcome to your Lovable project
+# gem-enterprise
 
-## Project info
+Authenticated portal frontend for the GEM Enterprise platform.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Stack
 
-## How can I edit this code?
+- **Vite** — build tool
+- **React 18** — UI framework
+- **TypeScript** — type safety
+- **Tailwind CSS** — utility-first styling with custom design tokens
+- **shadcn/ui** — component primitives
+- **Supabase** — authentication and session management
+- **Vercel** — production deployment
 
-There are several ways of editing your application.
+## Required environment variables
 
-**Use Lovable**
+```
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
+```
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+Create a `.env.local` file at the project root with both variables set.
 
-Changes made via Lovable will be committed automatically to this repo.
+## Development
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Build
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm run build
+```
 
-**Use GitHub Codespaces**
+Output goes to `dist/`. Preview with `npm run preview`.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Routes
 
-## What technologies are used for this project?
+### Public
+| Path | Page |
+|------|------|
+| `/` | Homepage |
+| `/trust-center` | Trust Center |
+| `/solutions` | Solutions |
+| `/solutions/:slug` | Solution detail |
+| `/pricing` | Pricing |
+| `/resources` | Resources |
+| `/blog` | Blog |
+| `/blog/:slug` | Blog post |
+| `/contact` | Contact |
+| `/auth` | Login / sign-up |
+| `/reset-password` | Password reset |
 
-This project is built with:
+### Onboarding flow
+| Path | Page |
+|------|------|
+| `/register` | Registration (public-only) |
+| `/kyc` | KYC form (authenticated) |
+| `/kyc/status` | KYC status (authenticated) |
+| `/handoff` | Handoff to portal (authenticated) |
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Portal (authenticated, role-gated)
+| Path | Roles |
+|------|-------|
+| `/portal` / `/portal/dashboard` | admin, manager, analyst, viewer |
+| `/portal/services` | admin, manager, analyst, viewer |
+| `/portal/community` | admin, manager, analyst, viewer |
+| `/portal/workspace` | admin, manager, analyst, viewer |
+| `/portal/tasks` | admin, manager, analyst |
+| `/portal/incidents` | admin, manager, analyst |
+| `/portal/team` | admin, manager |
+| `/portal/activity` | admin, manager, analyst |
+| `/portal/alliance-trust` | admin, manager, analyst, viewer |
+| `/portal/settings` | admin |
+| `/profile` | admin, manager, analyst, viewer |
+| `/support` | admin, manager, analyst, viewer |
 
-## How can I deploy this project?
+## Auth behaviour
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- Unauthenticated access to any portal route → redirect to `/auth`
+- Authenticated access to `/auth` or `/register` → redirect to `/portal`
+- Supabase env vars missing → auth gracefully disabled, warning logged, no import-time crash
+- Session persists across page refreshes via `localStorage`
