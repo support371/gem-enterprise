@@ -37,10 +37,11 @@ jobs:
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
         run: npm run build
 
-      - name: Prepare SPA fallback
+      - name: Prepare SPA fallback and custom domain
         run: |
           cp dist/index.html dist/404.html
           touch dist/.nojekyll
+          echo "gemcybersecurityassist.com" > dist/CNAME
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
