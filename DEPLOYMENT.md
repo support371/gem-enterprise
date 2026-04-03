@@ -1,4 +1,35 @@
-# Deployment – GEM Enterprise Portal (Vercel)
+# Deployment – GEM Enterprise Portal
+
+## GitHub Pages (active frontend host)
+
+The frontend is now deployed via **GitHub Actions → GitHub Pages**.
+
+### How it works
+- Every push to `main` triggers `.github/workflows/deploy-pages.yml`
+- Vite builds the SPA, then `dist/404.html` (copy of `index.html`) is added for SPA route fallback on direct refresh
+- `dist/.nojekyll` is added so GitHub Pages serves `_` prefixed asset filenames correctly
+- The artifact is uploaded and deployed using the official `actions/deploy-pages@v4` action
+
+### Required GitHub Secrets
+Set these in **Settings → Secrets and variables → Actions**:
+
+| Secret | Description |
+|--------|-------------|
+| `VITE_SUPABASE_URL` | Supabase project URL |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/publishable key |
+| `VITE_SUPABASE_PROJECT_ID` | Supabase project ID |
+
+### Custom domain
+Configure your custom domain in **Settings → Pages → Custom domain**.
+HTTPS is enforced automatically by GitHub Pages after DNS propagation.
+Vite `base` is kept at `"/"` since the app runs at the root domain.
+
+### Source control
+GitHub Actions is the Pages source — do **not** switch Pages source to "Deploy from a branch" as that bypasses the build step.
+
+---
+
+# Legacy Vercel Notes
 
 ## Overview
 
