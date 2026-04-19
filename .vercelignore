@@ -1,0 +1,29 @@
+# Development and testing artifacts
+src/test/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Database scripts (not needed at runtime)
+scripts/
+supabase/
+
+# Documentation
+*.md
+DEPLOYMENT.md
+
+# Config files not needed at runtime
+.env.example
+eslint.config.js
+vitest.config.ts
+postcss.config.js
+tailwind.config.ts
+tsconfig*.json
+
+# Misc
+.idea/
+.vscode/
+.DS_Store
+bun.lock
+bun.lockb

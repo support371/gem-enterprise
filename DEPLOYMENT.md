@@ -1,174 +1,212 @@
-# Deployment – GEM Enterprise Portal
+# GEM Enterprise — Vercel Deployment Guide
 
-## GitHub Pages (active frontend host)
+## Stack
 
-The frontend is now deployed via **GitHub Actions → GitHub Pages**.
-
-### How it works
-- Every push to `main` triggers `.github/workflows/deploy-pages.yml`
-- Vite builds the SPA, then `dist/404.html` (copy of `index.html`) is added for SPA route fallback on direct refresh
-- `dist/.nojekyll` is added so GitHub Pages serves `_` prefixed asset filenames correctly
-- The artifact is uploaded and deployed using the official `actions/deploy-pages@v4` action
-
-### Required GitHub Secrets
-Set these in **Settings → Secrets and variables → Actions**:
-
-| Secret | Description |
-|--------|-------------|
-| `VITE_SUPABASE_URL` | Supabase project URL |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/publishable key |
-| `VITE_SUPABASE_PROJECT_ID` | Supabase project ID |
-
-### Custom domain
-Configure your custom domain in **Settings → Pages → Custom domain**.
-HTTPS is enforced automatically by GitHub Pages after DNS propagation.
-Vite `base` is kept at `"/"` since the app runs at the root domain.
-
-### Source control
-GitHub Actions is the Pages source — do **not** switch Pages source to "Deploy from a branch" as that bypasses the build step.
+Next.js 16 · Prisma 5 · PostgreSQL · Vercel
 
 ---
 
-# Legacy Vercel Notes
-
-## Overview
-
-This guide provides instructions for deploying and managing the GEM Enterprise authenticated portal on Vercel. The frontend is a **Vite + React SPA** (Single Page Application). The backend relies on **Supabase Edge Functions** for server-side operations (contact form submissions, AI assistant).
-
-## Vercel Project Mapping
-
--   **Repository:** `support371/gem-enterprise`
--   **Framework:** Vite
--   **Production Branch:** `main`
--   **Preview Branches:** All Pull Request branches automatically generate Preview deployments.
-
-## Branching & Release Workflow
-
-The project follows a standard Git flow:
-
-1.  Create a feature branch from `main`.
-2.  Submit a Pull Request to `main`.
-3.  The PR is automatically deployed to a Preview environment on Vercel for review.
-4.  Once approved, the PR is merged into `main`, which triggers a Production deployment.
-
 ## Required Environment Variables
 
-### Client-side (Vercel / `.env`)
+Add every variable below in **Vercel Dashboard → Project → Settings →
+Environment Variables**. Do not place real values in `vercel.json` or commit
+them to the repository.
 
-The following variables must be configured in your Vercel project settings (and locally in `.env` for development):
+| Variable | Required | Build-time | Description |
+|----------|----------|-----------|-------------|
+| `DATABASE_URL` | **Yes** | Yes | PostgreSQL connection string. Use a pooler for serverless (Neon, Supabase, PgBouncer). Example: `postgresql://user:pass@host:5432/db?sslmode=require` |
+| `JWT_SECRET` | **Yes** | Yes | Minimum 32 characters. Generate: `openssl rand -hex 32`. App throws at runtime if absent or equal to the default dev value. |
+| `ANTHROPIC_API_KEY` | No | No | Anthropic key for GEM Concierge chat. If absent, falls back to rule-based replies — no build failure. |
+| `NEXT_PUBLIC_AI_DISCLOSURE_TEXT` | **Yes** | Yes | Disclosure text shown before the first AI message. SHA-256 of this string is stored in `consent_records`. Keep stable — changing it invalidates prior consent receipts. |
+| `NEXT_PUBLIC_APP_URL` | **Yes** | Yes | Canonical URL, e.g. `https://gem-enterprise.com` |
+| `NEXT_PUBLIC_APP_NAME` | **Yes** | Yes | Display name, e.g. `GEM Enterprise` |
+| `SMTP_HOST` | **Yes** | No | SMTP server hostname |
+| `SMTP_PORT` | **Yes** | No | `587` for TLS, `465` for SSL |
+| `SMTP_USER` | **Yes** | No | SMTP username / sending address |
+| `SMTP_PASS` | **Yes** | No | SMTP password or app-password |
+| `EMAIL_FROM` | **Yes** | No | Display name + address, e.g. `GEM Enterprise <noreply@example.com>` |
+| `ADMIN_EMAIL` | **Yes** | No | Email for the initial admin account (used by seed script once) |
+| `ADMIN_INITIAL_PASSWORD` | **Yes** | No | Temporary password. **Change immediately after first login.** |
+| `AUDIT_ENABLED` | No | No | Set `true` to write audit events to `audit_logs`. |
 
-| Variable | Description |
-| :--- | :--- |
-| `VITE_SUPABASE_URL` | Supabase project URL (e.g. `https://<project-id>.supabase.co`) |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/public key |
-| `VITE_SUPABASE_PROJECT_ID` | Supabase project ID (used for configuration reference) |
+> `vercel.json` references these as `@secret_name` placeholders. The placeholders
+> only resolve if the corresponding secret is added in Vercel Project Settings.
+> No real values are stored in the repository.
 
-These are **client-side** variables (prefixed with `VITE_`) and are embedded into the build output. Do **not** store server-side secrets as `VITE_` variables.
+---
 
-### Server-side (Supabase Edge Functions)
+## Manual Deployment Steps — Exact Order
 
-The following secrets are managed in the **Supabase Dashboard** (not in Vercel) under Project Settings → Edge Functions → Secrets:
+### Step 1 — Add secrets in Vercel Project Settings
 
-| Variable | Used By | Description |
-| :--- | :--- | :--- |
-| `SUPABASE_URL` | `contact-form` | Auto-injected by Supabase runtime |
-| `SUPABASE_SERVICE_ROLE_KEY` | `contact-form` | Auto-injected by Supabase runtime |
-| `LOVABLE_API_KEY` | `gem-assist` | API key for the AI gateway (`ai.gateway.lovable.dev`) |
+In the Vercel dashboard, go to **Project → Settings → Environment Variables**
+and add each variable from the table above.
 
-> **Important:** Do not commit a `.env` file to the repository. Client-side environment variables should be configured in Vercel project settings. The `.env.example` file documents the required client-side variables.
+For the Vercel CLI alternative:
 
-## Local Run Instructions
+```bash
+vercel env add DATABASE_URL
+vercel env add JWT_SECRET
+vercel env add ANTHROPIC_API_KEY
+vercel env add NEXT_PUBLIC_AI_DISCLOSURE_TEXT
+vercel env add NEXT_PUBLIC_APP_URL
+vercel env add NEXT_PUBLIC_APP_NAME
+vercel env add SMTP_HOST
+vercel env add SMTP_PORT
+vercel env add SMTP_USER
+vercel env add SMTP_PASS
+vercel env add EMAIL_FROM
+vercel env add ADMIN_EMAIL
+vercel env add ADMIN_INITIAL_PASSWORD
+vercel env add AUDIT_ENABLED
+```
 
-1.  **Install Dependencies:**
-    ```bash
-    npm install
-    ```
-2.  **Create a local `.env` file** (copy from the example):
-    ```bash
-    cp .env.example .env
-    # Then fill in your Supabase URL and anon key
-    ```
-3.  **Run Development Server:**
-    ```bash
-    npm run dev
-    ```
-4.  **Build for Production:**
-    ```bash
-    npm run build
-    ```
-5.  **Run Tests:**
-    ```bash
-    npm test
-    ```
+### Step 2 — Trigger a Vercel redeploy
 
-## Vercel Deployment Steps (Dashboard)
+After adding all variables, force a redeploy so the build picks up the new
+values (build-time variables are baked in at build time):
 
-1.  **Connect Repository:** In the Vercel dashboard, import the `support371/gem-enterprise` GitHub repository.
-2.  **Configure Project:**
-    -   Set the **Framework Preset** to "Vite".
-    -   Set the **Build Command** to `npm run build`.
-    -   Set the **Output Directory** to `dist`.
-    -   Set the **Production Branch** to `main`.
-3.  **Add Environment Variables:** In the project settings under "Environment Variables," add `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, and `VITE_SUPABASE_PROJECT_ID`.
-4.  **Deploy:** Trigger a deployment. Subsequent pushes to `main` will automatically deploy to Production.
+```bash
+vercel redeploy --force
+```
 
-## SPA Routing
+Or click **Redeploy** in the Vercel dashboard on the most recent deployment.
 
-The `vercel.json` configures a rewrite rule so that all non-asset requests are served by `index.html`. This is required for client-side routing with `react-router-dom` to work correctly. Without this, direct navigation to routes like `/portal/dashboard` would return a 404.
+### Step 3 — Apply database migrations
 
-## Supabase Edge Functions
+Vercel does not run `prisma migrate deploy` automatically. Run this once from
+a machine with a direct connection to the target Postgres instance:
 
-The app depends on two Supabase Edge Functions deployed to the same Supabase project:
+```bash
+DATABASE_URL="postgresql://..." npx prisma migrate deploy
+```
 
-### `contact-form`
--   **Triggered by:** `/contact` page form submission via `supabase.functions.invoke("contact-form", ...)`
--   **Purpose:** Validates and saves contact form submissions to the `contact_submissions` table.
--   **Secrets:** Uses auto-injected `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
+This applies both pending migrations in order:
 
-### `gem-assist`
--   **Triggered by:** The GEM AI Assistant chat widget (`GemAssist.tsx`) via direct `fetch` to `${VITE_SUPABASE_URL}/functions/v1/gem-assist`.
--   **Purpose:** Streams AI chat completions (powered by Gemini via the Lovable AI gateway).
--   **Secrets:** Requires `LOVABLE_API_KEY` to be set in Supabase Edge Function secrets.
+1. `20260318000001_init` — all base tables, enums, FK constraints
+2. `20260318000002_add_support_ai_runtime` — support sessions, AI runs,
+   consent records, escalation events
 
-Edge Functions are defined in `supabase/functions/` and deployed via the Supabase CLI (`supabase functions deploy`).
+Confirm the output shows both migrations applied with no errors.
 
-## Post-Deploy Verification Checklist
+### Step 4 — Seed the initial admin account (first deployment only)
 
-### Public routes
--   [ ] Homepage (`/`) loads correctly.
--   [ ] `/solutions`, `/trust-center`, `/pricing`, `/resources`, `/contact` pages are accessible.
--   [ ] `/blog` listing page loads.
+```bash
+DATABASE_URL="..." \
+ADMIN_EMAIL="admin@example.com" \
+ADMIN_INITIAL_PASSWORD="replace-this" \
+npm run db:seed
+```
 
-### Authentication
--   [ ] `/auth` login page loads and email/password sign-in works.
--   [ ] `/register` page loads for new user registration.
--   [ ] Logout works and redirects to a public page.
--   [ ] Password reset flow (`/reset-password`) works.
--   [ ] Session persists after page refresh.
+**Change the admin password immediately after first login** via `/app/security`.
 
-### Onboarding flow
--   [ ] `/kyc` is accessible after registration.
--   [ ] `/kyc/status` displays KYC review state.
--   [ ] `/handoff` transitions approved users to the portal.
+### Step 5 — Smoke tests
 
-### Portal (authenticated)
--   [ ] `/portal/dashboard` loads after login.
--   [ ] `/portal/services`, `/portal/community`, `/portal/workspace` are accessible.
--   [ ] `/profile`, `/support`, `/settings` pages load correctly.
--   [ ] Unauthenticated access to portal routes redirects to `/auth`.
+Run these checks against the deployed preview or production URL in order.
 
-### Backend (Supabase Edge Functions)
--   [ ] `/contact` form submission succeeds (invokes `contact-form` Edge Function).
--   [ ] GEM AI Assistant chat widget responds (invokes `gem-assist` Edge Function).
+#### Auth and protected routes
 
-### UX
--   [ ] Loading spinner appears during auth bootstrap (no blank screen).
--   [ ] Theme toggle (light/dark) works and persists across page loads.
--   [ ] No redirect loops between auth and portal routes.
+```
+GET  /                          → 200, page renders
+GET  /client-login              → 200, login form renders
+GET  /app/dashboard             → 302 → /client-login  (no cookie)
+GET  /app/admin                 → 302 → /client-login  (no cookie)
+GET  /kyc/start                 → 302 → /client-login  (no cookie)
+GET  /decision/pending          → 302 → /client-login  (no cookie)
+GET  /portal                    → 302 → /client-login  (no cookie)
 
-## Security Notes
+POST /api/auth/login            body: { email, password } (wrong creds)
+                                → 401
 
--   Do not commit `.env` files to the repository. The `.gitignore` already excludes them.
--   `VITE_` prefixed variables are embedded in the client bundle and are **publicly visible**. Only use them for non-secret values (Supabase URL and anon key are designed to be public).
--   Redeploy the application in Vercel after making any changes to environment variables.
--   Keep Preview and Production environment variables separate and appropriately configured for each environment.
+POST /api/auth/login            body: { email, password } (correct creds)
+                                → 200, Set-Cookie: gem_session
+
+GET  /app/dashboard             (with valid cookie)  → 200
+GET  /app/admin                 (client cookie)      → 302 → /app/dashboard
+GET  /app/admin                 (admin cookie)       → 200
+```
+
+#### Support consent
+
+```
+POST /api/support/session
+     → 201, returns { sessionId }
+     → verify row exists in support_sessions table
+
+POST /api/support/consent       body: { sessionId, accepted: true }
+     → 200
+     → verify support_sessions.consent_given = true in DB
+
+POST /api/support/message       body: { sessionId, message: "..." }
+     → 200, returns { reply }
+     → verify messages JSONB column updated in support_sessions
+```
+
+#### AI governance — disclosure gate
+
+```
+POST /api/assistant/session
+     body: { profileId: "PRF-005", consentGiven: false, disclosureTextHash: "x" }
+     → 422  "AI session cannot start without disclosure acceptance"
+
+POST /api/assistant/session
+     body: { profileId: "PRF-005", consentGiven: true, disclosureTextHash: "<sha256 of NEXT_PUBLIC_AI_DISCLOSURE_TEXT>" }
+     → 201, returns { sessionId }
+     → verify row in ai_runs AND consent_records tables
+```
+
+#### AI escalation
+
+```
+POST /api/assistant/message
+     body: { sessionId: "<id>", message: "What is my account balance?" }
+     → 200, { escalated: false, response: "..." }
+     → verify ai_runs.message_count incremented
+
+POST /api/assistant/message
+     body: { sessionId: "<id>", message: "You should invest in this stock" }
+     → 200, { escalated: true, restrictedClass: "FINANCIAL_ADVICE" }
+     → verify row in ai_escalation_events
+     → verify ai_runs.escalation_triggered = true, output_status = "escalated"
+
+POST /api/assistant/message     (same session, after escalation)
+     → 409  "Session has been escalated"
+```
+
+#### Audit trail
+
+```sql
+SELECT action, resource, resource_id, created_at
+FROM audit_logs
+ORDER BY created_at DESC
+LIMIT 10;
+-- Expected rows: ai_session_opened, ai_message_responded, ai_message_escalated
+```
+
+---
+
+## Local Development
+
+```bash
+cp .env.example .env.local
+# Fill in .env.local with real values
+
+npm install
+npm run db:generate      # generates Prisma client
+npx prisma migrate deploy  # or: npx prisma db push (dev only)
+npm run db:seed
+npm run dev
+```
+
+---
+
+## Notes
+
+- `JWT_SECRET` must be at least 32 characters. The app throws at startup in
+  production if the variable is absent or equal to the default dev placeholder.
+- `NEXT_PUBLIC_*` variables are embedded at build time. A redeploy is required
+  after changing them.
+- `consent_records` rows must not be deleted — they are the audit trail for
+  AI disclosure acceptance.
+- The `lodash` moderate CVE (transitive from `recharts`) has no upstream fix.
+  No lodash 5.x exists. Risk accepted; attack surface is internal to recharts.
