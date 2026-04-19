@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -189,7 +189,7 @@ export function RequestAccessForm() {
             "Why they want access:",
             v.reason,
           ]
-            .filter(Boolean)
+            .filter((line) => line !== null)
             .join("\n"),
           urgency: "normal",
           jurisdiction: d1.jurisdiction,
@@ -451,13 +451,18 @@ export function RequestAccessForm() {
 
             <div className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3">
               <div className="flex items-start gap-3">
-                <Checkbox
-                  id="consentGiven"
-                  onCheckedChange={(c) =>
-                    f3.setValue("consentGiven", c === true ? true : (false as unknown as true), {
-                      shouldValidate: true,
-                    })
-                  }
+                <Controller
+                  control={f3.control}
+                  name="consentGiven"
+                  render={({ field }) => (
+                    <Checkbox
+                      id="consentGiven"
+                      checked={field.value === true}
+                      onCheckedChange={(c) =>
+                        field.onChange(c === true ? true : (false as unknown as true))
+                      }
+                    />
+                  )}
                 />
                 <label
                   htmlFor="consentGiven"
@@ -470,15 +475,18 @@ export function RequestAccessForm() {
               <FieldError message={f3.formState.errors.consentGiven?.message as string} />
 
               <div className="flex items-start gap-3">
-                <Checkbox
-                  id="privacyAccepted"
-                  onCheckedChange={(c) =>
-                    f3.setValue(
-                      "privacyAccepted",
-                      c === true ? true : (false as unknown as true),
-                      { shouldValidate: true }
-                    )
-                  }
+                <Controller
+                  control={f3.control}
+                  name="privacyAccepted"
+                  render={({ field }) => (
+                    <Checkbox
+                      id="privacyAccepted"
+                      checked={field.value === true}
+                      onCheckedChange={(c) =>
+                        field.onChange(c === true ? true : (false as unknown as true))
+                      }
+                    />
+                  )}
                 />
                 <label
                   htmlFor="privacyAccepted"

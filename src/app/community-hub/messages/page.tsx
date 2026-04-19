@@ -41,7 +41,7 @@ const CONVERSATIONS = [
     id: "c-3",
     name: "Priya Nambiar",
     company: "Northstar Realty",
-    preview: "Scoping document is in the data room. Let&apos;s set a call next week.",
+    preview: "Scoping document is in the data room. Let's set a call next week.",
     time: "Yesterday",
     unread: 0,
     verified: true,
@@ -75,7 +75,7 @@ const MESSAGES = [
     from: "them",
     author: "M. Harrington",
     time: "09:42",
-    body: "Confirming receipt of your note on the GCC corridor co-invest. We&apos;re engaged on our side — opening a data room for the working group.",
+    body: "Confirming receipt of your note on the GCC corridor co-invest. We're engaged on our side — opening a data room for the working group.",
   },
   {
     id: "m-2",
@@ -89,7 +89,7 @@ const MESSAGES = [
     from: "them",
     author: "M. Harrington",
     time: "10:11",
-    body: "Perfect. I&apos;ll copy counsel on the thread and share anchor terms once they&apos;re finalised tonight.",
+    body: "Perfect. I'll copy counsel on the thread and share anchor terms once they're finalised tonight.",
   },
 ];
 
