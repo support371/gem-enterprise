@@ -179,6 +179,7 @@ export function evaluateAccessRedirect(user: PlatformUser | null): string {
   if (user.kycState === "under_review") return "/decision/pending";
   if (user.kycState === "manual_review") return "/decision/manual-review";
   if (user.kycState === "rejected") return "/decision/rejected";
+  if (user.kycState === "expired") return "/kyc/start";
 
   if (user.assignedPortfolioId) return `/app/portfolios/${user.assignedPortfolioId}`;
   if (user.entitlements.includes("cyber")) return "/app/products/cyber";
