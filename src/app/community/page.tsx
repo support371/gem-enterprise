@@ -11,9 +11,6 @@ import {
   MapPin,
   Mail,
   CheckCircle,
-  ExternalLink,
-  Maximize2,
-  Minimize2,
   Globe,
   Bell,
   BookOpen,
@@ -25,6 +22,10 @@ import {
   Eye,
   Hash,
   Search,
+  Sparkles,
+  Network,
+  Fingerprint,
+  Briefcase,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -32,9 +33,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
-const LOVABLE_APP_URL =
-  "https://id-preview--e8d68767-1479-4828-b9f3-76e853a8adb4.lovable.app/";
 
 const DISCUSSIONS = [
   {
@@ -166,7 +164,6 @@ const TAG_COLORS: Record<string, string> = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function CommunityPage() {
-  const [embedExpanded, setEmbedExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState<"discussions" | "events" | "members" | "resources">(
     "discussions"
   );
@@ -211,83 +208,119 @@ export default function CommunityPage() {
               size="lg"
               variant="ghost"
               className="text-muted-foreground gap-2"
-              onClick={() =>
-                window.open(LOVABLE_APP_URL, "_blank")
-              }
+              asChild
             >
-              <ExternalLink className="h-4 w-4" />
-              Open Full App
+              <Link href="/community-hub">
+                Explore Community Hub <ArrowRight className="h-4 w-4" />
+              </Link>
             </Button>
           </div>
         </div>
       </section>
 
-      {/* ══ EMBEDDED COMMUNITY APP ════════════════════════════════════════════ */}
-      <section className="border-y border-border bg-card/20">
-        <div
-          className={`transition-all duration-500 ${
-            embedExpanded ? "fixed inset-0 z-50 bg-background" : "container mx-auto px-6 py-8"
-          }`}
-        >
-          {/* Embed header */}
-          <div
-            className={`flex items-center justify-between mb-3 ${
-              embedExpanded ? "px-4 pt-4" : ""
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-sm font-medium text-foreground">
-                Community Hub — Live
-              </span>
-              <Badge className="bg-primary/10 text-primary border-primary/30 text-xs font-mono">
-                Embedded App
-              </Badge>
+      {/* ══ COMMUNITY HUB PREVIEW ═════════════════════════════════════════════ */}
+      <section className="border-y border-border bg-card/20 py-20">
+        <div className="container mx-auto px-6 max-w-6xl">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
+            <div className="max-w-2xl">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs font-mono uppercase tracking-widest text-emerald-400">
+                  Community Hub — Live
+                </span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-3 text-balance">
+                A private operating room for{" "}
+                <span className="text-gradient-primary">serious operators</span>
+              </h2>
+              <p className="text-muted-foreground leading-relaxed text-pretty">
+                The GEM Community Hub is where vetted members exchange opportunities, form circles,
+                and get work done away from public noise. Apply to join, or explore the public-facing
+                preview below.
+              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-muted-foreground text-xs gap-1.5"
-                onClick={() => window.open(LOVABLE_APP_URL, "_blank")}
-              >
-                <ExternalLink className="h-3.5 w-3.5" />
-                Open Standalone
+            <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+              <Button className="bg-primary text-primary-foreground hover:bg-primary/90 glow-cyan font-semibold gap-2" asChild>
+                <Link href="/community-hub">
+                  Open Community Hub <ArrowRight className="h-4 w-4" />
+                </Link>
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-border/50 text-xs gap-1.5"
-                onClick={() => setEmbedExpanded((v) => !v)}
-              >
-                {embedExpanded ? (
-                  <>
-                    <Minimize2 className="h-3.5 w-3.5" /> Exit Fullscreen
-                  </>
-                ) : (
-                  <>
-                    <Maximize2 className="h-3.5 w-3.5" /> Fullscreen
-                  </>
-                )}
+              <Button variant="outline" className="border-border/60 gap-2" asChild>
+                <Link href="/request-access">
+                  Request Access
+                </Link>
               </Button>
             </div>
           </div>
 
-          {/* Iframe */}
-          <div
-            className={`rounded-xl overflow-hidden border border-border/50 bg-black ${
-              embedExpanded
-                ? "h-[calc(100vh-80px)] mx-4 mb-4"
-                : "h-[600px] md:h-[750px]"
-            }`}
-          >
-            <iframe
-              src={LOVABLE_APP_URL}
-              className="w-full h-full"
-              title="GEM Community Hub App"
-              allow="clipboard-read; clipboard-write"
-              loading="lazy"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="glass-panel bento-card border-border/50 hover:border-primary/40 transition-colors">
+              <CardContent className="p-6">
+                <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 w-fit mb-4">
+                  <Briefcase className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="font-semibold text-foreground mb-2">Opportunities</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                  Live mandates, deal flow, and introductions surfaced only to members whose profile
+                  matches the remit.
+                </p>
+                <Link
+                  href="/community-hub/opportunities"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                >
+                  Browse Opportunities <ArrowRight className="h-3 w-3" />
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="glass-panel bento-card border-border/50 hover:border-primary/40 transition-colors">
+              <CardContent className="p-6">
+                <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 w-fit mb-4">
+                  <Network className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="font-semibold text-foreground mb-2">Circles</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                  Private working groups around cybersecurity, capital, real estate, and
+                  jurisdiction-specific practice.
+                </p>
+                <Link
+                  href="/community-hub/circles"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                >
+                  See Circles <ArrowRight className="h-3 w-3" />
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="glass-panel bento-card border-border/50 hover:border-primary/40 transition-colors">
+              <CardContent className="p-6">
+                <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 w-fit mb-4">
+                  <Fingerprint className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="font-semibold text-foreground mb-2">Verified Members</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                  Every member is individually reviewed. Directory access and introductions unlock
+                  after approval.
+                </p>
+                <Link
+                  href="/community-hub/members"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                >
+                  Meet the Network <ArrowRight className="h-3 w-3" />
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="mt-8 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span>
+              Not a member yet?{" "}
+              <Link href="/request-access" className="text-primary hover:underline font-medium">
+                Request access
+              </Link>{" "}
+              — we respond to every application.
+            </span>
           </div>
         </div>
       </section>
