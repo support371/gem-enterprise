@@ -595,7 +595,7 @@ export default function CommunityPage() {
       </section>
 
       {/* ══ NEWSLETTERS ═══════════════════════════════════════════════════════ */}
-      <section className="py-24 container mx-auto px-6">
+      <section id="newsletters" className="py-24 container mx-auto px-6">
         <div className="text-center mb-12">
           <h2 className="text-2xl md:text-3xl font-bold mb-3">
             Intelligence <span className="text-gradient-primary">Newsletters</span>
@@ -604,6 +604,45 @@ export default function CommunityPage() {
             Stay informed with GEM&apos;s curated publications — delivered directly to your inbox.
           </p>
         </div>
+
+        {/* Live feed banner */}
+        <Card className="glass-panel border-primary/30 max-w-5xl mx-auto mb-8 overflow-hidden">
+          <CardContent className="p-6 md:p-8 flex flex-col md:flex-row md:items-center gap-6">
+            <div className="flex items-center gap-4 flex-1">
+              <div className="p-3 rounded-lg bg-primary/10 border border-primary/30 shrink-0">
+                <Globe className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/30 text-xs">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse mr-1.5" />
+                    Live
+                  </Badge>
+                  <Badge className="bg-primary/10 text-primary border-primary/30 text-xs font-mono">
+                    GEM INTEL
+                  </Badge>
+                </div>
+                <h3 className="font-semibold text-foreground text-lg mb-1">
+                  GEM Intel News Feed
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Continuously updated headlines across crypto, cyber, markets,
+                  geopolitics, policy, and alternatives — the same stream that
+                  feeds our newsletters.
+                </p>
+              </div>
+            </div>
+            <Button
+              className="bg-primary text-primary-foreground hover:bg-primary/90 glow-cyan font-semibold gap-2 shrink-0"
+              asChild
+            >
+              <Link href="/intel/news">
+                Open Live Feed <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {[
             {
