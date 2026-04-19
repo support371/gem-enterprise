@@ -1,0 +1,887 @@
+/**
+ * GEM Enterprise — Canonical Route Registry
+ * Single source of truth for all routes, menus, and redirects.
+ * Used by: /api/routes, Navigation, middleware, redirects.
+ */
+
+export type RouteCategory =
+  | "public"
+  | "auth"
+  | "kyc"
+  | "decision"
+  | "protected"
+  | "admin"
+  | "compliance"
+  | "api"
+  | "utility";
+
+export type MenuGroup =
+  | "home"
+  | "intel"
+  | "services"
+  | "community"
+  | "hub"
+  | "resources"
+  | "company"
+  | "utility"
+  | "none";
+
+export interface SiteRoute {
+  path: string;
+  label: string;
+  category: RouteCategory;
+  description: string;
+  isPublic: boolean;
+  isCanonical: boolean;
+  menuGroup: MenuGroup;
+  owner: string;
+  showInNav?: boolean;
+  showInFooter?: boolean;
+  requiresAuth?: boolean;
+  requiresKYC?: boolean;
+  requiresAdmin?: boolean;
+  requiresEntitlement?: string;
+}
+
+export interface LegacyRedirect {
+  source: string;
+  destination: string;
+  permanent: boolean;
+  reason: string;
+}
+
+// ─── Canonical Routes ───────────────────────────────────────────────────────
+
+export const canonicalRoutes: SiteRoute[] = [
+  // PUBLIC — Home / Root
+  {
+    path: "/",
+    label: "Home",
+    category: "public",
+    description: "GEM Enterprise homepage — cybersecurity-first enterprise platform",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "home",
+    owner: "marketing",
+    showInNav: true,
+    showInFooter: true,
+  },
+  {
+    path: "/intel",
+    label: "Intel",
+    category: "public",
+    description: "Threat intelligence, reports, monitoring, and architecture specs",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "intel",
+    owner: "intelligence",
+    showInNav: true,
+    showInFooter: true,
+  },
+  {
+    path: "/assets",
+    label: "Assets",
+    category: "public",
+    description: "Asset protection, recovery, and portfolio security posture",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "financial",
+    showInNav: false,
+    showInFooter: true,
+  },
+  {
+    path: "/community",
+    label: "Community",
+    category: "public",
+    description: "Membership, newsletters, events, testimonials, and partners",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "community",
+    owner: "community",
+    showInNav: true,
+    showInFooter: true,
+  },
+  {
+    path: "/hub",
+    label: "Hub",
+    category: "public",
+    description: "Operational gateway — command center, SOC, support, documents, portal",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "hub",
+    owner: "operations",
+    showInNav: true,
+    showInFooter: true,
+  },
+  {
+    path: "/preview",
+    label: "Preview Showcase",
+    category: "public",
+    description: "Full platform preview — page gallery, design tokens, and route map",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "company",
+    owner: "engineering",
+    showInNav: false,
+    showInFooter: true,
+  },
+  // ATR — Alliance Trust Realty
+  {
+    path: "/atr",
+    label: "Alliance Trust Realty",
+    category: "public",
+    description: "Alliance Trust Realty — real estate investment platform landing page",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "services",
+    owner: "real-estate",
+    showInNav: false,
+    showInFooter: true,
+  },
+  {
+    path: "/atr/properties",
+    label: "Properties",
+    category: "public",
+    description: "ATR property portfolio — institutional-grade real estate listings",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "services",
+    owner: "real-estate",
+    showInNav: false,
+    showInFooter: true,
+  },
+  {
+    path: "/atr/invest",
+    label: "Investment Platform",
+    category: "public",
+    description: "ATR investment platform — fractional, full ownership, fund, and REIT vehicles",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "services",
+    owner: "real-estate",
+    showInNav: false,
+    showInFooter: true,
+  },
+  {
+    path: "/about",
+    label: "About",
+    category: "public",
+    description: "About GEM Enterprise — leadership and vision",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "company",
+    owner: "marketing",
+    showInNav: false,
+    showInFooter: true,
+  },
+  {
+    path: "/contact",
+    label: "Contact",
+    category: "public",
+    description: "Enterprise inquiry and support contact",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "utility",
+    owner: "marketing",
+    showInNav: true,
+    showInFooter: true,
+  },
+  {
+    path: "/resources",
+    label: "Resources",
+    category: "public",
+    description: "Market insights, templates, bots, news, and FAQ",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "resources",
+    owner: "marketing",
+    showInNav: true,
+    showInFooter: true,
+  },
+  {
+    path: "/services",
+    label: "Services",
+    category: "public",
+    description: "Enterprise service offerings — Cybersecurity, Financial, Real Estate",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "services",
+    owner: "sales",
+    showInNav: true,
+    showInFooter: true,
+  },
+  {
+    path: "/company",
+    label: "Company",
+    category: "public",
+    description: "Company overview, teams, partners, and trustees",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "company",
+    owner: "marketing",
+    showInNav: true,
+    showInFooter: true,
+  },
+  {
+    path: "/get-started",
+    label: "Get Started",
+    category: "public",
+    description: "Onboarding entry point — eligibility and KYC start",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "utility",
+    owner: "onboarding",
+    showInNav: true,
+    showInFooter: false,
+  },
+  {
+    path: "/eligibility",
+    label: "Eligibility",
+    category: "public",
+    description: "Check eligibility before beginning the KYC process",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "utility",
+    owner: "onboarding",
+    showInNav: false,
+    showInFooter: false,
+  },
+
+  // AUTH
+  {
+    path: "/client-login",
+    label: "Client Login",
+    category: "auth",
+    description: "Authenticated client sign-in portal",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "utility",
+    owner: "auth",
+    showInNav: true,
+    showInFooter: false,
+  },
+  {
+    path: "/portal",
+    label: "Portal",
+    category: "auth",
+    description: "Client portal landing — validates session and redirects",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "utility",
+    owner: "auth",
+    showInNav: false,
+    showInFooter: false,
+    requiresAuth: true,
+  },
+  {
+    path: "/access/continue",
+    label: "Access Bridge",
+    category: "auth",
+    description: "Auth + KYC + entitlement check bridge — determines correct destination",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "auth",
+    showInNav: false,
+    showInFooter: false,
+    requiresAuth: true,
+  },
+
+  // KYC
+  {
+    path: "/kyc/start",
+    label: "Start KYC",
+    category: "kyc",
+    description: "Begin the KYC onboarding process",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "onboarding",
+    requiresAuth: true,
+  },
+  {
+    path: "/kyc/individual",
+    label: "Individual KYC",
+    category: "kyc",
+    description: "KYC form for individual clients",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "onboarding",
+    requiresAuth: true,
+  },
+  {
+    path: "/kyc/business",
+    label: "Business KYC",
+    category: "kyc",
+    description: "KYC form for business entities",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "onboarding",
+    requiresAuth: true,
+  },
+  {
+    path: "/kyc/trust",
+    label: "Trust KYC",
+    category: "kyc",
+    description: "KYC form for trust entities",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "onboarding",
+    requiresAuth: true,
+  },
+  {
+    path: "/kyc/family-office",
+    label: "Family Office KYC",
+    category: "kyc",
+    description: "KYC form for family office structures",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "onboarding",
+    requiresAuth: true,
+  },
+  {
+    path: "/kyc/upload",
+    label: "KYC Document Upload",
+    category: "kyc",
+    description: "Upload required KYC verification documents",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "onboarding",
+    requiresAuth: true,
+    requiresKYC: true,
+  },
+  {
+    path: "/kyc/review",
+    label: "KYC Review",
+    category: "kyc",
+    description: "Review and confirm submitted KYC information",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "onboarding",
+    requiresAuth: true,
+    requiresKYC: true,
+  },
+  {
+    path: "/kyc/status",
+    label: "KYC Status",
+    category: "kyc",
+    description: "Check current KYC application status",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "utility",
+    owner: "onboarding",
+    requiresAuth: true,
+  },
+
+  // DECISION
+  {
+    path: "/decision/pending",
+    label: "Decision Pending",
+    category: "decision",
+    description: "KYC application is under review — pending decision",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "onboarding",
+    requiresAuth: true,
+  },
+  {
+    path: "/decision/approved",
+    label: "Application Approved",
+    category: "decision",
+    description: "KYC application has been approved — access granted",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "onboarding",
+    requiresAuth: true,
+  },
+  {
+    path: "/decision/rejected",
+    label: "Application Rejected",
+    category: "decision",
+    description: "KYC application was not approved",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "onboarding",
+    requiresAuth: true,
+  },
+  {
+    path: "/decision/manual-review",
+    label: "Manual Review Required",
+    category: "decision",
+    description: "KYC application flagged for manual compliance review",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "onboarding",
+    requiresAuth: true,
+  },
+
+  // COMPLIANCE / LEGAL
+  {
+    path: "/privacy",
+    label: "Privacy Policy",
+    category: "compliance",
+    description: "GEM Enterprise privacy policy and data handling practices",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "legal",
+    showInFooter: true,
+  },
+  {
+    path: "/terms",
+    label: "Terms of Service",
+    category: "compliance",
+    description: "Terms of service governing use of the GEM Enterprise platform",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "legal",
+    showInFooter: true,
+  },
+  {
+    path: "/compliance-notice",
+    label: "Compliance Notice",
+    category: "compliance",
+    description: "Regulatory disclosures, compliance boundaries, and notices",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "company",
+    owner: "legal",
+    showInNav: false,
+    showInFooter: true,
+  },
+
+  // PROTECTED APPLICATION
+  {
+    path: "/app",
+    label: "App",
+    category: "protected",
+    description: "Protected application root",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "platform",
+    requiresAuth: true,
+    requiresKYC: true,
+  },
+  {
+    path: "/app/dashboard",
+    label: "Dashboard",
+    category: "protected",
+    description: "Client account overview and activity dashboard",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "platform",
+    requiresAuth: true,
+    requiresKYC: true,
+  },
+  {
+    path: "/app/products",
+    label: "Products",
+    category: "protected",
+    description: "Available products and services for this account",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "platform",
+    requiresAuth: true,
+    requiresKYC: true,
+  },
+  {
+    path: "/app/products/cyber",
+    label: "Cybersecurity Products",
+    category: "protected",
+    description: "Cybersecurity product suite and threat management",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "cyber",
+    requiresAuth: true,
+    requiresKYC: true,
+    requiresEntitlement: "cyber",
+  },
+  {
+    path: "/app/products/financial",
+    label: "Financial Products",
+    category: "protected",
+    description: "Financial services and investment products",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "financial",
+    requiresAuth: true,
+    requiresKYC: true,
+    requiresEntitlement: "financial",
+  },
+  {
+    path: "/app/products/real-estate",
+    label: "Real Estate Products",
+    category: "protected",
+    description: "Real estate portfolio and property services",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "real-estate",
+    requiresAuth: true,
+    requiresKYC: true,
+    requiresEntitlement: "real-estate",
+  },
+  {
+    path: "/app/portfolios",
+    label: "Portfolios",
+    category: "protected",
+    description: "Client portfolio overview",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "platform",
+    requiresAuth: true,
+    requiresKYC: true,
+  },
+  {
+    path: "/app/portfolios/[portfolioId]",
+    label: "Portfolio Detail",
+    category: "protected",
+    description: "Individual portfolio detail and positions",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "platform",
+    requiresAuth: true,
+    requiresKYC: true,
+  },
+  {
+    path: "/app/documents",
+    label: "Documents",
+    category: "protected",
+    description: "Account documents, agreements, and statements",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "platform",
+    requiresAuth: true,
+    requiresKYC: true,
+  },
+  {
+    path: "/app/support",
+    label: "Support",
+    category: "protected",
+    description: "Client support center and ticket management",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "operations",
+    requiresAuth: true,
+  },
+  {
+    path: "/app/compliance",
+    label: "Compliance",
+    category: "protected",
+    description: "Client-facing compliance documents and acknowledgments",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "legal",
+    requiresAuth: true,
+  },
+  {
+    path: "/app/requests",
+    label: "Requests",
+    category: "protected",
+    description: "Service requests and change orders",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "operations",
+    requiresAuth: true,
+  },
+  {
+    path: "/app/profile",
+    label: "Profile",
+    category: "protected",
+    description: "Account profile and personal information",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "platform",
+    requiresAuth: true,
+  },
+  {
+    path: "/app/settings",
+    label: "Settings",
+    category: "protected",
+    description: "Account settings and preferences",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "platform",
+    requiresAuth: true,
+  },
+  {
+    path: "/app/security",
+    label: "Security",
+    category: "protected",
+    description: "Account security, MFA, and access controls",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "security",
+    requiresAuth: true,
+  },
+  {
+    path: "/app/notifications",
+    label: "Notifications",
+    category: "protected",
+    description: "Account notifications and alerts",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "platform",
+    requiresAuth: true,
+  },
+  {
+    path: "/app/messages",
+    label: "Messages",
+    category: "protected",
+    description: "Secure messaging with GEM advisors",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "platform",
+    requiresAuth: true,
+  },
+
+  // ADMIN
+  {
+    path: "/app/admin",
+    label: "Admin Center",
+    category: "admin",
+    description: "Internal administration — overview and summary",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "admin",
+    requiresAuth: true,
+    requiresAdmin: true,
+  },
+  {
+    path: "/app/admin/kyc",
+    label: "KYC Queue",
+    category: "admin",
+    description: "Review and action pending KYC applications",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "admin",
+    requiresAuth: true,
+    requiresAdmin: true,
+  },
+  {
+    path: "/app/admin/approvals",
+    label: "Approvals",
+    category: "admin",
+    description: "Pending approvals requiring admin action",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "admin",
+    requiresAuth: true,
+    requiresAdmin: true,
+  },
+  {
+    path: "/app/admin/users",
+    label: "Users",
+    category: "admin",
+    description: "User management and account administration",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "admin",
+    requiresAuth: true,
+    requiresAdmin: true,
+  },
+  {
+    path: "/app/admin/allocations",
+    label: "Allocations",
+    category: "admin",
+    description: "Portfolio and entitlement allocation management",
+    isPublic: false,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "admin",
+    requiresAuth: true,
+    requiresAdmin: true,
+  },
+];
+
+// ─── Legacy Redirects ────────────────────────────────────────────────────────
+
+export const legacyRedirects: LegacyRedirect[] = [
+  { source: "/home", destination: "/", permanent: true, reason: "canonical root is /" },
+  { source: "/intelligence", destination: "/intel", permanent: true, reason: "canonical slug is /intel" },
+  { source: "/contact-us", destination: "/contact", permanent: true, reason: "canonical slug is /contact" },
+  { source: "/about-us", destination: "/about", permanent: true, reason: "canonical slug is /about" },
+  { source: "/architecture", destination: "/intel", permanent: true, reason: "architecture content lives under /intel" },
+  { source: "/specs", destination: "/intel", permanent: true, reason: "specs content lives under /intel" },
+  { source: "/trust-center", destination: "/compliance-notice", permanent: true, reason: "renamed to /compliance-notice" },
+  { source: "/solutions", destination: "/services", permanent: true, reason: "renamed to /services" },
+  { source: "/pricing", destination: "/get-started", permanent: true, reason: "pricing entry is /get-started" },
+  { source: "/blog", destination: "/resources", permanent: true, reason: "blog content merged into /resources" },
+  { source: "/login", destination: "/client-login", permanent: true, reason: "canonical auth is /client-login" },
+  { source: "/dashboard", destination: "/app/dashboard", permanent: true, reason: "dashboard is under /app" },
+  { source: "/portal", destination: "/app/dashboard", permanent: true, reason: "portal is /app/dashboard" },
+];
+
+// ─── Navigation Menu Structure ───────────────────────────────────────────────
+
+export interface NavItem {
+  label: string;
+  path: string;
+  description: string;
+}
+
+export interface NavSection {
+  label: string;
+  group: MenuGroup;
+  path: string;
+  items: NavItem[];
+}
+
+export const navigationMenu: NavSection[] = [
+  {
+    label: "Home",
+    group: "home",
+    path: "/",
+    items: [
+      { label: "Overview", path: "/", description: "Platform overview and highlights" },
+      { label: "Platform Highlights", path: "/#highlights", description: "What GEM Enterprise delivers" },
+      { label: "Leadership", path: "/#leadership", description: "Leadership and trust signals" },
+      { label: "Client Access", path: "/portal", description: "Access your client account" },
+      { label: "Get Started", path: "/get-started", description: "Begin onboarding" },
+    ],
+  },
+  {
+    label: "Intel",
+    group: "intel",
+    path: "/intel",
+    items: [
+      { label: "Threat Intelligence", path: "/intel", description: "Global threat landscape and briefings" },
+      { label: "Reports", path: "/intel#reports", description: "Published intelligence reports" },
+      { label: "Monitoring", path: "/intel#monitoring", description: "Continuous threat monitoring" },
+      { label: "Intel Briefs", path: "/intel#briefs", description: "Concise intelligence summaries" },
+      { label: "Architecture Specs", path: "/intel#architecture", description: "Platform architecture and specs" },
+    ],
+  },
+  {
+    label: "Services",
+    group: "services",
+    path: "/services",
+    items: [
+      { label: "Cybersecurity", path: "/services#cyber", description: "Enterprise threat protection and response" },
+      { label: "Financial", path: "/services#financial", description: "Secure financial services and compliance" },
+      { label: "Real Estate", path: "/services#real-estate", description: "Real estate security and asset protection" },
+      { label: "Assessments", path: "/services#assessments", description: "Security posture assessments" },
+      { label: "Consultations", path: "/services#consultations", description: "Strategic security consultations" },
+      { label: "Alliance Trust Realty", path: "/atr", description: "Real estate investment platform — ATR Division" },
+      { label: "Properties", path: "/atr/properties", description: "ATR property portfolio and listings" },
+      { label: "Investment Platform", path: "/atr/invest", description: "Fractional, full ownership, fund, and REIT vehicles" },
+    ],
+  },
+  {
+    label: "Community",
+    group: "community",
+    path: "/community",
+    items: [
+      { label: "Membership", path: "/community#membership", description: "Join the GEM enterprise community" },
+      { label: "Newsletters", path: "/community#newsletters", description: "Subscribe to intelligence newsletters" },
+      { label: "Events", path: "/community#events", description: "Upcoming community events" },
+      { label: "Testimonials", path: "/community#testimonials", description: "Client success stories" },
+      { label: "Partners", path: "/community#partners", description: "Strategic partner network" },
+    ],
+  },
+  {
+    label: "Hub",
+    group: "hub",
+    path: "/hub",
+    items: [
+      { label: "Command Center", path: "/hub#command", description: "Operational command and control" },
+      { label: "Documents", path: "/hub#documents", description: "Platform documents and agreements" },
+      { label: "Support Access", path: "/hub#support", description: "Connect with enterprise support" },
+      { label: "Requests", path: "/hub#requests", description: "Submit service requests" },
+      { label: "Client Portal", path: "/client-login", description: "Authenticated client access" },
+    ],
+  },
+  {
+    label: "Resources",
+    group: "resources",
+    path: "/resources",
+    items: [
+      { label: "Market Insights", path: "/resources#insights", description: "Intelligence and market analysis" },
+      { label: "Templates", path: "/resources#templates", description: "Downloadable security templates" },
+      { label: "Bots", path: "/resources#bots", description: "Automated intelligence tools" },
+      { label: "News", path: "/resources#news", description: "Latest industry news" },
+      { label: "FAQ", path: "/resources#faq", description: "Frequently asked questions" },
+    ],
+  },
+  {
+    label: "Company",
+    group: "company",
+    path: "/company",
+    items: [
+      { label: "About", path: "/about", description: "About GEM Enterprise" },
+      { label: "Leadership & Vision", path: "/company#leadership", description: "Executive leadership and mission" },
+      { label: "Executive Board", path: "/company#board", description: "Board of directors" },
+      { label: "Teams", path: "/company#teams", description: "Expert teams and divisions" },
+      { label: "Personnel Board", path: "/personnel", description: "GEM & ATR personnel directory with AI Overseer" },
+      { label: "Preview Showcase", path: "/preview", description: "Full platform preview — pages, design system, and routes" },
+      { label: "Partners & Trustees", path: "/company#partners", description: "Strategic partners and trustees" },
+      { label: "Compliance Notice", path: "/compliance-notice", description: "Regulatory compliance disclosures" },
+    ],
+  },
+];
+
+// ─── Helper Utilities ─────────────────────────────────────────────────────────
+
+export function getRouteByPath(path: string): SiteRoute | undefined {
+  return canonicalRoutes.find((r) => r.path === path);
+}
+
+export function getRoutesByCategory(category: RouteCategory): SiteRoute[] {
+  return canonicalRoutes.filter((r) => r.category === category);
+}
+
+export function getRoutesByMenuGroup(group: MenuGroup): SiteRoute[] {
+  return canonicalRoutes.filter((r) => r.menuGroup === group);
+}
+
+export function getNavRoutes(): SiteRoute[] {
+  return canonicalRoutes.filter((r) => r.showInNav);
+}
+
+export function getFooterRoutes(): SiteRoute[] {
+  return canonicalRoutes.filter((r) => r.showInFooter);
+}
+
+export function getProtectedPaths(): string[] {
+  return canonicalRoutes
+    .filter((r) => r.requiresAuth)
+    .map((r) => r.path);
+}
+
+export function getAdminPaths(): string[] {
+  return canonicalRoutes
+    .filter((r) => r.requiresAdmin)
+    .map((r) => r.path);
+}

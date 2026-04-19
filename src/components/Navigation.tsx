@@ -1,24 +1,10 @@
-import { useState, useEffect } from "react";
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Shield, Menu, X, ChevronDown, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Shield,
-  Menu,
-  X,
-  Github,
-  Lock,
-  Newspaper,
-  Mail,
-  Radar,
-  Building2,
-  BookOpen,
-  FileText,
-  ChevronDown,
-  ArrowRight,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Link, useLocation } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -27,394 +13,301 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+import { navigationMenu } from "@/lib/siteRoutes";
+import { cn } from "@/lib/utils";
 
-const serviceCategories = [
-  {
-    title: "Cyber Defense & Monitoring",
-    href: "/solutions/cyber-defense",
-    icon: Shield,
-    description: "Continuous protection for enterprise environments with 24/7 SOC coverage.",
-  },
-  {
-    title: "Threat Detection & Response",
-    href: "/solutions/threat-detection",
-    icon: Radar,
-    description: "Proactive threat hunting, incident response, and security readiness.",
-  },
-  {
-    title: "Digital Asset Protection",
-    href: "/solutions/digital-asset-protection",
-    icon: Lock,
-    description: "Security advisory for critical digital infrastructure and assets.",
-  },
-  {
-    title: "Trust & Real-Asset Security",
-    href: "/solutions/trust-security",
-    icon: Building2,
-    description: "Partner-backed enterprise security solutions for physical assets.",
-  },
-];
+export function Navigation() {
+  const pathname = usePathname();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [openSection, setOpenSection] = useState<string | null>(null);
 
-const resourceLinks = [
-  {
-    title: "Blog",
-    href: "/blog",
-    icon: Newspaper,
-    description: "Insights, threat intelligence, and cybersecurity news from our experts.",
-  },
-  {
-    title: "Resources",
-    href: "/resources",
-    icon: FileText,
-    description: "Whitepapers, guides, and tools to strengthen your security posture.",
-  },
-  {
-    title: "Trust Center",
-    href: "/trust-center",
-    icon: BookOpen,
-    description: "Our security policies, compliance certifications, and transparency reports.",
-  },
-];
-
-export const Navigation = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [mobileServicesOpen, setMobileServicesOpen] = useState(false);
-  const [mobileLearnOpen, setMobileLearnOpen] = useState(false);
-  const { user, signOut } = useAuth();
-  const location = useLocation();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    setIsMobileOpen(false);
-    setMobileServicesOpen(false);
-    setMobileLearnOpen(false);
-  }, [location.pathname]);
-
-  const isActive = (href: string) => {
-    if (href === "/") return location.pathname === "/";
-    return location.pathname.startsWith(href);
+  const closeMobile = () => {
+    setMobileOpen(false);
+    setOpenSection(null);
   };
 
-  const isResourceActive = () =>
-    ["/blog", "/resources", "/trust-center"].some((p) => location.pathname.startsWith(p));
+  const toggleSection = (label: string) => {
+    setOpenSection((prev) => (prev === label ? null : label));
+  };
+
+  const isActive = (path: string) => {
+    const base = path.split("#")[0];
+    if (base === "/") return pathname === "/";
+    return pathname === base || pathname.startsWith(base + "/");
+  };
+
+  const isSectionActive = (sectionPath: string) => {
+    const base = sectionPath.split("#")[0];
+    if (base === "/") return pathname === "/";
+    return pathname === base || pathname.startsWith(base + "/");
+  };
 
   return (
-    <header
-      className={cn(
-        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-        isScrolled ? "glass-panel py-2 border-b border-border/50" : "py-4 bg-transparent"
-      )}
-    >
-      <div className="container mx-auto px-4 flex items-center justify-between">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 group">
-          <div className="relative">
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-              <Shield className="w-5 h-5 text-primary transition-all duration-300 group-hover:scale-110" />
-            </div>
+    <header className="sticky top-0 z-50 w-full border-b border-white/[0.07] bg-[#131a26]/90 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-screen-xl items-center justify-between px-4 sm:px-6 lg:px-8">
+
+        {/* ── Logo ──────────────────────────────────────────────── */}
+        <Link
+          href="/"
+          className="group flex shrink-0 items-center gap-2.5"
+          onClick={closeMobile}
+        >
+          <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-[hsl(185,100%,45%)]/10 ring-1 ring-[hsl(185,100%,45%)]/30 transition-all group-hover:bg-[hsl(185,100%,45%)]/20 group-hover:ring-[hsl(185,100%,45%)]/60">
+            <Shield className="h-4.5 w-4.5 text-[hsl(185,100%,45%)]" strokeWidth={2} />
           </div>
-          <span className="text-lg font-bold tracking-tight">
-            <span className="text-gradient-primary">GEM</span>
-            <span className="text-foreground/80 ml-1 hidden sm:inline">ENTERPRISE</span>
-          </span>
+          <div className="flex flex-col leading-none">
+            <span className="text-base font-bold tracking-widest text-[hsl(185,100%,45%)]">
+              GEM
+            </span>
+            <span className="text-[10px] font-semibold tracking-[0.25em] text-white/40 uppercase">
+              Enterprise
+            </span>
+          </div>
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden lg:flex items-center gap-1">
+        {/* ── Desktop mega-menu ─────────────────────────────────── */}
+        <div className="hidden lg:flex lg:flex-1 lg:justify-center">
           <NavigationMenu>
-            <NavigationMenuList>
-              {/* Services Dropdown */}
-              <NavigationMenuItem>
-                <NavigationMenuTrigger
-                  className={cn(
-                    "px-3 py-2 text-sm font-medium transition-colors duration-200 bg-transparent hover:bg-transparent",
-                    isActive("/solutions")
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Services
-                </NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <div className="w-[520px] p-5 bg-background border border-border rounded-xl shadow-lg">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h4 className="text-sm font-semibold text-foreground">Security Solutions</h4>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          Enterprise-grade protection tailored to your needs
-                        </p>
-                      </div>
-                      <Link
-                        to="/solutions"
-                        className="text-xs text-primary hover:underline whitespace-nowrap"
-                      >
-                        View all →
-                      </Link>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {serviceCategories.map((service) => (
-                        <NavigationMenuLink key={service.href} asChild>
-                          <Link
-                            to={service.href}
-                            className="group flex items-start gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors"
-                          >
-                            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                              <service.icon className="w-4 h-4 text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h5 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors leading-tight">
-                                {service.title}
-                              </h5>
-                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
-                                {service.description}
-                              </p>
-                            </div>
-                          </Link>
-                        </NavigationMenuLink>
-                      ))}
-                    </div>
-                  </div>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
+            <NavigationMenuList className="gap-0.5">
+              {navigationMenu.map((section) => (
+                <NavigationMenuItem key={section.group}>
+                  <NavigationMenuTrigger
+                    className={cn(
+                      "h-9 rounded-md bg-transparent px-3 py-2 text-sm font-medium transition-all",
+                      "text-white/60 hover:bg-white/5 hover:text-white",
+                      "data-[state=open]:bg-[hsl(185,100%,45%)]/10 data-[state=open]:text-[hsl(185,100%,45%)]",
+                      isSectionActive(section.path) &&
+                        "text-[hsl(185,100%,45%)]"
+                    )}
+                  >
+                    {section.label}
+                  </NavigationMenuTrigger>
 
-              {/* Learn / Resources Dropdown */}
-              <NavigationMenuItem>
-                <NavigationMenuTrigger
-                  className={cn(
-                    "px-3 py-2 text-sm font-medium transition-colors duration-200 bg-transparent hover:bg-transparent",
-                    isResourceActive()
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  Learn
-                </NavigationMenuTrigger>
-                <NavigationMenuContent>
-                  <div className="w-[380px] p-5 bg-background border border-border rounded-xl shadow-lg">
-                    <h4 className="text-sm font-semibold text-foreground mb-4">Resources & Trust</h4>
-                    <div className="space-y-1">
-                      {resourceLinks.map((item) => (
-                        <NavigationMenuLink key={item.href} asChild>
-                          <Link
-                            to={item.href}
-                            className="group flex items-start gap-3 p-3 rounded-lg hover:bg-secondary/50 transition-colors"
-                          >
-                            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                              <item.icon className="w-4 h-4 text-primary" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h5 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
-                                {item.title}
-                              </h5>
-                              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                                {item.description}
-                              </p>
-                            </div>
-                          </Link>
-                        </NavigationMenuLink>
-                      ))}
+                  <NavigationMenuContent>
+                    <div className="w-[540px] rounded-xl border border-white/10 bg-[#0e1420] p-5 shadow-2xl shadow-black/50">
+                      {/* Dropdown header */}
+                      <div className="mb-4 flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[hsl(185,100%,45%)]">
+                            {section.label}
+                          </p>
+                        </div>
+                        <Link
+                          href={section.path}
+                          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-white/40 transition-colors hover:bg-white/5 hover:text-[hsl(185,100%,45%)]"
+                        >
+                          View all
+                          <ArrowRight className="h-3 w-3" />
+                        </Link>
+                      </div>
+
+                      <div className="mb-4 h-px bg-white/[0.07]" />
+
+                      {/* 2-column grid of items */}
+                      <ul className="grid grid-cols-2 gap-1.5">
+                        {section.items.map((item) => (
+                          <li key={item.path}>
+                            <NavigationMenuLink asChild>
+                              <Link
+                                href={item.path}
+                                className={cn(
+                                  "group/item block rounded-lg px-3 py-3 transition-all",
+                                  "hover:bg-white/[0.04]",
+                                  isActive(item.path)
+                                    ? "bg-[hsl(185,100%,45%)]/[0.08] ring-1 ring-[hsl(185,100%,45%)]/20"
+                                    : ""
+                                )}
+                              >
+                                <span
+                                  className={cn(
+                                    "block text-sm font-semibold leading-none transition-colors",
+                                    isActive(item.path)
+                                      ? "text-[hsl(185,100%,45%)]"
+                                      : "text-white/85 group-hover/item:text-white"
+                                  )}
+                                >
+                                  {item.label}
+                                </span>
+                                <span className="mt-1.5 block text-xs leading-snug text-white/40 group-hover/item:text-white/55">
+                                  {item.description}
+                                </span>
+                              </Link>
+                            </NavigationMenuLink>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  </div>
-                </NavigationMenuContent>
-              </NavigationMenuItem>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              ))}
             </NavigationMenuList>
           </NavigationMenu>
-
-          {/* Standalone links */}
-          {[
-            { label: "Pricing", href: "/pricing" },
-            { label: "Contact", href: "/contact", icon: Mail },
-          ].map((link) => (
-            <Link
-              key={link.label}
-              to={link.href}
-              className={cn(
-                "px-3 py-2 text-sm font-medium transition-colors duration-200 relative flex items-center gap-1",
-                isActive(link.href)
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {"icon" in link && link.icon && <link.icon className="w-4 h-4" />}
-              {link.label}
-              {isActive(link.href) && (
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
-              )}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Desktop Auth Buttons */}
-        <div className="hidden lg:flex items-center gap-2">
-          <ThemeToggle />
-          {user ? (
-            <>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/portal" className="flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  Dashboard
-                </Link>
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => signOut()}>
-                Sign Out
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" size="sm" asChild>
-                <Link to="/auth">Sign In</Link>
-              </Button>
-              <Button variant="hero" size="sm" asChild>
-                <Link to="/register" className="flex items-center gap-2">
-                  Get Started
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </Button>
-            </>
-          )}
         </div>
 
-        {/* Mobile Menu Button */}
+        {/* ── Desktop utility actions ───────────────────────────── */}
+        <div className="hidden lg:flex lg:items-center lg:gap-2">
+          <Link
+            href="/contact"
+            className="rounded-md px-3 py-2 text-sm font-medium text-white/55 transition-colors hover:bg-white/5 hover:text-white"
+          >
+            Contact
+          </Link>
+
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="border border-white/10 bg-transparent text-white/70 hover:border-white/20 hover:bg-white/5 hover:text-white"
+          >
+            <Link href="/client-login">Client Login</Link>
+          </Button>
+
+          <Button
+            asChild
+            size="sm"
+            className="bg-[hsl(185,100%,45%)] font-semibold text-[#131a26] shadow-[0_0_20px_hsl(185,100%,45%,0.35)] transition-all hover:bg-[hsl(185,100%,50%)] hover:shadow-[0_0_28px_hsl(185,100%,45%,0.5)]"
+          >
+            <Link href="/get-started">Get Started</Link>
+          </Button>
+        </div>
+
+        {/* ── Mobile hamburger ──────────────────────────────────── */}
         <button
-          className="lg:hidden p-2 text-foreground"
-          onClick={() => setIsMobileOpen(!isMobileOpen)}
-          aria-label="Toggle menu"
+          type="button"
+          aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={mobileOpen}
+          aria-controls="mobile-nav"
+          className="flex items-center justify-center rounded-md p-2 text-white/60 transition-colors hover:bg-white/5 hover:text-white lg:hidden"
+          onClick={() => setMobileOpen((prev) => !prev)}
         >
-          {isMobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {mobileOpen ? (
+            <X className="h-5 w-5" aria-hidden="true" />
+          ) : (
+            <Menu className="h-5 w-5" aria-hidden="true" />
+          )}
         </button>
       </div>
 
-      {/* Mobile Menu */}
-      {isMobileOpen && (
-        <div className="lg:hidden glass-panel mt-2 mx-4 rounded-xl p-4 animate-scale-in border border-border/50">
-          <nav className="flex flex-col gap-1">
-            {/* Mobile Services Section */}
-            <button
-              className="flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-secondary/30 w-full text-left"
-              onClick={() => setMobileServicesOpen(!mobileServicesOpen)}
-            >
-              <span>Services</span>
-              <ChevronDown
-                className={cn(
-                  "w-4 h-4 transition-transform duration-200",
-                  mobileServicesOpen && "rotate-180"
-                )}
-              />
-            </button>
-            {mobileServicesOpen && (
-              <div className="ml-4 space-y-1 mb-1">
-                {serviceCategories.map((service) => (
-                  <Link
-                    key={service.href}
-                    to={service.href}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors"
-                    onClick={() => setIsMobileOpen(false)}
-                  >
-                    <service.icon className="w-4 h-4 text-primary shrink-0" />
-                    {service.title}
-                  </Link>
-                ))}
-                <Link
-                  to="/solutions"
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-primary hover:bg-secondary/30 transition-colors"
-                  onClick={() => setIsMobileOpen(false)}
+      {/* ── Mobile slide-down panel ───────────────────────────────── */}
+      <div
+        id="mobile-nav"
+        aria-hidden={!mobileOpen}
+        className={cn(
+          "overflow-hidden transition-[max-height] duration-300 ease-in-out lg:hidden",
+          mobileOpen ? "max-h-[calc(100dvh-4rem)]" : "max-h-0"
+        )}
+      >
+        <nav className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-white/[0.07] bg-[#0e1420] px-4 py-4">
+          {/* Nav sections */}
+          <ul className="space-y-0.5" role="list">
+            {navigationMenu.map((section) => (
+              <li key={section.group}>
+                <button
+                  type="button"
+                  aria-expanded={openSection === section.label}
+                  className={cn(
+                    "flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-white/5",
+                    isSectionActive(section.path)
+                      ? "text-[hsl(185,100%,45%)]"
+                      : "text-white/70 hover:text-white"
+                  )}
+                  onClick={() => toggleSection(section.label)}
                 >
-                  View all services →
-                </Link>
-              </div>
-            )}
+                  {section.label}
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 text-white/30 transition-transform duration-200",
+                      openSection === section.label && "rotate-180 text-[hsl(185,100%,45%)]"
+                    )}
+                    aria-hidden="true"
+                  />
+                </button>
 
-            {/* Mobile Learn Section */}
-            <button
-              className="flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-secondary/30 w-full text-left"
-              onClick={() => setMobileLearnOpen(!mobileLearnOpen)}
-            >
-              <span>Learn</span>
-              <ChevronDown
-                className={cn(
-                  "w-4 h-4 transition-transform duration-200",
-                  mobileLearnOpen && "rotate-180"
-                )}
-              />
-            </button>
-            {mobileLearnOpen && (
-              <div className="ml-4 space-y-1 mb-1">
-                {resourceLinks.map((item) => (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-secondary/30 transition-colors"
-                    onClick={() => setIsMobileOpen(false)}
-                  >
-                    <item.icon className="w-4 h-4 text-primary shrink-0" />
-                    {item.title}
-                  </Link>
-                ))}
-              </div>
-            )}
+                <div
+                  className={cn(
+                    "overflow-hidden transition-all duration-250 ease-in-out",
+                    openSection === section.label
+                      ? "max-h-[30rem] opacity-100"
+                      : "max-h-0 opacity-0"
+                  )}
+                >
+                  <ul className="ml-3 mt-1 space-y-0.5 border-l border-white/[0.07] pl-3">
+                    {/* Parent section link */}
+                    <li>
+                      <Link
+                        href={section.path}
+                        className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-semibold uppercase tracking-widest text-[hsl(185,100%,45%)]/70 transition-colors hover:text-[hsl(185,100%,45%)]"
+                        onClick={closeMobile}
+                      >
+                        All {section.label}
+                        <ArrowRight className="h-3 w-3" />
+                      </Link>
+                    </li>
 
-            {/* Standalone links */}
-            {[
-              { label: "Pricing", href: "/pricing" },
-              { label: "Contact", href: "/contact" },
-            ].map((link) => (
-              <Link
-                key={link.label}
-                to={link.href}
-                className={cn(
-                  "px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2",
-                  isActive(link.href)
-                    ? "text-foreground bg-secondary/50"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
-                )}
-                onClick={() => setIsMobileOpen(false)}
-              >
-                {link.label}
-              </Link>
+                    {section.items.map((item) => (
+                      <li key={item.path}>
+                        <Link
+                          href={item.path}
+                          className={cn(
+                            "block rounded-md px-2 py-2 transition-colors hover:bg-white/5",
+                            isActive(item.path)
+                              ? "text-[hsl(185,100%,45%)]"
+                              : "text-white/55 hover:text-white"
+                          )}
+                          onClick={closeMobile}
+                        >
+                          <span className="block text-sm font-medium leading-none">
+                            {item.label}
+                          </span>
+                          <span className="mt-1 block text-xs text-white/35">
+                            {item.description}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </li>
             ))}
+          </ul>
 
-            <div className="border-t border-border pt-4 mt-2 flex flex-col gap-2">
-              <div className="flex items-center justify-between px-4 py-2">
-                <span className="text-sm text-muted-foreground">Theme</span>
-                <ThemeToggle />
-              </div>
-              {user ? (
-                <>
-                  <Button variant="ghost" className="justify-start" asChild>
-                    <Link to="/portal" onClick={() => setIsMobileOpen(false)}>
-                      <Lock className="w-4 h-4 mr-2" />
-                      Dashboard
-                    </Link>
-                  </Button>
-                  <Button variant="outline" onClick={() => { signOut(); setIsMobileOpen(false); }}>
-                    Sign Out
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="ghost" className="justify-start" asChild>
-                    <Link to="/auth" onClick={() => setIsMobileOpen(false)}>Sign In</Link>
-                  </Button>
-                  <Button variant="hero" asChild>
-                    <Link to="/register" onClick={() => setIsMobileOpen(false)} className="flex items-center gap-2">
-                      Get Started
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                  </Button>
-                </>
-              )}
-            </div>
-          </nav>
-        </div>
-      )}
+          {/* Utility actions */}
+          <div className="mt-5 space-y-2 border-t border-white/[0.07] pt-5">
+            <Link
+              href="/contact"
+              className="block rounded-lg px-3 py-2.5 text-sm font-medium text-white/60 transition-colors hover:bg-white/5 hover:text-white"
+              onClick={closeMobile}
+            >
+              Contact
+            </Link>
+
+            <Button
+              asChild
+              variant="ghost"
+              className="w-full justify-start border border-white/10 bg-transparent text-white/70 hover:border-white/20 hover:bg-white/5 hover:text-white"
+            >
+              <Link href="/client-login" onClick={closeMobile}>
+                Client Login
+              </Link>
+            </Button>
+
+            <Button
+              asChild
+              className="w-full bg-[hsl(185,100%,45%)] font-semibold text-[#131a26] shadow-[0_0_20px_hsl(185,100%,45%,0.3)] hover:bg-[hsl(185,100%,50%)]"
+            >
+              <Link href="/get-started" onClick={closeMobile}>
+                Get Started
+              </Link>
+            </Button>
+          </div>
+
+          {/* Mobile bottom compliance note */}
+          <p className="mt-5 px-1 text-[11px] leading-relaxed text-white/25">
+            GEM Enterprise is for qualified clients only. Access requires KYC
+            verification and compliance approval.
+          </p>
+        </nav>
+      </div>
     </header>
   );
-};
+}

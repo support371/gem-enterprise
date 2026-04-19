@@ -1,164 +1,261 @@
-import { Shield, Phone, Mail, MapPin } from "lucide-react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
+import { Shield, ExternalLink } from "lucide-react";
+import { getFooterRoutes, navigationMenu } from "@/lib/siteRoutes";
 
-const footerLinks = {
-  Solutions: [
-    { label: "Cyber Defense", href: "/solutions/cyber-defense" },
-    { label: "Threat Detection", href: "/solutions/threat-detection" },
-    { label: "Digital Asset Protection", href: "/solutions/digital-asset-protection" },
-    { label: "Trust & Real-Asset Security", href: "/solutions/trust-security" },
-  ],
-  Company: [
-    { label: "About Us", href: "/trust-center" },
-    { label: "Leadership", href: "/resources" },
-    { label: "Careers", href: "/resources" },
-    { label: "Contact", href: "/contact" },
-  ],
-  Resources: [
-    { label: "Blog", href: "/blog" },
-    { label: "Case Studies", href: "/resources" },
-    { label: "Documentation", href: "/resources" },
-    { label: "API", href: "/resources" },
-  ],
-  Portal: [
-    { label: "Sign In", href: "/auth" },
-    { label: "Create Account", href: "/register" },
-    { label: "Client Dashboard", href: "/portal" },
-    { label: "Support", href: "/support" },
-  ],
-  Legal: [
-    { label: "Privacy Policy", href: "/trust-center" },
-    { label: "Terms of Service", href: "/trust-center" },
-    { label: "Security", href: "/trust-center" },
-    { label: "Compliance", href: "/trust-center" },
-  ],
-};
+// Pull footer-eligible routes once at module level (server component, no runtime cost)
+const footerRoutes = getFooterRoutes();
 
-const supportTeams = [
-  { name: "Security Team", status: "Online" },
-  { name: "Real Estate", status: "Online" },
-  { name: "Technical Support", status: "Online" },
+// ── Column definitions ──────────────────────────────────────────────────────
+
+const platformGroups = ["intel", "services", "community", "hub"] as const;
+const platformSections = navigationMenu.filter((s) =>
+  (platformGroups as readonly string[]).includes(s.group)
+);
+
+const companyLinks = [
+  { label: "About", path: "/about" },
+  { label: "Leadership", path: "/company#leadership" },
+  { label: "Teams", path: "/company#teams" },
+  { label: "Compliance Notice", path: "/compliance-notice" },
 ];
 
-export const Footer = () => {
+const legalLinks = [
+  { label: "Privacy Policy", path: "/privacy" },
+  { label: "Terms of Service", path: "/terms" },
+  { label: "Compliance Notice", path: "/compliance-notice" },
+  { label: "Cookie Policy", path: "/privacy#cookies" },
+];
+
+const clientAccessLinks = [
+  { label: "Client Login", path: "/client-login" },
+  { label: "KYC Status", path: "/kyc/status" },
+  { label: "Get Started", path: "/get-started" },
+  { label: "Contact", path: "/contact" },
+];
+
+// Ensure footer routes exist for all static links (used for type safety reference only)
+void footerRoutes;
+
+// ── Sub-components ──────────────────────────────────────────────────────────
+
+function FooterColumnHeading({ children }: { children: React.ReactNode }) {
   return (
-    <footer className="border-t border-border/50 pt-16 pb-8 relative">
-      {/* Live Support Status Bar */}
-      <div className="container mx-auto px-4 mb-12">
-        <div className="glass-panel rounded-2xl p-6 border border-border/50">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-4">
-              {supportTeams.map((team) => (
-                <div key={team.name} className="flex items-center gap-2 text-sm">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
-                  </span>
-                  <span className="text-muted-foreground">{team.name}:</span>
-                  <span className="text-success font-medium">{team.status}</span>
-                </div>
+    <h3 className="mb-4 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/30">
+      {children}
+    </h3>
+  );
+}
+
+function FooterLink({ href, children, external = false }: { href: string; children: React.ReactNode; external?: boolean }) {
+  const inner = (
+    <span className="inline-flex items-center gap-1 text-sm text-white/50 transition-colors hover:text-[hsl(185,100%,45%)]">
+      {children}
+      {external && <ExternalLink className="h-3 w-3 opacity-60" aria-hidden="true" />}
+    </span>
+  );
+
+  if (external) {
+    return (
+      <li>
+        <a href={href} target="_blank" rel="noopener noreferrer">
+          {inner}
+        </a>
+      </li>
+    );
+  }
+
+  return (
+    <li>
+      <Link href={href}>{inner}</Link>
+    </li>
+  );
+}
+
+// ── Footer component ────────────────────────────────────────────────────────
+
+export function Footer() {
+  return (
+    <footer
+      className="border-t border-white/[0.07] bg-[#0a1018]"
+      aria-label="Site footer"
+    >
+      {/* ── Main footer body ────────────────────────────────────── */}
+      <div className="mx-auto max-w-screen-xl px-4 pt-16 pb-10 sm:px-6 lg:px-8">
+
+        {/* Top: logo + tagline */}
+        <div className="mb-12 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-sm">
+            <Link href="/" className="group inline-flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(185,100%,45%)]/10 ring-1 ring-[hsl(185,100%,45%)]/25 transition-all group-hover:ring-[hsl(185,100%,45%)]/50">
+                <Shield
+                  className="h-5 w-5 text-[hsl(185,100%,45%)]"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                />
+              </div>
+              <div className="flex flex-col leading-none">
+                <span className="text-base font-bold tracking-widest text-[hsl(185,100%,45%)]">
+                  GEM
+                </span>
+                <span className="text-[10px] font-semibold tracking-[0.25em] text-white/35 uppercase">
+                  Enterprise
+                </span>
+              </div>
+            </Link>
+
+            <p className="mt-4 text-sm leading-relaxed text-white/45">
+              Institutional-grade cybersecurity, financial security, and real
+              estate protection.
+            </p>
+
+            {/* Status badges */}
+            <div className="mt-5 flex flex-wrap gap-2">
+              {[
+                { label: "SOC 2 Type II" },
+                { label: "ISO 27001" },
+                { label: "GDPR Compliant" },
+              ].map(({ label }) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[hsl(185,100%,45%)]/15 bg-[hsl(185,100%,45%)]/5 px-2.5 py-0.5 text-[10px] font-medium text-[hsl(185,100%,45%)]/80"
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full bg-[hsl(185,100%,45%)]"
+                    aria-hidden="true"
+                  />
+                  {label}
+                </span>
               ))}
             </div>
-            <div className="text-sm text-muted-foreground">
-              Average response time: <span className="text-foreground font-medium">2 minutes</span>
-            </div>
           </div>
-        </div>
-      </div>
 
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-8 lg:gap-12">
-          {/* Brand Column */}
-          <div className="col-span-2">
-            <Link to="/" className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-                <Shield className="w-5 h-5 text-primary" />
-              </div>
-              <span className="text-lg font-bold">
-                <span className="text-gradient-primary">GEM</span>
-                <span className="text-foreground/80 ml-1">Enterprise</span>
-              </span>
-            </Link>
-            <p className="text-sm text-muted-foreground mb-6 max-w-xs">
-              Enterprise cyber defense and digital trust engineering for high-risk environments.
+          {/* Disclaimer box */}
+          <div className="max-w-xs rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[hsl(280,40%,60%)]">
+              Qualified Clients Only
             </p>
-            
-            {/* Contact Info */}
-            <div className="space-y-3 mb-6">
-              <a href="tel:+14017022460" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                <Phone className="w-4 h-4" />
-                +1 (401) 702-2460
-              </a>
-              <a href="mailto:Assist@gemcybersecurityassist.com" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-                <Mail className="w-4 h-4" />
-                Assist@gemcybersecurityassist.com
-              </a>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
-              </span>
-              <span>All Systems Operational</span>
-            </div>
-          </div>
-
-          {/* Link Columns */}
-          {Object.entries(footerLinks).map(([category, links]) => (
-            <div key={category}>
-              <h4 className="font-semibold text-foreground mb-4 text-sm">
-                {category}
-              </h4>
-              <ul className="space-y-3">
-                {links.map((link) => (
-                  <li key={link.label}>
-                    <Link
-                      to={link.href}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-        </div>
-
-        {/* Trust Badges Row */}
-        <div className="border-t border-border/50 mt-12 pt-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex flex-wrap items-center gap-4">
-              <span className="text-xs text-muted-foreground">Trusted by:</span>
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-foreground font-medium">500+ Enterprise Clients</span>
-                <span className="text-muted-foreground">•</span>
-                <span className="text-sm text-muted-foreground">Federal Compliant</span>
-                <span className="text-muted-foreground">•</span>
-                <span className="text-sm text-muted-foreground">2-Minute Response</span>
-              </div>
-            </div>
+            <p className="text-xs leading-relaxed text-white/35">
+              GEM Enterprise services are available exclusively to accredited
+              investors and qualified institutional clients. All access requires
+              KYC verification and compliance approval.
+            </p>
+            <Link
+              href="/compliance-notice"
+              className="mt-3 inline-flex items-center gap-1 text-xs text-[hsl(185,100%,45%)]/70 transition-colors hover:text-[hsl(185,100%,45%)]"
+            >
+              Read Compliance Notice
+              <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            </Link>
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="border-t border-border/50 mt-8 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} GEM Enterprise Security. All rights reserved.
-          </p>
-          <div className="flex items-center gap-6">
-            {["SOC 2", "ISO 27001", "GDPR", "HIPAA", "PCI DSS"].map((cert) => (
-              <span
-                key={cert}
-                className="text-xs font-mono text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+        {/* Divider */}
+        <div className="mb-12 h-px bg-white/[0.06]" />
+
+        {/* 4-column link grid */}
+        <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4">
+
+          {/* Column 1: Platform */}
+          <div>
+            <FooterColumnHeading>Platform</FooterColumnHeading>
+            <ul className="space-y-2.5">
+              {platformSections.map((section) => (
+                <FooterLink key={section.group} href={section.path}>
+                  {section.label}
+                </FooterLink>
+              ))}
+              <FooterLink href="/intel#architecture">Architecture Specs</FooterLink>
+              <FooterLink href="/services#assessments">Assessments</FooterLink>
+            </ul>
+          </div>
+
+          {/* Column 2: Company */}
+          <div>
+            <FooterColumnHeading>Company</FooterColumnHeading>
+            <ul className="space-y-2.5">
+              {companyLinks.map(({ label, path }) => (
+                <FooterLink key={path} href={path}>
+                  {label}
+                </FooterLink>
+              ))}
+            </ul>
+          </div>
+
+          {/* Column 3: Legal */}
+          <div>
+            <FooterColumnHeading>Legal</FooterColumnHeading>
+            <ul className="space-y-2.5">
+              {legalLinks.map(({ label, path }) => (
+                <FooterLink key={path} href={path}>
+                  {label}
+                </FooterLink>
+              ))}
+            </ul>
+          </div>
+
+          {/* Column 4: Client Access */}
+          <div>
+            <FooterColumnHeading>Client Access</FooterColumnHeading>
+            <ul className="space-y-2.5">
+              {clientAccessLinks.map(({ label, path }) => (
+                <FooterLink key={path} href={path}>
+                  {label}
+                </FooterLink>
+              ))}
+            </ul>
+
+            {/* Get Started CTA */}
+            <div className="mt-6">
+              <Link
+                href="/get-started"
+                className="inline-flex items-center gap-2 rounded-lg bg-[hsl(185,100%,45%)] px-4 py-2 text-sm font-semibold text-[#131a26] shadow-[0_0_18px_hsl(185,100%,45%,0.3)] transition-all hover:bg-[hsl(185,100%,50%)] hover:shadow-[0_0_26px_hsl(185,100%,45%,0.45)]"
               >
-                {cert}
-              </span>
-            ))}
+                Apply for Access
+              </Link>
+            </div>
           </div>
+        </div>
+
+        {/* Divider */}
+        <div className="my-10 h-px bg-white/[0.06]" />
+
+        {/* ── Bottom bar ─────────────────────────────────────────── */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1.5">
+            <p className="text-xs text-white/35">
+              &copy; 2026 GEM Enterprise. All rights reserved.
+            </p>
+            <p className="max-w-md text-[11px] leading-relaxed text-white/25">
+              GEM Enterprise provides information for qualified clients only.
+              This is not investment advice. Past performance does not guarantee
+              future results. All investments carry risk.
+            </p>
+          </div>
+
+          {/* Bottom legal links */}
+          <nav aria-label="Legal links" className="shrink-0">
+            <ul className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              {[
+                { label: "Privacy", path: "/privacy" },
+                { label: "Terms", path: "/terms" },
+                { label: "Compliance Notice", path: "/compliance-notice" },
+              ].map(({ label, path }, i, arr) => (
+                <li key={path} className="flex items-center gap-4">
+                  <Link
+                    href={path}
+                    className="text-xs text-white/35 transition-colors hover:text-[hsl(185,100%,45%)]"
+                  >
+                    {label}
+                  </Link>
+                  {i < arr.length - 1 && (
+                    <span className="text-white/15" aria-hidden="true">|</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </nav>
         </div>
       </div>
     </footer>
   );
-};
+}

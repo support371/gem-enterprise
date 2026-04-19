@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main, claude/**]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/gem_ci
+
+      - name: Run unit tests
+        run: npm test
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-test-secret-min-32-characters-long-placeholder
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/gem_ci
+
+  lint-and-build:
+    name: Lint & Build
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/gem_ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/gem_ci
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-build-secret-min-32-characters-long' }}
+          NEXT_PUBLIC_APP_URL: https://gem-enterprise.vercel.app
+          NEXT_PUBLIC_APP_NAME: GEM Enterprise
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          NEXT_PUBLIC_AI_DISCLOSURE_TEXT: ${{ secrets.NEXT_PUBLIC_AI_DISCLOSURE_TEXT || 'GEM Concierge is an AI assistant. Responses are for informational purposes only.' }}
+          AUDIT_ENABLED: 'true'
+          SMTP_HOST: ''
+          SMTP_PORT: '587'
+          SMTP_USER: ''
+          SMTP_PASS: ''
