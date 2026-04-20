@@ -223,6 +223,15 @@
   .font-mono { font-family: var(--font-mono); }
   .animate-float { animation: float 6s ease-in-out infinite; }
   .animate-glow { animation: glow 2s ease-in-out infinite alternate; }
+
+  /* Hide scrollbar but keep functionality — used on horizontally-scrollable nav rails */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @keyframes float {
