@@ -17,8 +17,8 @@ const NAV_ITEMS = [
 ];
 
 const CONTACT_INFO = {
-  email: "invest@alliancetrustsealty.com",
-  phone: "+1 (800) 555-0100",
+  email: "invest@alliancetrustrealty.com",
+  phone: "+1 (401) 702-2460",
   address: "123 Investment Blvd, Suite 400, Dallas, TX 75201",
 };
 
