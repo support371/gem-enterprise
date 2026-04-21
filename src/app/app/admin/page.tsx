@@ -19,6 +19,7 @@ import {
   ArrowDownRight,
   FileText,
   ShieldCheck,
+  Rss,
 } from 'lucide-react'
 
 const adminModules = [
@@ -65,6 +66,17 @@ const adminModules = [
     colorText: 'text-green-400',
     colorBg:   'bg-green-500/10',
     cardClass:  '',
+  },
+  {
+    href:  '/app/admin/news',
+    icon:  Rss,
+    label: 'News Ingestion',
+    desc:  'Trigger RSS ingestion, manage sources, view run history.',
+    count: null,
+    countColor: '',
+    colorText: 'text-[hsl(var(--svc-cyber))]',
+    colorBg:   'bg-[hsl(var(--svc-cyber-muted))]',
+    cardClass:  'svc-cyber-card',
   },
 ]
 

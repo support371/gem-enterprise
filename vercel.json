@@ -14,5 +14,11 @@
     "NEXT_PUBLIC_APP_URL": "@next_public_app_url",
     "NEXT_PUBLIC_APP_NAME": "GEM Enterprise",
     "NEXT_PUBLIC_AI_DISCLOSURE_TEXT": "@next_public_ai_disclosure_text"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/news-ingest",
+      "schedule": "0 */3 * * *"
+    }
+  ]
 }
