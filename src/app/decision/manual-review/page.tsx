@@ -92,10 +92,10 @@ export default function ManualReviewPage() {
               <div>
                 <p className="text-xs text-muted-foreground">Email</p>
                 <a
-                  href="mailto:compliance@gem-enterprise.com"
+                  href="mailto:compliance@gemcybersecurityassist.com"
                   className="text-sm font-medium text-[hsl(var(--electric-cyan))] hover:underline"
                 >
-                  compliance@gem-enterprise.com
+                  compliance@gemcybersecurityassist.com
                 </a>
               </div>
             </div>
@@ -106,10 +106,10 @@ export default function ManualReviewPage() {
               <div>
                 <p className="text-xs text-muted-foreground">Phone (Business Hours)</p>
                 <a
-                  href="tel:+18005550199"
+                  href="tel:+14017022460"
                   className="text-sm font-medium text-foreground hover:text-[hsl(var(--electric-cyan))] transition-colors"
                 >
-                  +1 (800) 555-0199
+                  +1 (401) 702-2460
                 </a>
               </div>
             </div>

@@ -73,10 +73,10 @@ export default function PrivacyPolicyPage() {
               <div className="text-xs text-[hsl(var(--muted-foreground))] space-y-2">
                 <p>Questions about this policy?</p>
                 <a
-                  href="mailto:compliance@gem-enterprise.com"
+                  href="mailto:compliance@gemcybersecurityassist.com"
                   className="text-[hsl(var(--primary))] hover:underline break-all"
                 >
-                  compliance@gem-enterprise.com
+                  compliance@gemcybersecurityassist.com
                 </a>
               </div>
             </div>

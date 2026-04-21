@@ -78,7 +78,7 @@ const supportChannels = [
     icon: Phone,
     title: "Emergency Hotline",
     description: "24/7 direct line for active incidents and critical security events.",
-    detail: "+1 (800) GEM-CTRL",
+    detail: "+1 (401) 702-2460",
     badge: "24/7",
   },
   {
@@ -92,7 +92,7 @@ const supportChannels = [
     icon: Mail,
     title: "Email Support",
     description: "Non-urgent inquiries, documentation requests, and general account management.",
-    detail: "support@gem-enterprise.io",
+    detail: "support@gemcybersecurityassist.com",
     badge: "< 4hr Response",
   },
 ];
