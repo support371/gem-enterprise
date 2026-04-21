@@ -204,7 +204,7 @@ const faqs = [
   {
     question: "Can I request a custom template or resource for my organization?",
     answer:
-      "Active clients may request customized policy templates, assessment frameworks, or procedural guides through their assigned account manager. Custom resource development is available under advisory engagement arrangements. Contact your advisor or reach us at contact@gem-enterprise.com.",
+      "Active clients may request customized policy templates, assessment frameworks, or procedural guides through their assigned account manager. Custom resource development is available under advisory engagement arrangements. Contact your advisor or reach us at contact@gemcybersecurityassist.com.",
   },
   {
     question: "What intelligence feeds do the GEM automation tools use?",

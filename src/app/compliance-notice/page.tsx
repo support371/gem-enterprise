@@ -321,10 +321,10 @@ export default function ComplianceNoticePage() {
               non-discrimination for exercising privacy rights. GEM Enterprise does not sell personal
               information. To exercise your rights, please contact{" "}
               <a
-                href="mailto:compliance@gem-enterprise.com"
+                href="mailto:compliance@gemcybersecurityassist.com"
                 className="text-[hsl(var(--electric-cyan))] underline underline-offset-2 hover:opacity-80 transition-opacity"
               >
-                compliance@gem-enterprise.com
+                compliance@gemcybersecurityassist.com
               </a>
               .
             </p>

@@ -23,6 +23,8 @@ import {
   LogOut,
   Menu,
   UserCheck,
+  Wallet,
+  Vault,
 } from 'lucide-react'
 import { AIChatWidget } from '@/components/AIChatWidget'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -45,6 +47,8 @@ const clientNavGroups = [
     items: [
       { href: '/app/dashboard',  icon: LayoutDashboard, label: 'Dashboard' },
       { href: '/app/portfolios', icon: Briefcase,        label: 'Portfolios' },
+      { href: '/app/my-portfolio', icon: Wallet,        label: 'My Portfolio' },
+      { href: '/app/savings-vault', icon: Vault,        label: 'Savings Vault' },
       { href: '/app/products',   icon: Package,          label: 'Products' },
       { href: '/app/profiles',   icon: UserCheck,        label: 'Profiles' },
     ],
