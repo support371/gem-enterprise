@@ -128,6 +128,19 @@ export const canonicalRoutes: SiteRoute[] = [
     showInFooter: true,
   },
   {
+    path: "/intel/news",
+    label: "GEM Intel News Feed",
+    category: "public",
+    description:
+      "Live GEM Intel news feed — crypto, cyber, markets, geopolitics, policy, and alternatives",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "community",
+    owner: "intelligence",
+    showInNav: false,
+    showInFooter: true,
+  },
+  {
     path: "/hub",
     label: "Hub",
     category: "public",
@@ -835,6 +848,7 @@ export const navigationMenu: NavSection[] = [
       { label: "Circles", path: "/community-hub/circles", description: "Private topical working groups" },
       { label: "Events", path: "/community-hub/events", description: "Summits, salons, and working sessions" },
       { label: "Knowledge", path: "/community-hub/knowledge", description: "Member-only research and playbooks" },
+      { label: "GEM Intel News Feed", path: "/intel/news", description: "Live news feed across crypto, cyber, markets, and geopolitics" },
       { label: "Request Access", path: "/request-access", description: "Apply to join the GEM Community Hub" },
       { label: "Community Overview", path: "/community", description: "Public community programs and newsletters" },
     ],

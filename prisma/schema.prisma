@@ -660,3 +660,121 @@ model AiEscalationEvent {
 
   @@map("ai_escalation_events")
 }
+
+// ─── GEM Intel — News Ingestion Pipeline ─────────────────────────────────────
+
+enum NewsCategory {
+  crypto
+  cybersecurity
+  markets
+  geopolitics
+  policy
+  real_estate
+  alternatives
+  general
+}
+
+enum NewsMediaType {
+  none
+  image
+  video
+}
+
+enum NewsArticleStatus {
+  draft
+  published
+  archived
+  rejected
+}
+
+enum NewsIngestionStatus {
+  running
+  success
+  partial
+  failed
+}
+
+model NewsSource {
+  id            String       @id @default(cuid())
+  name          String
+  slug          String       @unique
+  feedUrl       String       @unique
+  siteUrl       String?
+  category      NewsCategory
+  description   String?
+  isActive      Boolean      @default(true)
+  pollIntervalMinutes Int    @default(360) // 6 hours default
+  lastFetchedAt DateTime?
+  lastSuccessAt DateTime?
+  lastErrorAt   DateTime?
+  lastError     String?
+  consecutiveFailures Int    @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  articles      NewsArticle[]
+
+  @@index([category, isActive])
+  @@map("news_sources")
+}
+
+model NewsArticle {
+  id             String            @id @default(cuid())
+  sourceId       String?
+  externalGuid   String            @unique // RSS guid or URL hash
+  externalUrl    String
+  slug           String            @unique
+  title          String
+  summary        String?           @db.Text
+  aiSummary      String?           @db.Text
+  body           String?           @db.Text
+  category       NewsCategory
+  tags           String[]          @default([])
+  author         String?
+
+  mediaType      NewsMediaType     @default(none)
+  imageUrl       String?
+  imageAlt       String?
+  videoUrl       String?
+  videoThumbnail String?
+  videoProvider  String?           // youtube | vimeo | native | other
+
+  status         NewsArticleStatus @default(published)
+  isFeatured     Boolean           @default(false)
+  isEditorsPick  Boolean           @default(false)
+  relevanceScore Int               @default(0) // 0-100, used to surface best-of weekly
+
+  publishedAt    DateTime
+  ingestedAt     DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  source         NewsSource?       @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  @@index([category, status, publishedAt(sort: Desc)])
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([isFeatured, publishedAt(sort: Desc)])
+  @@map("news_articles")
+}
+
+model NewsIngestionRun {
+  id               String              @id @default(cuid())
+  status           NewsIngestionStatus @default(running)
+  triggeredBy      String              // "cron" | "admin:<userId>" | "manual"
+  sourcesAttempted Int                 @default(0)
+  sourcesSucceeded Int                 @default(0)
+  sourcesFailed    Int                 @default(0)
+  articlesFound    Int                 @default(0)
+  articlesCreated  Int                 @default(0)
+  articlesUpdated  Int                 @default(0)
+  articlesSkipped  Int                 @default(0)
+  aiEnrichments    Int                 @default(0)
+  aiFailures       Int                 @default(0)
+  durationMs       Int?
+  errorSummary     String?             @db.Text
+  metadata         Json?
+  startedAt        DateTime            @default(now())
+  completedAt      DateTime?
+
+  @@index([startedAt(sort: Desc)])
+  @@map("news_ingestion_runs")
+}
