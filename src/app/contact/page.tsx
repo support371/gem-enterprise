@@ -18,19 +18,19 @@ const contactDetails = [
   {
     icon: Mail,
     label: "General Inquiries",
-    value: "contact@gem-enterprise.com",
+    value: "contact@gemcybersecurityassist.com",
     type: "email",
   },
   {
     icon: Mail,
     label: "Security Operations",
-    value: "security@gem-enterprise.com",
+    value: "security@gemcybersecurityassist.com",
     type: "email",
   },
   {
     icon: Phone,
     label: "Main Office",
-    value: "+1 (800) GEM-CORP",
+    value: "+1 (401) 702-2460",
     type: "tel",
   },
   {
@@ -157,10 +157,10 @@ export default function ContactPage() {
                         IR Hotline
                       </p>
                       <a
-                        href="tel:+18005551234"
+                        href="tel:+14017022460"
                         className="text-sm font-bold text-destructive hover:underline"
                       >
-                        +1 (800) 555-0123
+                        +1 (401) 702-2460
                       </a>
                     </div>
                     <div>
@@ -168,10 +168,10 @@ export default function ContactPage() {
                         IR Email
                       </p>
                       <a
-                        href="mailto:ir@gem-enterprise.com"
+                        href="mailto:ir@gemcybersecurityassist.com"
                         className="text-sm font-medium text-destructive hover:underline"
                       >
-                        ir@gem-enterprise.com
+                        ir@gemcybersecurityassist.com
                       </a>
                     </div>
                   </div>

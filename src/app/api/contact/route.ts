@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     await db.outboxMessage.create({
       data: {
         channel: "email",
-        recipient: process.env.ADMIN_EMAIL ?? "admin@gem-enterprise.com",
+        recipient: process.env.ADMIN_EMAIL ?? "admin@gemcybersecurityassist.com",
         subject: `New Contact Inquiry: ${inquiryType} — ${name}`,
         body: [
           `New contact form submission received.`,

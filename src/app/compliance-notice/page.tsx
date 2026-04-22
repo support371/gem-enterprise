@@ -321,10 +321,10 @@ export default function ComplianceNoticePage() {
               non-discrimination for exercising privacy rights. GEM Enterprise does not sell personal
               information. To exercise your rights, please contact{" "}
               <a
-                href="mailto:compliance@gem-enterprise.com"
+                href="mailto:compliance@gemcybersecurityassist.com"
                 className="text-[hsl(var(--electric-cyan))] underline underline-offset-2 hover:opacity-80 transition-opacity"
               >
-                compliance@gem-enterprise.com
+                compliance@gemcybersecurityassist.com
               </a>
               .
             </p>
@@ -353,10 +353,10 @@ export default function ComplianceNoticePage() {
           <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg p-6 space-y-2">
             <p className="font-medium text-[hsl(var(--foreground))]">GEM Enterprise Compliance Department</p>
             <a
-              href="mailto:compliance@gem-enterprise.com"
+              href="mailto:compliance@gemcybersecurityassist.com"
               className="text-[hsl(var(--electric-cyan))] underline underline-offset-2 hover:opacity-80 transition-opacity block"
             >
-              compliance@gem-enterprise.com
+              compliance@gemcybersecurityassist.com
             </a>
             <p className="text-sm text-[hsl(var(--muted-foreground))] pt-2">
               Our compliance team endeavors to respond to all inquiries within five (5) business days.

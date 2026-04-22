@@ -392,10 +392,10 @@ export default function TermsOfServicePage() {
           <div className="bg-[hsl(var(--card))] border border-[hsl(var(--border))] rounded-lg p-6">
             <p className="font-medium text-[hsl(var(--foreground))] mb-1">GEM Enterprise Legal Team</p>
             <a
-              href="mailto:legal@gem-enterprise.com"
+              href="mailto:legal@gemcybersecurityassist.com"
               className="text-[hsl(var(--electric-cyan))] underline underline-offset-2 hover:opacity-80 transition-opacity"
             >
-              legal@gem-enterprise.com
+              legal@gemcybersecurityassist.com
             </a>
           </div>
         </section>

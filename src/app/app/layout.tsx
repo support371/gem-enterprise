@@ -23,6 +23,8 @@ import {
   LogOut,
   Menu,
   UserCheck,
+  Wallet,
+  PiggyBank,
 } from 'lucide-react'
 import { AIChatWidget } from '@/components/AIChatWidget'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
@@ -43,10 +45,12 @@ const clientNavGroups = [
   {
     label: 'Overview',
     items: [
-      { href: '/app/dashboard',  icon: LayoutDashboard, label: 'Dashboard' },
-      { href: '/app/portfolios', icon: Briefcase,        label: 'Portfolios' },
-      { href: '/app/products',   icon: Package,          label: 'Products' },
-      { href: '/app/profiles',   icon: UserCheck,        label: 'Profiles' },
+      { href: '/app/dashboard',      icon: LayoutDashboard, label: 'Dashboard' },
+      { href: '/app/portfolios',     icon: Briefcase,       label: 'Portfolios' },
+      { href: '/app/my-portfolio',   icon: Wallet,          label: 'My Portfolio' },
+      { href: '/app/savings-vault',  icon: PiggyBank,       label: 'Savings Vault' },
+      { href: '/app/products',       icon: Package,         label: 'Products' },
+      { href: '/app/profiles',       icon: UserCheck,       label: 'Profiles' },
     ],
   },
   {
