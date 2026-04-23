@@ -27,14 +27,16 @@ jobs:
       - name: Generate Prisma client
         run: npm run db:generate
         env:
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/gem_ci
+          POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost:5432/gem_ci
+          POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost:5432/gem_ci
 
       - name: Run unit tests
         run: npm test
         env:
           NODE_ENV: test
           JWT_SECRET: ci-test-secret-min-32-characters-long-placeholder
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/gem_ci
+          POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost:5432/gem_ci
+          POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost:5432/gem_ci
 
   lint-and-build:
     name: Lint & Build
@@ -57,7 +59,8 @@ jobs:
       - name: Generate Prisma client
         run: npm run db:generate
         env:
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/gem_ci
+          POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost:5432/gem_ci
+          POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost:5432/gem_ci
 
       - name: Lint
         run: npm run lint
@@ -65,7 +68,8 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          DATABASE_URL: postgresql://ci:ci@localhost:5432/gem_ci
+          POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost:5432/gem_ci
+          POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost:5432/gem_ci
           JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-build-secret-min-32-characters-long' }}
           NEXT_PUBLIC_APP_URL: https://gem-enterprise.vercel.app
           NEXT_PUBLIC_APP_NAME: GEM Enterprise
@@ -76,3 +80,4 @@ jobs:
           SMTP_PORT: '587'
           SMTP_USER: ''
           SMTP_PASS: ''
+          CRON_SECRET: ci-cron-secret
