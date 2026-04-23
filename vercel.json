@@ -3,7 +3,8 @@
   "buildCommand": "npm run db:generate && npm run build",
   "installCommand": "npm ci",
   "env": {
-    "DATABASE_URL": "@database_url",
+    "POSTGRES_PRISMA_URL": "@postgres_prisma_url",
+    "POSTGRES_URL_NON_POOLING": "@postgres_url_non_pooling",
     "JWT_SECRET": "@jwt_secret",
     "SMTP_HOST": "@smtp_host",
     "SMTP_PORT": "@smtp_port",
@@ -13,7 +14,8 @@
     "AUDIT_ENABLED": "true",
     "NEXT_PUBLIC_APP_URL": "@next_public_app_url",
     "NEXT_PUBLIC_APP_NAME": "GEM Enterprise",
-    "NEXT_PUBLIC_AI_DISCLOSURE_TEXT": "@next_public_ai_disclosure_text"
+    "NEXT_PUBLIC_AI_DISCLOSURE_TEXT": "@next_public_ai_disclosure_text",
+    "CRON_SECRET": "@cron_secret"
   },
   "crons": [
     {
