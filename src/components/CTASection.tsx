@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, MessageSquare, Phone, CheckCircle2, Shield, Clock, Headphones, Zap } from "lucide-react";
+import { ArrowRight, Phone, Shield, Clock, Headphones, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const features = [

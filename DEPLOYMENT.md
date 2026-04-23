@@ -50,7 +50,7 @@ The following secrets are managed in the **Supabase Dashboard** (not in Vercel) 
 
 1.  **Install Dependencies:**
     ```bash
-    npm install
+    npm ci
     ```
 2.  **Create a local `.env` file** (copy from the example):
     ```bash
@@ -75,11 +75,23 @@ The following secrets are managed in the **Supabase Dashboard** (not in Vercel) 
 1.  **Connect Repository:** In the Vercel dashboard, import the `support371/gem-enterprise` GitHub repository.
 2.  **Configure Project:**
     -   Set the **Framework Preset** to "Vite".
+    -   Set the **Install Command** to `npm ci --no-audit --no-fund`.
     -   Set the **Build Command** to `npm run build`.
     -   Set the **Output Directory** to `dist`.
     -   Set the **Production Branch** to `main`.
 3.  **Add Environment Variables:** In the project settings under "Environment Variables," add `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, and `VITE_SUPABASE_PROJECT_ID`.
 4.  **Deploy:** Trigger a deployment. Subsequent pushes to `main` will automatically deploy to Production.
+
+## CI Gate
+
+GitHub Actions CI runs on push to `main` and on pull requests using Node 20:
+
+- `npm ci --no-audit --no-fund`
+- `npm run lint`
+- `npm run build`
+- `npm test`
+
+This keeps build/test parity with Vercel install/build behavior before merge.
 
 ## SPA Routing
 

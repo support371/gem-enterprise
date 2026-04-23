@@ -1,4 +1,16 @@
-import { Shield, Lock, Eye, Cpu, Network, AlertTriangle, FileSearch, Users, Play, Image, ArrowRight, Bot, Building2, Briefcase, Scale } from "lucide-react";
+import {
+  Shield,
+  Eye,
+  FileSearch,
+  Users,
+  Play,
+  Image,
+  ArrowRight,
+  Bot,
+  Building2,
+  Briefcase,
+  Scale,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
