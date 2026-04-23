@@ -2,7 +2,6 @@ import { Shield, Lock, Eye, Cpu, Network, AlertTriangle, FileSearch, Users, Play
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 
 interface BentoCardProps {
   title: string;
@@ -47,11 +46,7 @@ const BentoCard = ({
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5 }}
+    <div 
       className={cn(
         "group relative glass-panel rounded-2xl p-6 bento-card cursor-pointer overflow-hidden",
         size === "lg" && "p-8",
@@ -141,7 +136,7 @@ const BentoCard = ({
 
       {/* Corner accent */}
       <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-primary/10 to-transparent rounded-bl-[80px] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-    </motion.div>
+    </div>
   );
 };
 
@@ -241,11 +236,7 @@ export const BentoGrid = () => {
       
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+        <div 
           className="max-w-3xl mx-auto text-center mb-16"
         >
           <div className="inline-flex items-center gap-2 text-primary text-sm font-medium mb-4">
@@ -259,7 +250,7 @@ export const BentoGrid = () => {
             Integrated solutions combining advanced cybersecurity, asset recovery, and real estate services
             with AI-powered automation and federal compliance standards.
           </p>
-        </motion.div>
+        </div>
 
         {/* View All Button */}
         <div className="flex justify-center mb-12">

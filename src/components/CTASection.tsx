@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, MessageSquare, Phone, CheckCircle2, Shield, Clock, Headphones, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 
 const features = [
   { icon: Zap, label: "Quick Setup" },
@@ -19,11 +18,7 @@ export const CTASection = () => {
       
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-5xl mx-auto">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+          <div 
             className="glass-panel rounded-3xl p-8 md:p-12 lg:p-16 text-center glow-cyan border border-primary/20"
           >
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
@@ -85,7 +80,7 @@ export const CTASection = () => {
                 </a>
               </Button>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
     </section>

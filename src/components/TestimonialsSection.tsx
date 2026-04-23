@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Quote, Building2, Shield, Heart, Star } from "lucide-react";
 
 // Import client headshots
@@ -97,6 +96,13 @@ const companyIcons = {
   Security: Shield
 };
 
+const logoBadgeStyles: Record<string, { bgClass: string; textClass: string }> = {
+  primary: { bgClass: "bg-primary/10", textClass: "text-primary" },
+  accent: { bgClass: "bg-accent/20", textClass: "text-accent-foreground" },
+  success: { bgClass: "bg-success/10", textClass: "text-success" },
+  secondary: { bgClass: "bg-secondary/60", textClass: "text-muted-foreground" },
+};
+
 export const TestimonialsSection = () => {
   const featured = testimonials.find(t => t.featured);
   const others = testimonials.filter(t => !t.featured).slice(0, 4);
@@ -108,11 +114,7 @@ export const TestimonialsSection = () => {
       
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+        <div 
           className="text-center mb-16"
         >
           <div className="inline-flex items-center gap-2 text-primary text-sm font-medium mb-4">
@@ -124,15 +126,11 @@ export const TestimonialsSection = () => {
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             See how enterprises worldwide leverage our security platform to protect their most valuable assets
           </p>
-        </motion.div>
+        </div>
 
         {/* Featured Testimonial */}
         {featured && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+          <div 
             className="max-w-4xl mx-auto mb-12"
           >
             <div className="glass-panel rounded-2xl p-8 md:p-10 border border-primary/20 relative overflow-hidden">
@@ -164,8 +162,12 @@ export const TestimonialsSection = () => {
                 
                 {/* Company Logo Badge */}
                 <div className="hidden sm:flex items-center gap-2 glass-panel rounded-lg px-4 py-2 border border-border/50">
-                  <div className={`w-10 h-10 rounded-lg bg-${companyLogos[featured.company]?.color || 'primary'}/10 flex items-center justify-center`}>
-                    <span className={`text-sm font-bold text-${companyLogos[featured.company]?.color || 'primary'}`}>
+                  <div
+                    className={`w-10 h-10 rounded-lg ${logoBadgeStyles[companyLogos[featured.company]?.color || "primary"].bgClass} flex items-center justify-center`}
+                  >
+                    <span
+                      className={`text-sm font-bold ${logoBadgeStyles[companyLogos[featured.company]?.color || "primary"].textClass}`}
+                    >
                       {companyLogos[featured.company]?.abbr || 'CO'}
                     </span>
                   </div>
@@ -192,22 +194,19 @@ export const TestimonialsSection = () => {
                 </div>
               )}
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* Other Testimonials Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-          {others.map((testimonial, index) => {
+          {others.map((testimonial) => {
             const Icon = companyIcons[testimonial.companyType as keyof typeof companyIcons] || Building2;
             const logoInfo = companyLogos[testimonial.company];
+            const logoStyle = logoBadgeStyles[logoInfo?.color || "secondary"];
             
             return (
-              <motion.div
+              <div
                 key={testimonial.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
                 className="glass-panel rounded-xl p-6 border border-border/50 hover:border-primary/30 transition-all group"
               >
                 {/* Header with Photo and Company Logo */}
@@ -228,8 +227,10 @@ export const TestimonialsSection = () => {
                   </div>
                   
                   {/* Company Logo Badge */}
-                  <div className={`w-10 h-10 rounded-lg bg-${logoInfo?.color || 'secondary'}/10 flex items-center justify-center shrink-0`}>
-                    <span className={`text-xs font-bold text-${logoInfo?.color || 'muted-foreground'}`}>
+                  <div
+                    className={`w-10 h-10 rounded-lg ${logoStyle.bgClass} flex items-center justify-center shrink-0`}
+                  >
+                    <span className={`text-xs font-bold ${logoStyle.textClass}`}>
                       {logoInfo?.abbr || <Icon className="w-5 h-5" />}
                     </span>
                   </div>
@@ -252,7 +253,7 @@ export const TestimonialsSection = () => {
                     ))}
                   </div>
                 )}
-              </motion.div>
+              </div>
             );
           })}
         </div>

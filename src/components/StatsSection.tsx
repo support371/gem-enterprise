@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { useInView } from "framer-motion";
 import { TrendingUp, Users, Shield, DollarSign } from "lucide-react";
 
 interface StatItem {
@@ -86,11 +86,7 @@ export const StatsSection = () => {
       
       <div className="container mx-auto px-4 relative z-10">
         {/* Main Uptime Card */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+        <div 
           className="max-w-4xl mx-auto mb-12"
         >
           <div className="glass-panel rounded-2xl p-8 md:p-12 text-center border border-primary/20 glow-cyan">
@@ -118,7 +114,7 @@ export const StatsSection = () => {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
@@ -129,12 +125,8 @@ export const StatsSection = () => {
               : Math.round(animatedStats[index + 1]);
             
             return (
-              <motion.div
+              <div
                 key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
                 className="glass-panel rounded-2xl p-6 border border-border/50 hover:border-primary/30 transition-all group"
               >
                 <div className="flex items-start justify-between mb-4">
@@ -162,7 +154,7 @@ export const StatsSection = () => {
                 <p className="text-sm text-muted-foreground">
                   {stat.description}
                 </p>
-              </motion.div>
+              </div>
             );
           })}
         </div>
