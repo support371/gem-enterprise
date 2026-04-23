@@ -233,3 +233,8 @@ export const adminPortalNavItems: PlatformNavItem[] = [
     description: "Allocation, entitlement, and portfolio administration.",
   },
 ];
+
+export function resolvePreferredSurface(destination?: string | null) {
+  if (!destination) return "marketing-mobile" as const;
+  return destination.startsWith("/app") ? ("enterprise-web-app" as const) : ("marketing-mobile" as const);
+}
