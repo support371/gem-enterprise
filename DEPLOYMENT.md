@@ -14,7 +14,8 @@ them to the repository.
 
 | Variable | Required | Build-time | Description |
 |----------|----------|-----------|-------------|
-| `DATABASE_URL` | **Yes** | Yes | PostgreSQL connection string. Use a pooler for serverless (Neon, Supabase, PgBouncer). Example: `postgresql://user:pass@host:5432/db?sslmode=require` |
+| `POSTGRES_PRISMA_URL` | **Yes** | Yes | Pooled PostgreSQL connection string used by the app runtime and Prisma client generation. Use a serverless-safe pooler (Neon, Supabase, PgBouncer). |
+| `POSTGRES_URL_NON_POOLING` | **Yes** | No | Direct PostgreSQL connection string used by Prisma migrations. In local development this can match `POSTGRES_PRISMA_URL`. |
 | `JWT_SECRET` | **Yes** | Yes | Minimum 32 characters. Generate: `openssl rand -hex 32`. App throws at runtime if absent or equal to the default dev value. |
 | `ANTHROPIC_API_KEY` | No | No | Anthropic key for GEM Concierge chat. If absent, falls back to rule-based replies — no build failure. |
 | `NEXT_PUBLIC_AI_DISCLOSURE_TEXT` | **Yes** | Yes | Disclosure text shown before the first AI message. SHA-256 of this string is stored in `consent_records`. Keep stable — changing it invalidates prior consent receipts. |
@@ -28,6 +29,7 @@ them to the repository.
 | `ADMIN_EMAIL` | **Yes** | No | Email for the initial admin account (used by seed script once) |
 | `ADMIN_INITIAL_PASSWORD` | **Yes** | No | Temporary password. **Change immediately after first login.** |
 | `AUDIT_ENABLED` | No | No | Set `true` to write audit events to `audit_logs`. |
+| `CRON_SECRET` | **Yes** | No | Shared secret for authenticated cron execution of `/api/cron/news-ingest`. |
 
 > `vercel.json` references these as `@secret_name` placeholders. The placeholders
 > only resolve if the corresponding secret is added in Vercel Project Settings.
@@ -45,7 +47,8 @@ and add each variable from the table above.
 For the Vercel CLI alternative:
 
 ```bash
-vercel env add DATABASE_URL
+vercel env add POSTGRES_PRISMA_URL
+vercel env add POSTGRES_URL_NON_POOLING
 vercel env add JWT_SECRET
 vercel env add ANTHROPIC_API_KEY
 vercel env add NEXT_PUBLIC_AI_DISCLOSURE_TEXT
@@ -59,6 +62,7 @@ vercel env add EMAIL_FROM
 vercel env add ADMIN_EMAIL
 vercel env add ADMIN_INITIAL_PASSWORD
 vercel env add AUDIT_ENABLED
+vercel env add CRON_SECRET
 ```
 
 ### Step 2 — Trigger a Vercel redeploy
@@ -78,7 +82,9 @@ Vercel does not run `prisma migrate deploy` automatically. Run this once from
 a machine with a direct connection to the target Postgres instance:
 
 ```bash
-DATABASE_URL="postgresql://..." npx prisma migrate deploy
+POSTGRES_PRISMA_URL="postgresql://..." \
+POSTGRES_URL_NON_POOLING="postgresql://..." \
+npx prisma migrate deploy
 ```
 
 This applies both pending migrations in order:
@@ -92,7 +98,8 @@ Confirm the output shows both migrations applied with no errors.
 ### Step 4 — Seed the initial admin account (first deployment only)
 
 ```bash
-DATABASE_URL="..." \
+POSTGRES_PRISMA_URL="postgresql://..." \
+POSTGRES_URL_NON_POOLING="postgresql://..." \
 ADMIN_EMAIL="admin@example.com" \
 ADMIN_INITIAL_PASSWORD="replace-this" \
 npm run db:seed
@@ -192,7 +199,7 @@ cp .env.example .env.local
 # Fill in .env.local with real values
 
 npm install
-npm run db:generate      # generates Prisma client
+npm run db:generate
 npx prisma migrate deploy  # or: npx prisma db push (dev only)
 npm run db:seed
 npm run dev
