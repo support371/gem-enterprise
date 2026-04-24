@@ -467,10 +467,10 @@ export default function PrivacyPolicyPage() {
               <p className="text-[hsl(var(--foreground)/0.75)] leading-relaxed">
                 To exercise any of these rights, please submit a written request to{" "}
                 <a
-                  href="mailto:compliance@gem-enterprise.com"
+                  href="mailto:compliance@gemcybersecurityassist.com"
                   className="text-[hsl(var(--primary))] underline underline-offset-2 hover:opacity-80 transition-opacity"
                 >
-                  compliance@gem-enterprise.com
+                  compliance@gemcybersecurityassist.com
                 </a>
                 . We will respond within the timeframe required by applicable law, typically within
                 thirty (30) days of receipt. We may require verification of your identity before
@@ -558,10 +558,10 @@ export default function PrivacyPolicyPage() {
                 to delete such information from our systems. If you believe we have collected
                 information from a minor, please contact us immediately at{" "}
                 <a
-                  href="mailto:compliance@gem-enterprise.com"
+                  href="mailto:compliance@gemcybersecurityassist.com"
                   className="text-[hsl(var(--primary))] underline underline-offset-2 hover:opacity-80 transition-opacity"
                 >
-                  compliance@gem-enterprise.com
+                  compliance@gemcybersecurityassist.com
                 </a>
                 .
               </p>
@@ -592,10 +592,10 @@ export default function PrivacyPolicyPage() {
                       Email
                     </p>
                     <a
-                      href="mailto:compliance@gem-enterprise.com"
+                      href="mailto:compliance@gemcybersecurityassist.com"
                       className="text-[hsl(var(--primary))] underline underline-offset-2 hover:opacity-80 transition-opacity"
                     >
-                      compliance@gem-enterprise.com
+                      compliance@gemcybersecurityassist.com
                     </a>
                   </div>
                   <div>
@@ -603,10 +603,10 @@ export default function PrivacyPolicyPage() {
                       Privacy Rights Requests
                     </p>
                     <a
-                      href="mailto:privacy@gem-enterprise.com"
+                      href="mailto:privacy@gemcybersecurityassist.com"
                       className="text-[hsl(var(--primary))] underline underline-offset-2 hover:opacity-80 transition-opacity"
                     >
-                      privacy@gem-enterprise.com
+                      privacy@gemcybersecurityassist.com
                     </a>
                   </div>
                 </div>

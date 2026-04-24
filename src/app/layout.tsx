@@ -6,7 +6,7 @@ import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://gem-enterprise.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://gemcybersecurityassist.com"),
   title: {
     default: "GEM Enterprise | Cybersecurity-First Enterprise Platform",
     template: "%s | GEM Enterprise",
