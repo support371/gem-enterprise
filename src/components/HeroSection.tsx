@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Shield, Lock, Eye, Zap, CheckCircle2, Clock, Building2, Activity, ChevronDown } from "lucide-react";
+import { ArrowRight, Shield, Lock, Eye, Zap, CheckCircle2, Clock, Building2, Activity, ChevronDown, LayoutDashboard, Workflow } from "lucide-react";
 import { Link } from "react-router-dom";
 import socImage from "@/assets/soc-operations-center.jpg";
 
@@ -9,7 +9,7 @@ type AudienceType = "ciso" | "it-ops" | "founder";
 const audienceContent: Record<AudienceType, { subheadline: string; secondaryCta: string }> = {
   ciso: {
     subheadline: "Advanced cybersecurity monitoring, asset recovery, and real estate services. Powered by AI-driven threat detection and backed by federal compliance standards.",
-    secondaryCta: "Schedule Consultation"
+    secondaryCta: "Review Trust Center"
   },
   "it-ops": {
     subheadline: "Seamless integration with your existing stack. 24/7 monitoring, automated response, and streamlined incident workflows.",
@@ -17,7 +17,7 @@ const audienceContent: Record<AudienceType, { subheadline: string; secondaryCta:
   },
   founder: {
     subheadline: "Enterprise-grade security without the enterprise complexity. Fast onboarding, clear pricing, and expert guidance when you need it.",
-    secondaryCta: "Schedule Consultation"
+    secondaryCta: "Review Trust Center"
   }
 };
 
@@ -65,7 +65,6 @@ export const HeroSection = () => {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-20 pb-16 overflow-hidden">
-      {/* Background Effects — no canvas, no RAF competition */}
       <div className="absolute inset-0 cyber-grid opacity-20 pointer-events-none" />
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/8 rounded-full blur-[150px] animate-pulse-slow" />
@@ -74,7 +73,6 @@ export const HeroSection = () => {
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
-        {/* Enterprise Badge — visible immediately, no opacity-0 init */}
         <div className="flex justify-center lg:justify-start mb-8">
           <div className="inline-flex items-center gap-2 glass-panel px-5 py-2.5 rounded-full border border-primary/20">
             <Shield className="w-4 h-4 text-primary" />
@@ -82,25 +80,20 @@ export const HeroSection = () => {
           </div>
         </div>
 
-        {/* Main Grid Layout */}
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 max-w-7xl mx-auto items-center">
-          {/* Left: Content */}
           <div className="text-center lg:text-left">
-            {/* Headline */}
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-[1.1]">
-              <span className="text-foreground">Next-Generation</span>
+              <span className="text-foreground">Mobile-first</span>
               <br />
-              <span className="text-gradient-primary">Security & Trust</span>
+              <span className="text-gradient-primary">Platform Entry</span>
               <br />
-              <span className="text-foreground">Solutions</span>
+              <span className="text-foreground">Enterprise Workspace</span>
             </h1>
 
-            {/* Subheadline */}
             <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8">
-              {currentContent.subheadline}
+              {currentContent.subheadline} The public shell now acts as the front door into the secure workspace, service tabs, and portal operations.
             </p>
 
-            {/* Stats Cards */}
             <div className="grid grid-cols-3 gap-3 mb-8">
               {heroStats.map((stat, index) => {
                 const Icon = stat.icon;
@@ -126,26 +119,25 @@ export const HeroSection = () => {
               })}
             </div>
 
-            {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6">
               <Button variant="hero" size="lg" asChild className="group">
-                <Link to="/solutions" className="flex items-center gap-3">
-                  <Zap className="w-5 h-5" />
+                <Link to="/portal" className="flex items-center gap-3">
+                  <LayoutDashboard className="w-5 h-5" />
                   <div className="text-left">
-                    <span className="font-semibold">Explore Services</span>
-                    <span className="block text-xs opacity-80">Full solution overview</span>
+                    <span className="font-semibold">Open Platform</span>
+                    <span className="block text-xs opacity-80">Go to secure portal</span>
                   </div>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
               <Button variant="glass" size="lg" asChild>
-                <Link to="/contact">
-                  {currentContent.secondaryCta}
+                <Link to="/portal/workspace" className="flex items-center gap-2">
+                  <Workflow className="w-4 h-4" />
+                  Enter Workspace
                 </Link>
               </Button>
             </div>
 
-            {/* Trust Badges */}
             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
               {trustBadges.map((badge) => (
                 <div key={badge} className="flex items-center gap-2 text-muted-foreground">
@@ -156,11 +148,8 @@ export const HeroSection = () => {
             </div>
           </div>
 
-          {/* Right: SOC Dashboard Visual */}
           <div className="relative">
-            {/* Main Dashboard Card */}
             <div className="relative">
-              {/* SOC Image with Gradient Border */}
               <div className="relative glass-panel rounded-2xl p-1 glow-cyan overflow-hidden">
                 <div className="relative aspect-[16/10] rounded-xl overflow-hidden">
                   <img
@@ -168,10 +157,8 @@ export const HeroSection = () => {
                     alt="Security Operations Center with multiple monitoring screens displaying real-time cybersecurity dashboards"
                     className="w-full h-full object-cover"
                   />
-                  {/* Overlay gradient */}
                   <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-background/20" />
 
-                  {/* Floating Status Cards */}
                   <div className="absolute top-4 left-4 glass-panel rounded-lg px-3 py-2 flex items-center gap-2 backdrop-blur-md">
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
@@ -194,7 +181,6 @@ export const HeroSection = () => {
                     </div>
                   </div>
 
-                  {/* Live indicator */}
                   <div className="absolute top-4 right-4 glass-panel rounded-full px-3 py-1 flex items-center gap-2 backdrop-blur-md">
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
@@ -205,7 +191,6 @@ export const HeroSection = () => {
                 </div>
               </div>
 
-              {/* Floating Metric Cards */}
               <div className="absolute -bottom-6 -left-6 glass-panel rounded-xl p-4 border border-primary/20 shadow-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
@@ -229,11 +214,22 @@ export const HeroSection = () => {
                   </div>
                 </div>
               </div>
+
+              <div className="absolute bottom-8 left-8 glass-panel rounded-xl p-4 border border-primary/20 shadow-lg hidden md:block">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Lock className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Secure Portal</p>
+                    <p className="text-xs text-primary">Ready for access</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Scroll Indicator */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-muted-foreground">
           <span className="text-xs font-medium">Scroll to explore</span>
           <ChevronDown className="w-5 h-5 animate-bounce" />
