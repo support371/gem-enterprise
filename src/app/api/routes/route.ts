@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { canonicalRoutes, legacyRedirects } from "@/lib/siteRoutes";
+import { canonicalRoutes, legacyRedirects, navigationMenu } from "@/lib/siteRoutes";
+import {
+  adminPortalNavItems,
+  clientPortalNavGroups,
+  platformBrandContract,
+  platformSurfaces,
+} from "@/lib/platformNavigation";
 
 export async function GET(_request: NextRequest) {
   const protectedCount = canonicalRoutes.filter((r) => r.requiresAuth).length;
@@ -9,6 +15,21 @@ export async function GET(_request: NextRequest) {
   return NextResponse.json({
     canonical: canonicalRoutes,
     legacy: legacyRedirects,
+    platform: {
+      brand: platformBrandContract,
+      surfaces: platformSurfaces,
+      navigation: {
+        marketing: navigationMenu,
+        portal: {
+          client: clientPortalNavGroups,
+          admin: adminPortalNavItems,
+        },
+      },
+      endpoints: {
+        session: "/api/auth/session",
+        routes: "/api/routes",
+      },
+    },
     totals: {
       canonical: canonicalRoutes.length,
       protected: protectedCount,
@@ -17,6 +38,6 @@ export async function GET(_request: NextRequest) {
       legacy: legacyRedirects.length,
     },
     generated: new Date().toISOString(),
-    version: "1.0.0",
+    version: "1.1.0",
   });
 }
