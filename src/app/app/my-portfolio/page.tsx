@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import {
   Table,
@@ -38,11 +38,22 @@ export default function MyPortfolioPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">
             My <span className="text-gradient-primary">Portfolio</span>
           </h1>
+          <p className="text-slate-400 mt-1">Your personal investment dashboard and holdings overview.</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" className="border-white/10 text-slate-300 hover:bg-white/5">
+            <Clock className="w-4 h-4 mr-2" />
+            History
+          </Button>
+          <Button className="bg-cyan-500 hover:bg-cyan-600 text-black font-semibold">
+            <Plus className="w-4 h-4 mr-2" />
+            Add Investment
           <p className="text-slate-400 mt-1">Your personal investment summary and holdings overview.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -57,34 +68,50 @@ export default function MyPortfolioPage() {
         </div>
       </div>
 
-      {/* Metrics Cards */}
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {portfolioMetrics.map(({ label, value, change, isPositive, icon: Icon }) => (
-          <Card key={label} className="bg-card border-white/10">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
-                  <Icon className="w-5 h-5 text-cyan-400" />
+        {portfolioStats.map((stat) => (
+          <Card key={stat.label} className="bg-card border-white/10 glow-cyan">
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs text-slate-400 uppercase tracking-wider">{stat.label}</p>
+                  <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
+                  <div className={`flex items-center gap-1 mt-1 ${
+                    stat.trend === 'up' ? 'text-green-400' : 
+                    stat.trend === 'down' ? 'text-red-400' : 'text-slate-400'
+                  }`}>
+                    {stat.trend === 'up' && <ArrowUpRight className="w-3 h-3" />}
+                    {stat.trend === 'down' && <ArrowDownRight className="w-3 h-3" />}
+                    <span className="text-xs font-medium">{stat.change}</span>
+                  </div>
                 </div>
-                <div className={`flex items-center gap-1 text-xs font-medium ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                  {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                  {change}
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
+                  <stat.icon className="w-5 h-5 text-cyan-400" />
                 </div>
               </div>
-              <p className="text-xs text-slate-400">{label}</p>
-              <p className="text-xl font-bold text-white mt-0.5">{value}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
       {/* Holdings Table */}
-      <Card className="bg-card border-white/10 glow-cyan">
+      <Card className="bg-card border-white/10">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Wallet className="w-5 h-5 text-cyan-400" />
-            Current Holdings
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
+                <Wallet className="w-5 h-5 text-cyan-400" />
+              </div>
+              <div>
+                <CardTitle className="text-white">Holdings</CardTitle>
+                <CardDescription className="text-slate-400">Your current investment positions</CardDescription>
+              </div>
+            </div>
+            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+              5 Active Holdings
+            </Badge>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -100,24 +127,27 @@ export default function MyPortfolioPage() {
             </TableHeader>
             <TableBody>
               {holdings.map((holding) => (
-                <TableRow key={holding.asset} className="border-white/5 hover:bg-white/5">
-                  <TableCell className="text-white font-medium text-sm">{holding.asset}</TableCell>
+                <TableRow key={holding.name} className="border-white/5 hover:bg-white/5">
+                  <TableCell className="font-medium text-white">{holding.name}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="border-white/20 text-slate-300 text-xs">
+                    <Badge variant="outline" className="border-white/10 text-slate-400">
                       {holding.type}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-slate-400 text-sm">{holding.quantity}</TableCell>
-                  <TableCell className="text-cyan-400 font-semibold text-sm">{holding.value}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+                  <TableCell className="text-slate-300 text-right">{holding.shares}</TableCell>
+                  <TableCell className="text-slate-300 text-right">{holding.price}</TableCell>
+                  <TableCell className="text-cyan-400 font-semibold text-right">{holding.value}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
                       <Progress value={holding.allocation} className="h-1.5 w-16 bg-white/10" />
-                      <span className="text-slate-300 text-xs w-8">{holding.allocation}%</span>
+                      <span className="text-slate-300 text-sm w-12">{holding.allocation}%</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <span className={`flex items-center justify-end gap-1 text-sm font-medium ${holding.isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                      {holding.isPositive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                    <span className={`flex items-center justify-end gap-1 font-medium ${
+                      holding.trend === 'up' ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {holding.trend === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                       {holding.change}
                     </span>
                   </TableCell>
@@ -128,46 +158,45 @@ export default function MyPortfolioPage() {
         </CardContent>
       </Card>
 
-      {/* Recent Activity */}
+      {/* Recent Transactions */}
       <Card className="bg-card border-white/10">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
-            <Activity className="w-5 h-5 text-cyan-400" />
-            Recent Activity
+            <Clock className="w-5 h-5 text-cyan-400" />
+            Recent Transactions
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {recentActivity.map((activity, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 rounded-lg glass-panel">
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    activity.type === 'credit' ? 'bg-green-500/10' : activity.type === 'buy' ? 'bg-cyan-500/10' : 'bg-red-500/10'
-                  }`}>
-                    {activity.type === 'credit' ? (
-                      <ArrowUpRight className="w-4 h-4 text-green-400" />
-                    ) : activity.type === 'buy' ? (
-                      <TrendingUp className="w-4 h-4 text-cyan-400" />
-                    ) : (
-                      <ArrowDownRight className="w-4 h-4 text-red-400" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm text-white font-medium">{activity.action}</p>
-                    <p className="text-xs text-slate-400">{activity.asset}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className={`text-sm font-semibold ${
-                    activity.type === 'credit' || activity.type === 'buy' ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                    {activity.amount}
-                  </p>
-                  <p className="text-xs text-slate-500">{activity.date}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow className="border-white/10 hover:bg-transparent">
+                <TableHead className="text-slate-400">Date</TableHead>
+                <TableHead className="text-slate-400">Type</TableHead>
+                <TableHead className="text-slate-400">Asset</TableHead>
+                <TableHead className="text-slate-400">Amount</TableHead>
+                <TableHead className="text-slate-400 text-right">Value</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentTransactions.map((tx, idx) => (
+                <TableRow key={idx} className="border-white/5 hover:bg-white/5">
+                  <TableCell className="text-slate-400 text-sm">{tx.date}</TableCell>
+                  <TableCell>
+                    <Badge className={`${
+                      tx.type === 'Buy' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                      tx.type === 'Sell' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                      'bg-purple-500/20 text-purple-400 border-purple-500/30'
+                    }`}>
+                      {tx.type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-white font-medium">{tx.asset}</TableCell>
+                  <TableCell className="text-slate-300">{tx.amount}</TableCell>
+                  <TableCell className="text-cyan-400 font-semibold text-right">{tx.value}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
