@@ -4,7 +4,6 @@ import {
   Shield,
   Menu,
   X,
-  Github,
   Lock,
   Newspaper,
   Mail,
@@ -14,6 +13,8 @@ import {
   FileText,
   ChevronDown,
   ArrowRight,
+  LayoutDashboard,
+  Workflow,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link, useLocation } from "react-router-dom";
@@ -114,7 +115,6 @@ export const Navigation = () => {
       )}
     >
       <div className="container mx-auto px-4 flex items-center justify-between">
-        {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">
           <div className="relative">
             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
@@ -127,11 +127,9 @@ export const Navigation = () => {
           </span>
         </Link>
 
-        {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-1">
           <NavigationMenu>
             <NavigationMenuList>
-              {/* Services Dropdown */}
               <NavigationMenuItem>
                 <NavigationMenuTrigger
                   className={cn(
@@ -185,7 +183,6 @@ export const Navigation = () => {
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
-              {/* Learn / Resources Dropdown */}
               <NavigationMenuItem>
                 <NavigationMenuTrigger
                   className={cn(
@@ -228,9 +225,9 @@ export const Navigation = () => {
             </NavigationMenuList>
           </NavigationMenu>
 
-          {/* Standalone links */}
           {[
-            { label: "Pricing", href: "/pricing" },
+            { label: "Platform", href: "/portal", icon: LayoutDashboard },
+            { label: "Workspace", href: "/portal/workspace", icon: Workflow },
             { label: "Contact", href: "/contact", icon: Mail },
           ].map((link) => (
             <Link
@@ -243,7 +240,7 @@ export const Navigation = () => {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              {"icon" in link && link.icon && <link.icon className="w-4 h-4" />}
+              <link.icon className="w-4 h-4" />
               {link.label}
               {isActive(link.href) && (
                 <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" />
@@ -252,15 +249,14 @@ export const Navigation = () => {
           ))}
         </nav>
 
-        {/* Desktop Auth Buttons */}
         <div className="hidden lg:flex items-center gap-2">
           <ThemeToggle />
           {user ? (
             <>
               <Button variant="ghost" size="sm" asChild>
                 <Link to="/portal" className="flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  Dashboard
+                  <LayoutDashboard className="w-4 h-4" />
+                  Open Platform
                 </Link>
               </Button>
               <Button variant="outline" size="sm" onClick={() => signOut()}>
@@ -273,8 +269,8 @@ export const Navigation = () => {
                 <Link to="/auth">Sign In</Link>
               </Button>
               <Button variant="hero" size="sm" asChild>
-                <Link to="/register" className="flex items-center gap-2">
-                  Get Started
+                <Link to="/portal" className="flex items-center gap-2">
+                  Open Platform
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </Button>
@@ -282,7 +278,6 @@ export const Navigation = () => {
           )}
         </div>
 
-        {/* Mobile Menu Button */}
         <button
           className="lg:hidden p-2 text-foreground"
           onClick={() => setIsMobileOpen(!isMobileOpen)}
@@ -292,11 +287,26 @@ export const Navigation = () => {
         </button>
       </div>
 
-      {/* Mobile Menu */}
       {isMobileOpen && (
         <div className="lg:hidden glass-panel mt-2 mx-4 rounded-xl p-4 animate-scale-in border border-border/50">
           <nav className="flex flex-col gap-1">
-            {/* Mobile Services Section */}
+            <Link
+              to="/portal"
+              className="px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 text-foreground bg-secondary/50"
+              onClick={() => setIsMobileOpen(false)}
+            >
+              <LayoutDashboard className="w-4 h-4 text-primary" />
+              Open Platform
+            </Link>
+            <Link
+              to="/portal/workspace"
+              className="px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:bg-secondary/30"
+              onClick={() => setIsMobileOpen(false)}
+            >
+              <Workflow className="w-4 h-4 text-primary" />
+              Enter Workspace
+            </Link>
+
             <button
               className="flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-secondary/30 w-full text-left"
               onClick={() => setMobileServicesOpen(!mobileServicesOpen)}
@@ -332,7 +342,6 @@ export const Navigation = () => {
               </div>
             )}
 
-            {/* Mobile Learn Section */}
             <button
               className="flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 text-muted-foreground hover:text-foreground hover:bg-secondary/30 w-full text-left"
               onClick={() => setMobileLearnOpen(!mobileLearnOpen)}
@@ -361,9 +370,7 @@ export const Navigation = () => {
               </div>
             )}
 
-            {/* Standalone links */}
             {[
-              { label: "Pricing", href: "/pricing" },
               { label: "Contact", href: "/contact" },
             ].map((link) => (
               <Link
@@ -391,7 +398,7 @@ export const Navigation = () => {
                   <Button variant="ghost" className="justify-start" asChild>
                     <Link to="/portal" onClick={() => setIsMobileOpen(false)}>
                       <Lock className="w-4 h-4 mr-2" />
-                      Dashboard
+                      Open Platform
                     </Link>
                   </Button>
                   <Button variant="outline" onClick={() => { signOut(); setIsMobileOpen(false); }}>
@@ -404,8 +411,8 @@ export const Navigation = () => {
                     <Link to="/auth" onClick={() => setIsMobileOpen(false)}>Sign In</Link>
                   </Button>
                   <Button variant="hero" asChild>
-                    <Link to="/register" onClick={() => setIsMobileOpen(false)} className="flex items-center gap-2">
-                      Get Started
+                    <Link to="/portal" onClick={() => setIsMobileOpen(false)} className="flex items-center gap-2">
+                      Open Platform
                       <ArrowRight className="w-4 h-4" />
                     </Link>
                   </Button>
