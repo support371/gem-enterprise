@@ -54,7 +54,7 @@ export default async function RootLayout({
   const isPortal = headersList.get("x-is-portal") === "1";
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className="bg-background">
       <body>
         <Providers>
           {!isPortal && <Navigation />}
