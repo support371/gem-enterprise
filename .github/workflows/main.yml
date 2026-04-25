@@ -2,37 +2,111 @@ name: Guardian Workflow
 
 on:
   push:
-    branches: [main]
+    branches: [main, codex/fix-homepage-render-and-visibility-issues]
   pull_request:
     types: [opened, synchronize, reopened]
   issues:
     types: [opened, edited, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+  issues: read
+
+concurrency:
+  group: guardian-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   guardian-check:
+    name: Inspect, fix, validate, and verify
     runs-on: ubuntu-latest
+
+    env:
+      NODE_ENV: test
+      JWT_SECRET: guardian-ci-secret-min-32-characters-long
+      POSTGRES_PRISMA_URL: postgresql://guardian:guardian@localhost:5432/gem_guardian
+      POSTGRES_URL_NON_POOLING: postgresql://guardian:guardian@localhost:5432/gem_guardian
+      NEXT_PUBLIC_APP_URL: https://gem-enterprise.vercel.app
+      NEXT_PUBLIC_APP_NAME: GEM Enterprise
+      NEXT_PUBLIC_AI_DISCLOSURE_TEXT: GEM Concierge is an AI assistant. Responses are for informational purposes only.
+      ANTHROPIC_API_KEY: ""
+      AUDIT_ENABLED: "true"
+      SMTP_HOST: ""
+      SMTP_PORT: "587"
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      CRON_SECRET: guardian-cron-secret
+      GUARDIAN_LIVE_URL: https://gem-enterprise.vercel.app
+      GUARDIAN_BRANCH_ALIAS_URL: https://gem-enterprise-git-codex-fix-ho-ad8a02-admin-25521151s-projects.vercel.app
 
     steps:
       - name: Checkout repository code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Run code inspection (example)
-        run: |
-          echo "Running code inspection..."
-          # Add your custom inspection commands here
-          # For example, you can run a linter or a static analysis tool
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
 
-      - name: Auto-fix issues (example)
+      - name: Inspect repository contract
         run: |
-          echo "Auto-fixing issues..."
-          # Add your auto-fix logic here
-          # For example, you can run a formatter or an auto-correction script
+          set -euo pipefail
+          echo "Guardian inspection started"
+          test -f package.json
+          test -f prisma/schema.prisma
+          test -f .github/workflows/main.yml
+          test -f src/lib/platformNavigation.ts || echo "platformNavigation contract not present on this branch"
+          echo "Tracked branch: ${GITHUB_REF_NAME}"
+          git status --short
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Auto-fix formatting-safe issues
+        run: |
+          set -euo pipefail
+          echo "No destructive auto-fixes enabled. Guardian only commits deterministic repository-maintenance changes."
 
       - name: Commit and push changes if any fixes were made
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Automated fix by Guardian Workflow"
-          branch: ${{ github.ref }}
+          branch: ${{ github.ref_name }}
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build application
+        run: npm run build
+
+      - name: Verify deployed root URL
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          echo "Checking ${GUARDIAN_LIVE_URL}"
+          curl --fail --location --silent --show-error --max-time 30 "${GUARDIAN_LIVE_URL}" > /tmp/guardian-root.html
+          grep -qi "GEM" /tmp/guardian-root.html
+          echo "Root URL responded and contains GEM marker"
+
+      - name: Verify live-linked branch alias
+        if: github.ref_name == 'codex/fix-homepage-render-and-visibility-issues'
+        run: |
+          set -euo pipefail
+          echo "Checking ${GUARDIAN_BRANCH_ALIAS_URL}"
+          curl --fail --location --silent --show-error --max-time 30 "${GUARDIAN_BRANCH_ALIAS_URL}" > /tmp/guardian-branch.html
+          grep -qi "GEM" /tmp/guardian-branch.html
+          echo "Branch alias responded and contains GEM marker"
 
       - name: Log output
         run: echo "Guardian workflow completed."
