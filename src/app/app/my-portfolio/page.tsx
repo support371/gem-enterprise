@@ -10,108 +10,28 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { 
-  Wallet, 
-  TrendingUp, 
-  TrendingDown, 
-  ArrowUpRight, 
-  ArrowDownRight,
-  DollarSign,
-  BarChart3,
-  Clock,
-  ShieldCheck,
-  Plus,
-} from 'lucide-react'
+import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, DollarSign, Activity, Target, Calendar } from 'lucide-react'
 
-const portfolioStats = [
-  { 
-    label: 'Total Portfolio Value', 
-    value: '$2,847,500', 
-    change: '+$125,000',
-    trend: 'up',
-    icon: DollarSign,
-  },
-  { 
-    label: 'Monthly Returns', 
-    value: '+4.6%', 
-    change: '+0.8%',
-    trend: 'up',
-    icon: TrendingUp,
-  },
-  { 
-    label: 'YTD Performance', 
-    value: '+12.4%', 
-    change: '+2.1%',
-    trend: 'up',
-    icon: BarChart3,
-  },
-  { 
-    label: 'Risk Score', 
-    value: 'Moderate', 
-    change: 'Balanced',
-    trend: 'neutral',
-    icon: ShieldCheck,
-  },
+const portfolioMetrics = [
+  { label: 'Total Balance', value: '$1,245,890.50', change: '+5.2%', isPositive: true, icon: Wallet },
+  { label: 'Monthly Return', value: '+$42,350', change: '+3.4%', isPositive: true, icon: TrendingUp },
+  { label: 'Active Positions', value: '12', change: '+2', isPositive: true, icon: Activity },
+  { label: 'Pending Orders', value: '3', change: '-1', isPositive: false, icon: Target },
 ]
 
 const holdings = [
-  { 
-    name: 'GEM CyberShield Fund', 
-    type: 'Cybersecurity', 
-    shares: '1,250', 
-    price: '$812.40', 
-    value: '$1,015,500',
-    allocation: 35.7,
-    change: '+2.4%',
-    trend: 'up'
-  },
-  { 
-    name: 'GEM Financial Services ETF', 
-    type: 'Financial', 
-    shares: '890', 
-    price: '$645.50', 
-    value: '$574,495',
-    allocation: 20.2,
-    change: '+1.8%',
-    trend: 'up'
-  },
-  { 
-    name: 'ATR Real Estate Trust', 
-    type: 'Real Estate', 
-    shares: '450', 
-    price: '$1,120.00', 
-    value: '$504,000',
-    allocation: 17.7,
-    change: '-0.5%',
-    trend: 'down'
-  },
-  { 
-    name: 'GEM High-Yield Bond Fund', 
-    type: 'Fixed Income', 
-    shares: '2,100', 
-    price: '$185.75', 
-    value: '$390,075',
-    allocation: 13.7,
-    change: '+0.3%',
-    trend: 'up'
-  },
-  { 
-    name: 'GEM Cash Management', 
-    type: 'Cash', 
-    shares: '363,430', 
-    price: '$1.00', 
-    value: '$363,430',
-    allocation: 12.7,
-    change: '+0.1%',
-    trend: 'up'
-  },
+  { asset: 'GEM Cyber Fund', type: 'Fund', quantity: '500 units', value: '$450,000', allocation: 36, change: '+8.2%', isPositive: true },
+  { asset: 'ATR Property Trust', type: 'REIT', quantity: '1,200 units', value: '$360,000', allocation: 29, change: '+4.1%', isPositive: true },
+  { asset: 'Financial Shield', type: 'Product', quantity: '1 license', value: '$185,890', allocation: 15, change: '+2.3%', isPositive: true },
+  { asset: 'Intel Premium', type: 'Subscription', quantity: '12 mo', value: '$125,000', allocation: 10, change: '+0.8%', isPositive: true },
+  { asset: 'Cash Reserve', type: 'Cash', quantity: '-', value: '$125,000.50', allocation: 10, change: '0%', isPositive: true },
 ]
 
-const recentTransactions = [
-  { date: 'Apr 18, 2026', type: 'Buy', asset: 'GEM CyberShield Fund', amount: '+50 shares', value: '$40,620' },
-  { date: 'Apr 15, 2026', type: 'Dividend', asset: 'ATR Real Estate Trust', amount: 'Quarterly', value: '$8,400' },
-  { date: 'Apr 12, 2026', type: 'Sell', asset: 'GEM Growth Equity', amount: '-200 shares', value: '$52,300' },
-  { date: 'Apr 10, 2026', type: 'Buy', asset: 'GEM Financial Services ETF', amount: '+100 shares', value: '$64,550' },
+const recentActivity = [
+  { date: 'Apr 18, 2026', action: 'Dividend Received', asset: 'ATR Property Trust', amount: '+$4,200', type: 'credit' },
+  { date: 'Apr 15, 2026', action: 'Position Added', asset: 'GEM Cyber Fund', amount: '+50 units', type: 'buy' },
+  { date: 'Apr 10, 2026', action: 'Subscription Renewed', asset: 'Intel Premium', amount: '-$10,000', type: 'debit' },
+  { date: 'Apr 5, 2026', action: 'Yield Payment', asset: 'Financial Shield', amount: '+$2,890', type: 'credit' },
 ]
 
 export default function MyPortfolioPage() {
@@ -119,6 +39,7 @@ export default function MyPortfolioPage() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">
             My <span className="text-gradient-primary">Portfolio</span>
@@ -133,6 +54,16 @@ export default function MyPortfolioPage() {
           <Button className="bg-cyan-500 hover:bg-cyan-600 text-black font-semibold">
             <Plus className="w-4 h-4 mr-2" />
             Add Investment
+          <p className="text-slate-400 mt-1">Your personal investment summary and holdings overview.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="border-white/10 text-slate-300 hover:bg-white/5">
+            <Calendar className="w-4 h-4 mr-2" />
+            Statement
+          </Button>
+          <Button className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30">
+            <DollarSign className="w-4 h-4 mr-2" />
+            Deposit Funds
           </Button>
         </div>
       </div>
@@ -188,10 +119,9 @@ export default function MyPortfolioPage() {
               <TableRow className="border-white/10 hover:bg-transparent">
                 <TableHead className="text-slate-400">Asset</TableHead>
                 <TableHead className="text-slate-400">Type</TableHead>
-                <TableHead className="text-slate-400 text-right">Shares</TableHead>
-                <TableHead className="text-slate-400 text-right">Price</TableHead>
-                <TableHead className="text-slate-400 text-right">Value</TableHead>
-                <TableHead className="text-slate-400 text-right">Allocation</TableHead>
+                <TableHead className="text-slate-400">Quantity</TableHead>
+                <TableHead className="text-slate-400">Value</TableHead>
+                <TableHead className="text-slate-400">Allocation</TableHead>
                 <TableHead className="text-slate-400 text-right">Change</TableHead>
               </TableRow>
             </TableHeader>

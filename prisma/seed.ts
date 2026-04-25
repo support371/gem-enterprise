@@ -9,10 +9,10 @@ async function main() {
   // Admin user
   const adminHash = await bcrypt.hash("admin@gemEnterprise2026!", 12);
   const admin = await db.user.upsert({
-    where: { email: "admin@gem-enterprise.com" },
+    where: { email: "admin@gemcybersecurityassist.com" },
     update: {},
     create: {
-      email: "admin@gem-enterprise.com",
+      email: "admin@gemcybersecurityassist.com",
       passwordHash: adminHash,
       role: UserRole.admin,
       isActive: true,
@@ -32,10 +32,10 @@ async function main() {
   // Demo approved client
   const clientHash = await bcrypt.hash("client@demo2026!", 12);
   const client = await db.user.upsert({
-    where: { email: "demo@gem-enterprise.com" },
+    where: { email: "demo@gemcybersecurityassist.com" },
     update: {},
     create: {
-      email: "demo@gem-enterprise.com",
+      email: "demo@gemcybersecurityassist.com",
       passwordHash: clientHash,
       role: UserRole.client,
       isActive: true,
@@ -171,8 +171,8 @@ async function main() {
 
   console.log("\n🎉 Seed complete!\n");
   console.log("Demo credentials:");
-  console.log("  Admin:  admin@gem-enterprise.com / admin@gemEnterprise2026!");
-  console.log("  Client: demo@gem-enterprise.com  / client@demo2026!");
+  console.log("  Admin:  admin@gemcybersecurityassist.com / admin@gemEnterprise2026!");
+  console.log("  Client: demo@gemcybersecurityassist.com  / client@demo2026!");
 }
 
 main()
