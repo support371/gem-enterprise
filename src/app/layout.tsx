@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://gemcybersecurityassist.com"),
@@ -61,6 +62,7 @@ export default async function RootLayout({
           <main className={isPortal ? undefined : "min-h-screen"}>{children}</main>
           {!isPortal && <Footer />}
         </Providers>
+        <SpeedInsights />
       </body>
     </html>
   );
