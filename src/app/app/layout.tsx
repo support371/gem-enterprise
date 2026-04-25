@@ -24,71 +24,17 @@ import {
   Menu,
   UserCheck,
   Wallet,
-  Vault,
-} from 'lucide-react'
-import { AIChatWidget } from '@/components/AIChatWidget'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
+  PiggyBank,
+} from "lucide-react";
+import { AIChatWidget } from "@/components/AIChatWidget";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { cn } from '@/lib/utils'
-
-// ── Nav definitions ──────────────────────────────────────────────────────────
-
-const clientNavGroups = [
-  {
-    label: 'Overview',
-    items: [
-      { href: '/app/dashboard',  icon: LayoutDashboard, label: 'Dashboard' },
-      { href: '/app/portfolios', icon: Briefcase,        label: 'Portfolios' },
-      { href: '/app/my-portfolio', icon: Wallet,        label: 'My Portfolio' },
-      { href: '/app/savings-vault', icon: Vault,        label: 'Savings Vault' },
-      { href: '/app/products',   icon: Package,          label: 'Products' },
-      { href: '/app/profiles',   icon: UserCheck,        label: 'Profiles' },
-    ],
-  },
-  {
-    label: 'Portal',
-    items: [
-      { href: '/app/services',   icon: Package,          label: 'Services' },
-      { href: '/app/community',  icon: Users,            label: 'Community' },
-      { href: '/app/workspace',  icon: MessageSquare,    label: 'Workspace' },
-    ],
-  },
-  {
-    label: 'Operations',
-    items: [
-      { href: '/app/documents',     icon: FileText,        label: 'Documents' },
-      { href: '/app/requests',      icon: ClipboardList,   label: 'Requests' },
-      { href: '/app/messages',      icon: MessageSquare,   label: 'Messages' },
-      { href: '/app/notifications', icon: Bell,            label: 'Notifications' },
-    ],
-  },
-  {
-    label: 'Account',
-    items: [
-      { href: '/app/support',    icon: HeadphonesIcon, label: 'Support' },
-      { href: '/app/compliance', icon: ShieldCheck,    label: 'Compliance' },
-      { href: '/app/profile',    icon: User,           label: 'Profile' },
-      { href: '/app/settings',   icon: Settings,       label: 'Settings' },
-      { href: '/app/security',   icon: Lock,           label: 'Security' },
-    ],
-  },
-]
-
-const adminNavItems = [
-  { href: '/app/admin',              icon: Shield,        label: 'Admin Center' },
-  { href: '/app/admin/kyc',          icon: CheckCircle,   label: 'KYC Queue' },
-  { href: '/app/admin/approvals',    icon: ClipboardList, label: 'Approvals' },
-  { href: '/app/admin/users',        icon: Users,         label: 'Users' },
-  { href: '/app/admin/allocations',  icon: PieChart,      label: 'Allocations' },
-]
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
