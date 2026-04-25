@@ -163,7 +163,7 @@ export default function SupportPage() {
                   <Mail className="w-4 h-4 text-cyan-400" />
                   <p className="text-sm font-medium text-white">Email Support</p>
                 </div>
-                <p className="text-xs text-slate-400">enterprise@gemcybersecurityassist.com</p>
+                <p className="text-xs text-slate-400">support@gemcybersecurityassist.com</p>
                 <p className="text-xs text-slate-500 mt-1">Response within 24 hours</p>
               </div>
               <div className="glass-panel rounded-lg p-4 border border-red-500/20">
