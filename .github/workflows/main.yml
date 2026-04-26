@@ -20,6 +20,11 @@ jobs:
     name: Inspect, validate, and verify
     runs-on: ubuntu-latest
 
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+
     steps:
       - name: Checkout repository code
         uses: actions/checkout@v4
@@ -38,8 +43,29 @@ jobs:
           echo "Guardian inspection started"
           test -f package.json
           test -f .github/workflows/main.yml
+          test -f .env.example
+          grep -q "VITE_SUPABASE_URL" .env.example
+          grep -q "VITE_SUPABASE_PUBLISHABLE_KEY" .env.example
           echo "Branch: ${GITHUB_REF_NAME}"
           git status --short
+
+      - name: Verify Supabase environment contract
+        run: |
+          set -euo pipefail
+          missing=0
+          if [ -z "${VITE_SUPABASE_URL:-}" ]; then
+            echo "Missing required secret: VITE_SUPABASE_URL"
+            missing=1
+          fi
+          if [ -z "${VITE_SUPABASE_PUBLISHABLE_KEY:-}" ]; then
+            echo "Missing required secret: VITE_SUPABASE_PUBLISHABLE_KEY"
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            echo "Supabase env contract is incomplete. Configure these in GitHub Actions secrets and Vercel project env vars before release."
+            exit 1
+          fi
+          echo "Supabase env contract present."
 
       - name: Install dependencies
         run: npm ci
