@@ -137,6 +137,22 @@ export const Navigation = () => {
     setOpenMobileGroup(null);
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (!isMobileOpen) {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      return;
+    }
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, [isMobileOpen]);
+
   const isActive = (href: string) => {
     if (href === "/") return location.pathname === "/";
     return location.pathname.startsWith(href.split("#")[0]);
@@ -145,8 +161,8 @@ export const Navigation = () => {
   return (
     <header
       className={cn(
-        "fixed left-0 right-0 top-0 z-50 transition-all duration-300",
-        isScrolled || isMobileOpen ? "glass-panel border-b border-border/50 py-2" : "bg-transparent py-4",
+        "fixed left-0 right-0 top-0 z-[10000] transition-all duration-300",
+        isScrolled || isMobileOpen ? "border-b border-border/50 bg-background py-2 shadow-2xl" : "bg-transparent py-4",
       )}
     >
       <div className="container mx-auto flex items-center justify-between px-4">
@@ -226,17 +242,19 @@ export const Navigation = () => {
         </div>
 
         <button
-          className="rounded-2xl bg-secondary/70 p-3 text-foreground lg:hidden"
+          className="rounded-2xl bg-secondary/80 p-3 text-foreground shadow-lg lg:hidden"
           onClick={() => setIsMobileOpen((value) => !value)}
           aria-label="Toggle menu"
+          aria-expanded={isMobileOpen}
         >
           {isMobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
 
       {isMobileOpen && (
-        <div className="fixed inset-x-0 top-[72px] z-40 max-h-[calc(100vh-72px)] overflow-y-auto border-t border-border bg-background/98 px-4 pb-10 pt-7 backdrop-blur-xl lg:hidden">
-          <nav className="space-y-2">
+        <div className="fixed inset-0 top-[72px] z-[9999] overflow-y-auto overscroll-contain border-t border-border bg-background px-4 pb-40 pt-7 shadow-2xl lg:hidden">
+          <div className="pointer-events-none fixed inset-0 top-[72px] -z-10 bg-background" />
+          <nav className="relative z-10 space-y-2">
             {navGroups.map((group) => {
               const isOpen = openMobileGroup === group.label;
               return (
@@ -244,7 +262,7 @@ export const Navigation = () => {
                   <button
                     className={cn(
                       "flex w-full items-center justify-between rounded-2xl px-4 py-3 text-left text-2xl font-semibold transition-colors",
-                      isOpen ? "bg-secondary/70 text-foreground" : "text-muted-foreground hover:text-foreground",
+                      isOpen ? "bg-secondary/80 text-foreground" : "text-muted-foreground hover:text-foreground",
                     )}
                     onClick={() => setOpenMobileGroup(isOpen ? null : group.label)}
                   >
