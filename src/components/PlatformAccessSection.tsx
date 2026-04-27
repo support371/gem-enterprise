@@ -115,7 +115,7 @@ export const PlatformAccessSection = () => {
                     </Link>
                   </Button>
                   <Button variant="glass" asChild>
-                    <Link to="/trust-center">Review Trust Center</Link>
+                    <Link to="/company">Review Company</Link>
                   </Button>
                 </div>
               </div>

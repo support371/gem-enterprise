@@ -42,7 +42,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Intel",
     allLabel: "All Intel",
-    href: "/resources",
+    href: "/intel",
     items: [
       { title: "Threat Intelligence", description: "Global threat landscape and briefings", href: "/resources#threat-intelligence" },
       { title: "Reports", description: "Published intelligence reports", href: "/resources#reports" },
@@ -111,13 +111,13 @@ const navGroups: NavGroup[] = [
   {
     label: "Company",
     allLabel: "All Company",
-    href: "/trust-center",
+    href: "/company",
     items: [
-      { title: "About", description: "About GEM Enterprise", href: "/trust-center#about" },
-      { title: "Leadership & Vision", description: "Executive leadership and mission", href: "/trust-center#leadership" },
-      { title: "Executive Board", description: "Board of directors", href: "/trust-center#board" },
-      { title: "Teams", description: "Expert teams and divisions", href: "/trust-center#teams" },
-      { title: "Personnel Board", description: "GEM & ATR personnel directory with AI Overseer", href: "/trust-center#personnel" },
+      { title: "About", description: "About GEM Enterprise", href: "/company#about" },
+      { title: "Leadership & Vision", description: "Executive leadership and mission", href: "/company#leadership" },
+      { title: "Executive Board", description: "Board of directors", href: "/company#board" },
+      { title: "Teams", description: "Expert teams and divisions", href: "/company#teams" },
+      { title: "Personnel Board", description: "GEM & ATR personnel directory with AI Overseer", href: "/company#personnel" },
     ],
   },
 ];

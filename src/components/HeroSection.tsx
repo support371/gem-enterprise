@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Shield, Lock, Eye, Zap, CheckCircle2, Clock, Building2, Activity, ChevronDown, LayoutDashboard, Workflow } from "lucide-react";
 import { Link } from "react-router-dom";
-import socImage from "@/assets/soc-operations-center.jpg";
+import heroVisual from "@/assets/hero-visual.png";
 
 type AudienceType = "ciso" | "it-ops" | "founder";
 
 const audienceContent: Record<AudienceType, { subheadline: string; secondaryCta: string }> = {
   ciso: {
     subheadline: "Advanced cybersecurity monitoring, asset recovery, and real estate services. Powered by AI-driven threat detection and backed by federal compliance standards.",
-    secondaryCta: "Review Trust Center"
+    secondaryCta: "Review Company"
   },
   "it-ops": {
     subheadline: "Seamless integration with your existing stack. 24/7 monitoring, automated response, and streamlined incident workflows.",
@@ -17,7 +17,7 @@ const audienceContent: Record<AudienceType, { subheadline: string; secondaryCta:
   },
   founder: {
     subheadline: "Enterprise-grade security without the enterprise complexity. Fast onboarding, clear pricing, and expert guidance when you need it.",
-    secondaryCta: "Review Trust Center"
+    secondaryCta: "Review Company"
   }
 };
 
@@ -153,7 +153,7 @@ export const HeroSection = () => {
               <div className="relative glass-panel rounded-2xl p-1 glow-cyan overflow-hidden">
                 <div className="relative aspect-[16/10] rounded-xl overflow-hidden">
                   <img
-                    src={socImage}
+                    src={heroVisual}
                     alt="Security Operations Center with multiple monitoring screens displaying real-time cybersecurity dashboards"
                     className="w-full h-full object-cover"
                   />

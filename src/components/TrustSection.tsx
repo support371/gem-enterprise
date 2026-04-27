@@ -47,7 +47,7 @@ export const TrustSection = () => {
             <div className="max-w-xl">
               <div className="inline-flex items-center gap-2 text-primary text-sm font-medium mb-4">
                 <Shield className="w-4 h-4" />
-                <span>Trust Center</span>
+                <span>Company</span>
               </div>
               <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
                 Security is Our <span className="text-gradient-primary">Foundation</span>
@@ -57,7 +57,7 @@ export const TrustSection = () => {
               </p>
             </div>
             <Button variant="glass" size="lg">
-              View Full Trust Center
+              View Full Company
             </Button>
           </div>
 

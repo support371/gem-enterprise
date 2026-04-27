@@ -12,8 +12,9 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // Public site pages
 import Index from "./pages/Index";
-import TrustCenter from "./pages/TrustCenter";
+import Company from "./pages/Company";
 import Solutions from "./pages/Solutions";
+import Intel from "./pages/Intel";
 import SolutionDetail from "./pages/SolutionDetail";
 import Pricing from "./pages/Pricing";
 import Resources from "./pages/Resources";
@@ -92,7 +93,8 @@ const App = () => (
           <Routes>
             {/* ── Public site ───────────────────────────────────────────── */}
             <Route path="/" element={<Index />} />
-            <Route path="/trust-center" element={<TrustCenter />} />
+            <Route path="/company" element={<Company />} />
+            <Route path="/intel" element={<Intel />} />
             <Route path="/solutions" element={<Solutions />} />
             <Route path="/solutions/:slug" element={<SolutionDetail />} />
             <Route path="/pricing" element={<Pricing />} />
