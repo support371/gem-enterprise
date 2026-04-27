@@ -42,7 +42,7 @@ const navGroups: NavGroup[] = [
   {
     label: "Intel",
     allLabel: "All Intel",
-    href: "/resources",
+    href: "/intel",
     items: [
       { title: "Threat Intelligence", description: "Global threat landscape and briefings", href: "/resources#threat-intelligence" },
       { title: "Reports", description: "Published intelligence reports", href: "/resources#reports" },

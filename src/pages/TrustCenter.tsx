@@ -7,95 +7,65 @@ import {
   AlertTriangle, Database, Key, Globe, FileText, Users 
 } from "lucide-react";
 
-const trustSections = [
+const companySections = [
   {
-    id: "overview",
+    id: "about",
     icon: Shield,
-    title: "Trust Center Overview",
-    description: "Security is the foundation of everything we do. Our trust center provides complete transparency into our security practices, certifications, and commitments.",
+    title: "About GEM Enterprise",
+    description: "Enterprise cyber defense and digital trust engineering for high-risk environments.",
     content: [
-      "Defense-in-depth architecture with multiple security layers",
-      "Continuous third-party security assessments",
-      "Dedicated security team with 24/7 monitoring",
-      "Regular penetration testing and vulnerability assessments",
+      "Founded on the principle of absolute digital sovereignty",
+      "Headquartered in a secure, multi-region operational environment",
+      "Dedicated to protecting critical infrastructure and high-value assets",
+      "Innovative approach combining human intelligence with AI-driven monitoring",
     ],
   },
   {
-    id: "practices",
+    id: "leadership",
     icon: Users,
-    title: "Security Practices",
-    description: "Our security practices follow industry best standards and are continuously improved based on emerging threats.",
+    title: "Leadership & Vision",
+    description: "Our leadership team brings decades of experience in cybersecurity, defense, and intelligence.",
     content: [
-      "Least privilege access control model",
-      "Multi-factor authentication required for all systems",
-      "Role-based access control (RBAC) enforcement",
-      "Regular access reviews and certification",
-      "Privileged access management (PAM) for sensitive systems",
+      "Visionary leadership focused on long-term security outcomes",
+      "Deep expertise in threat landscape analysis and strategic defense",
+      "Commitment to ethical AI governance and data privacy",
+      "Global perspective on emerging security challenges",
     ],
   },
   {
-    id: "logging",
+    id: "board",
+    icon: FileCheck,
+    title: "Executive Board",
+    description: "A diverse board of experts providing strategic oversight and governance.",
+    content: [
+      "Independent oversight of operational security and compliance",
+      "Strategic guidance on platform evolution and market alignment",
+      "Focus on shareholder value through sustainable security practices",
+      "Rigorous adherence to corporate governance standards",
+    ],
+  },
+  {
+    id: "teams",
+    icon: Server,
+    title: "Expert Teams",
+    description: "Our multidisciplinary teams are the core of our defense capabilities.",
+    content: [
+      "SOC Analysts providing 24/7 continuous monitoring",
+      "Security Researchers identifying zero-day vulnerabilities",
+      "Compliance Experts ensuring regulatory alignment",
+      "Platform Engineers building resilient security infrastructure",
+    ],
+  },
+  {
+    id: "personnel",
     icon: Eye,
-    title: "Logging & Monitoring",
-    description: "Comprehensive visibility into all system activities with real-time alerting and incident response capabilities.",
+    title: "Personnel Board",
+    description: "Transparency into our personnel and the AI Overseer system.",
     content: [
-      "Centralized log aggregation and analysis",
-      "Real-time security event monitoring",
-      "Automated threat detection and alerting",
-      "Incident response playbooks with defined SLAs",
-      "Security information and event management (SIEM)",
-    ],
-  },
-  {
-    id: "encryption",
-    icon: Key,
-    title: "Encryption Standards",
-    description: "Industry-leading encryption protects your data at rest and in transit.",
-    content: [
-      "AES-256 encryption for data at rest",
-      "TLS 1.3 for all data in transit",
-      "Hardware security modules (HSM) for key management",
-      "Regular cryptographic key rotation",
-      "End-to-end encryption for sensitive communications",
-    ],
-  },
-  {
-    id: "privacy",
-    icon: Database,
-    title: "Privacy & Data Handling",
-    description: "Your data is handled with the utmost care and in compliance with global privacy regulations.",
-    content: [
-      "Data minimization principles",
-      "Clear data retention policies",
-      "No third-party data sharing without consent",
-      "Right to access, correct, and delete data",
-      "Privacy impact assessments for new features",
-    ],
-  },
-  {
-    id: "disclosure",
-    icon: AlertTriangle,
-    title: "Responsible Disclosure",
-    description: "We welcome security researchers and maintain a transparent vulnerability disclosure program.",
-    content: [
-      "Security contact: security@gemcybersecurity.com",
-      "Acknowledgment within 24 hours",
-      "Good-faith investigation of all reports",
-      "No legal action against good-faith researchers",
-      "Public disclosure after remediation",
-    ],
-  },
-  {
-    id: "availability",
-    icon: Globe,
-    title: "Availability & Resilience",
-    description: "Our infrastructure is designed for maximum availability and rapid recovery.",
-    content: [
-      "99.99% uptime SLA commitment",
-      "Multi-region redundant infrastructure",
-      "Automated failover and disaster recovery",
-      "Regular backup testing and validation",
-      "Documented business continuity plans",
+      "Vetted personnel with background checks and security clearances",
+      "AI Overseer ensuring operational integrity and policy adherence",
+      "Continuous training and professional development programs",
+      "Strict 'need-to-know' access model enforced across all teams",
     ],
   },
 ];
@@ -120,13 +90,13 @@ const TrustCenter = () => {
             <AnimatedSection className="max-w-3xl mx-auto text-center">
               <div className="inline-flex items-center gap-2 text-primary text-sm font-medium mb-4">
                 <Shield className="w-4 h-4" />
-                <span>Trust Center</span>
+                <span>Company</span>
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
                 Security is Our <span className="text-gradient-primary">Foundation</span>
               </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Complete transparency into how we protect your data, maintain compliance, 
+                Digital sovereignty and high-integrity infrastructure for the global enterprise., maintain compliance,
                 and ensure the highest security standards for enterprise environments.
               </p>
             </AnimatedSection>
@@ -157,7 +127,7 @@ const TrustCenter = () => {
         <section className="py-20">
           <div className="container mx-auto px-4">
             <div className="max-w-5xl mx-auto space-y-16">
-              {trustSections.map((section, index) => (
+              {companySections.map((section, index) => (
                 <AnimatedSection key={section.id} delay={index * 0.1}>
                   <div 
                     id={section.id}
