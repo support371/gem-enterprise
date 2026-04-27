@@ -9,7 +9,7 @@ const footerLinks = {
     { label: "Trust & Real-Asset Security", href: "/solutions/trust-security" },
   ],
   Company: [
-    { label: "About Us", href: "/trust-center" },
+    { label: "About Us", href: "/company" },
     { label: "Leadership", href: "/resources" },
     { label: "Careers", href: "/resources" },
     { label: "Contact", href: "/contact" },
@@ -27,10 +27,10 @@ const footerLinks = {
     { label: "Support", href: "/support" },
   ],
   Legal: [
-    { label: "Privacy Policy", href: "/trust-center" },
-    { label: "Terms of Service", href: "/trust-center" },
-    { label: "Security", href: "/trust-center" },
-    { label: "Compliance", href: "/trust-center" },
+    { label: "Privacy Policy", href: "/company" },
+    { label: "Terms of Service", href: "/company" },
+    { label: "Security", href: "/company" },
+    { label: "Compliance", href: "/company" },
   ],
 };
 

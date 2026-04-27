@@ -78,7 +78,7 @@ const certifications = [
   { name: "PCI DSS", description: "Payment card data security" },
 ];
 
-const TrustCenter = () => {
+const Company = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -200,4 +200,4 @@ const TrustCenter = () => {
   );
 };
 
-export default TrustCenter;
+export default Company;

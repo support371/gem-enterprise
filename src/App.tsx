@@ -12,7 +12,7 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // Public site pages
 import Index from "./pages/Index";
-import TrustCenter from "./pages/TrustCenter";
+import Company from "./pages/Company";
 import Solutions from "./pages/Solutions";
 import Intel from "./pages/Intel";
 import SolutionDetail from "./pages/SolutionDetail";
@@ -93,7 +93,7 @@ const App = () => (
           <Routes>
             {/* ── Public site ───────────────────────────────────────────── */}
             <Route path="/" element={<Index />} />
-            <Route path="/trust-center" element={<TrustCenter />} />
+            <Route path="/company" element={<Company />} />
             <Route path="/intel" element={<Intel />} />
             <Route path="/solutions" element={<Solutions />} />
             <Route path="/solutions/:slug" element={<SolutionDetail />} />

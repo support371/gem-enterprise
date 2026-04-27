@@ -55,7 +55,7 @@ export default function Dashboard() {
     .slice(0, 2);
 
   const quickLinks = [
-    { icon: Shield, label: "Trust Center", href: "/trust-center", description: "Compliance & certifications" },
+    { icon: Shield, label: "Company", href: "/company", description: "Compliance & certifications" },
     { icon: BookOpen, label: "Solutions", href: "/solutions", description: "Security services" },
     { icon: FileText, label: "Resources", href: "/resources", description: "Guides & documentation" },
   ];

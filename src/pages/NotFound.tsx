@@ -7,7 +7,7 @@ import { Footer } from "@/components/Footer";
 
 const quickLinks = [
   { label: "Home", href: "/" },
-  { label: "Trust Center", href: "/trust-center" },
+  { label: "Company", href: "/company" },
   { label: "Solutions", href: "/solutions" },
   { label: "Pricing", href: "/pricing" },
   { label: "Resources", href: "/resources" },
