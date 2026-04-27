@@ -8,6 +8,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { PublicOnlyRoute } from "@/components/auth/PublicOnlyRoute";
 import { Loader2, Shield } from "lucide-react";
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 
 // Public site pages
 import Index from "./pages/Index";
@@ -238,6 +239,7 @@ const App = () => (
           </Routes>
         </BrowserRouter>
         <Analytics />
+        <SpeedInsights />
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
