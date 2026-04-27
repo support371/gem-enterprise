@@ -1,0 +1,101 @@
+name: Guardian Workflow
+
+on:
+  push:
+    branches:
+      - main
+      - v0/support-8685-38f7a890
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: guardian-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  guardian-check:
+    name: Inspect, validate, and verify
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+      NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+      VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Inspect repository contract
+        run: |
+          set -euo pipefail
+          echo "Guardian inspection started"
+          test -f package.json
+          test -f .github/workflows/main.yml
+          test -f next.config.ts
+          test -f prisma/schema.prisma
+          test -f docs/api.md
+          grep -q '"build": "next build"' package.json
+          echo "Branch: ${GITHUB_REF_NAME}"
+          git status --short
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client when configured
+        run: |
+          set -euo pipefail
+          if [ -f prisma/schema.prisma ]; then
+            npx prisma generate
+          fi
+
+      - name: Verify required production secret contract
+        run: |
+          set -euo pipefail
+          missing=0
+          if [ -z "${JWT_SECRET:-}" ]; then
+            echo "Missing recommended secret: JWT_SECRET"
+            missing=1
+          fi
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "Missing recommended secret: DATABASE_URL"
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            echo "Continuing build validation without production runtime secrets, but deployment auth/data paths will require them in Vercel."
+          fi
+
+      - name: Run lint when available
+        run: |
+          set -euo pipefail
+          if npm run | grep -q " lint"; then npm run lint; else echo "No lint script"; fi
+
+      - name: Run tests when available
+        run: |
+          set -euo pipefail
+          if npm run | grep -q " test"; then npm test; else echo "No test script"; fi
+
+      - name: Build application
+        run: npm run build
+
+      - name: Log output
+        run: echo "Guardian workflow completed."
