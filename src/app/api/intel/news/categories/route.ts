@@ -1,22 +1,17 @@
-// GEM Intel — returns per-category article counts for navigation badges.
-
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
 
-export const runtime = "nodejs";
-export const revalidate = 120;
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const groups = await db.newsArticle.groupBy({
-    by: ["category"],
-    where: { status: "published" },
-    _count: { _all: true },
-  });
-
-  const counts = groups.map((g) => ({
-    category: g.category,
-    count: g._count._all,
-  }));
-
-  return NextResponse.json({ counts });
+  const categories = [
+    { category: "crypto", _count: 0 },
+    { category: "cybersecurity", _count: 0 },
+    { category: "markets", _count: 0 },
+    { category: "geopolitics", _count: 0 },
+    { category: "policy", _count: 0 },
+    { category: "real_estate", _count: 0 },
+    { category: "alternatives", _count: 0 },
+    { category: "general", _count: 0 },
+  ];
+  return NextResponse.json({ categories });
 }
