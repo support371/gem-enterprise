@@ -90,7 +90,7 @@ async function main() {
 
   // Entitlements for demo client
   await db.entitlement.upsert({
-    where: { id: `${client.id}-cyber` },
+    where: { userId_slug: { userId: client.id, slug: "cyber" } },
     update: {},
     create: {
       userId: client.id,
@@ -100,7 +100,7 @@ async function main() {
   });
 
   await db.entitlement.upsert({
-    where: { id: `${client.id}-financial` },
+    where: { userId_slug: { userId: client.id, slug: "financial" } },
     update: {},
     create: {
       userId: client.id,

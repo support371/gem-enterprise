@@ -21,37 +21,20 @@ import {
   ChevronRight,
   ShieldCheck,
   ArrowUpRight,
-  Percent,
-  Plus,
-  Zap,
-  Vault,
-  Target
+  Percent
 } from 'lucide-react'
 
 const vaults = [
-  { name: 'Primary Reserve', type: 'Savings', balance: '$45,000', apy: '4.5%', earned: '$240', status: 'Active', color: 'cyan' },
-  { name: 'Q3 Tax Lock', type: 'Locked', balance: '$20,000', apy: '5.2%', earned: '$90', status: 'Locked', maturityDate: 'Sep 30, 2026', progress: 65, color: 'purple' },
-  { name: 'Estate Escrow', type: 'Escrow', balance: '$50,000', apy: '3.8%', earned: '$100', status: 'Pending', color: 'yellow' },
+  { name: 'Primary Reserve', type: 'Savings', balance: '45,000', apy: '4.5%', earned: ',240', status: 'Active', color: 'cyan' },
+  { name: 'Q3 Tax Lock', type: 'Locked', balance: '20,000', apy: '5.2%', earned: '90', status: 'Locked', maturityDate: 'Sep 30, 2026', progress: 65, color: 'purple' },
+  { name: 'Estate Escrow', type: 'Escrow', balance: '50,000', apy: '3.8%', earned: ',100', status: 'Pending', color: 'yellow' },
 ]
 
 const recentActivity = [
-  { date: 'Apr 24, 2026', type: 'Interest', description: 'Monthly yield payment - Primary Reserve', amount: '+$42.50' },
-  { date: 'Apr 20, 2026', type: 'Deposit', description: 'Transfer from external account', amount: '+$10,000.00' },
-  { date: 'Apr 15, 2026', type: 'Interest', description: 'Yield payment - Q3 Tax Lock', amount: '+$20.12' },
-  { date: 'Apr 10, 2026', type: 'Transfer', description: 'Internal transfer to Estate Escrow', amount: '-$5,000.00' },
-]
-
-const vaultStats = [
-  { label: 'Total Vaults', value: '3', change: '+1 this month', color: 'cyan', icon: Vault },
-  { label: 'Combined Balance', value: '$115,000', change: '+2.4%', color: 'green', icon: PiggyBank },
-  { label: 'Avg APY', value: '4.5%', change: '+0.3%', color: 'purple', icon: Percent },
-  { label: 'Total Interest', value: '$430/mo', change: '+$40/mo', color: 'yellow', icon: ArrowUpRight },
-]
-
-const vaultAccounts = [
-  { name: 'Primary Reserve', type: 'Savings', balance: '$45,000', apy: '4.5%', interest: '$168.75', status: 'Active', lockPeriod: 'No Lock' },
-  { name: 'Q3 Tax Lock', type: 'Target Savings', balance: '$20,000', apy: '5.2%', interest: '$86.67', status: 'Locked', lockPeriod: 'Until Sep 30, 2026', goal: '$50,000', progress: 40 },
-  { name: 'Estate Escrow', type: 'Escrow', balance: '$50,000', apy: '3.8%', interest: '$158.33', status: 'Pending', lockPeriod: 'Requires Approval' },
+  { date: 'Apr 24, 2026', type: 'Interest', description: 'Monthly yield payment - Primary Reserve', amount: '+42.50' },
+  { date: 'Apr 20, 2026', type: 'Deposit', description: 'Transfer from external account', amount: '+0,000.00' },
+  { date: 'Apr 15, 2026', type: 'Interest', description: 'Yield payment - Q3 Tax Lock', amount: '+20.12' },
+  { date: 'Apr 10, 2026', type: 'Transfer', description: 'Internal transfer to Estate Escrow', amount: '-0,000.00' },
 ]
 
 export default function SavingsVaultPage() {
@@ -73,6 +56,9 @@ export default function SavingsVaultPage() {
           <Button className="bg-cyan-500 hover:bg-cyan-600 text-black font-semibold">
             <Plus className="w-4 h-4 mr-2" />
             New Vault
+        <div className="flex items-center gap-2">
+          <Button className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30">
+            Create New Vault
           </Button>
         </div>
       </div>
@@ -124,7 +110,7 @@ export default function SavingsVaultPage() {
               </div>
             </div>
             <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-              {vaultAccounts.length} Vaults Active
+              4 Vaults Active
             </Badge>
           </div>
         </CardHeader>
@@ -132,7 +118,7 @@ export default function SavingsVaultPage() {
           {vaultAccounts.map((vault) => (
             <div 
               key={vault.name} 
-              className="glass-panel rounded-xl p-4 hover:bg-white/5 transition-colors border border-white/5"
+              className="glass-panel rounded-xl p-4 hover:bg-white/5 transition-colors"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -175,9 +161,7 @@ export default function SavingsVaultPage() {
                   <Badge className={`${
                     vault.status === 'Active' 
                       ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                      : vault.status === 'Locked'
-                      ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                      : 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                      : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
                   }`}>
                     {vault.status}
                   </Badge>
@@ -195,7 +179,7 @@ export default function SavingsVaultPage() {
                   </div>
                   <Progress value={vault.progress} className="h-2 bg-white/10" />
                   <p className="text-xs text-slate-500 mt-1">
-                    {vault.progress}% towards goal • ${(parseInt(vault.goal.replace(/[$,]/g, '')) - parseInt(vault.balance.replace(/[$,]/g, ''))).toLocaleString()} remaining
+                    {vault.progress}% towards goal • ${(100000 - 70000).toLocaleString()} remaining
                   </p>
                 </div>
               )}
@@ -213,7 +197,7 @@ export default function SavingsVaultPage() {
           <div className="flex-1">
             <p className="text-sm font-medium text-white">Enterprise-Grade Security</p>
             <p className="text-xs text-slate-400 mt-0.5">
-              All vaults are protected by multi-signature authorization, insurance coverage up to $50M, and 24/7 monitoring.
+              All vaults are protected by multi-signature authorization, insurance coverage up to 0M, and 24/7 monitoring.
             </p>
           </div>
           <Badge className="bg-green-500/20 text-green-400 border-green-500/30 shrink-0">Protected</Badge>
