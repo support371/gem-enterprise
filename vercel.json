@@ -5,7 +5,7 @@
   "crons": [
     {
       "path": "/api/cron/news-ingest",
-      "schedule": "0 */3 * * *"
+      "schedule": "0 6 * * *"
     }
   ]
 }
