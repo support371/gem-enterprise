@@ -40,7 +40,6 @@ export default function MyPortfolioPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">
@@ -68,8 +67,9 @@ export default function MyPortfolioPage() {
         </div>
       </div>
 
+      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {portfolioMetrics.map((stat) => (
+        {portfolioStats.map((stat) => (
           <Card key={stat.label} className="bg-slate-900/50 border-white/10">
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
@@ -92,6 +92,7 @@ export default function MyPortfolioPage() {
         ))}
       </div>
 
+      {/* Holdings */}
       <Card className="bg-slate-900/50 border-white/10">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -110,46 +111,17 @@ export default function MyPortfolioPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-white/10 hover:bg-transparent">
-                <TableHead className="text-slate-400">Asset</TableHead>
-                <TableHead className="text-slate-400">Type</TableHead>
-                <TableHead className="text-slate-400 text-right">Quantity</TableHead>
-                <TableHead className="text-slate-400 text-right">Price</TableHead>
-                <TableHead className="text-slate-400 text-right">Value</TableHead>
-                <TableHead className="text-slate-400">Allocation</TableHead>
-                <TableHead className="text-slate-400 text-right">Change</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {holdings.map((holding) => (
-                <TableRow key={holding.name} className="border-white/5 hover:bg-white/5">
-                  <TableCell className="font-medium text-white">{holding.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="border-white/10 text-slate-400">
-                      {holding.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-slate-300 text-right">{holding.shares}</TableCell>
-                  <TableCell className="text-slate-300 text-right">{holding.price}</TableCell>
-                  <TableCell className="text-cyan-400 font-semibold text-right">{holding.value}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Progress value={holding.allocation} className="h-1.5 w-16 bg-white/10" />
-                      <span className="text-slate-300 text-sm w-12">{holding.allocation}%</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className={`flex items-center justify-end gap-1 font-medium ${
-                      holding.trend === 'up' ? 'text-green-400' :
-                      holding.trend === 'down' ? 'text-red-400' : 'text-slate-400'
-                    }`}>
-                      {holding.trend === 'up' ? <TrendingUp className="w-3 h-3" /> :
-                       holding.trend === 'down' ? <TrendingDown className="w-3 h-3" /> : null}
-                      {holding.change}
-                    </span>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/10 hover:bg-transparent">
+                  <TableHead className="text-slate-400">Asset</TableHead>
+                  <TableHead className="text-slate-400">Type</TableHead>
+                  <TableHead className="text-slate-400 text-right">Quantity</TableHead>
+                  <TableHead className="text-slate-400 text-right">Price</TableHead>
+                  <TableHead className="text-slate-400 text-right">Value</TableHead>
+                  <TableHead className="text-slate-400">Allocation</TableHead>
+                  <TableHead className="text-slate-400 text-right">Change</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -161,19 +133,22 @@ export default function MyPortfolioPage() {
                         {holding.type}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-slate-300">{holding.shares}</TableCell>
-                    <TableCell className="text-slate-300">{holding.value}</TableCell>
+                    <TableCell className="text-slate-300 text-right">{holding.shares}</TableCell>
+                    <TableCell className="text-slate-300 text-right">{holding.price}</TableCell>
+                    <TableCell className="text-cyan-400 font-semibold text-right">{holding.value}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Progress value={holding.allocation} className="h-1.5 w-16 bg-white/10" />
-                        <span className="text-slate-300 text-sm w-8">{holding.allocation}%</span>
+                        <span className="text-slate-300 text-sm w-12">{holding.allocation}%</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <span className={`flex items-center justify-end gap-1 font-medium ${
-                        holding.trend === 'up' ? 'text-green-400' : 'text-red-400'
+                        holding.trend === 'up' ? 'text-green-400' :
+                        holding.trend === 'down' ? 'text-red-400' : 'text-slate-400'
                       }`}>
-                        {holding.trend === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                        {holding.trend === 'up' ? <TrendingUp className="w-3 h-3" /> :
+                         holding.trend === 'down' ? <TrendingDown className="w-3 h-3" /> : null}
                         {holding.change}
                       </span>
                     </TableCell>
@@ -185,6 +160,7 @@ export default function MyPortfolioPage() {
         </CardContent>
       </Card>
 
+      {/* Recent Transactions */}
       <Card className="bg-slate-900/50 border-white/10">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
