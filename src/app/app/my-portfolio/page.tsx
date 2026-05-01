@@ -54,7 +54,7 @@ export default function MyPortfolioPage() {
           <Button className="bg-cyan-500 hover:bg-cyan-600 text-black font-semibold">
             <Plus className="w-4 h-4 mr-2" />
             Add Investment
-          <p className="text-slate-400 mt-1">Your personal investment summary and holdings overview.</p>
+          </Button>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" className="border-white/10 text-slate-300 hover:bg-white/5">

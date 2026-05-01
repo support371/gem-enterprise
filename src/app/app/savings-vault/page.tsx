@@ -405,8 +405,14 @@ export default function SavingsVaultPage() {
                 and FDIC-equivalent insurance coverage up to $10 million per depositor.
               </p>
             </div>
-            Recent Vault Activity
-          </CardTitle>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent Vault Activity */}
+      <Card className="bg-card border-white/10">
+        <CardHeader>
+          <CardTitle>Recent Vault Activity</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
