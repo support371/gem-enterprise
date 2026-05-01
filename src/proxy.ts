@@ -85,16 +85,18 @@ export async function proxy(request: NextRequest) {
       }
     }
 
-    // Inject session info into headers for server components
-    const response = NextResponse.next();
-    response.headers.set("x-user-id", session.userId);
-    response.headers.set("x-user-role", session.role);
-    response.headers.set("x-kyc-status", session.kycStatus);
+    // Inject session info into request headers so server components can read
+    // them via headers(). Setting them on the response would not be visible to
+    // downstream server components.
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-user-id", session.userId);
+    requestHeaders.set("x-user-role", session.role);
+    requestHeaders.set("x-kyc-status", session.kycStatus);
     // Tell the root layout to suppress marketing nav/footer on portal pages
     if (pathname.startsWith("/app") || pathname.startsWith("/access")) {
-      response.headers.set("x-is-portal", "1");
+      requestHeaders.set("x-is-portal", "1");
     }
-    return response;
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   return NextResponse.next();
