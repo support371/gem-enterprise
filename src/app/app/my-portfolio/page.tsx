@@ -10,35 +10,34 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, DollarSign, Activity, Target, Calendar } from 'lucide-react'
+import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Plus, Clock, Calendar, DollarSign } from 'lucide-react'
 
-const portfolioMetrics = [
-  { label: 'Total Balance', value: '$1,245,890.50', change: '+5.2%', isPositive: true, icon: Wallet },
-  { label: 'Monthly Return', value: '+$42,350', change: '+3.4%', isPositive: true, icon: TrendingUp },
-  { label: 'Active Positions', value: '12', change: '+2', isPositive: true, icon: Activity },
-  { label: 'Pending Orders', value: '3', change: '-1', isPositive: false, icon: Target },
+const portfolioStats = [
+  { label: 'Total Balance', value: '$1,245,890.50', change: '+5.2%', trend: 'up', icon: Wallet },
+  { label: 'Monthly Return', value: '+$42,350', change: '+3.4%', trend: 'up', icon: TrendingUp },
+  { label: 'Active Positions', value: '12', change: '+2', trend: 'up', icon: Wallet },
+  { label: 'Pending Orders', value: '3', change: '-1', trend: 'down', icon: Clock },
 ]
 
 const holdings = [
-  { asset: 'GEM Cyber Fund', type: 'Fund', quantity: '500 units', value: '$450,000', allocation: 36, change: '+8.2%', isPositive: true },
-  { asset: 'ATR Property Trust', type: 'REIT', quantity: '1,200 units', value: '$360,000', allocation: 29, change: '+4.1%', isPositive: true },
-  { asset: 'Financial Shield', type: 'Product', quantity: '1 license', value: '$185,890', allocation: 15, change: '+2.3%', isPositive: true },
-  { asset: 'Intel Premium', type: 'Subscription', quantity: '12 mo', value: '$125,000', allocation: 10, change: '+0.8%', isPositive: true },
-  { asset: 'Cash Reserve', type: 'Cash', quantity: '-', value: '$125,000.50', allocation: 10, change: '0%', isPositive: true },
+  { name: 'GEM Cyber Fund', type: 'Fund', shares: '500 units', price: '$900/unit', value: '$450,000', allocation: 36, change: '+8.2%', trend: 'up' },
+  { name: 'ATR Property Trust', type: 'REIT', shares: '1,200 units', price: '$300/unit', value: '$360,000', allocation: 29, change: '+4.1%', trend: 'up' },
+  { name: 'Financial Shield', type: 'Product', shares: '1 license', price: 'N/A', value: '$185,890', allocation: 15, change: '+2.3%', trend: 'up' },
+  { name: 'Intel Premium', type: 'Subscription', shares: '12 mo', price: 'N/A', value: '$125,000', allocation: 10, change: '+0.8%', trend: 'up' },
+  { name: 'Cash Reserve', type: 'Cash', shares: '-', price: 'N/A', value: '$125,000.50', allocation: 10, change: '0%', trend: 'up' },
 ]
 
-const recentActivity = [
-  { date: 'Apr 18, 2026', action: 'Dividend Received', asset: 'ATR Property Trust', amount: '+$4,200', type: 'credit' },
-  { date: 'Apr 15, 2026', action: 'Position Added', asset: 'GEM Cyber Fund', amount: '+50 units', type: 'buy' },
-  { date: 'Apr 10, 2026', action: 'Subscription Renewed', asset: 'Intel Premium', amount: '-$10,000', type: 'debit' },
-  { date: 'Apr 5, 2026', action: 'Yield Payment', asset: 'Financial Shield', amount: '+$2,890', type: 'credit' },
+const recentTransactions = [
+  { date: 'Apr 18, 2026', type: 'Buy', asset: 'GEM Cyber Fund', amount: '+50 units', value: '$45,000' },
+  { date: 'Apr 15, 2026', type: 'Dividend', asset: 'ATR Property Trust', amount: '+$4,200', value: '+$4,200' },
+  { date: 'Apr 10, 2026', type: 'Sell', asset: 'Financial Shield', amount: '-1 unit', value: '+$185,890' },
+  { date: 'Apr 5, 2026', type: 'Transfer', asset: 'Cash Reserve', amount: '+$10,000', value: '+$10,000' },
 ]
 
 export default function MyPortfolioPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">
@@ -46,7 +45,7 @@ export default function MyPortfolioPage() {
           </h1>
           <p className="text-slate-400 mt-1">Your personal investment dashboard and holdings overview.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" className="border-white/10 text-slate-300 hover:bg-white/5">
             <Clock className="w-4 h-4 mr-2" />
             History
@@ -55,8 +54,6 @@ export default function MyPortfolioPage() {
             <Plus className="w-4 h-4 mr-2" />
             Add Investment
           </Button>
-        </div>
-        <div className="flex items-center gap-2">
           <Button variant="outline" className="border-white/10 text-slate-300 hover:bg-white/5">
             <Calendar className="w-4 h-4 mr-2" />
             Statement
@@ -78,11 +75,9 @@ export default function MyPortfolioPage() {
                   <p className="text-xs text-slate-400 uppercase tracking-wider">{stat.label}</p>
                   <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
                   <div className={`flex items-center gap-1 mt-1 ${
-                    stat.trend === 'up' ? 'text-green-400' : 
-                    stat.trend === 'down' ? 'text-red-400' : 'text-slate-400'
+                    stat.trend === 'up' ? 'text-green-400' : 'text-red-400'
                   }`}>
-                    {stat.trend === 'up' && <ArrowUpRight className="w-3 h-3" />}
-                    {stat.trend === 'down' && <ArrowDownRight className="w-3 h-3" />}
+                    {stat.trend === 'up' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
                     <span className="text-xs font-medium">{stat.change}</span>
                   </div>
                 </div>
@@ -114,47 +109,48 @@ export default function MyPortfolioPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-white/10 hover:bg-transparent">
-                <TableHead className="text-slate-400">Asset</TableHead>
-                <TableHead className="text-slate-400">Type</TableHead>
-                <TableHead className="text-slate-400">Quantity</TableHead>
-                <TableHead className="text-slate-400">Value</TableHead>
-                <TableHead className="text-slate-400">Allocation</TableHead>
-                <TableHead className="text-slate-400 text-right">Change</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {holdings.map((holding) => (
-                <TableRow key={holding.name} className="border-white/5 hover:bg-white/5">
-                  <TableCell className="font-medium text-white">{holding.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="border-white/10 text-slate-400">
-                      {holding.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-slate-300 text-right">{holding.shares}</TableCell>
-                  <TableCell className="text-slate-300 text-right">{holding.price}</TableCell>
-                  <TableCell className="text-cyan-400 font-semibold text-right">{holding.value}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Progress value={holding.allocation} className="h-1.5 w-16 bg-white/10" />
-                      <span className="text-slate-300 text-sm w-12">{holding.allocation}%</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className={`flex items-center justify-end gap-1 font-medium ${
-                      holding.trend === 'up' ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {holding.trend === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      {holding.change}
-                    </span>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/10 hover:bg-transparent">
+                  <TableHead className="text-slate-400">Asset</TableHead>
+                  <TableHead className="text-slate-400">Type</TableHead>
+                  <TableHead className="text-slate-400">Quantity</TableHead>
+                  <TableHead className="text-slate-400">Value</TableHead>
+                  <TableHead className="text-slate-400">Allocation</TableHead>
+                  <TableHead className="text-slate-400 text-right">Change</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {holdings.map((holding) => (
+                  <TableRow key={holding.name} className="border-white/5 hover:bg-white/5">
+                    <TableCell className="font-medium text-white">{holding.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="border-white/10 text-slate-400">
+                        {holding.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-slate-300">{holding.shares}</TableCell>
+                    <TableCell className="text-slate-300">{holding.value}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Progress value={holding.allocation} className="h-1.5 w-16 bg-white/10" />
+                        <span className="text-slate-300 text-sm w-8">{holding.allocation}%</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className={`flex items-center justify-end gap-1 font-medium ${
+                        holding.trend === 'up' ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {holding.trend === 'up' ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                        {holding.change}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -167,36 +163,38 @@ export default function MyPortfolioPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-white/10 hover:bg-transparent">
-                <TableHead className="text-slate-400">Date</TableHead>
-                <TableHead className="text-slate-400">Type</TableHead>
-                <TableHead className="text-slate-400">Asset</TableHead>
-                <TableHead className="text-slate-400">Amount</TableHead>
-                <TableHead className="text-slate-400 text-right">Value</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentTransactions.map((tx, idx) => (
-                <TableRow key={idx} className="border-white/5 hover:bg-white/5">
-                  <TableCell className="text-slate-400 text-sm">{tx.date}</TableCell>
-                  <TableCell>
-                    <Badge className={`${
-                      tx.type === 'Buy' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                      tx.type === 'Sell' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
-                      'bg-purple-500/20 text-purple-400 border-purple-500/30'
-                    }`}>
-                      {tx.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-white font-medium">{tx.asset}</TableCell>
-                  <TableCell className="text-slate-300">{tx.amount}</TableCell>
-                  <TableCell className="text-cyan-400 font-semibold text-right">{tx.value}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/10 hover:bg-transparent">
+                  <TableHead className="text-slate-400">Date</TableHead>
+                  <TableHead className="text-slate-400">Type</TableHead>
+                  <TableHead className="text-slate-400">Asset</TableHead>
+                  <TableHead className="text-slate-400">Amount</TableHead>
+                  <TableHead className="text-slate-400 text-right">Value</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {recentTransactions.map((tx, idx) => (
+                  <TableRow key={idx} className="border-white/5 hover:bg-white/5">
+                    <TableCell className="text-slate-400 text-sm">{tx.date}</TableCell>
+                    <TableCell>
+                      <Badge className={`${
+                        tx.type === 'Buy' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                        tx.type === 'Sell' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                        'bg-purple-500/20 text-purple-400 border-purple-500/30'
+                      }`}>
+                        {tx.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-white font-medium">{tx.asset}</TableCell>
+                    <TableCell className="text-slate-300">{tx.amount}</TableCell>
+                    <TableCell className="text-cyan-400 font-semibold text-right">{tx.value}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

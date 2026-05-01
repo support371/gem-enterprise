@@ -107,7 +107,6 @@ export default function SavingsVaultPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">
@@ -115,7 +114,7 @@ export default function SavingsVaultPage() {
           </h1>
           <p className="text-slate-400 mt-1">Secure, high-yield savings with institutional-grade protection.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" className="border-white/10 text-slate-300 hover:bg-white/5">
             <Zap className="w-4 h-4 mr-2" />
             Quick Transfer
@@ -252,12 +251,11 @@ export default function SavingsVaultPage() {
         </CardContent>
       </Card>
 
-      {/* Recent Activity */}
       {/* Security Banner */}
       <Card className="bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-transparent border-cyan-500/20">
         <CardContent className="p-4 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center shrink-0">
-            <Shield className="w-6 h-6 text-cyan-400" />
+            <ShieldCheck className="w-6 h-6 text-cyan-400" />
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-white">Enterprise-Grade Security</p>
@@ -269,84 +267,7 @@ export default function SavingsVaultPage() {
         </CardContent>
       </Card>
 
-      {/* Vault Cards */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Landmark className="w-5 h-5 text-cyan-400" />
-          Your Vaults
-        </h2>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {vaults.map((vault) => (
-            <Card key={vault.name} className={`bg-card border-white/10 hover:border-${vault.color}-500/30 transition-colors group`}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                      vault.color === 'cyan' ? 'bg-cyan-500/10' : vault.color === 'purple' ? 'bg-purple-500/10' : 'bg-yellow-500/10'
-                    }`}>
-                      {vault.type === 'Locked' ? (
-                        <Lock className={`w-4 h-4 ${vault.color === 'cyan' ? 'text-cyan-400' : vault.color === 'purple' ? 'text-purple-400' : 'text-yellow-400'}`} />
-                      ) : vault.type === 'Escrow' ? (
-                        <Shield className={`w-4 h-4 ${vault.color === 'cyan' ? 'text-cyan-400' : vault.color === 'purple' ? 'text-purple-400' : 'text-yellow-400'}`} />
-                      ) : (
-                        <PiggyBank className={`w-4 h-4 ${vault.color === 'cyan' ? 'text-cyan-400' : vault.color === 'purple' ? 'text-purple-400' : 'text-yellow-400'}`} />
-                      )}
-                    </div>
-                    <div>
-                      <CardTitle className="text-sm text-white">{vault.name}</CardTitle>
-                      <CardDescription className="text-xs">{vault.type}</CardDescription>
-                    </div>
-                  </div>
-                  <Badge className={`text-xs ${
-                    vault.status === 'Active' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                    vault.status === 'Locked' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' :
-                    'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                  }`}>
-                    {vault.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">Balance</span>
-                    <span className="text-sm font-bold text-white">{vault.balance}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">APY</span>
-                    <span className="text-sm font-semibold text-green-400">{vault.apy}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">Earned</span>
-                    <span className="text-sm font-medium text-cyan-400">{vault.earned}</span>
-                  </div>
-                </div>
-
-                {vault.type === 'Locked' && vault.maturityDate && (
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-400 flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        Maturity
-                      </span>
-                      <span className="text-slate-300">{vault.maturityDate}</span>
-                    </div>
-                    <Progress value={vault.progress} className="h-1.5 bg-white/10" />
-                    <p className="text-[10px] text-slate-500 text-right">{vault.progress}% complete</p>
-                  </div>
-                )}
-
-                <Button variant="ghost" className="w-full text-slate-400 hover:text-white hover:bg-white/5 text-xs group-hover:text-cyan-400">
-                  Manage Vault
-                  <ChevronRight className="w-3 h-3 ml-1" />
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Transactions */}
+      {/* Recent Activity */}
       <Card className="bg-card border-white/10">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
@@ -355,39 +276,41 @@ export default function SavingsVaultPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-white/10 hover:bg-transparent">
-                <TableHead className="text-slate-400">Date</TableHead>
-                <TableHead className="text-slate-400">Type</TableHead>
-                <TableHead className="text-slate-400">Description</TableHead>
-                <TableHead className="text-slate-400 text-right">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentActivity.map((activity, idx) => (
-                <TableRow key={idx} className="border-white/5 hover:bg-white/5">
-                  <TableCell className="text-slate-400 text-sm">{activity.date}</TableCell>
-                  <TableCell>
-                    <Badge className={`${
-                      activity.type === 'Interest' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                      activity.type === 'Deposit' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' :
-                      activity.type === 'Transfer' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' :
-                      'bg-red-500/20 text-red-400 border-red-500/30'
-                    }`}>
-                      {activity.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-white">{activity.description}</TableCell>
-                  <TableCell className={`text-right font-semibold ${
-                    activity.amount.startsWith('+') ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                    {activity.amount}
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/10 hover:bg-transparent">
+                  <TableHead className="text-slate-400">Date</TableHead>
+                  <TableHead className="text-slate-400">Type</TableHead>
+                  <TableHead className="text-slate-400">Description</TableHead>
+                  <TableHead className="text-slate-400 text-right">Amount</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {recentActivity.map((activity, idx) => (
+                  <TableRow key={idx} className="border-white/5 hover:bg-white/5">
+                    <TableCell className="text-slate-400 text-sm">{activity.date}</TableCell>
+                    <TableCell>
+                      <Badge className={`${
+                        activity.type === 'Interest' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                        activity.type === 'Deposit' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' :
+                        activity.type === 'Transfer' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' :
+                        'bg-red-500/20 text-red-400 border-red-500/30'
+                      }`}>
+                        {activity.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-white">{activity.description}</TableCell>
+                    <TableCell className={`text-right font-semibold ${
+                      activity.amount.startsWith('+') ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {activity.amount}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -405,40 +328,6 @@ export default function SavingsVaultPage() {
                 and FDIC-equivalent insurance coverage up to $10 million per depositor.
               </p>
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Vault Activity */}
-      <Card className="bg-card border-white/10">
-        <CardHeader>
-          <CardTitle>Recent Vault Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {transactions.map((tx, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 rounded-lg glass-panel">
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                    tx.type === 'Interest' ? 'bg-green-500/10' : 'bg-cyan-500/10'
-                  }`}>
-                    {tx.type === 'Interest' ? (
-                      <Percent className="w-4 h-4 text-green-400" />
-                    ) : (
-                      <ArrowUpRight className="w-4 h-4 text-cyan-400" />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm text-white font-medium">{tx.type}</p>
-                    <p className="text-xs text-slate-400">{tx.vault}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-green-400">{tx.amount}</p>
-                  <p className="text-xs text-slate-500">{tx.date}</p>
-                </div>
-              </div>
-            ))}
           </div>
         </CardContent>
       </Card>

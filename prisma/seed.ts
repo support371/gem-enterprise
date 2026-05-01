@@ -1,6 +1,8 @@
+// @ts-ignore
 import { PrismaClient, UserRole, EntityType, KYCStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+// @ts-ignore
 const db = new PrismaClient();
 
 async function main() {
