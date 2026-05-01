@@ -1,3 +1,5 @@
+"use client"
+
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -15,37 +17,19 @@ const flaggedTransactions = [
   {
     id: 'TXN-9821',
     date: 'Mar 14, 2026',
-    amount: '$48,500',
+    amount: '8,500',
     type: 'Wire Transfer',
     flag: 'Unusual Amount',
     severity: 'Medium',
-    resolved: true,
-  },
-  {
-    id: 'TXN-9784',
-    date: 'Mar 12, 2026',
-    amount: '$2,100',
-    type: 'International Transfer',
-    flag: 'High-Risk Country',
-    severity: 'High',
     resolved: false,
   },
   {
-    id: 'TXN-9740',
-    date: 'Mar 10, 2026',
-    amount: '$15,000',
-    type: 'ACH Transfer',
-    flag: 'Frequency Anomaly',
+    id: 'TXN-9805',
+    date: 'Mar 12, 2026',
+    amount: '2,200',
+    type: 'ACH Debit',
+    flag: 'New Counterparty',
     severity: 'Low',
-    resolved: true,
-  },
-  {
-    id: 'TXN-9701',
-    date: 'Mar 7, 2026',
-    amount: '$97,200',
-    type: 'Wire Transfer',
-    flag: 'Structuring Pattern',
-    severity: 'High',
     resolved: true,
   },
 ]
@@ -62,17 +46,16 @@ function severityBadge(severity: string) {
 export default function FinancialProductPage() {
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-            <DollarSign className="w-6 h-6 text-purple-400" />
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
+            <DollarSign className="w-6 h-6 text-cyan-400" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">
-              <span className="text-gradient-primary">Financial Security</span> Suite
+              <span className="text-cyan-400">Financial Shield</span>
             </h1>
-            <p className="text-slate-400 text-sm mt-0.5">Comprehensive financial fraud detection and monitoring.</p>
+            <p className="text-slate-400 text-sm mt-0.5">Asset protection and transaction monitoring.</p>
           </div>
         </div>
         <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-sm px-3 py-1">
@@ -80,83 +63,19 @@ export default function FinancialProductPage() {
         </Badge>
       </div>
 
-      {/* FinancialGuard overview */}
-      <Card className="bg-card border-white/10">
+      <Card className="bg-slate-900/50 border-white/10">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-purple-400" />
-            FinancialGuard Overview
+            <ShieldCheck className="w-5 h-5 text-cyan-400" />
+            Shield Protection Overview
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="glass-panel rounded-lg p-5">
-            <p className="text-sm text-slate-400 mb-3">
-              FinancialGuard provides enterprise-level financial fraud detection utilizing AI-driven
-              transaction analysis, pattern recognition, and real-time monitoring across all connected
-              financial accounts and instruments.
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
-              {[
-                { label: 'Monitored Accounts', value: '12', icon: Eye, color: 'text-purple-400' },
-                { label: 'Transactions Analyzed', value: '4,892', icon: TrendingUp, color: 'text-cyan-400' },
-                { label: 'Flags Raised (30d)', value: '4', icon: AlertTriangle, color: 'text-yellow-400' },
-                { label: 'Avg. Response Time', value: '< 2m', icon: Clock, color: 'text-green-400' },
-              ].map(({ label, value, icon: Icon, color }) => (
-                <div key={label} className="text-center">
-                  <Icon className={`w-5 h-5 ${color} mx-auto mb-1`} />
-                  <p className="text-xl font-bold text-white">{value}</p>
-                  <p className="text-xs text-slate-400">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Transaction monitoring summary */}
-      <Card className="bg-card border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-cyan-400" />
-            Transaction Monitoring Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {[
-            { label: 'Total Transactions (30d)', value: '4,892', status: 'normal' },
-            { label: 'Clean Transactions', value: '4,888', status: 'good' },
-            { label: 'Flagged for Review', value: '4', status: 'warn' },
-            { label: 'Blocked Transactions', value: '0', status: 'normal' },
-          ].map(({ label, value, status }) => (
-            <div key={label} className="flex items-center justify-between py-2">
-              <p className="text-sm text-slate-300">{label}</p>
-              <span
-                className={`font-semibold text-sm ${
-                  status === 'good' ? 'text-green-400' :
-                  status === 'warn' ? 'text-yellow-400' : 'text-white'
-                }`}
-              >
-                {value}
-              </span>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Compliance status */}
-      <Card className="bg-card border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-green-400" />
-            Compliance Status
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { label: 'AML Compliance', badge: 'Compliant', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
-              { label: 'KYC Status', badge: 'Verified', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
-              { label: 'SAR Filings', badge: '0 Pending', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30' },
+              { label: 'Asset Monitoring', badge: 'Active', color: 'bg-green-500/20 text-green-400' },
+              { label: 'Fraud Detection', badge: 'High Sensitivity', color: 'bg-cyan-500/20 text-cyan-400' },
+              { label: 'Account Integrity', badge: 'Verified', color: 'bg-blue-500/20 text-blue-400' },
             ].map(({ label, badge, color }) => (
               <div key={label} className="glass-panel rounded-lg p-4 text-center">
                 <p className="text-sm text-slate-400 mb-2">{label}</p>
@@ -167,12 +86,11 @@ export default function FinancialProductPage() {
         </CardContent>
       </Card>
 
-      {/* Flagged transaction notices */}
-      <Card className="bg-card border-white/10">
+      <Card className="bg-slate-900/50 border-white/10">
         <CardHeader>
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-yellow-400" />
-            <CardTitle className="text-white">Recent Flagged Transaction Notices</CardTitle>
+            <CardTitle className="text-white">Recent Flagged Transactions</CardTitle>
           </div>
         </CardHeader>
         <CardContent>

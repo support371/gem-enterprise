@@ -1,3 +1,5 @@
+"use client"
+
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -18,7 +20,7 @@ const monitoredProperties = [
     address: '1420 Harbor Blvd, Suite 800',
     city: 'Newport Beach, CA 92660',
     type: 'Commercial Office',
-    value: '$4,200,000',
+    value: ',200,000',
     status: 'Protected',
     lastCheck: 'Mar 15, 2026',
   },
@@ -27,54 +29,9 @@ const monitoredProperties = [
     address: '780 Canyon View Drive',
     city: 'Scottsdale, AZ 85251',
     type: 'Residential Estate',
-    value: '$2,850,000',
+    value: ',850,000',
     status: 'Protected',
     lastCheck: 'Mar 15, 2026',
-  },
-]
-
-const titleActivity = [
-  {
-    date: 'Mar 15, 2026',
-    property: 'PROP-001',
-    event: 'Title Record Scan',
-    result: 'No Issues Detected',
-    status: 'Clear',
-  },
-  {
-    date: 'Mar 15, 2026',
-    property: 'PROP-002',
-    event: 'Title Record Scan',
-    result: 'No Issues Detected',
-    status: 'Clear',
-  },
-  {
-    date: 'Mar 10, 2026',
-    property: 'PROP-001',
-    event: 'Lien Search',
-    result: 'No New Encumbrances',
-    status: 'Clear',
-  },
-  {
-    date: 'Mar 8, 2026',
-    property: 'PROP-002',
-    event: 'Ownership Verification',
-    result: 'Ownership Confirmed',
-    status: 'Clear',
-  },
-  {
-    date: 'Mar 5, 2026',
-    property: 'PROP-001',
-    event: 'Fraud Alert Screen',
-    result: 'Suspicious Activity Flagged',
-    status: 'Investigated',
-  },
-  {
-    date: 'Mar 3, 2026',
-    property: 'PROP-001',
-    event: 'Investigation Complete',
-    result: 'False Positive — Cleared',
-    status: 'Resolved',
   },
 ]
 
@@ -91,7 +48,6 @@ function statusBadge(status: string) {
 export default function RealEstateProductPage() {
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center">
@@ -99,7 +55,7 @@ export default function RealEstateProductPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">
-              <span className="text-gradient-primary">Real Estate Protection</span> Suite
+              <span className="text-yellow-400">Real Estate Protection</span>
             </h1>
             <p className="text-slate-400 text-sm mt-0.5">Title monitoring and property fraud protection.</p>
           </div>
@@ -109,8 +65,7 @@ export default function RealEstateProductPage() {
         </Badge>
       </div>
 
-      {/* PropertyShield overview */}
-      <Card className="bg-card border-white/10">
+      <Card className="bg-slate-900/50 border-white/10">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
             <Shield className="w-5 h-5 text-yellow-400" />
@@ -118,17 +73,16 @@ export default function RealEstateProductPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-slate-400 mb-5">
+          <p className="text-sm text-slate-400 mb-5 leading-relaxed">
             PropertyShield delivers continuous title monitoring, fraud detection, and ownership
-            verification for all properties in your portfolio. Our system scans public records,
-            court filings, and lien databases 24/7 to detect unauthorized transfers or encumbrances.
+            verification for all properties in your portfolio.
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
-              { label: 'Properties Monitored', value: '2', icon: Eye, color: 'text-yellow-400' },
+              { label: 'Monitored', value: '2', icon: Eye, color: 'text-yellow-400' },
               { label: 'Scans (30d)', value: '248', icon: FileText, color: 'text-cyan-400' },
-              { label: 'Alerts Issued', value: '1', icon: AlertTriangle, color: 'text-orange-400' },
-              { label: 'Avg Scan Interval', value: '4h', icon: Clock, color: 'text-green-400' },
+              { label: 'Alerts', value: '1', icon: AlertTriangle, color: 'text-orange-400' },
+              { label: 'Interval', value: '4h', icon: Clock, color: 'text-green-400' },
             ].map(({ label, value, icon: Icon, color }) => (
               <div key={label} className="glass-panel rounded-lg p-4 text-center">
                 <Icon className={`w-5 h-5 ${color} mx-auto mb-1.5`} />
@@ -140,74 +94,31 @@ export default function RealEstateProductPage() {
         </CardContent>
       </Card>
 
-      {/* Monitored properties */}
-      <Card className="bg-card border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-yellow-400" />
-            Monitored Properties
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-4">
-            {monitoredProperties.map((prop) => (
-              <div key={prop.id} className="glass-panel rounded-xl p-5 bento-card">
-                <div className="flex items-start justify-between mb-3">
-                  <span className="text-xs font-mono text-cyan-400">{prop.id}</span>
-                  {statusBadge(prop.status)}
+      <div className="grid md:grid-cols-2 gap-4">
+        {monitoredProperties.map((prop) => (
+          <Card key={prop.id} className="bg-slate-900/50 border-white/10">
+            <CardContent className="p-5">
+              <div className="flex items-start justify-between mb-3">
+                <span className="text-xs font-mono text-cyan-400">{prop.id}</span>
+                {statusBadge(prop.status)}
+              </div>
+              <p className="font-semibold text-white">{prop.address}</p>
+              <p className="text-sm text-slate-400">{prop.city}</p>
+              <Separator className="my-3 bg-white/10" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-slate-400">Type</p>
+                  <p className="text-sm text-white mt-0.5">{prop.type}</p>
                 </div>
-                <p className="font-semibold text-white">{prop.address}</p>
-                <p className="text-sm text-slate-400">{prop.city}</p>
-                <Separator className="my-3 bg-white/10" />
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs text-slate-400">Property Type</p>
-                    <p className="text-sm text-white mt-0.5">{prop.type}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-400">Estimated Value</p>
-                    <p className="text-sm font-semibold text-cyan-400 mt-0.5">{prop.value}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-xs text-slate-400">Last Checked</p>
-                    <p className="text-sm text-white mt-0.5">{prop.lastCheck}</p>
-                  </div>
+                <div>
+                  <p className="text-xs text-slate-400">Value</p>
+                  <p className="text-sm font-semibold text-cyan-400 mt-0.5">{prop.value}</p>
                 </div>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Title monitoring activity */}
-      <Card className="bg-card border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <FileText className="w-5 h-5 text-cyan-400" />
-            Recent Title Monitoring Activity
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-1">
-            {titleActivity.map((item, idx) => (
-              <div key={idx}>
-                <div className="flex items-center justify-between py-3 flex-wrap gap-3">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-yellow-400">{item.property}</span>
-                      <span className="text-xs text-slate-500">{item.date}</span>
-                    </div>
-                    <p className="text-sm font-medium text-white">{item.event}</p>
-                    <p className="text-xs text-slate-400">{item.result}</p>
-                  </div>
-                  {statusBadge(item.status)}
-                </div>
-                {idx < titleActivity.length - 1 && <Separator className="bg-white/5" />}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   )
 }

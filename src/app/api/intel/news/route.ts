@@ -57,8 +57,8 @@ export async function GET(request: NextRequest) {
     ...(mediaOnly && { NOT: { mediaType: "none" } }),
     ...(search && {
       OR: [
-        { title: { contains: search, mode: "insensitive" } },
-        { summary: { contains: search, mode: "insensitive" } },
+        { title: { contains: search } },
+        { summary: { contains: search } },
       ],
     }),
   };

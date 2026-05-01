@@ -1,6 +1,8 @@
-import { Badge } from '@/components/ui/badge'
+"use client"
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import {
   Table,
@@ -11,96 +13,28 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { 
-  Vault, 
-  TrendingUp, 
-  ArrowUpRight, 
-  DollarSign,
-  ShieldCheck,
+  Landmark,
+  Shield,
   Lock,
-  Plus,
+  PiggyBank,
   Clock,
-  Percent,
-  Target,
-  Zap,
+  ChevronRight,
+  ShieldCheck,
+  ArrowUpRight,
+  Percent
 } from 'lucide-react'
 
-const vaultStats = [
-  { 
-    label: 'Total Vault Balance', 
-    value: '$1,245,750', 
-    change: '+$12,500 this month',
-    icon: DollarSign,
-    color: 'cyan',
-  },
-  { 
-    label: 'Current APY', 
-    value: '5.25%', 
-    change: 'Compounding daily',
-    icon: Percent,
-    color: 'green',
-  },
-  { 
-    label: 'Interest Earned YTD', 
-    value: '$48,240', 
-    change: '+$3,200 this month',
-    icon: TrendingUp,
-    color: 'purple',
-  },
-  { 
-    label: 'Security Level', 
-    value: 'Maximum', 
-    change: 'Multi-sig protected',
-    icon: ShieldCheck,
-    color: 'yellow',
-  },
-]
-
-const vaultAccounts = [
-  { 
-    name: 'Primary Savings Vault', 
-    type: 'High-Yield', 
-    balance: '$750,000',
-    apy: '5.25%',
-    interest: '$3,281.25/mo',
-    status: 'Active',
-    lockPeriod: 'Flexible',
-  },
-  { 
-    name: 'Fixed Term Vault', 
-    type: 'Term Deposit', 
-    balance: '$300,000',
-    apy: '6.50%',
-    interest: '$1,625.00/mo',
-    status: 'Locked',
-    lockPeriod: '12 months',
-  },
-  { 
-    name: 'Emergency Reserve', 
-    type: 'Instant Access', 
-    balance: '$125,750',
-    apy: '4.00%',
-    interest: '$419.17/mo',
-    status: 'Active',
-    lockPeriod: 'None',
-  },
-  { 
-    name: 'Goal-Based Vault', 
-    type: 'Target Savings', 
-    balance: '$70,000',
-    apy: '5.00%',
-    interest: '$291.67/mo',
-    status: 'Active',
-    lockPeriod: 'Flexible',
-    goal: '$100,000',
-    progress: 70,
-  },
+const vaults = [
+  { name: 'Primary Reserve', type: 'Savings', balance: '45,000', apy: '4.5%', earned: ',240', status: 'Active', color: 'cyan' },
+  { name: 'Q3 Tax Lock', type: 'Locked', balance: '20,000', apy: '5.2%', earned: '90', status: 'Locked', maturityDate: 'Sep 30, 2026', progress: 65, color: 'purple' },
+  { name: 'Estate Escrow', type: 'Escrow', balance: '50,000', apy: '3.8%', earned: ',100', status: 'Pending', color: 'yellow' },
 ]
 
 const recentActivity = [
-  { date: 'Apr 20, 2026', type: 'Interest', description: 'Monthly interest credited', amount: '+$5,325.09' },
-  { date: 'Apr 18, 2026', type: 'Deposit', description: 'Auto-deposit from linked account', amount: '+$10,000.00' },
-  { date: 'Apr 15, 2026', type: 'Transfer', description: 'To Primary Savings Vault', amount: '+$25,000.00' },
-  { date: 'Apr 10, 2026', type: 'Withdrawal', description: 'To external account', amount: '-$5,000.00' },
+  { date: 'Apr 24, 2026', type: 'Interest', description: 'Monthly yield payment - Primary Reserve', amount: '+42.50' },
+  { date: 'Apr 20, 2026', type: 'Deposit', description: 'Transfer from external account', amount: '+0,000.00' },
+  { date: 'Apr 15, 2026', type: 'Interest', description: 'Yield payment - Q3 Tax Lock', amount: '+20.12' },
+  { date: 'Apr 10, 2026', type: 'Transfer', description: 'Internal transfer to Estate Escrow', amount: '-0,000.00' },
 ]
 
 export default function SavingsVaultPage() {
@@ -110,9 +44,9 @@ export default function SavingsVaultPage() {
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">
-            Savings <span className="text-gradient-primary">Vault</span>
+            Savings <span className="text-cyan-400">Vault</span>
           </h1>
-          <p className="text-slate-400 mt-1">Secure, high-yield savings with institutional-grade protection.</p>
+          <p className="text-slate-400 mt-1">Secure institutional-grade savings and escrow management.</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" className="border-white/10 text-slate-300 hover:bg-white/5">
@@ -122,6 +56,9 @@ export default function SavingsVaultPage() {
           <Button className="bg-cyan-500 hover:bg-cyan-600 text-black font-semibold">
             <Plus className="w-4 h-4 mr-2" />
             New Vault
+        <div className="flex items-center gap-2">
+          <Button className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30">
+            Create New Vault
           </Button>
         </div>
       </div>
@@ -260,7 +197,7 @@ export default function SavingsVaultPage() {
           <div className="flex-1">
             <p className="text-sm font-medium text-white">Enterprise-Grade Security</p>
             <p className="text-xs text-slate-400 mt-0.5">
-              All vaults are protected by multi-signature authorization, insurance coverage up to $10M, and 24/7 monitoring.
+              All vaults are protected by multi-signature authorization, insurance coverage up to 0M, and 24/7 monitoring.
             </p>
           </div>
           <Badge className="bg-green-500/20 text-green-400 border-green-500/30 shrink-0">Protected</Badge>
@@ -310,24 +247,6 @@ export default function SavingsVaultPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Security Notice */}
-      <Card className="bg-card border-white/10 border-l-4 border-l-cyan-500">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-5 h-5 text-cyan-400" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-white">Institutional-Grade Security</h3>
-              <p className="text-sm text-slate-400 mt-1">
-                Your savings are protected by multi-signature authorization, cold storage protocols, 
-                and FDIC-equivalent insurance coverage up to $10 million per depositor.
-              </p>
-            </div>
           </div>
         </CardContent>
       </Card>
