@@ -2,10 +2,8 @@
   "framework": "nextjs",
   "buildCommand": "pnpm run db:generate && pnpm run build",
   "installCommand": "pnpm install --frozen-lockfile",
-  "crons": [
-    {
-      "path": "/api/cron/news-ingest",
-      "schedule": "0 6 * * *"
-    }
-  ]
+  "env": {
+    "AUDIT_ENABLED": "true",
+    "NEXT_PUBLIC_APP_NAME": "GEM Enterprise"
+  }
 }
