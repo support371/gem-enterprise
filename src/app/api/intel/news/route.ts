@@ -5,10 +5,21 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import type { NewsCategory, Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
 export const runtime = "nodejs";
 export const revalidate = 60; // re-cache list every minute
+
+// Define NewsCategory type locally to match Prisma schema enum
+type NewsCategory =
+  | "crypto"
+  | "cybersecurity"
+  | "markets"
+  | "geopolitics"
+  | "policy"
+  | "real_estate"
+  | "alternatives"
+  | "general";
 
 const VALID_CATEGORIES: ReadonlyArray<NewsCategory> = [
   "crypto",

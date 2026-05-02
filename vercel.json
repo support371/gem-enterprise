@@ -1,5 +1,9 @@
 {
   "framework": "nextjs",
-  "installCommand": "pnpm install --no-frozen-lockfile",
-  "buildCommand": "pnpm run db:generate && pnpm run build"
+  "buildCommand": "pnpm run db:generate && pnpm run build",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "env": {
+    "AUDIT_ENABLED": "true",
+    "NEXT_PUBLIC_APP_NAME": "GEM Enterprise"
+  }
 }
