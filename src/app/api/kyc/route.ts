@@ -1,130 +1,119 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
+import { emitAuditLog } from "@/lib/audit";
 
-const kycPostSchema = z.object({
-  entityType: z.enum(["individual", "business", "trust", "family_office"]),
-  formData: z.record(z.unknown()).optional(),
-});
+const entityTypeSchema = z.enum(["individual", "business", "trust", "family_office"]);
 
-const TERMINAL_STATUSES = ["approved", "rejected"];
+const kycSubmissionSchema = z
+  .object({
+    entityType: entityTypeSchema,
+    formData: z.record(z.unknown()).optional(),
+  })
+  .passthrough();
 
-export async function POST(request: NextRequest) {
+function normalizeEntityType(value: string) {
+  return value === "family-office" ? "family_office" : value;
+}
+
+function normalizeFormData(body: Record<string, unknown>) {
+  const { entityType, formData, ...rest } = body;
+  const submittedFormData =
+    formData && typeof formData === "object" && !Array.isArray(formData)
+      ? (formData as Record<string, unknown>)
+      : {};
+
+  return {
+    ...submittedFormData,
+    ...rest,
+  };
+}
+
+export async function GET() {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const application = await db.kYCApplication.findFirst({
+    where: { userId: session.userId },
+    orderBy: { createdAt: "desc" },
+    include: {
+      documents: true,
+      decision: true,
+      reviews: {
+        orderBy: { createdAt: "desc" },
+      },
+    },
+  });
+
+  return NextResponse.json({ ok: true, application });
+}
+
+export async function POST(req: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const rawBody = await req.json();
+    const normalizedBody = {
+      ...(rawBody ?? {}),
+      entityType: normalizeEntityType(String(rawBody?.entityType ?? "")),
+    };
 
-    const body = await request.json();
-    const parsed = kycPostSchema.safeParse(body);
-
+    const parsed = kycSubmissionSchema.safeParse(normalizedBody);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid request", details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
+        { error: "Invalid KYC submission", details: parsed.error.flatten().fieldErrors },
+        { status: 400 },
       );
     }
 
-    const { entityType, formData } = parsed.data;
+    const formData = normalizeFormData(parsed.data as Record<string, unknown>);
 
-    const existing = await db.kYCApplication.findFirst({
-      where: {
+    const application = await db.kYCApplication.create({
+      data: {
         userId: session.userId,
-        status: {
-          notIn: TERMINAL_STATUSES as ("approved" | "rejected")[],
-        },
+        entityType: parsed.data.entityType,
+        status: "in_progress",
+        data: formData,
+        formData,
+        submittedAt: new Date(),
       },
-      orderBy: { createdAt: "desc" },
     });
 
-    let application;
-
-    if (!existing) {
-      application = await db.kYCApplication.create({
-        data: {
-          userId: session.userId,
-          entityType,
-          status: "started",
-          formData: (formData ?? {}) as Prisma.InputJsonValue,
-        },
-      });
-
-      await db.auditLog.create({
-        data: {
-          userId: session.userId,
-          action: "kyc_start",
-          resource: "kyc_application",
-          resourceId: application.id,
-          metadata: { entityType } as Prisma.InputJsonValue,
-        },
-      });
-    } else {
-      application = await db.kYCApplication.update({
-        where: { id: existing.id },
-        data: {
-          formData: (formData ?? existing.formData ?? {}) as Prisma.InputJsonValue,
-          status: "in_progress",
-          entityType,
-        },
-      });
-    }
-
-    return NextResponse.json({
-      success: true,
-      applicationId: application.id,
-      status: application.status,
+    await db.profile.upsert({
+      where: { userId: session.userId },
+      update: {
+        entityType: parsed.data.entityType,
+        firstName: typeof formData.firstName === "string" ? formData.firstName : undefined,
+        lastName: typeof formData.lastName === "string" ? formData.lastName : undefined,
+        country: typeof formData.country === "string" ? formData.country : undefined,
+        phone: typeof formData.phone === "string" ? formData.phone : undefined,
+      },
+      create: {
+        userId: session.userId,
+        entityType: parsed.data.entityType,
+        firstName: typeof formData.firstName === "string" ? formData.firstName : undefined,
+        lastName: typeof formData.lastName === "string" ? formData.lastName : undefined,
+        country: typeof formData.country === "string" ? formData.country : undefined,
+        phone: typeof formData.phone === "string" ? formData.phone : undefined,
+      },
     });
+
+    await emitAuditLog({
+      userId: session.userId,
+      action: "kyc_submit",
+      resource: "kyc_application",
+      resourceId: application.id,
+      metadata: {
+        entityType: parsed.data.entityType,
+        status: application.status,
+      },
+    });
+
+    return NextResponse.json({ ok: true, application });
   } catch (error) {
     console.error("[POST /api/kyc]", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
-  }
-}
-
-export async function GET(_request: NextRequest) {
-  try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const application = await db.kYCApplication.findFirst({
-      where: { userId: session.userId },
-      orderBy: { createdAt: "desc" },
-      include: {
-        documents: {
-          select: {
-            id: true,
-            documentType: true,
-            status: true,
-            fileName: true,
-            uploadedAt: true,
-          },
-        },
-      },
-    });
-
-    if (!application) {
-      return NextResponse.json({
-        applicationId: null,
-        status: "not_started",
-        entityType: null,
-        submittedAt: null,
-        documents: [],
-      });
-    }
-
-    return NextResponse.json({
-      applicationId: application.id,
-      status: application.status,
-      entityType: application.entityType,
-      submittedAt: application.submittedAt,
-      documents: application.documents,
-    });
-  } catch (error) {
-    console.error("[GET /api/kyc]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

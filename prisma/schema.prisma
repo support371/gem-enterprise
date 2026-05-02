@@ -1,5 +1,5 @@
 // GEM Enterprise — Prisma Schema
-// Database: PostgreSQL (prod) / SQLite (local dev)
+// Database: PostgreSQL
 
 generator client {
   provider = "prisma-client-js"
@@ -7,10 +7,7 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  // Pooled connection for the app runtime (serverless-safe).
-  // Falls back to DATABASE_URL for non-Vercel deployments.
   url       = env("POSTGRES_PRISMA_URL")
-  // Direct connection used by Prisma migrations.
   directUrl = env("POSTGRES_URL_NON_POOLING")
 }
 
@@ -18,16 +15,16 @@ datasource db {
 
 enum UserRole {
   client
-  admin
-  internal
   analyst
+  admin
+  super_admin
+  internal
 }
 
-enum EntityType {
-  individual
-  business
-  trust
-  family_office
+enum UserStatus {
+  active
+  suspended
+  pending_approval
 }
 
 enum KYCStatus {
@@ -42,37 +39,26 @@ enum KYCStatus {
   expired
 }
 
-enum DecisionType {
-  approved
-  rejected
-  manual_review
-  pending
+enum EntityType {
+  individual
+  business
+  trust
+  family_office
 }
 
-enum DocumentType {
-  government_id
-  proof_of_address
-  tax_document
-  financial_statement
-  trust_deed
-  articles_of_incorporation
-  beneficial_owner
-  accredited_investor
-  other
-}
-
-enum DocumentStatus {
-  pending
-  accepted
-  rejected
-  expired
+enum TicketStatus {
+  open
+  in_progress
+  waiting_on_client
+  resolved
+  closed
 }
 
 enum RequestStatus {
   open
   in_progress
-  resolved
-  closed
+  pending_info
+  completed
   cancelled
 }
 
@@ -83,276 +69,213 @@ enum RequestPriority {
   critical
 }
 
-enum TicketStatus {
-  open
-  in_progress
-  waiting_client
-  resolved
-  closed
-}
-
 enum NotificationChannel {
   in_app
   email
   sms
-}
-
-enum AuditAction {
-  login
-  logout
-  session_expired
-  kyc_start
-  kyc_submit
-  kyc_document_upload
-  kyc_approved
-  kyc_rejected
-  kyc_manual_review
-  user_created
-  user_updated
-  user_deleted
-  admin_action
-  entitlement_granted
-  entitlement_revoked
-  portfolio_assigned
-  support_ticket_created
-  request_submitted
-  document_viewed
-  password_reset
-  support_session_started
-  support_session_closed
-  support_consent_given
-  support_escalated
-  support_booking_created
-  ai_session_opened
-  ai_message_responded
-  ai_message_escalated
-  ai_session_closed
+  push
 }
 
 enum SupportSessionStatus {
   active
   escalated
+  resolved
   closed
 }
 
 enum BookingStatus {
   pending
   confirmed
+  rescheduled
   cancelled
+  completed
+}
+
+enum AuditAction {
+  login
+  logout
+  failed_login
+  password_change
+  role_change
+  kyc_submit
+  kyc_approve
+  kyc_reject
+  kyc_flag
+  document_upload
+  ai_session_opened
+  ai_message_sent
+  restricted_class_detected
+  evidence_created
+  case_created
+  case_closed
+  data_export
+  admin_action
+}
+
+enum NewsCategory {
+  crypto
+  cybersecurity
+  markets
+  geopolitics
+  policy
+  real_estate
+  alternatives
+  general
 }
 
 // ─── Core Models ──────────────────────────────────────────────────────────────
 
 model User {
-  id               String    @id @default(cuid())
-  email            String    @unique
-  passwordHash     String
-  role             UserRole  @default(client)
-  isActive         Boolean   @default(true)
-  isEmailVerified  Boolean   @default(false)
-  emailVerifiedAt  DateTime?
-  lastLoginAt      DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id              String      @id @default(cuid())
+  email           String      @unique
+  passwordHash    String
+  role            UserRole    @default(client)
+  status          UserStatus  @default(active)
+  organizationId  String?
+  lastLoginAt     DateTime?
+  isActive        Boolean     @default(true)
+  isEmailVerified Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
-  profile          UserProfile?
-  organization     Organization? @relation(fields: [organizationId], references: [id])
-  organizationId   String?
-
-  kycApplications  KYCApplication[]
-  entitlements     Entitlement[]
-  portfolios       PortfolioMembership[]
-  supportTickets   SupportTicket[]
-  requests         Request[]
-  notifications    Notification[]
-  auditLogs        AuditLog[]
-  sessions         UserSession[]
+  profile         Profile?
+  kycApplications KYCApplication[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+  portfolioMemberships PortfolioMembership[]
+  entitlements    Entitlement[]
+  tickets         SupportTicket[]
+  requests        ServiceRequest[]
 
   @@map("users")
 }
 
-model UserSession {
+model Profile {
   id          String   @id @default(cuid())
-  userId      String
-  token       String   @unique
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
-  ipAddress   String?
-  userAgent   String?
-  isRevoked   Boolean  @default(false)
+  userId      String   @unique
+  firstName   String?
+  lastName    String?
+  displayName String?
+  avatarUrl   String?
+  bio         String?
+  country     String?
+  phone       String?
+  entityType  EntityType?
+  accreditedStatus Boolean? @default(false)
+  preferences Json?    @default("{}")
+  updatedAt   DateTime @updatedAt
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("user_sessions")
-}
-
-model UserProfile {
-  id             String     @id @default(cuid())
-  userId         String     @unique
-  firstName      String?
-  lastName       String?
-  displayName    String?
-  phone          String?
-  country        String?
-  state          String?
-  city           String?
-  zipCode        String?
-  address        String?
-  dateOfBirth    DateTime?
-  entityType     EntityType @default(individual)
-  taxId          String?
-  accreditedStatus Boolean  @default(false)
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-
-  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
 }
 
-model Organization {
-  id             String     @id @default(cuid())
-  name           String
-  entityType     EntityType
-  registrationNo String?
-  jurisdiction   String?
-  incorporatedAt DateTime?
-  website        String?
-  isActive       Boolean    @default(true)
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
-
-  users          User[]
-  portfolios     Portfolio[]
-
-  @@map("organizations")
-}
-
-// ─── KYC Models ───────────────────────────────────────────────────────────────
-
 model KYCApplication {
-  id              String     @id @default(cuid())
+  id              String   @id @default(cuid())
   userId          String
-  entityType      EntityType
-  status          KYCStatus  @default(not_started)
+  status          KYCStatus @default(not_started)
+  entityType      EntityType @default(individual)
+  data            Json?
+  formData        Json?
   submittedAt     DateTime?
   completedAt     DateTime?
-  expiresAt       DateTime?
+  reviewedAt      DateTime?
+  reviewerId      String?
+  rejectionReason String?
   reviewNotes     String?
-  internalNotes   String?
-  riskScore       Int?
-  assignedReviewer String?
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  // Form data (JSONB)
-  formData        Json?
-
-  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  documents       KYCDocument[]
-  reviews         KYCReview[]
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   decision        Decision?
+  documents       KycDocument[]
+  reviews         KYCReview[]
 
   @@map("kyc_applications")
 }
 
-model KYCDocument {
-  id              String         @id @default(cuid())
+model KycDocument {
+  id              String   @id @default(cuid())
   applicationId   String
-  documentType    DocumentType
-  status          DocumentStatus @default(pending)
+  documentType    String
+  storagePath     String
   fileName        String
-  fileUrl         String
-  fileSize        Int?
-  mimeType        String?
-  uploadedAt      DateTime       @default(now())
-  reviewedAt      DateTime?
-  expiresAt       DateTime?
-  rejectionReason String?
+  fileSize        Int
+  mimeType        String
+  status          String   @default("pending")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   application     KYCApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   @@map("kyc_documents")
 }
 
-model KYCReview {
-  id              String     @id @default(cuid())
-  applicationId   String
-  reviewerId      String
-  action          DecisionType
-  notes           String?
-  createdAt       DateTime   @default(now())
-
-  application     KYCApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
-
-  @@map("kyc_reviews")
-}
-
 model Decision {
-  id              String       @id @default(cuid())
-  applicationId   String       @unique
-  decision        DecisionType
+  id              String   @id @default(cuid())
+  applicationId   String   @unique
+  decision        String
   decisionBy      String
-  decisionAt      DateTime     @default(now())
+  decisionAt      DateTime @default(now())
   reason          String?
-  conditions      String?
-  validUntil      DateTime?
 
   application     KYCApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   @@map("decisions")
 }
 
-// ─── Entitlements & Products ──────────────────────────────────────────────────
+model KYCReview {
+  id              String   @id @default(cuid())
+  applicationId   String
+  reviewerId      String
+  action          String
+  notes           String?
+  createdAt       DateTime @default(now())
 
-model Product {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  name        String
-  description String?
-  category    String   // cyber | financial | real-estate
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  application     KYCApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
-  entitlements Entitlement[]
-
-  @@map("products")
+  @@map("kyc_reviews")
 }
 
 model Entitlement {
   id          String   @id @default(cuid())
   userId      String
-  productId   String?
-  slug        String   // e.g. "cyber", "financial", "real-estate"
-  grantedBy   String
-  grantedAt   DateTime @default(now())
-  expiresAt   DateTime?
+  slug        String
   isActive    Boolean  @default(true)
+  grantedBy   String?
+  grantedAt   DateTime @default(now())
   notes       String?
 
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product     Product? @relation(fields: [productId], references: [id])
 
+  @@unique([userId, slug])
   @@map("entitlements")
 }
 
-// ─── Portfolios ───────────────────────────────────────────────────────────────
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  category    String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("products")
+}
 
 model Portfolio {
-  id             String   @id @default(cuid())
-  name           String
-  description    String?
-  organizationId String?
-  category       String?  // cyber | financial | real-estate
-  totalValue     Decimal? @db.Decimal(18, 2)
-  currency       String   @default("USD")
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String
+  totalValue  Decimal? @db.Decimal(18, 2)
+  currency    String   @default("USD")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  organization   Organization?        @relation(fields: [organizationId], references: [id])
-  members        PortfolioMembership[]
+  memberships PortfolioMembership[]
 
   @@map("portfolios")
 }
@@ -361,7 +284,7 @@ model PortfolioMembership {
   id          String   @id @default(cuid())
   portfolioId String
   userId      String
-  role        String   @default("viewer") // owner | manager | viewer
+  role        String   @default("viewer")
   assignedBy  String?
   assignedAt  DateTime @default(now())
 
@@ -372,213 +295,58 @@ model PortfolioMembership {
   @@map("portfolio_memberships")
 }
 
-// ─── Support & Requests ───────────────────────────────────────────────────────
-
 model SupportTicket {
-  id          String        @id @default(cuid())
+  id          String   @id @default(cuid())
   userId      String
   subject     String
   description String
-  status      TicketStatus  @default(open)
+  status      TicketStatus @default(open)
   priority    RequestPriority @default(medium)
   assignedTo  String?
   resolvedAt  DateTime?
   closedAt    DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages    TicketMessage[]
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("support_tickets")
 }
 
-model TicketMessage {
-  id        String   @id @default(cuid())
-  ticketId  String
-  authorId  String
-  body      String
-  isInternal Boolean @default(false)
-  createdAt DateTime @default(now())
-
-  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-
-  @@map("ticket_messages")
-}
-
-model Request {
-  id          String          @id @default(cuid())
+model ServiceRequest {
+  id          String   @id @default(cuid())
   userId      String
-  type        String          // service_change | allocation | access | withdrawal | other
+  type        String
   subject     String
   description String
-  status      RequestStatus   @default(open)
+  status      RequestStatus @default(open)
   priority    RequestPriority @default(medium)
   assignedTo  String?
   resolvedAt  DateTime?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("requests")
 }
 
-// ─── Notifications ────────────────────────────────────────────────────────────
-
-model Notification {
-  id          String              @id @default(cuid())
-  userId      String
-  title       String
-  body        String
-  channel     NotificationChannel @default(in_app)
-  isRead      Boolean             @default(false)
-  readAt      DateTime?
-  data        Json?
-  createdAt   DateTime            @default(now())
-
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("notifications")
-}
-
-// ─── Audit Logs ───────────────────────────────────────────────────────────────
-
-model AuditLog {
-  id          String      @id @default(cuid())
+model SupportBooking {
+  id          String   @id @default(cuid())
+  sessionId   String?
   userId      String?
-  action      AuditAction
-  resource    String?     // "kyc_application", "user", "portfolio" etc.
-  resourceId  String?
-  metadata    Json?
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime    @default(now())
-
-  user        User?       @relation(fields: [userId], references: [id])
-
-  @@map("audit_logs")
-}
-
-// ─── Campaign / Notification Outbox ──────────────────────────────────────────
-
-model Contact {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  firstName   String?
-  lastName    String?
-  tags        String[] @default([])
-  isSubscribed Boolean @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  segments    SegmentMembership[]
-  recipients  CampaignRecipient[]
-
-  @@map("contacts")
-}
-
-model Segment {
-  id          String   @id @default(cuid())
   name        String
-  description String?
+  email       String
+  subject     String
+  preferredAt DateTime?
+  status      BookingStatus @default(pending)
+  notes       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  members     SegmentMembership[]
-  campaigns   Campaign[]
+  session     SupportSession? @relation(fields: [sessionId], references: [id])
 
-  @@map("segments")
-}
-
-model SegmentMembership {
-  id          String   @id @default(cuid())
-  segmentId   String
-  contactId   String
-
-  segment     Segment  @relation(fields: [segmentId], references: [id], onDelete: Cascade)
-  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
-
-  @@unique([segmentId, contactId])
-  @@map("segment_memberships")
-}
-
-model Campaign {
-  id          String   @id @default(cuid())
-  name        String
-  subject     String?
-  body        String?
-  segmentId   String?
-  status      String   @default("draft") // draft | scheduled | sending | sent | cancelled
-  scheduledAt DateTime?
-  sentAt      DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  segment     Segment?           @relation(fields: [segmentId], references: [id])
-  recipients  CampaignRecipient[]
-
-  @@map("campaigns")
-}
-
-model CampaignRecipient {
-  id          String   @id @default(cuid())
-  campaignId  String
-  contactId   String
-  sentAt      DateTime?
-  openedAt    DateTime?
-  clickedAt   DateTime?
-  status      String   @default("pending")
-
-  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  contact     Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
-
-  @@unique([campaignId, contactId])
-  @@map("campaign_recipients")
-}
-
-model OutboxMessage {
-  id          String   @id @default(cuid())
-  channel     String   // email | sms | webhook
-  recipient   String
-  subject     String?
-  body        String
-  metadata    Json?
-  sentAt      DateTime?
-  failedAt    DateTime?
-  retryCount  Int      @default(0)
-  status      String   @default("pending")
-  createdAt   DateTime @default(now())
-
-  @@map("outbox_messages")
-}
-
-model SuppressionList {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  reason      String?
-  suppressedAt DateTime @default(now())
-
-  @@map("suppression_list")
-}
-
-// ─── Support Chat Sessions ────────────────────────────────────────────────────
-
-model SupportSession {
-  id            String               @id @default(cuid())
-  userId        String?
-  userTier      String               @default("standard")
-  status        SupportSessionStatus @default(active)
-  consentGiven  Boolean              @default(false)
-  consentAt     DateTime?
-  messages      Json                 @default("[]")
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
-
-  bookings      SupportBooking[]
-  escalations   SupportEscalation[]
-
-  @@map("support_sessions")
+  @@map("support_bookings")
 }
 
 model SupportEscalation {
@@ -594,25 +362,37 @@ model SupportEscalation {
   @@map("support_escalations")
 }
 
-model SupportBooking {
-  id          String        @id @default(cuid())
-  sessionId   String?
-  userId      String?
-  name        String
-  email       String
-  subject     String
-  preferredAt DateTime?
-  status      BookingStatus @default(pending)
-  notes       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String
+  title       String
+  body        String
+  channel     NotificationChannel @default(in_app)
+  isRead      Boolean   @default(false)
+  readAt      DateTime?
+  data        Json?
+  createdAt   DateTime  @default(now())
 
-  session     SupportSession? @relation(fields: [sessionId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("support_bookings")
+  @@map("notifications")
 }
 
-// ─── AI Governance ────────────────────────────────────────────────────────────
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  action      AuditAction
+  resource    String?
+  resourceId  String?
+  metadata    Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
 
 model AiRun {
   id                   String    @id @default(cuid())
@@ -624,13 +404,12 @@ model AiRun {
   transcriptPointer    String?
   escalationTriggered  Boolean   @default(false)
   escalationReason     String?
-  outputStatus         String    @default("open")  // open | closed | escalated
+  outputStatus         String    @default("open")
   messageCount         Int       @default(0)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
   consentRecord        ConsentRecord?
-  escalationEvents     AiEscalationEvent[]
 
   @@map("ai_runs")
 }
@@ -649,51 +428,6 @@ model ConsentRecord {
   @@map("consent_records")
 }
 
-model AiEscalationEvent {
-  id             String   @id @default(cuid())
-  aiRunId        String
-  restrictedClass String
-  messagePreview String
-  createdAt      DateTime @default(now())
-
-  aiRun          AiRun    @relation(fields: [aiRunId], references: [id], onDelete: Cascade)
-
-  @@map("ai_escalation_events")
-}
-
-// ─── GEM Intel — News Ingestion Pipeline ─────────────────────────────────────
-
-enum NewsCategory {
-  crypto
-  cybersecurity
-  markets
-  geopolitics
-  policy
-  real_estate
-  alternatives
-  general
-}
-
-enum NewsMediaType {
-  none
-  image
-  video
-}
-
-enum NewsArticleStatus {
-  draft
-  published
-  archived
-  rejected
-}
-
-enum NewsIngestionStatus {
-  running
-  success
-  partial
-  failed
-}
-
 model NewsSource {
   id            String       @id @default(cuid())
   name          String
@@ -703,7 +437,7 @@ model NewsSource {
   category      NewsCategory
   description   String?
   isActive      Boolean      @default(true)
-  pollIntervalMinutes Int    @default(360) // 6 hours default
+  pollIntervalMinutes Int    @default(360)
   lastFetchedAt DateTime?
   lastSuccessAt DateTime?
   lastErrorAt   DateTime?
@@ -714,67 +448,76 @@ model NewsSource {
 
   articles      NewsArticle[]
 
-  @@index([category, isActive])
   @@map("news_sources")
 }
 
 model NewsArticle {
   id             String            @id @default(cuid())
   sourceId       String?
-  externalGuid   String            @unique // RSS guid or URL hash
+  externalGuid   String            @unique
   externalUrl    String
   slug           String            @unique
   title          String
-  summary        String?           @db.Text
-  aiSummary      String?           @db.Text
-  body           String?           @db.Text
+  summary        String?
+  aiSummary      String?
+  body           String?
   category       NewsCategory
   tags           String[]          @default([])
   author         String?
-
-  mediaType      NewsMediaType     @default(none)
+  mediaType      String            @default("none")
   imageUrl       String?
   imageAlt       String?
   videoUrl       String?
   videoThumbnail String?
-  videoProvider  String?           // youtube | vimeo | native | other
-
-  status         NewsArticleStatus @default(published)
+  videoProvider  String?
+  status         String            @default("published")
   isFeatured     Boolean           @default(false)
   isEditorsPick  Boolean           @default(false)
-  relevanceScore Int               @default(0) // 0-100, used to surface best-of weekly
-
+  relevanceScore Int               @default(0)
   publishedAt    DateTime
   ingestedAt     DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
   source         NewsSource?       @relation(fields: [sourceId], references: [id], onDelete: SetNull)
 
-  @@index([category, status, publishedAt(sort: Desc)])
-  @@index([status, publishedAt(sort: Desc)])
-  @@index([isFeatured, publishedAt(sort: Desc)])
   @@map("news_articles")
 }
 
 model NewsIngestionRun {
-  id               String              @id @default(cuid())
-  status           NewsIngestionStatus @default(running)
-  triggeredBy      String              // "cron" | "admin:<userId>" | "manual"
-  sourcesAttempted Int                 @default(0)
-  sourcesSucceeded Int                 @default(0)
-  sourcesFailed    Int                 @default(0)
-  articlesFound    Int                 @default(0)
-  articlesCreated  Int                 @default(0)
-  articlesUpdated  Int                 @default(0)
-  articlesSkipped  Int                 @default(0)
-  aiEnrichments    Int                 @default(0)
-  aiFailures       Int                 @default(0)
+  id               String   @id @default(cuid())
+  status           String   @default("running")
+  triggeredBy      String
+  sourcesAttempted Int      @default(0)
+  sourcesSucceeded Int      @default(0)
+  sourcesFailed    Int      @default(0)
+  articlesFound    Int      @default(0)
+  articlesCreated  Int      @default(0)
+  articlesUpdated  Int      @default(0)
+  articlesSkipped  Int      @default(0)
+  aiEnrichments    Int      @default(0)
+  aiFailures       Int      @default(0)
   durationMs       Int?
-  errorSummary     String?             @db.Text
+  errorSummary     String?
   metadata         Json?
-  startedAt        DateTime            @default(now())
+  startedAt        DateTime @default(now())
   completedAt      DateTime?
 
-  @@index([startedAt(sort: Desc)])
   @@map("news_ingestion_runs")
+}
+
+model SupportSession {
+  id            String               @id @default(cuid())
+  userId        String?
+  userTier      String               @default("standard")
+  status        SupportSessionStatus @default(active)
+  consentGiven  Boolean              @default(false)
+  consentAt     DateTime?
+  messages      Json                 @default("[]")
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  bookings      SupportBooking[]
+  escalations   SupportEscalation[]
+
+  @@map("support_sessions")
 }

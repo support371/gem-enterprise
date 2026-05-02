@@ -8,6 +8,7 @@ import {
   resolveAccessDestination,
   SessionPayload,
 } from "@/lib/auth";
+import { emitAuditLog } from "@/lib/audit";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -39,7 +40,7 @@ export async function POST(request: NextRequest) {
           orderBy: { createdAt: "desc" },
           take: 1,
         },
-        portfolios: {
+        portfolioMemberships: {
           take: 1,
           orderBy: { assignedAt: "desc" },
         },
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
     const latestKyc = user.kycApplications[0] ?? null;
     const kycStatus = (latestKyc?.status ?? "not_started") as SessionPayload["kycStatus"];
     const entitlementSlugs = user.entitlements.map((e) => e.slug);
-    const portfolioId = user.portfolios[0]?.portfolioId ?? undefined;
+    const portfolioId = user.portfolioMemberships[0]?.portfolioId ?? undefined;
 
     const sessionPayload: SessionPayload = {
       userId: user.id,
@@ -81,26 +82,23 @@ export async function POST(request: NextRequest) {
     const ipAddress =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
       request.headers.get("x-real-ip") ??
-      undefined;
-    const userAgent = request.headers.get("user-agent") ?? undefined;
+      "127.0.0.1";
+    const userAgent = request.headers.get("user-agent") ?? "unknown";
 
-    await Promise.all([
-      db.user.update({
-        where: { id: user.id },
-        data: { lastLoginAt: new Date() },
-      }),
-      db.auditLog.create({
-        data: {
-          userId: user.id,
-          action: "login",
-          resource: "user",
-          resourceId: user.id,
-          metadata: { email: user.email },
-          ipAddress,
-          userAgent,
-        },
-      }),
-    ]);
+    await db.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    });
+
+    await emitAuditLog({
+      userId: user.id,
+      action: "login",
+      resource: "user",
+      resourceId: user.id,
+      metadata: { email: user.email },
+      ipAddress,
+      userAgent,
+    });
 
     const response = NextResponse.json({
       success: true,

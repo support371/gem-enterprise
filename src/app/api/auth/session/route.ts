@@ -1,13 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { getSession, resolveAccessDestination } from "@/lib/auth";
+import { platformSurfaces, resolvePreferredSurface } from "@/lib/platformNavigation";
 
 export async function GET(_request: NextRequest) {
   try {
     const session = await getSession();
 
     if (!session) {
-      return NextResponse.json({ authenticated: false }, { status: 401 });
+      return NextResponse.json(
+        {
+          authenticated: false,
+          preferredSurface: "marketing-mobile",
+          recommendedPath: "/",
+          availableSurfaces: platformSurfaces,
+        },
+        { status: 401 },
+      );
     }
+
+    const recommendedPath = resolveAccessDestination(session);
+    const preferredSurface = resolvePreferredSurface(recommendedPath);
 
     return NextResponse.json({
       authenticated: true,
@@ -19,6 +31,9 @@ export async function GET(_request: NextRequest) {
       kycApplicationId: session.kycApplicationId ?? null,
       portfolioId: session.portfolioId ?? null,
       organizationId: session.organizationId ?? null,
+      preferredSurface,
+      recommendedPath,
+      availableSurfaces: platformSurfaces,
     });
   } catch (error) {
     console.error("[GET /api/auth/session]", error);

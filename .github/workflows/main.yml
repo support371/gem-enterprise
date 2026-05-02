@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - v0/support-8685-38f7a890
+    branches: [main]
   pull_request:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
@@ -62,6 +63,11 @@ jobs:
           test -f docs/api.md
           grep -q '"build": "next build"' package.json
           echo "Branch: ${GITHUB_REF_NAME}"
+          test -f prisma/schema.prisma
+          test -f next.config.ts
+          test -f .github/workflows/main.yml
+          grep -q '"build": "next build"' package.json
+          echo "Tracked branch: ${GITHUB_REF_NAME}"
           git status --short
 
       - name: Install dependencies

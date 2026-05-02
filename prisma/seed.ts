@@ -1,6 +1,8 @@
+// @ts-ignore
 import { PrismaClient, UserRole, EntityType, KYCStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
+// @ts-ignore
 const db = new PrismaClient();
 
 async function main() {
@@ -14,7 +16,7 @@ async function main() {
     create: {
       email: "admin@gemcybersecurityassist.com",
       passwordHash: adminHash,
-      role: UserRole.admin,
+      role: "admin",
       isActive: true,
       isEmailVerified: true,
       profile: {
@@ -22,7 +24,7 @@ async function main() {
           firstName: "GEM",
           lastName: "Administrator",
           displayName: "Admin",
-          entityType: EntityType.individual,
+          entityType: "individual",
         },
       },
     },
@@ -37,7 +39,7 @@ async function main() {
     create: {
       email: "demo@gemcybersecurityassist.com",
       passwordHash: clientHash,
-      role: UserRole.client,
+      role: "client",
       isActive: true,
       isEmailVerified: true,
       profile: {
@@ -45,7 +47,7 @@ async function main() {
           firstName: "Alexandra",
           lastName: "Chen",
           displayName: "Alexandra C.",
-          entityType: EntityType.individual,
+          entityType: "individual",
           country: "US",
           accreditedStatus: true,
         },
@@ -63,17 +65,17 @@ async function main() {
     const kyc = await db.kYCApplication.create({
       data: {
         userId: client.id,
-        entityType: EntityType.individual,
-        status: KYCStatus.approved,
+        entityType: "individual",
+        status: "approved",
         submittedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
         completedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-        formData: {
+        formData: JSON.stringify({
           firstName: "Alexandra",
           lastName: "Chen",
           country: "US",
           sourceOfFunds: "Employment income and investment returns",
           investmentObjective: "Capital preservation and growth",
-        },
+        }),
         decision: {
           create: {
             decision: "approved",
@@ -88,10 +90,9 @@ async function main() {
 
   // Entitlements for demo client
   await db.entitlement.upsert({
-    where: { id: `ent_cyber_${client.id}` },
+    where: { userId_slug: { userId: client.id, slug: "cyber" } },
     update: {},
     create: {
-      id: `ent_cyber_${client.id}`,
       userId: client.id,
       slug: "cyber",
       grantedBy: admin.id,
@@ -99,10 +100,9 @@ async function main() {
   });
 
   await db.entitlement.upsert({
-    where: { id: `ent_financial_${client.id}` },
+    where: { userId_slug: { userId: client.id, slug: "financial" } },
     update: {},
     create: {
-      id: `ent_financial_${client.id}`,
       userId: client.id,
       slug: "financial",
       grantedBy: admin.id,
