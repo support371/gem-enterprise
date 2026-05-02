@@ -12,12 +12,7 @@ interface ErrorPageProps {
 
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
   useEffect(() => {
-    // Log error details safely
-    if (error instanceof Error) {
-      console.error("[GEM Enterprise] Application error:", error.message, error.stack);
-    } else {
-      console.error("[GEM Enterprise] Application error:", error);
-    }
+    console.error("[GEM Enterprise] Application error:", error);
   }, [error]);
 
   return (
