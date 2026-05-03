@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/auth";
 
@@ -32,12 +33,49 @@ export async function GET(_request: NextRequest) {
       }),
     ]);
 
-    return NextResponse.json({
-      notifications,
-      unreadCount,
-    });
+    return NextResponse.json({ notifications, unreadCount });
   } catch (error) {
     console.error("[GET /api/notifications]", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
+
+const patchSchema = z.object({
+  ids: z.array(z.string()).optional(),
+  markAllRead: z.boolean().optional(),
+});
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const parsed = patchSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    }
+
+    const { ids, markAllRead } = parsed.data;
+    const now = new Date();
+
+    if (markAllRead) {
+      await db.notification.updateMany({
+        where: { userId: session.userId, isRead: false },
+        data: { isRead: true, readAt: now },
+      });
+    } else if (ids && ids.length > 0) {
+      await db.notification.updateMany({
+        where: { userId: session.userId, id: { in: ids } },
+        data: { isRead: true, readAt: now },
+      });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("[PATCH /api/notifications]", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }

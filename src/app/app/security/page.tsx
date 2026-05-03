@@ -11,12 +11,14 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 
+// TODO(v2): replace mock sessions with real server-side session store data
 const sessions = [
   { id: 1, device: 'Chrome / macOS',    ip: '203.0.113.42', location: 'New York, US',   lastActive: 'Now',       current: true },
   { id: 2, device: 'Safari / iPhone 15', ip: '203.0.113.43', location: 'New York, US',  lastActive: '3h ago',    current: false },
   { id: 3, device: 'Chrome / Windows',  ip: '198.51.100.22', location: 'Miami, US',     lastActive: '2 days ago', current: false },
 ]
 
+// TODO(v2): replace with audit log entries from /api/developers/logs
 const securityEvents = [
   { icon: CheckCircle2, color: 'text-green-400',  text: 'Password changed successfully.',    at: '2026-02-20' },
   { icon: CheckCircle2, color: 'text-green-400',  text: 'MFA device enrolled.',              at: '2026-01-15' },
@@ -26,6 +28,49 @@ const securityEvents = [
 
 export default function SecurityPage() {
   const [showPw, setShowPw] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [pwLoading, setPwLoading] = useState(false)
+  const [pwError, setPwError] = useState('')
+  const [pwSuccess, setPwSuccess] = useState(false)
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault()
+    setPwError('')
+    setPwSuccess(false)
+
+    if (newPassword !== confirmPassword) {
+      setPwError('New passwords do not match.')
+      return
+    }
+    if (newPassword.length < 12) {
+      setPwError('New password must be at least 12 characters.')
+      return
+    }
+
+    setPwLoading(true)
+    try {
+      const res = await fetch('/api/users/password', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setPwError(data.error || 'Failed to update password.')
+      } else {
+        setPwSuccess(true)
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+      }
+    } catch {
+      setPwError('Network error. Please try again.')
+    } finally {
+      setPwLoading(false)
+    }
+  }
 
   return (
     <div className="space-y-8 animate-fade-in max-w-2xl">
@@ -62,27 +107,52 @@ export default function SecurityPage() {
             Change Password
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <label className="text-xs text-slate-400 block mb-1.5">Current password</label>
-            <div className="relative">
-              <Input type={showPw ? 'text' : 'password'} placeholder="••••••••" className="bg-white/5 border-white/10 text-white placeholder:text-slate-500 text-sm pr-10" />
-              <button className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white" onClick={() => setShowPw(v => !v)}>
-                {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+        <CardContent>
+          <form onSubmit={handlePasswordChange} className="space-y-3">
+            <div>
+              <label className="text-xs text-slate-400 block mb-1.5">Current password</label>
+              <div className="relative">
+                <Input
+                  type={showPw ? 'text' : 'password'}
+                  value={currentPassword}
+                  onChange={e => setCurrentPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="bg-white/5 border-white/10 text-white placeholder:text-slate-500 text-sm pr-10"
+                  required
+                />
+                <button type="button" className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white" onClick={() => setShowPw(v => !v)}>
+                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
-          </div>
-          <div>
-            <label className="text-xs text-slate-400 block mb-1.5">New password</label>
-            <Input type="password" placeholder="Min 12 chars, mixed case + symbols" className="bg-white/5 border-white/10 text-white placeholder:text-slate-500 text-sm" />
-          </div>
-          <div>
-            <label className="text-xs text-slate-400 block mb-1.5">Confirm new password</label>
-            <Input type="password" placeholder="••••••••" className="bg-white/5 border-white/10 text-white placeholder:text-slate-500 text-sm" />
-          </div>
-          <Button size="sm" className="bg-[hsl(var(--svc-cyber))] text-black hover:opacity-90">
-            Update Password
-          </Button>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1.5">New password</label>
+              <Input
+                type="password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder="Min 12 chars, mixed case + symbols"
+                className="bg-white/5 border-white/10 text-white placeholder:text-slate-500 text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1.5">Confirm new password</label>
+              <Input
+                type="password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                className="bg-white/5 border-white/10 text-white placeholder:text-slate-500 text-sm"
+                required
+              />
+            </div>
+            {pwError && <p className="text-xs text-red-400">{pwError}</p>}
+            {pwSuccess && <p className="text-xs text-green-400 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> Password updated successfully.</p>}
+            <Button type="submit" size="sm" disabled={pwLoading} className="bg-[hsl(var(--svc-cyber))] text-black hover:opacity-90">
+              {pwLoading ? 'Updating...' : 'Update Password'}
+            </Button>
+          </form>
         </CardContent>
       </Card>
 

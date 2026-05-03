@@ -61,7 +61,7 @@ export default function MyPortfolioPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {portfolioMetrics.map((stat) => (
+        {portfolioStats.map((stat) => (
           <Card key={stat.label} className="bg-slate-900/50 border-white/10">
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
@@ -115,40 +115,9 @@ export default function MyPortfolioPage() {
                   <TableHead className="text-slate-400">Allocation</TableHead>
                   <TableHead className="text-slate-400 text-right">Change</TableHead>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {holdings.map((holding) => (
-                  <TableRow key={holding.name} className="border-white/5 hover:bg-white/5">
-                    <TableCell className="font-medium text-white">{holding.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="border-white/10 text-slate-400">
-                        {holding.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-slate-300 text-right">{holding.shares}</TableCell>
-                    <TableCell className="text-slate-300 text-right">{holding.price}</TableCell>
-                    <TableCell className="text-cyan-400 font-semibold text-right">{holding.value}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Progress value={holding.allocation} className="h-1.5 w-16 bg-white/10" />
-                        <span className="text-slate-300 text-sm w-12">{holding.allocation}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <span className={`flex items-center justify-end gap-1 font-medium ${
-                        holding.trend === 'up' ? 'text-green-400' :
-                        holding.trend === 'down' ? 'text-red-400' : 'text-slate-400'
-                      }`}>
-                        {holding.trend === 'up' ? <TrendingUp className="w-3 h-3" /> :
-                         holding.trend === 'down' ? <TrendingDown className="w-3 h-3" /> : null}
-                        {holding.change}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 

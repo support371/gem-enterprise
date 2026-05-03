@@ -75,8 +75,8 @@ export async function POST(req: NextRequest) {
         userId: session.userId,
         entityType: parsed.data.entityType,
         status: "in_progress",
-        data: formData,
-        formData,
+        data: formData as unknown as import('@prisma/client').Prisma.InputJsonValue,
+        formData: formData as unknown as import('@prisma/client').Prisma.InputJsonValue,
         submittedAt: new Date(),
       },
     });
