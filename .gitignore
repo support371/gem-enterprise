@@ -2,6 +2,9 @@
 .next/
 out/
 
+# Vercel local project config (contains orgId/projectId — machine-specific)
+.vercel/
+
 # Logs
 logs
 *.log
