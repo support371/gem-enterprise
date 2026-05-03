@@ -61,7 +61,7 @@ export default function MyPortfolioPage() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {portfolioStats.map((stat) => (
+        {portfolioMetrics.map((stat) => (
           <Card key={stat.label} className="bg-slate-900/50 border-white/10">
             <CardContent className="pt-6">
               <div className="flex items-start justify-between">
@@ -115,9 +115,31 @@ export default function MyPortfolioPage() {
                   <TableHead className="text-slate-400">Allocation</TableHead>
                   <TableHead className="text-slate-400 text-right">Change</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {holdings.map((holding, idx) => (
+                  <TableRow key={idx} className="border-white/5 hover:bg-white/5">
+                    <TableCell className="text-white font-medium">{holding.name}</TableCell>
+                    <TableCell>
+                      <Badge className="bg-white/10 text-slate-300 border-white/10">{holding.type}</Badge>
+                    </TableCell>
+                    <TableCell className="text-slate-300 text-right">{holding.shares}</TableCell>
+                    <TableCell className="text-slate-300 text-right">{holding.price}</TableCell>
+                    <TableCell className="text-white font-semibold text-right">{holding.value}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 min-w-[100px]">
+                        <Progress value={holding.allocation} className="h-1.5 flex-1 bg-white/10" />
+                        <span className="text-xs text-slate-400 w-8">{holding.allocation}%</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className={`text-right font-semibold ${holding.trend === 'up' ? 'text-green-400' : holding.trend === 'down' ? 'text-red-400' : 'text-slate-400'}`}>
+                      {holding.change}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
