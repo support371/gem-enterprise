@@ -17,7 +17,9 @@ export type PlatformNavIcon =
   | "PieChart"
   | "UserCheck"
   | "Wallet"
-  | "PiggyBank";
+  | "PiggyBank"
+  | "Mail"
+  | "Rss";
 
 export interface PlatformSurface {
   id: "marketing-mobile" | "enterprise-web-app";
@@ -231,6 +233,12 @@ export const adminPortalNavItems: PlatformNavItem[] = [
     icon: "PieChart",
     label: "Allocations",
     description: "Allocation, entitlement, and portfolio administration.",
+  },
+  {
+    href: "/app/admin/campaigns",
+    icon: "Mail",
+    label: "Campaigns",
+    description: "Email campaign management and delivery.",
   },
 ];
 

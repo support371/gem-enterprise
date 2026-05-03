@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { 
+import {
   Landmark,
   Shield,
   Lock,
@@ -21,13 +21,22 @@ import {
   ChevronRight,
   ShieldCheck,
   ArrowUpRight,
-  Percent
+  Percent,
+  Zap,
+  Plus
 } from 'lucide-react'
 
 const vaults = [
   { name: 'Primary Reserve', type: 'Savings', balance: '45,000', apy: '4.5%', earned: ',240', status: 'Active', color: 'cyan' },
   { name: 'Q3 Tax Lock', type: 'Locked', balance: '20,000', apy: '5.2%', earned: '90', status: 'Locked', maturityDate: 'Sep 30, 2026', progress: 65, color: 'purple' },
   { name: 'Estate Escrow', type: 'Escrow', balance: '50,000', apy: '3.8%', earned: ',100', status: 'Pending', color: 'yellow' },
+]
+
+const vaultStats = [
+  { label: 'Total Saved', value: '$115,000', change: '+2.1%', icon: PiggyBank, color: 'cyan' },
+  { label: 'Average APY', value: '4.5%', change: '+0.2%', icon: Percent, color: 'purple' },
+  { label: 'Interest Earned', value: '$1,450', change: '+MTD', icon: ArrowUpRight, color: 'green' },
+  { label: 'Active Vaults', value: '3', change: 'running', icon: Landmark, color: 'yellow' },
 ]
 
 const recentActivity = [
@@ -56,9 +65,6 @@ export default function SavingsVaultPage() {
           <Button className="bg-cyan-500 hover:bg-cyan-600 text-black font-semibold">
             <Plus className="w-4 h-4 mr-2" />
             New Vault
-        <div className="flex items-center gap-2">
-          <Button className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30">
-            Create New Vault
           </Button>
         </div>
       </div>
@@ -102,7 +108,7 @@ export default function SavingsVaultPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
-                <Vault className="w-5 h-5 text-cyan-400" />
+                <Landmark className="w-5 h-5 text-cyan-400" />
               </div>
               <div>
                 <CardTitle className="text-white">Vault Accounts</CardTitle>
@@ -115,7 +121,7 @@ export default function SavingsVaultPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {vaultAccounts.map((vault) => (
+          {vaults.map((vault) => (
             <div 
               key={vault.name} 
               className="glass-panel rounded-xl p-4 hover:bg-white/5 transition-colors"
@@ -127,10 +133,8 @@ export default function SavingsVaultPage() {
                   }`}>
                     {vault.status === 'Locked' ? (
                       <Lock className="w-6 h-6 text-yellow-400" />
-                    ) : vault.type === 'Target Savings' ? (
-                      <Target className="w-6 h-6 text-cyan-400" />
                     ) : (
-                      <Vault className="w-6 h-6 text-cyan-400" />
+                      <PiggyBank className="w-6 h-6 text-cyan-400" />
                     )}
                   </div>
                   <div>
@@ -140,7 +144,7 @@ export default function SavingsVaultPage() {
                         {vault.type}
                       </Badge>
                       <span className="text-xs text-slate-500">•</span>
-                      <span className="text-xs text-slate-400">{vault.lockPeriod}</span>
+                      {'maturityDate' in vault && <span className="text-xs text-slate-400">{vault.maturityDate}</span>}
                     </div>
                   </div>
                 </div>
@@ -156,7 +160,7 @@ export default function SavingsVaultPage() {
                   </div>
                   <div className="text-center sm:text-right">
                     <p className="text-xs text-slate-400">Interest/mo</p>
-                    <p className="text-lg font-bold text-cyan-400">{vault.interest}</p>
+                    <p className="text-lg font-bold text-cyan-400">${vault.earned}</p>
                   </div>
                   <Badge className={`${
                     vault.status === 'Active' 
@@ -168,18 +172,18 @@ export default function SavingsVaultPage() {
                 </div>
               </div>
 
-              {/* Goal progress for target savings */}
-              {vault.goal && (
+              {/* Goal progress for locked vaults */}
+              {'progress' in vault && vault.progress != null && (
                 <div className="mt-4 pt-4 border-t border-white/10">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-slate-400">Goal Progress</span>
+                    <span className="text-sm text-slate-400">Progress</span>
                     <span className="text-sm font-medium text-white">
-                      {vault.balance} / {vault.goal}
+                      {vault.progress}% complete
                     </span>
                   </div>
                   <Progress value={vault.progress} className="h-2 bg-white/10" />
                   <p className="text-xs text-slate-500 mt-1">
-                    {vault.progress}% towards goal • ${(100000 - 70000).toLocaleString()} remaining
+                    {'maturityDate' in vault ? `Matures ${vault.maturityDate}` : ''}
                   </p>
                 </div>
               )}

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -29,47 +30,6 @@ import {
   ArrowDownRight,
   Zap,
 } from 'lucide-react'
-
-// ── Data ────────────────────────────────────────────────────────────────────
-
-const stats = [
-  {
-    label: 'Active Products',
-    value: '4',
-    delta: '+1 this month',
-    up: true,
-    icon: Package,
-    colorClass: 'text-[hsl(var(--svc-cyber))]',
-    bgClass:    'bg-[hsl(var(--svc-cyber-muted))]',
-  },
-  {
-    label: 'Documents',
-    value: '8',
-    delta: '+2 this month',
-    up: true,
-    icon: FileText,
-    colorClass: 'text-[hsl(var(--svc-financial))]',
-    bgClass:    'bg-[hsl(var(--svc-financial-muted))]',
-  },
-  {
-    label: 'Open Requests',
-    value: '2',
-    delta: 'Avg 48h resolution',
-    up: null,
-    icon: ClipboardList,
-    colorClass: 'text-[hsl(var(--svc-realty))]',
-    bgClass:    'bg-[hsl(var(--svc-realty-muted))]',
-  },
-  {
-    label: 'Notifications',
-    value: '3',
-    delta: '1 requires action',
-    up: false,
-    icon: Bell,
-    colorClass: 'text-red-400',
-    bgClass:    'bg-red-500/10',
-  },
-]
 
 const services = [
   {
@@ -183,6 +143,59 @@ const quickActions = [
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const [summary, setSummary] = useState<{
+    activeProducts: number
+    documents: number
+    openRequests: number
+    unreadNotifications: number
+  } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/dashboard/summary')
+      .then(r => r.json())
+      .then(d => setSummary(d))
+      .catch(() => {})
+  }, [])
+
+  const stats = [
+    {
+      label: 'Active Products',
+      value: summary ? String(summary.activeProducts) : '—',
+      delta: 'Entitlements active',
+      up: true,
+      icon: Package,
+      colorClass: 'text-[hsl(var(--svc-cyber))]',
+      bgClass:    'bg-[hsl(var(--svc-cyber-muted))]',
+    },
+    {
+      label: 'Documents',
+      value: summary ? String(summary.documents) : '—',
+      delta: 'KYC files on record',
+      up: true,
+      icon: FileText,
+      colorClass: 'text-[hsl(var(--svc-financial))]',
+      bgClass:    'bg-[hsl(var(--svc-financial-muted))]',
+    },
+    {
+      label: 'Open Requests',
+      value: summary ? String(summary.openRequests) : '—',
+      delta: 'Avg 48h resolution',
+      up: null,
+      icon: ClipboardList,
+      colorClass: 'text-[hsl(var(--svc-realty))]',
+      bgClass:    'bg-[hsl(var(--svc-realty-muted))]',
+    },
+    {
+      label: 'Notifications',
+      value: summary ? String(summary.unreadNotifications) : '—',
+      delta: summary && summary.unreadNotifications > 0 ? `${summary.unreadNotifications} unread` : 'All read',
+      up: summary && summary.unreadNotifications > 0 ? false : null,
+      icon: Bell,
+      colorClass: 'text-red-400',
+      bgClass:    'bg-red-500/10',
+    },
+  ]
+
   return (
     <div className="space-y-8 animate-fade-in">
 

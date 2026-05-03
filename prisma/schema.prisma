@@ -123,6 +123,21 @@ enum NewsCategory {
   general
 }
 
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  CANCELLED
+}
+
+enum MeetingStatus {
+  REQUESTED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
 // ─── Core Models ──────────────────────────────────────────────────────────────
 
 model User {
@@ -144,8 +159,10 @@ model User {
   auditLogs       AuditLog[]
   portfolioMemberships PortfolioMembership[]
   entitlements    Entitlement[]
-  tickets         SupportTicket[]
-  requests        ServiceRequest[]
+  tickets            SupportTicket[]
+  requests           ServiceRequest[]
+  apiKeys            ApiKey[]
+  meetingRequests    MeetingRequest[] @relation("MeetingRequests")
 
   @@map("users")
 }
@@ -505,6 +522,21 @@ model NewsIngestionRun {
   @@map("news_ingestion_runs")
 }
 
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  keyHash    String
+  keyPrefix  String
+  label      String
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
 model SupportSession {
   id            String               @id @default(cuid())
   userId        String?
@@ -520,4 +552,37 @@ model SupportSession {
   escalations   SupportEscalation[]
 
   @@map("support_sessions")
+}
+
+model EmailCampaign {
+  id             String         @id @default(cuid())
+  title          String
+  subject        String
+  body           String
+  status         CampaignStatus @default(DRAFT)
+  scheduledAt    DateTime?
+  sentAt         DateTime?
+  recipientCount Int            @default(0)
+  createdBy      String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@map("email_campaigns")
+}
+
+model MeetingRequest {
+  id          String        @id @default(cuid())
+  requesterId String
+  requester   User          @relation("MeetingRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  hostId      String?
+  topic       String
+  description String?
+  proposedAt  DateTime
+  duration    Int           @default(30)
+  status      MeetingStatus @default(REQUESTED)
+  meetingUrl  String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@map("meeting_requests")
 }
