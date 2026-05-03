@@ -346,7 +346,7 @@ export default function DeveloperDashboardPage() {
                   <span className="text-purple-400">const</span> gem = <span className="text-purple-400">new</span> <span className="text-cyan-400">GemClient</span>(<span className="text-green-400">&apos;your_api_key&apos;</span>)
                 </div>
                 <div className="text-foreground mt-4">
-                  <span className="text-muted-foreground">// Fetch threat intelligence</span>
+                  <span className="text-muted-foreground">{'// Fetch threat intelligence'}</span>
                 </div>
                 <div className="text-foreground">
                   <span className="text-purple-400">const</span> threats = <span className="text-purple-400">await</span> gem.threats.<span className="text-cyan-400">list</span>()

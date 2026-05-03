@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -88,14 +89,22 @@ const recentEvents = [
   { icon: FileText,     color: 'text-slate-400',  bg: 'bg-slate-500/10',                               text: 'Document uploaded — Q1 Portfolio Statement',  time: '3h ago' },
 ]
 
-const platformStats = [
-  { label: 'Total Users',       value: '128',      delta: '+3 this week', up: true,  icon: Users,       colorText: 'text-[hsl(var(--svc-cyber))]',      colorBg: 'bg-[hsl(var(--svc-cyber-muted))]' },
-  { label: 'Pending KYC',       value: '4',        delta: '2 overdue',    up: false, icon: CheckCircle, colorText: 'text-yellow-400',                    colorBg: 'bg-yellow-500/10' },
-  { label: 'Open Approvals',    value: '7',        delta: '3 urgent',     up: false, icon: ClipboardList, colorText: 'text-red-400',                    colorBg: 'bg-red-500/10' },
-  { label: 'Platform AUM',      value: '$312M',    delta: '+4.2% MTD',    up: true,  icon: TrendingUp,  colorText: 'text-green-400',                    colorBg: 'bg-green-500/10' },
-]
+interface AdminStats { totalUsers: number; pendingKyc: number; openApprovals: number; openTickets: number }
 
 export default function AdminPage() {
+  const [stats, setStats] = useState<AdminStats | null>(null)
+
+  useEffect(() => {
+    fetch('/api/admin/stats').then(r => r.json()).then(d => setStats(d)).catch(() => {})
+  }, [])
+
+  const platformStats = [
+    { label: 'Total Users',    value: stats ? String(stats.totalUsers)    : '—', delta: 'active accounts', up: true,  icon: Users,         colorText: 'text-[hsl(var(--svc-cyber))]',      colorBg: 'bg-[hsl(var(--svc-cyber-muted))]' },
+    { label: 'Pending KYC',   value: stats ? String(stats.pendingKyc)    : '—', delta: 'awaiting review',  up: false, icon: CheckCircle,   colorText: 'text-yellow-400',                   colorBg: 'bg-yellow-500/10' },
+    { label: 'Open Approvals', value: stats ? String(stats.openApprovals) : '—', delta: 'manual review',   up: false, icon: ClipboardList, colorText: 'text-red-400',                      colorBg: 'bg-red-500/10' },
+    { label: 'Open Tickets',   value: stats ? String(stats.openTickets)   : '—', delta: 'support queue',   up: false, icon: TrendingUp,    colorText: 'text-green-400',                    colorBg: 'bg-green-500/10' },
+  ]
+
   return (
     <div className="space-y-8 animate-fade-in">
 

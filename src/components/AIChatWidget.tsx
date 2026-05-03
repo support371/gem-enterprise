@@ -113,13 +113,19 @@ export function AIChatWidget({ profileId = 'PRF-005', profileName = 'Platform Su
 
   const acceptDisclosure = async () => {
     try {
+      const text = process.env.NEXT_PUBLIC_AI_DISCLOSURE_TEXT ?? ''
+      const encoded = new TextEncoder().encode(text)
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoded)
+      const disclosureTextHash = Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0')).join('')
+
       const res = await fetch('/api/assistant/session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           profileId,
           consentGiven: true,
-          disclosureTextHash: 'sha256-mock-hash'
+          disclosureTextHash,
         })
       })
 
