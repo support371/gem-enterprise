@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,40 +22,67 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ClipboardList, Send, CheckCircle2 } from 'lucide-react'
+import { ClipboardList, Send, CheckCircle2, Loader2 } from 'lucide-react'
 
-const existingRequests = [
-  { id: 'REQ-0042', type: 'Portfolio Rebalance', subject: 'Q1 2026 rebalance request', status: 'Completed', created: 'Mar 1, 2026' },
-  { id: 'REQ-0038', type: 'Document Request', subject: 'Request for Q4 statement', status: 'Completed', created: 'Jan 5, 2026' },
-  { id: 'REQ-0035', type: 'Product Inquiry', subject: 'SOC Access upgrade inquiry', status: 'In Review', created: 'Dec 20, 2025' },
-  { id: 'REQ-0031', type: 'Allocation Change', subject: 'Increase financial allocation 5%', status: 'Pending', created: 'Dec 15, 2025' },
-]
+interface ServiceRequest {
+  id: string
+  type: string
+  subject: string
+  status: string
+  priority: string
+  createdAt: string
+}
 
-function statusBadge(status: string) {
-  const map: Record<string, string> = {
-    Completed: 'bg-green-500/20 text-green-400 border-green-500/30',
-    'In Review': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    Pending: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-    Rejected: 'bg-red-500/20 text-red-400 border-red-500/30',
-  }
-  return <Badge className={map[status] ?? 'bg-slate-500/20 text-slate-400'}>{status}</Badge>
+const statusColor: Record<string, string> = {
+  open:        'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+  in_progress: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+  completed:   'bg-green-500/20 text-green-400 border-green-500/30',
+  cancelled:   'bg-red-500/20 text-red-400 border-red-500/30',
+  pending_info:'bg-orange-500/20 text-orange-400 border-orange-500/30',
 }
 
 export default function RequestsPage() {
   const [requestType, setRequestType] = useState('')
   const [subject, setSubject] = useState('')
   const [description, setDescription] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [requests, setRequests] = useState<ServiceRequest[]>([])
+  const [loading, setLoading] = useState(true)
 
-  function handleSubmit(e: React.FormEvent) {
+  const fetchRequests = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/requests')
+      const data = await res.json()
+      if (data.requests) setRequests(data.requests)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { fetchRequests() }, [fetchRequests])
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setSubmitted(true)
-    setTimeout(() => {
-      setSubmitted(false)
-      setRequestType('')
-      setSubject('')
-      setDescription('')
-    }, 3000)
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: requestType, subject, description }),
+      })
+      if (res.ok) {
+        setSubmitted(true)
+        setRequestType('')
+        setSubject('')
+        setDescription('')
+        await fetchRequests()
+        setTimeout(() => setSubmitted(false), 4000)
+      }
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -105,7 +132,7 @@ export default function RequestsPage() {
                 <Input
                   placeholder="Brief summary of your request"
                   value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
+                  onChange={e => setSubject(e.target.value)}
                   className="bg-white/5 border-white/10 text-white placeholder:text-slate-500"
                   required
                 />
@@ -115,14 +142,15 @@ export default function RequestsPage() {
                 <Textarea
                   placeholder="Provide details about your request..."
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={e => setDescription(e.target.value)}
                   className="bg-white/5 border-white/10 text-white placeholder:text-slate-500 min-h-[100px]"
                   required
                 />
               </div>
               <div className="md:col-span-2">
-                <Button type="submit" className="bg-cyan-500 text-black hover:bg-cyan-400 font-semibold">
-                  <Send className="w-4 h-4 mr-2" /> Submit Request
+                <Button type="submit" disabled={submitting} className="bg-cyan-500 text-black hover:bg-cyan-400 font-semibold">
+                  {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                  {submitting ? 'Submitting…' : 'Submit Request'}
                 </Button>
               </div>
             </form>
@@ -139,30 +167,43 @@ export default function RequestsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-white/10 hover:bg-transparent">
-                <TableHead className="text-slate-400">ID</TableHead>
-                <TableHead className="text-slate-400">Type</TableHead>
-                <TableHead className="text-slate-400">Subject</TableHead>
-                <TableHead className="text-slate-400">Status</TableHead>
-                <TableHead className="text-slate-400">Created</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {existingRequests.map((req) => (
-                <TableRow key={req.id} className="border-white/5 hover:bg-white/5">
-                  <TableCell className="font-mono text-cyan-400 text-sm">{req.id}</TableCell>
-                  <TableCell>
-                    <Badge className="bg-white/10 text-slate-300 border-white/10 text-xs">{req.type}</Badge>
-                  </TableCell>
-                  <TableCell className="text-white text-sm">{req.subject}</TableCell>
-                  <TableCell>{statusBadge(req.status)}</TableCell>
-                  <TableCell className="text-slate-400 text-sm">{req.created}</TableCell>
+          {loading ? (
+            <div className="flex items-center justify-center py-8 text-slate-500 gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading requests…
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/10 hover:bg-transparent">
+                  <TableHead className="text-slate-400">Type</TableHead>
+                  <TableHead className="text-slate-400">Subject</TableHead>
+                  <TableHead className="text-slate-400">Status</TableHead>
+                  <TableHead className="text-slate-400">Created</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {requests.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-slate-500 py-8">No requests yet. Submit one above.</TableCell>
+                  </TableRow>
+                )}
+                {requests.map(req => (
+                  <TableRow key={req.id} className="border-white/5 hover:bg-white/5">
+                    <TableCell>
+                      <Badge className="bg-white/10 text-slate-300 border-white/10 text-xs">{req.type.replace('-', ' ')}</Badge>
+                    </TableCell>
+                    <TableCell className="text-white text-sm">{req.subject}</TableCell>
+                    <TableCell>
+                      <Badge className={`${statusColor[req.status] ?? 'bg-slate-500/20 text-slate-400'} text-xs`}>
+                        {req.status.replace('_', ' ')}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-slate-400 text-sm">{new Date(req.createdAt).toLocaleDateString()}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

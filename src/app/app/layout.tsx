@@ -25,6 +25,8 @@ import {
   UserCheck,
   Wallet,
   PiggyBank,
+  Mail,
+  Rss,
 } from "lucide-react";
 import { AIChatWidget } from "@/components/AIChatWidget";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -64,6 +66,8 @@ const iconMap: Record<PlatformNavIcon, React.ComponentType<{ className?: string 
   UserCheck,
   Wallet,
   PiggyBank,
+  Mail,
+  Rss,
 };
 
 function SidebarContent({ isAdmin, pathname }: { isAdmin: boolean; pathname: string }) {

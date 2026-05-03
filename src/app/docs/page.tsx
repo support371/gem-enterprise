@@ -316,13 +316,13 @@ export default function DocsPage() {
                 <code>
                   <span className="text-purple-400">import</span> {'{ GemClient }'} <span className="text-purple-400">from</span> <span className="text-green-400">&apos;@gem-enterprise/sdk&apos;</span>{'\n'}
                   {'\n'}
-                  <span className="text-muted-foreground">// Initialize the client</span>{'\n'}
+                  <span className="text-muted-foreground">{'// Initialize the client'}</span>{'\n'}
                   <span className="text-purple-400">const</span> gem = <span className="text-purple-400">new</span> <span className="text-cyan-400">GemClient</span>({'{\n'}
                   {'  '}apiKey: process.env.<span className="text-amber-400">GEM_API_KEY</span>,{'\n'}
                   {'  '}environment: <span className="text-green-400">&apos;production&apos;</span>{'\n'}
                   {'}'}){'\n'}
                   {'\n'}
-                  <span className="text-muted-foreground">// Fetch latest threat intelligence</span>{'\n'}
+                  <span className="text-muted-foreground">{'// Fetch latest threat intelligence'}</span>{'\n'}
                   <span className="text-purple-400">const</span> threats = <span className="text-purple-400">await</span> gem.threats.<span className="text-cyan-400">list</span>({'{\n'}
                   {'  '}severity: [<span className="text-green-400">&apos;critical&apos;</span>, <span className="text-green-400">&apos;high&apos;</span>],{'\n'}
                   {'  '}sector: <span className="text-green-400">&apos;financial&apos;</span>,{'\n'}

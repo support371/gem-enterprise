@@ -6,11 +6,28 @@ export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const profile = await db.profile.findUnique({
-    where: { userId: session.userId }
+  const user = await db.user.findUnique({
+    where: { id: session.userId },
+    select: {
+      email: true,
+      createdAt: true,
+      profile: true,
+      kycApplications: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { status: true },
+      },
+    },
   });
 
-  return NextResponse.json({ ok: true, profile });
+  if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  return NextResponse.json({
+    email: user.email,
+    createdAt: user.createdAt,
+    profile: user.profile,
+    kycStatus: user.kycApplications[0]?.status ?? null,
+  });
 }
 
 export async function PATCH(req: NextRequest) {
