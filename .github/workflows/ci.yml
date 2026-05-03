@@ -1,0 +1,165 @@
+name: CI · Deploy · Cleanup
+
+on:
+  push:
+    branches: [image-analysis-restored, main, "claude/**"]
+  pull_request:
+    branches: [image-analysis-restored, main]
+  workflow_dispatch:
+    inputs:
+      force_redeploy:
+        description: Force Vercel redeploy
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+jobs:
+  # ── 1. Validate ─────────────────────────────────────────────────────────────
+  validate:
+    name: Lint · Build · Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+
+      - name: Test
+        run: npm test -- --run
+
+      - name: Auto-debug on failure
+        if: failure()
+        run: |
+          echo "::group::Versions"
+          node --version && npm --version
+          echo "::endgroup::"
+          echo "::group::TypeScript errors"
+          npx tsc --noEmit 2>&1 || true
+          echo "::endgroup::"
+          echo "::group::Vite build verbose"
+          npm run build -- --debug 2>&1 || true
+          echo "::endgroup::"
+          echo "::group::Package tree"
+          npm list --depth=1 2>/dev/null || true
+          echo "::endgroup::"
+
+      - name: Upload dist artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ github.sha }}
+          path: dist/
+          retention-days: 3
+
+  # ── 2. Deploy to Vercel (production branch only) ────────────────────────────
+  deploy:
+    name: Deploy → Vercel Production
+    runs-on: ubuntu-latest
+    needs: validate
+    if: github.ref == 'refs/heads/image-analysis-restored' && github.event_name != 'pull_request'
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.deployment_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build via Vercel CLI
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+
+      - name: Deploy prebuilt to production
+        id: deploy
+        run: |
+          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "deployment_url=$URL" >> $GITHUB_OUTPUT
+          echo "Deployed: $URL"
+
+      - name: Debug deployment failure
+        if: failure()
+        run: |
+          echo "::group::Vercel project info"
+          vercel inspect --token=${{ secrets.VERCEL_TOKEN }} 2>&1 || true
+          echo "::endgroup::"
+          echo "::group::Recent Vercel deployments"
+          vercel list --token=${{ secrets.VERCEL_TOKEN }} --limit=5 2>&1 || true
+          echo "::endgroup::"
+
+  # ── 3. Clean stale preview deployments ──────────────────────────────────────
+  cleanup:
+    name: Clean stale previews
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: always() && github.ref == 'refs/heads/image-analysis-restored'
+
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Remove errored/cancelled previews older than 7 days
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          CUTOFF=$(python3 -c "import time; print(int((time.time()-7*86400)*1000))")
+          vercel list --token=$VERCEL_TOKEN --limit=50 --json 2>/dev/null | \
+          python3 -c "
+          import sys, json, subprocess, os
+          token = os.environ['VERCEL_TOKEN']
+          try:
+              data = json.load(sys.stdin)
+              deployments = data if isinstance(data, list) else data.get('deployments', [])
+          except Exception:
+              sys.exit(0)
+          stale = [d['uid'] for d in deployments
+                   if d.get('created', 0) < int('$CUTOFF')
+                   and d.get('target') != 'production'
+                   and d.get('state','') in ('ERROR','CANCELED','QUEUED')]
+          print(f'Removing {len(stale)} stale deployments')
+          for uid in stale:
+              r = subprocess.run(['vercel', 'remove', uid, '--yes', '--token', token],
+                                 capture_output=True)
+              print(uid, 'removed' if r.returncode == 0 else 'failed')
+          " || true
