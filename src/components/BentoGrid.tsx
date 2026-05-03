@@ -236,7 +236,7 @@ export const BentoGrid = () => {
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.02] to-transparent" />
 
       <div className="container mx-auto px-4 relative z-10">
-        {/* Section Header — plain div, no framer-motion */}
+        {/* Section Header */}
         <div className="max-w-3xl mx-auto text-center mb-16">
           <div className="inline-flex items-center gap-2 text-primary text-sm font-medium mb-4">
             <span>Core Solutions</span>

@@ -18,7 +18,6 @@ export const CTASection = () => {
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="max-w-5xl mx-auto">
-          {/* Plain div — no framer-motion wrapper */}
           <div className="glass-panel rounded-3xl p-8 md:p-12 lg:p-16 text-center glow-cyan border border-primary/20">
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-6">
               Ready to Secure Your{" "}

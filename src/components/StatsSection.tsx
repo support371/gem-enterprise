@@ -50,7 +50,7 @@ export const StatsSection = () => {
   const [hasAnimated, setHasAnimated] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
 
-  // Replace framer-motion useInView with native IntersectionObserver
+  // IntersectionObserver replaces useInView
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
@@ -100,7 +100,7 @@ export const StatsSection = () => {
       <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5" />
 
       <div className="container mx-auto px-4 relative z-10">
-        {/* Main Uptime Card — plain div, no framer-motion */}
+        {/* Main Uptime Card */}
         <div className="max-w-4xl mx-auto mb-12">
           <div className="glass-panel rounded-2xl p-8 md:p-12 text-center border border-primary/20 glow-cyan">
             <div className="flex items-center justify-center gap-2 mb-4">
@@ -129,7 +129,7 @@ export const StatsSection = () => {
           </div>
         </div>
 
-        {/* Stats Grid — plain divs, no framer-motion */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {stats.slice(1).map((stat, index) => {
             const Icon = stat.icon;
