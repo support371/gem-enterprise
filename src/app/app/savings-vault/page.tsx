@@ -18,30 +18,40 @@ import {
   Lock,
   PiggyBank,
   Clock,
-  ChevronRight,
   ShieldCheck,
   ArrowUpRight,
-  Percent
+  Percent,
+  Plus,
+  Zap,
+  Target
 } from 'lucide-react'
 
-const vaults = [
-  { name: 'Primary Reserve', type: 'Savings', balance: '45,000', apy: '4.5%', earned: ',240', status: 'Active', color: 'cyan' },
-  { name: 'Q3 Tax Lock', type: 'Locked', balance: '20,000', apy: '5.2%', earned: '90', status: 'Locked', maturityDate: 'Sep 30, 2026', progress: 65, color: 'purple' },
-  { name: 'Estate Escrow', type: 'Escrow', balance: '50,000', apy: '3.8%', earned: ',100', status: 'Pending', color: 'yellow' },
+const vaultStats = [
+  { label: 'Total Balance', value: '$115,000', change: '+2.4% this month', icon: Landmark, color: 'cyan' },
+  { label: 'Interest Earned', value: '$2,430', change: '+$320 this month', icon: Percent, color: 'green' },
+  { label: 'Active Vaults', value: '3', change: '+1 this quarter', icon: PiggyBank, color: 'purple' },
+  { label: 'Protected Value', value: '$250M', change: 'Insurance coverage', icon: Shield, color: 'yellow' },
+]
+
+const vaultAccounts = [
+  { name: 'Primary Reserve', type: 'Savings', balance: '$45,000', apy: '4.5%', interest: '+$168.75', status: 'Active', lockPeriod: 'No lock' },
+  { name: 'Q3 Tax Lock', type: 'Term Deposit', balance: '$20,000', apy: '5.2%', interest: '+$86.67', status: 'Locked', lockPeriod: '90 days' },
+  { name: 'Estate Escrow', type: 'Escrow', balance: '$50,000', apy: '3.8%', interest: '+$158.33', status: 'Active', lockPeriod: 'Variable' },
+  { name: 'Emergency Fund', type: 'Target Savings', balance: '$70,000', apy: '4.2%', interest: '+$245.00', status: 'Active', lockPeriod: 'No lock', goal: '$100,000', progress: 70 },
 ]
 
 const recentActivity = [
-  { date: 'Apr 24, 2026', type: 'Interest', description: 'Monthly yield payment - Primary Reserve', amount: '+42.50' },
-  { date: 'Apr 20, 2026', type: 'Deposit', description: 'Transfer from external account', amount: '+0,000.00' },
-  { date: 'Apr 15, 2026', type: 'Interest', description: 'Yield payment - Q3 Tax Lock', amount: '+20.12' },
-  { date: 'Apr 10, 2026', type: 'Transfer', description: 'Internal transfer to Estate Escrow', amount: '-0,000.00' },
+  { date: 'Apr 24, 2026', type: 'Interest', description: 'Monthly yield payment - Primary Reserve', amount: '+$42.50' },
+  { date: 'Apr 20, 2026', type: 'Deposit', description: 'Transfer from external account', amount: '+$10,000.00' },
+  { date: 'Apr 15, 2026', type: 'Interest', description: 'Yield payment - Q3 Tax Lock', amount: '+$20.12' },
+  { date: 'Apr 10, 2026', type: 'Transfer', description: 'Internal transfer to Estate Escrow', amount: '-$10,000.00' },
 ]
 
 export default function SavingsVaultPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">
             Savings <span className="text-cyan-400">Vault</span>
@@ -56,9 +66,6 @@ export default function SavingsVaultPage() {
           <Button className="bg-cyan-500 hover:bg-cyan-600 text-black font-semibold">
             <Plus className="w-4 h-4 mr-2" />
             New Vault
-        <div className="flex items-center gap-2">
-          <Button className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30">
-            Create New Vault
           </Button>
         </div>
       </div>
@@ -102,7 +109,7 @@ export default function SavingsVaultPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
-                <Vault className="w-5 h-5 text-cyan-400" />
+                <PiggyBank className="w-5 h-5 text-cyan-400" />
               </div>
               <div>
                 <CardTitle className="text-white">Vault Accounts</CardTitle>
@@ -110,7 +117,7 @@ export default function SavingsVaultPage() {
               </div>
             </div>
             <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-              4 Vaults Active
+              {vaultAccounts.length} Vaults Active
             </Badge>
           </div>
         </CardHeader>
@@ -130,7 +137,7 @@ export default function SavingsVaultPage() {
                     ) : vault.type === 'Target Savings' ? (
                       <Target className="w-6 h-6 text-cyan-400" />
                     ) : (
-                      <Vault className="w-6 h-6 text-cyan-400" />
+                      <PiggyBank className="w-6 h-6 text-cyan-400" />
                     )}
                   </div>
                   <div>
@@ -169,7 +176,7 @@ export default function SavingsVaultPage() {
               </div>
 
               {/* Goal progress for target savings */}
-              {vault.goal && (
+              {vault.goal && vault.progress && (
                 <div className="mt-4 pt-4 border-t border-white/10">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm text-slate-400">Goal Progress</span>
@@ -179,7 +186,7 @@ export default function SavingsVaultPage() {
                   </div>
                   <Progress value={vault.progress} className="h-2 bg-white/10" />
                   <p className="text-xs text-slate-500 mt-1">
-                    {vault.progress}% towards goal • ${(100000 - 70000).toLocaleString()} remaining
+                    {vault.progress}% towards goal
                   </p>
                 </div>
               )}
@@ -197,7 +204,7 @@ export default function SavingsVaultPage() {
           <div className="flex-1">
             <p className="text-sm font-medium text-white">Enterprise-Grade Security</p>
             <p className="text-xs text-slate-400 mt-0.5">
-              All vaults are protected by multi-signature authorization, insurance coverage up to 0M, and 24/7 monitoring.
+              All vaults are protected by multi-signature authorization, insurance coverage up to $250M, and 24/7 monitoring.
             </p>
           </div>
           <Badge className="bg-green-500/20 text-green-400 border-green-500/30 shrink-0">Protected</Badge>
