@@ -5,6 +5,7 @@ import { Providers } from "@/components/Providers";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://gemcybersecurityassist.com"),
@@ -63,6 +64,7 @@ export default async function RootLayout({
           {!isPortal && <Footer />}
         </Providers>
         <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
