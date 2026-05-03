@@ -2,6 +2,7 @@
   "framework": "nextjs",
   "buildCommand": "pnpm run db:generate && pnpm run build",
   "installCommand": "pnpm install --frozen-lockfile",
+  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" != \"main\" ]; then exit 0; fi; exit 1",
   "env": {
     "AUDIT_ENABLED": "true",
     "NEXT_PUBLIC_APP_NAME": "GEM Enterprise"
