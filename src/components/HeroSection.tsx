@@ -101,7 +101,7 @@ export const HeroSection = () => {
             </p>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-3 gap-3 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
               {heroStats.map((stat, index) => {
                 const Icon = stat.icon;
                 return (

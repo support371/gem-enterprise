@@ -53,6 +53,13 @@ const features: TierFeature[] = [
   { name: "Multi-cloud Coverage", essential: "1 Cloud", professional: "3 Clouds", enterprise: "Unlimited" },
 ];
 
+// Static class map — dynamic `bg-${color}/10` strings get purged by Tailwind at build time
+const tierIconStyles: Record<string, { bg: string; text: string }> = {
+  secondary: { bg: "bg-secondary/10", text: "text-secondary" },
+  primary:   { bg: "bg-primary/10",   text: "text-primary" },
+  accent:    { bg: "bg-accent/10",    text: "text-accent" },
+};
+
 const FeatureCell = ({ value }: { value: boolean | string }) => {
   if (typeof value === "boolean") {
     return value ? (
@@ -98,8 +105,8 @@ export const ServiceTierComparison = () => {
                   </div>
                 )}
                 <div className="flex items-center gap-3 mb-4">
-                  <div className={`w-12 h-12 rounded-xl bg-${tier.color}/10 flex items-center justify-center`}>
-                    <Icon className={`w-6 h-6 text-${tier.color}`} />
+                  <div className={`w-12 h-12 rounded-xl ${tierIconStyles[tier.color]?.bg ?? "bg-secondary/10"} flex items-center justify-center`}>
+                    <Icon className={`w-6 h-6 ${tierIconStyles[tier.color]?.text ?? "text-secondary"}`} />
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-foreground">{tier.name}</h3>
