@@ -1,7 +1,60 @@
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// Strict CORS allowlist — SEC-01 remediation
+const ALLOWED_ORIGINS = [
+  "https://gemcybersecurityassist.com",
+  "https://www.gemcybersecurityassist.com",
+  "https://gem-enterprise.vercel.app",
+];
+
+// In development, also allow localhost
+const DEV_ORIGINS = [
+  "http://localhost:8080",
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get("Origin") ?? "";
+  const allAllowed = Deno.env.get("DENO_ENV") === "development"
+    ? [...ALLOWED_ORIGINS, ...DEV_ORIGINS]
+    : ALLOWED_ORIGINS;
+  const allowedOrigin = allAllowed.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Vary": "Origin",
+  };
+}
+
+// Input validation constants — SEC-07 remediation
+const MAX_MESSAGES = 50;
+const MAX_MESSAGE_CONTENT_LENGTH = 4000;
+const MAX_BODY_SIZE = 100_000; // 100KB
+
+function validateMessages(messages: unknown): { valid: boolean; error?: string } {
+  if (!Array.isArray(messages)) {
+    return { valid: false, error: "messages must be an array" };
+  }
+  if (messages.length > MAX_MESSAGES) {
+    return { valid: false, error: `messages array exceeds maximum of ${MAX_MESSAGES}` };
+  }
+  for (const msg of messages) {
+    if (typeof msg !== "object" || msg === null) {
+      return { valid: false, error: "each message must be an object" };
+    }
+    const { role, content } = msg as Record<string, unknown>;
+    if (typeof role !== "string" || !["user", "assistant", "system"].includes(role)) {
+      return { valid: false, error: "invalid message role" };
+    }
+    if (typeof content !== "string") {
+      return { valid: false, error: "message content must be a string" };
+    }
+    if (content.length > MAX_MESSAGE_CONTENT_LENGTH) {
+      return { valid: false, error: `message content exceeds maximum of ${MAX_MESSAGE_CONTENT_LENGTH} characters` };
+    }
+  }
+  return { valid: true };
+}
 
 const systemPrompt = `You are ARIA, the intelligent cybersecurity concierge for GEM Cybersecurity Assist. You help users understand their security needs and guide them to the right solutions.
 
@@ -43,12 +96,42 @@ RESPONSE FORMAT:
 - When recommending pages, use markdown links like [Contact Us](/contact)`;
 
 Deno.serve(async (req) => {
+  const cors = getCorsHeaders(req);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: cors });
+  }
+
+  // Reject non-POST methods
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
+
+  // Enforce body size limit
+  const contentLength = parseInt(req.headers.get("Content-Length") ?? "0", 10);
+  if (contentLength > MAX_BODY_SIZE) {
+    return new Response(JSON.stringify({ error: "Request body too large" }), {
+      status: 413,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
   }
 
   try {
-    const { messages } = await req.json();
+    const body = await req.json();
+    const { messages } = body;
+
+    // Validate messages input
+    const validation = validateMessages(messages);
+    if (!validation.valid) {
+      return new Response(JSON.stringify({ error: validation.error }), {
+        status: 400,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
@@ -75,31 +158,31 @@ Deno.serve(async (req) => {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
           status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...cors, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "Service temporarily unavailable. Please try again later." }), {
           status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...cors, "Content-Type": "application/json" },
         });
       }
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
       return new Response(JSON.stringify({ error: "AI service error" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...cors, "Content-Type": "application/json" },
       });
     }
 
     return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      headers: { ...cors, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
     console.error("gem-assist error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...cors, "Content-Type": "application/json" },
     });
   }
 });

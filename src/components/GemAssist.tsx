@@ -187,9 +187,9 @@ export const GemAssist = () => {
       {isOpen && (
         <div
           className={cn(
-            "fixed bottom-6 right-6 z-50 w-[420px] max-w-[calc(100vw-48px)]",
-            "h-[600px] max-h-[calc(100vh-120px)]",
-            "glass-panel rounded-2xl overflow-hidden flex flex-col",
+            "fixed bottom-0 right-0 sm:bottom-6 sm:right-6 z-50 w-full sm:w-[420px] sm:max-w-[calc(100vw-48px)]",
+            "h-[100dvh] sm:h-[600px] sm:max-h-[calc(100vh-120px)] sm:rounded-2xl",
+            "glass-panel rounded-none sm:rounded-2xl overflow-hidden flex flex-col",
             "border border-border shadow-2xl backdrop-blur-xl",
             "animate-scale-in"
           )}

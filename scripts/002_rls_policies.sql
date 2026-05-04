@@ -145,9 +145,11 @@ CREATE POLICY "documents_insert_admin" ON public.documents FOR INSERT WITH CHECK
 CREATE POLICY "documents_update_admin" ON public.documents FOR UPDATE USING (is_admin());
 CREATE POLICY "documents_delete_admin" ON public.documents FOR DELETE USING (is_admin());
 
--- Audit Logs Policies (Admin only)
+-- Audit Logs Policies
+-- SEC-04 FIX: Restrict inserts to authenticated users only (was open to all).
+-- Audit logs should only be written by authenticated sessions or service-role triggers.
 CREATE POLICY "audit_logs_select_admin" ON public.audit_logs FOR SELECT USING (is_admin());
-CREATE POLICY "audit_logs_insert_all" ON public.audit_logs FOR INSERT WITH CHECK (true);
+CREATE POLICY "audit_logs_insert_authenticated" ON public.audit_logs FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
 
 -- User Sessions Policies
 CREATE POLICY "user_sessions_select_own" ON public.user_sessions FOR SELECT USING (user_id = auth.uid());

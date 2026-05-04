@@ -1,4 +1,7 @@
 -- Auto-create profile on user signup
+-- SEC-03 FIX: Role is ALWAYS defaulted to 'client'.
+-- User-supplied role metadata is IGNORED to prevent privilege escalation.
+-- Only admins can promote roles via the admin interface.
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -12,7 +15,7 @@ BEGIN
     NEW.email,
     COALESCE(NEW.raw_user_meta_data ->> 'first_name', NULL),
     COALESCE(NEW.raw_user_meta_data ->> 'last_name', NULL),
-    COALESCE((NEW.raw_user_meta_data ->> 'role')::user_role, 'client')
+    'client'::user_role  -- HARDCODED: never trust user-supplied role
   )
   ON CONFLICT (id) DO NOTHING;
 
