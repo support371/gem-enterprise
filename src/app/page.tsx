@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { HomeHeader } from "@/components/HomeHeader";
 
 export const metadata = {
   title: "GEM Enterprise | Defend. Protect. Prevail.",
@@ -118,12 +117,8 @@ const intelligence = [
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
-      {/* ── NAVIGATION (sticky top) ── */}
-      <HomeHeader />
-
-
       {/* ── HERO SECTION ── */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         {/* Dark mesh background */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-cyan-500 blur-3xl" />
