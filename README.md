@@ -1,90 +1,3 @@
-<<<<<<< HEAD
-# gem-enterprise
-
-Authenticated portal frontend for the GEM Enterprise platform.
-
-## Stack
-
-- **Vite** — build tool
-- **React 18** — UI framework
-- **TypeScript** — type safety
-- **Tailwind CSS** — utility-first styling with custom design tokens
-- **shadcn/ui** — component primitives
-- **Supabase** — authentication and session management
-- **Vercel** — production deployment
-
-## Required environment variables
-
-```
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
-```
-
-Create a `.env.local` file at the project root with both variables set.
-
-## Development
-
-```bash
-npm install
-npm run dev
-```
-
-## Build
-
-```bash
-npm run build
-```
-
-Output goes to `dist/`. Preview with `npm run preview`.
-
-## Routes
-
-### Public
-| Path | Page |
-|------|------|
-| `/` | Homepage |
-| `/trust-center` | Trust Center |
-| `/solutions` | Solutions |
-| `/solutions/:slug` | Solution detail |
-| `/pricing` | Pricing |
-| `/resources` | Resources |
-| `/blog` | Blog |
-| `/blog/:slug` | Blog post |
-| `/contact` | Contact |
-| `/auth` | Login / sign-up |
-| `/reset-password` | Password reset |
-
-### Onboarding flow
-| Path | Page |
-|------|------|
-| `/register` | Registration (public-only) |
-| `/kyc` | KYC form (authenticated) |
-| `/kyc/status` | KYC status (authenticated) |
-| `/handoff` | Handoff to portal (authenticated) |
-
-### Portal (authenticated, role-gated)
-| Path | Roles |
-|------|-------|
-| `/portal` / `/portal/dashboard` | admin, manager, analyst, viewer |
-| `/portal/services` | admin, manager, analyst, viewer |
-| `/portal/community` | admin, manager, analyst, viewer |
-| `/portal/workspace` | admin, manager, analyst, viewer |
-| `/portal/tasks` | admin, manager, analyst |
-| `/portal/incidents` | admin, manager, analyst |
-| `/portal/team` | admin, manager |
-| `/portal/activity` | admin, manager, analyst |
-| `/portal/alliance-trust` | admin, manager, analyst, viewer |
-| `/portal/settings` | admin |
-| `/profile` | admin, manager, analyst, viewer |
-| `/support` | admin, manager, analyst, viewer |
-
-## Auth behaviour
-
-- Unauthenticated access to any portal route → redirect to `/auth`
-- Authenticated access to `/auth` or `/register` → redirect to `/portal`
-- Supabase env vars missing → auth gracefully disabled, warning logged, no import-time crash
-- Session persists across page refreshes via `localStorage`
-=======
 # GEM Enterprise Portal
 
 Authenticated portal frontend for the GEM Enterprise platform.
@@ -100,6 +13,33 @@ This repo contains the **authenticated portal** only. It is not the public marke
 - Public marketing site: deployed separately on Vercel
 - Authenticated portal: this repo (`support371/gem-enterprise`)
 - Internal operations: Atlassian
+
+---
+
+## Architecture
+
+### Mobile-First Design (Cyber-Noir Theme)
+
+The platform uses a **dark-mode-default** design system with:
+- **Bento-Grid** responsive layouts (`sm:` / `md:` / `lg:` breakpoints)
+- **Glassmorphism** panels (`glass-panel` utility, `backdrop-blur`)
+- **Cyber-Blue / Neon** accent tokens (`--electric-cyan`, `--neon-lime`, `--night-plum`)
+- Touch-optimized targets (44px minimum per WCAG 2.5.8)
+- Full-screen mobile bottom-sheet for GEM AI Assistant
+
+### Nexus Gateway (Global Gateway)
+
+The integration hub for third-party services and the crypto-fiat bridge:
+- **Digital Asset Monitor** (`CryptoMarketTable`) -- real-time polled CoinGecko API
+- **Transaction Queue** -- crypto-fiat bridge with HMAC-signed webhooks, idempotency keys, AML checks
+- **Asset Recovery** -- standardized legal submission schema with per-case audit trails
+- **Third-party integrations** -- Mailchimp, Slack, PagerDuty, Jira, Splunk, Datadog, Okta
+
+### Domain Isolation
+
+The platform enforces logical separation between service domains:
+- **Fintech core** (`/portal/*`, `/global-gateway/*`) -- cybersecurity, asset recovery, transaction processing
+- **Luxury infrastructure** (`/portal/alliance-trust`) -- Alliance Trust Realty real estate services (standalone layout, separate data domain)
 
 ---
 
@@ -139,7 +79,7 @@ Do **not** commit `.env` to the repo. Both variables are public-safe (anon key) 
 | `npm run build` | Production build to `dist/` |
 | `npm run preview` | Serve production build locally |
 | `npm run lint` | Run ESLint |
-| `npm test` | Run Vitest tests |
+| `npm test` | Run Vitest tests (16 tests) |
 
 ---
 
@@ -181,9 +121,11 @@ Do **not** commit `.env` to the repo. Both variables are public-safe (anon key) 
 | `/portal/activity` | admin, manager, analyst |
 | `/portal/alliance-trust` | admin, manager, analyst, viewer |
 | `/portal/settings` | admin |
+| `/global-gateway` | admin, manager, analyst, viewer |
+| `/global-gateway/connect` | admin, manager, analyst, viewer |
+| `/global-gateway/mailchimp` | admin, manager |
 | `/profile` | admin, manager, analyst, viewer |
 | `/support` | admin, manager, analyst, viewer |
-| `/settings` | Redirects to `/portal/settings` (admin) |
 
 ---
 
@@ -197,54 +139,41 @@ Authentication is powered by Supabase Auth.
 - Unauthenticated users accessing protected routes are redirected to `/auth`
 - Authenticated users accessing `/auth` or `/register` are redirected to `/portal`
 - Role enforcement: roles are fetched from the `user_roles` Supabase table
+- **Security:** New users are always assigned `client` role (role metadata in signup is ignored to prevent privilege escalation)
+
+---
+
+## Database Schema
+
+### Core Tables (18)
+`profiles`, `organizations`, `kyc_applications`, `kyc_documents`, `kyc_reviews`, `decisions`, `entitlements`, `products`, `portfolios`, `portfolio_memberships`, `portfolio_products`, `requests`, `support_tickets`, `ticket_messages`, `notifications`, `messages`, `documents`, `audit_logs`, `user_sessions`
+
+### Nexus Gateway Tables (6)
+`asset_recovery_cases`, `asset_recovery_reports`, `asset_recovery_activity`, `transaction_queue`, `transaction_audit_trail`, `exchange_rate_snapshots`
+
+All tables have RLS enabled with appropriate policies.
+
+---
+
+## Security
+
+- **CORS:** Strict origin allowlist on all edge functions (production domains only)
+- **Input validation:** Message count/length caps, body size limits, control character stripping
+- **RLS:** Row-level security on all 24 tables
+- **Auth:** Role-based access control with fail-closed policy
+- **Audit:** Immutable transaction audit trail, per-case recovery activity logs
+
+---
+
+## Edge Functions
+
+| Function | Purpose |
+|---|---|
+| `gem-assist` | AI chat proxy (ARIA concierge) with streaming SSE |
+| `contact-form` | Contact form handler with sanitized input |
 
 ---
 
 ## Deployment
 
-Deployed on Vercel. See [DEPLOYMENT.md](./DEPLOYMENT.md) for full instructions.
-
-**Key points:**
-- Framework preset: Vite
-- Build command: `npm run build`
-- Output directory: `dist`
-- Production branch: `main`
-- Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in Vercel environment variables
-- `vercel.json` rewrites all routes to `index.html` for SPA routing
-
----
-
-## Project Structure
-
-```
-src/
-  App.tsx                    # Route definitions and providers
-  main.tsx                   # Entry point with ErrorBoundary + ThemeProvider
-  hooks/
-    useAuth.tsx              # Auth context and provider
-    useUserRole.tsx          # Role fetching hook (react-query)
-  integrations/
-    supabase/
-      client.ts              # Supabase client init with env var guard
-      types.ts               # Generated Supabase types
-  components/
-    auth/
-      ProtectedRoute.tsx     # Auth + role guard
-      PublicOnlyRoute.tsx    # Redirects authenticated users
-      AccessDenied.tsx       # Access denied screen
-    ErrorBoundary.tsx        # Top-level error boundary
-    Navigation.tsx           # Public site navigation
-    portal/
-      PortalLayout.tsx       # Portal sidebar layout
-      PortalSidebar.tsx      # Portal navigation sidebar
-  pages/
-    portal/                  # Portal page components
-    Auth.tsx                 # Login/signup
-    Register.tsx             # Registration
-    KYC.tsx / KYCStatus.tsx  # KYC flow
-    Handoff.tsx              # Portal handoff
-    Profile.tsx
-    Support.tsx
-    ResetPassword.tsx
-```
->>>>>>> cf2bbe1 (audit: stabilize auth bootstrap, fix critical issues, update docs)
+Production deployment is on Vercel with SPA catch-all rewrite. See `vercel.json` for configuration.

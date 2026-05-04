@@ -1,6 +1,7 @@
 import { Shield, AlertTriangle, ClipboardList, Users, Activity, TrendingUp, Clock, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PortalLayout } from "@/components/portal/PortalLayout";
+import { ClientUpdateFeed, type ClientUpdate } from "@/components/portal/ClientUpdateFeed";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -54,11 +55,11 @@ const recentIncidents = [
   { id: "INC-2024-002", title: "Phishing email campaign detected", severity: "Medium", status: "Investigating", time: "5 hr ago" },
 ];
 
-const recentActivity = [
-  { actor: "Jane Smith", action: "updated status of INC-2024-003 to Active", time: "18 min ago" },
-  { actor: "Mike Johnson", action: "assigned task CVE-2024-1234 patch to Sarah Chen", time: "42 min ago" },
-  { actor: "System", action: "completed automated backup — all 14 nodes", time: "1 hr ago" },
-  { actor: "Sarah Chen", action: "closed TASK-0041 — firewall rule audit", time: "3 hr ago" },
+const recentActivityUpdates: ClientUpdate[] = [
+  { id: "upd-1", caseId: "INC-2024-003", timestamp: "18 min ago", status: "active", action: "Updated status to Active", actor: "Jane Smith", details: "Unauthorized API access attempt" },
+  { id: "upd-2", caseId: "CVE-2024-1234", timestamp: "42 min ago", status: "pending", action: "Assigned patch task to Sarah Chen", actor: "Mike Johnson" },
+  { id: "upd-3", caseId: "SYS-BACKUP", timestamp: "1 hr ago", status: "resolved", action: "Completed automated backup — all 14 nodes", actor: "System" },
+  { id: "upd-4", caseId: "TASK-0041", timestamp: "3 hr ago", status: "resolved", action: "Closed firewall rule audit", actor: "Sarah Chen" },
 ];
 
 const severityBadge: Record<string, string> = {
@@ -189,44 +190,13 @@ export default function Portal() {
             </div>
           </div>
 
-          {/* Recent Activity */}
-          <div className="glass-panel rounded-xl border border-border/50 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border/50 bg-primary/[0.03]">
-              <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Activity className="w-4 h-4 text-primary" />
-                Recent Activity
-              </h2>
-              <Link
-                to="/portal/activity"
-                className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
-              >
-                View all →
-              </Link>
-            </div>
-            <div className="divide-y divide-border/40">
-              {recentActivity.map((a, i) => (
-                <div key={i} className="px-5 py-3.5 flex items-start gap-3 card-hover-row">
-                  <div className={`w-7 h-7 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${actorInitialColor(a.actor)}`}>
-                    {a.actor === "System" ? (
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                    ) : (
-                      <span className="text-xs font-bold">{a.actor[0]}</span>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-foreground leading-snug">
-                      <span className="font-semibold">{a.actor}</span>{" "}
-                      <span className="text-muted-foreground">{a.action}</span>
-                    </p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <Clock className="w-3 h-3 text-muted-foreground/60" />
-                      <span className="text-xs text-muted-foreground/70">{a.time}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Recent Activity — Standardized Client Update Feed */}
+          <ClientUpdateFeed
+            title="Recent Activity"
+            updates={recentActivityUpdates}
+            viewAllHref="/portal/activity"
+            icon={Activity}
+          />
         </div>
       </div>
     </PortalLayout>
