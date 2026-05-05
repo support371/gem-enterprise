@@ -10,11 +10,11 @@ import { Analytics } from "@vercel/analytics/next";
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://gemcybersecurityassist.com"),
   title: {
-    default: "GEM Enterprise | Cybersecurity-First Enterprise Platform",
+    default: "GEM Enterprise | Defend. Protect. Prevail.",
     template: "%s | GEM Enterprise",
   },
   description:
-    "GEM Enterprise delivers institutional-grade cybersecurity, financial security, and real estate protection for qualified clients. Threat intelligence, asset protection, and client operations.",
+    "Institutional-grade cybersecurity, financial security, and real estate protection for qualified enterprise clients.",
   keywords: [
     "GEM Enterprise",
     "cybersecurity",
@@ -39,28 +39,31 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#131a26" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d121b" },
     { media: "(prefers-color-scheme: light)", color: "#f9f7f4" },
   ],
 };
 
-export default async function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  // Middleware injects x-is-portal for authenticated /app/* and /access/* routes.
-  // Suppress the marketing Navigation + Footer so the portal sidebar layout
-  // renders without a colliding top nav bar.
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();
   const isPortal = headersList.get("x-is-portal") === "1";
 
   return (
-    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className="bg-background">
-      <body>
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className="bg-[#0d121b]">
+      <body className="bg-[#0d121b] text-white antialiased">
         <Providers>
+          {!isPortal && (
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-cyan-300 focus:px-4 focus:py-2 focus:font-bold focus:text-[#071019]"
+            >
+              Skip to main content
+            </a>
+          )}
           {!isPortal && <Navigation />}
-          <main className={isPortal ? undefined : "min-h-screen"}>{children}</main>
+          <main id="main-content" className={isPortal ? undefined : "min-h-screen"}>
+            {children}
+          </main>
           {!isPortal && <Footer />}
         </Providers>
         <SpeedInsights />
