@@ -9,21 +9,49 @@ import {
   SessionPayload,
 } from "@/lib/auth";
 import { emitAuditLog } from "@/lib/audit";
+import { getRequestContext } from "@/lib/api/auth-helpers";
+import { rateLimit, rateLimitedResponse } from "@/lib/api/rate-limit";
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().email("Invalid email address").max(254),
+  password: z.string().min(1, "Password is required").max(256),
 });
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const parsed = loginSchema.safeParse(body);
+const INVALID_CREDENTIALS = { error: "Invalid credentials" };
 
+export async function POST(request: NextRequest) {
+  const { ipAddress, userAgent } = getRequestContext(request);
+
+  // Rate limit per-IP: 10 attempts / 5 minutes. Best-effort (in-memory).
+  const limit = rateLimit(ipAddress, {
+    key: "auth:login",
+    windowMs: 5 * 60_000,
+    max: 10,
+  });
+  if (!limit.ok) {
+    await emitAuditLog({
+      action: "failed_login",
+      resource: "auth",
+      metadata: { reason: "rate_limited" },
+      ipAddress,
+      userAgent,
+    });
+    return rateLimitedResponse(limit.retryAfterSeconds);
+  }
+
+  try {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+
+    const parsed = loginSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Invalid request", details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -33,9 +61,7 @@ export async function POST(request: NextRequest) {
       where: { email: email.toLowerCase() },
       include: {
         profile: true,
-        entitlements: {
-          where: { isActive: true },
-        },
+        entitlements: { where: { isActive: true } },
         kycApplications: {
           orderBy: { createdAt: "desc" },
           take: 1,
@@ -47,16 +73,40 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (!user) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    // Always run a bcrypt compare to mitigate user-enumeration via timing.
+    // We use a placeholder hash for missing users so the compare cost is
+    // similar in both branches.
+    const placeholderHash =
+      "$2a$12$C6UzMDM.H6dfI/f/IKxGhuM6NXk0RvPhgZQ1.0Y8wIJtZk4jAr8s2";
+    const passwordValid = await bcrypt.compare(
+      password,
+      user?.passwordHash ?? placeholderHash,
+    );
+
+    if (!user || !passwordValid) {
+      await emitAuditLog({
+        userId: user?.id,
+        action: "failed_login",
+        resource: "auth",
+        metadata: {
+          email: email.toLowerCase(),
+          reason: !user ? "unknown_user" : "bad_password",
+        },
+        ipAddress,
+        userAgent,
+      });
+      return NextResponse.json(INVALID_CREDENTIALS, { status: 401 });
     }
 
-    const passwordValid = await bcrypt.compare(password, user.passwordHash);
-    if (!passwordValid) {
-      return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
-    }
-
-    if (!user.isActive) {
+    if (!user.isActive || user.status === "suspended") {
+      await emitAuditLog({
+        userId: user.id,
+        action: "failed_login",
+        resource: "auth",
+        metadata: { email: user.email, reason: "suspended" },
+        ipAddress,
+        userAgent,
+      });
       return NextResponse.json({ error: "Account suspended" }, { status: 403 });
     }
 
@@ -78,12 +128,6 @@ export async function POST(request: NextRequest) {
 
     const token = await signSession(sessionPayload);
     const redirect = resolveAccessDestination(sessionPayload);
-
-    const ipAddress =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      request.headers.get("x-real-ip") ??
-      "127.0.0.1";
-    const userAgent = request.headers.get("user-agent") ?? "unknown";
 
     await db.user.update({
       where: { id: user.id },
