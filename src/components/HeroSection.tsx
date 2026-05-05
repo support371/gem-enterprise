@@ -1,242 +1,56 @@
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Shield, Lock, Eye, Zap, CheckCircle2, Clock, Building2, Activity, ChevronDown } from "lucide-react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import socImage from "@/assets/soc-operations-center.jpg";
-
-type AudienceType = "ciso" | "it-ops" | "founder";
-
-const audienceContent: Record<AudienceType, { subheadline: string; secondaryCta: string }> = {
-  ciso: {
-    subheadline: "Advanced cybersecurity monitoring, asset recovery, and real estate services. Powered by AI-driven threat detection and backed by federal compliance standards.",
-    secondaryCta: "Schedule Consultation"
-  },
-  "it-ops": {
-    subheadline: "Seamless integration with your existing stack. 24/7 monitoring, automated response, and streamlined incident workflows.",
-    secondaryCta: "See Integration Options"
-  },
-  founder: {
-    subheadline: "Enterprise-grade security without the enterprise complexity. Fast onboarding, clear pricing, and expert guidance when you need it.",
-    secondaryCta: "Schedule Consultation"
-  }
-};
-
-const heroStats = [
-  { value: 99, suffix: "%", label: "Uptime Guarantee", icon: Activity },
-  { value: 2.0, suffix: "min", label: "Response Time", icon: Clock },
-  { value: 50, suffix: "M+", label: "Assets Managed", icon: Building2 },
-];
-
-const trustBadges = [
-  "SOC 2 Certified",
-  "Federal Compliant",
-  "24/7 Support"
-];
 
 export const HeroSection = () => {
-  const [audience] = useState<AudienceType>("ciso");
-  const [animatedStats, setAnimatedStats] = useState(heroStats.map(() => 0));
-
-  const currentContent = audienceContent[audience];
-
-  useEffect(() => {
-    const timers = heroStats.map((stat, index) => {
-      const duration = 2000;
-      const steps = 60;
-      const increment = stat.value / steps;
-      let current = 0;
-
-      return setInterval(() => {
-        current += increment;
-        if (current >= stat.value) {
-          current = stat.value;
-          clearInterval(timers[index]);
-        }
-        setAnimatedStats(prev => {
-          const newStats = [...prev];
-          newStats[index] = current;
-          return newStats;
-        });
-      }, duration / steps);
-    });
-
-    return () => timers.forEach(t => clearInterval(t));
-  }, []);
-
   return (
     <section className="relative min-h-screen flex items-center justify-center pt-20 pb-16 overflow-hidden">
-      {/* Background Effects — no canvas, no RAF competition */}
+      {/* Background Effects */}
       <div className="absolute inset-0 cyber-grid opacity-20 pointer-events-none" />
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-primary/8 rounded-full blur-[150px] animate-pulse-slow" />
         <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-accent/15 rounded-full blur-[120px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/2 right-1/3 w-[300px] h-[300px] bg-primary/5 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '4s' }} />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
-        {/* Enterprise Badge — visible immediately, no opacity-0 init */}
-        <div className="flex justify-center lg:justify-start mb-8">
-          <div className="inline-flex items-center gap-2 glass-panel px-5 py-2.5 rounded-full border border-primary/20">
-            <Shield className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-foreground">Enterprise Security Platform</span>
-          </div>
-        </div>
-
-        {/* Main Grid Layout */}
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 max-w-7xl mx-auto items-center">
-          {/* Left: Content */}
-          <div className="text-center lg:text-left">
-            {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-[1.1]">
-              <span className="text-foreground">Next-Generation</span>
-              <br />
-              <span className="text-gradient-primary">Security & Trust</span>
-              <br />
-              <span className="text-foreground">Solutions</span>
-            </h1>
-
-            {/* Subheadline */}
-            <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-8">
-              {currentContent.subheadline}
-            </p>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
-              {heroStats.map((stat, index) => {
-                const Icon = stat.icon;
-                return (
-                  <div
-                    key={stat.label}
-                    className="glass-panel rounded-xl p-4 border border-border/50 hover:border-primary/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Icon className="w-4 h-4 text-primary" />
-                      </div>
-                    </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-2xl md:text-3xl font-bold text-foreground">
-                        {stat.suffix === "%" ? Math.round(animatedStats[index]) : animatedStats[index].toFixed(1)}
-                      </span>
-                      <span className="text-sm text-primary font-medium">{stat.suffix}</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6">
-              <Button variant="hero" size="lg" asChild className="group">
-                <Link to="/solutions" className="flex items-center gap-3">
-                  <Zap className="w-5 h-5" />
-                  <div className="text-left">
-                    <span className="font-semibold">Explore Services</span>
-                    <span className="block text-xs opacity-80">Full solution overview</span>
-                  </div>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </Button>
-              <Button variant="glass" size="lg" asChild>
-                <Link to="/contact">
-                  {currentContent.secondaryCta}
-                </Link>
-              </Button>
-            </div>
-
-            {/* Trust Badges */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4">
-              {trustBadges.map((badge) => (
-                <div key={badge} className="flex items-center gap-2 text-muted-foreground">
-                  <span className="w-2 h-2 rounded-full bg-success" />
-                  <span className="text-sm font-medium">{badge}</span>
-                </div>
-              ))}
-            </div>
+        <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
+          {/* Platform Badge */}
+          <div className="inline-flex items-center gap-2 glass-panel px-5 py-2.5 rounded-full border border-primary/20 mb-10">
+            <svg className="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
+            <span className="text-sm font-medium tracking-wider text-muted-foreground uppercase">
+              GEM Enterprise Platform — 2026
+            </span>
           </div>
 
-          {/* Right: SOC Dashboard Visual */}
-          <div className="relative">
-            {/* Main Dashboard Card */}
-            <div className="relative">
-              {/* SOC Image with Gradient Border */}
-              <div className="relative glass-panel rounded-2xl p-1 glow-cyan overflow-hidden">
-                <div className="relative aspect-[16/10] rounded-xl overflow-hidden">
-                  <img
-                    src={socImage}
-                    alt="Security Operations Center with multiple monitoring screens displaying real-time cybersecurity dashboards"
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Overlay gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-background/20" />
+          {/* Main Headline */}
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-8 leading-[1.05]">
+            <span className="text-gradient-primary block">Defend.</span>
+            <span className="text-foreground block">Protect.</span>
+            <span className="text-foreground block">Prevail.</span>
+          </h1>
 
-                  {/* Floating Status Cards */}
-                  <div className="absolute top-4 left-4 glass-panel rounded-lg px-3 py-2 flex items-center gap-2 backdrop-blur-md">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
-                    </span>
-                    <span className="text-xs font-medium text-foreground">Systems Operational</span>
-                  </div>
+          {/* Description */}
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+            GEM Enterprise delivers institutional-grade cybersecurity, financial security, and real estate protection for qualified clients. Threat intelligence. Asset recovery. Compliance. All from a single command platform.
+          </p>
 
-                  <div className="absolute bottom-4 right-4 glass-panel rounded-lg px-3 py-2 backdrop-blur-md">
-                    <div className="flex items-center gap-4 text-xs">
-                      <div>
-                        <span className="font-bold text-foreground">1,247</span>
-                        <span className="text-muted-foreground ml-1">Threats Blocked</span>
-                      </div>
-                      <div className="w-px h-4 bg-border" />
-                      <div>
-                        <span className="font-bold text-foreground">99.9%</span>
-                        <span className="text-muted-foreground ml-1">Uptime</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Live indicator */}
-                  <div className="absolute top-4 right-4 glass-panel rounded-full px-3 py-1 flex items-center gap-2 backdrop-blur-md">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
-                    </span>
-                    <span className="text-xs font-bold text-destructive">LIVE</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating Metric Cards */}
-              <div className="absolute -bottom-6 -left-6 glass-panel rounded-xl p-4 border border-primary/20 shadow-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5 text-success" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Threat Detection</p>
-                    <p className="text-xs text-success">Active</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="absolute -top-4 -right-4 glass-panel rounded-xl p-4 border border-primary/20 shadow-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Eye className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">24/7 Monitoring</p>
-                    <p className="text-xs text-primary">Online</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <Button variant="hero" size="lg" asChild className="w-full sm:w-auto min-w-[200px]">
+              <Link to="/register" className="flex items-center justify-center gap-2">
+                Get Started
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            </Button>
+            <Button variant="outline" size="lg" asChild className="w-full sm:w-auto min-w-[200px] border-primary/30 text-primary hover:bg-primary/10">
+              <Link to="/intel" className="flex items-center justify-center gap-2">
+                View Intel
+                <ChevronRight className="w-5 h-5" />
+              </Link>
+            </Button>
           </div>
-        </div>
-
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-muted-foreground">
-          <span className="text-xs font-medium">Scroll to explore</span>
-          <ChevronDown className="w-5 h-5 animate-bounce" />
         </div>
       </div>
     </section>
