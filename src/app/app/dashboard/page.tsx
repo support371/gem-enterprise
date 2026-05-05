@@ -148,12 +148,18 @@ export default function DashboardPage() {
     documents: number
     openRequests: number
     unreadNotifications: number
+    kycStatus: string
   } | null>(null)
+  const [firstName, setFirstName] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/dashboard/summary')
       .then(r => r.json())
       .then(d => setSummary(d))
+      .catch(() => {})
+    fetch('/api/users/profile')
+      .then(r => r.json())
+      .then(d => setFirstName(d?.profile?.firstName ?? null))
       .catch(() => {})
   }, [])
 
@@ -204,7 +210,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">
             Good morning,{' '}
-            <span className="text-gradient-primary">Valued Client</span>
+            <span className="text-gradient-primary">{firstName ?? 'Valued Client'}</span>
           </h1>
           <p className="text-slate-400 mt-1 text-sm">
             GEM Enterprise account overview — {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
