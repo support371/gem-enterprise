@@ -40,7 +40,7 @@ function getJwtSecret(): Uint8Array {
 const COOKIE_NAME = "gem_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days in seconds
 
-export type AuthRole = "client" | "admin" | "internal";
+export type AuthRole = "client" | "analyst" | "admin" | "super_admin" | "internal";
 
 export type KYCStatus =
   | "not_started"
@@ -151,10 +151,11 @@ export function resolveAuthState(session: SessionPayload | null): AuthState {
     };
   }
 
+  const adminRoles: AuthRole[] = ["admin", "super_admin", "internal"];
   return {
     isAuthenticated: true,
     session,
-    isAdmin: session.role === "admin" || session.role === "internal",
+    isAdmin: adminRoles.includes(session.role),
     isApproved: session.kycStatus === "approved",
     kycStatus: session.kycStatus,
   };
@@ -165,8 +166,8 @@ export function resolveAuthState(session: SessionPayload | null): AuthState {
 export function resolveAccessDestination(session: SessionPayload): string {
   const { kycStatus, role, entitlements, portfolioId } = session;
 
-  // Admin goes directly to admin
-  if (role === "admin" || role === "internal") {
+  // Admin/staff go directly to admin
+  if (role === "admin" || role === "super_admin" || role === "internal") {
     return "/app/admin";
   }
 
