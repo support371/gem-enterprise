@@ -22,6 +22,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import ResetPassword from "./pages/ResetPassword";
 import Contact from "./pages/Contact";
+import GetStarted from "./pages/GetStarted";
 import NotFound from "./pages/NotFound";
 
 // Onboarding flow
@@ -86,6 +87,7 @@ const App = () => (
             <Route path="/blog/:slug" element={<BlogPost />} />
             <Route path="/blog/manage" element={<LegacyProtectedRoute><BlogManage /></LegacyProtectedRoute>} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/get-started" element={<GetStarted />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* ── Auth ──────────────────────────────────────────────────── */}
