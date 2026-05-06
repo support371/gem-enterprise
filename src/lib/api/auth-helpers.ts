@@ -78,10 +78,18 @@ export type GateResult = GateOk | GateErr;
  * Always prefer this over reading getSession() directly so routes share the
  * same error semantics.
  */
+function ok(session: SessionPayload): GateOk {
+  return { ok: true, session };
+}
+
+function err(response: NextResponse): GateErr {
+  return { ok: false, response };
+}
+
 export async function requireSession(): Promise<GateResult> {
   const session = await getSession();
-  if (!session) return { ok: false, response: unauthorized() };
-  return { ok: true, session };
+  if (!session) return err(unauthorized());
+  return ok(session);
 }
 
 /**
@@ -90,9 +98,9 @@ export async function requireSession(): Promise<GateResult> {
  */
 export async function requireAdmin(): Promise<GateResult> {
   const session = await getSession();
-  if (!session) return { ok: false, response: unauthorized() };
-  if (!isAdminRole(session.role)) return { ok: false, response: forbidden() };
-  return { ok: true, session };
+  if (!session) return err(unauthorized());
+  if (!isAdminRole(session.role)) return err(forbidden());
+  return ok(session);
 }
 
 /**
@@ -100,9 +108,9 @@ export async function requireAdmin(): Promise<GateResult> {
  */
 export async function requireStaff(): Promise<GateResult> {
   const session = await getSession();
-  if (!session) return { ok: false, response: unauthorized() };
-  if (!isStaffRole(session.role)) return { ok: false, response: forbidden() };
-  return { ok: true, session };
+  if (!session) return err(unauthorized());
+  if (!isStaffRole(session.role)) return err(forbidden());
+  return ok(session);
 }
 
 // Re-export for convenience so route handlers don't need two imports.

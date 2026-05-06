@@ -1,53 +1,86 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { getSession } from "@/lib/auth";
 import { z } from "zod";
-
-async function requireAdmin() {
-  const session = await getSession();
-  if (!session) return null;
-  if (!['admin', 'super_admin', 'internal'].includes(session.role)) return null;
-  return session;
-}
+import { db } from "@/lib/db";
+import { emitAuditLog } from "@/lib/audit";
+import {
+  requireAdmin,
+  getRequestContext,
+  badRequest,
+  serverError,
+} from "@/lib/api/auth-helpers";
 
 export async function GET() {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireAdmin();
+  if (!gate.ok) return gate.response;
 
-  const campaigns = await db.emailCampaign.findMany({
-    orderBy: { createdAt: "desc" },
-  });
-
-  return NextResponse.json({ campaigns });
+  try {
+    const campaigns = await db.emailCampaign.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json({ campaigns });
+  } catch (error) {
+    console.error("[GET /api/admin/campaigns]", error);
+    return serverError();
+  }
 }
 
 const CreateSchema = z.object({
-  title: z.string().min(1).max(200),
-  subject: z.string().min(1).max(200),
-  body: z.string().min(1),
+  title: z.string().trim().min(1).max(200),
+  subject: z.string().trim().min(1).max(200),
+  body: z.string().trim().min(1).max(100_000),
   scheduledAt: z.string().datetime().optional(),
 });
 
 export async function POST(req: NextRequest) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireAdmin();
+  if (!gate.ok) return gate.response;
+  const session = gate.session;
+  const { ipAddress, userAgent } = getRequestContext(req);
 
-  const body = await req.json().catch(() => ({}));
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON");
+  }
+
   const parsed = CreateSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  if (!parsed.success) {
+    return badRequest("Validation failed", parsed.error.flatten().fieldErrors);
+  }
 
   const { title, subject, body: campaignBody, scheduledAt } = parsed.data;
 
-  const campaign = await db.emailCampaign.create({
-    data: {
-      title,
-      subject,
-      body: campaignBody,
-      createdBy: session.userId,
-      scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
-      status: scheduledAt ? "SCHEDULED" : "DRAFT",
-    },
-  });
+  try {
+    const campaign = await db.emailCampaign.create({
+      data: {
+        title,
+        subject,
+        body: campaignBody,
+        createdBy: session.userId,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+        status: scheduledAt ? "SCHEDULED" : "DRAFT",
+      },
+    });
 
-  return NextResponse.json({ campaign }, { status: 201 });
+    await emitAuditLog({
+      userId: session.userId,
+      action: "admin_action",
+      resource: "email_campaign",
+      resourceId: campaign.id,
+      metadata: {
+        kind: "campaign_created",
+        title,
+        scheduledAt: scheduledAt ?? null,
+        status: campaign.status,
+      },
+      ipAddress,
+      userAgent,
+    });
+
+    return NextResponse.json({ campaign }, { status: 201 });
+  } catch (error) {
+    console.error("[POST /api/admin/campaigns]", error);
+    return serverError();
+  }
 }
