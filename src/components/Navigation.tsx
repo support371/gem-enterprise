@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 type NavItem = {
   label: string;
   path: string;
+  description?: string;
 };
 
 type NavSection = {
@@ -23,62 +24,83 @@ const navSections: NavSection[] = [
     label: "Home",
     path: "/",
     items: [
-      { label: "Overview", path: "/" },
-      { label: "Client Access", path: "/client-login" },
-      { label: "Get Started", path: "/get-started" },
+      { label: "Overview", path: "/", description: "Platform overview and highlights" },
+      { label: "Platform Highlights", path: "/#highlights", description: "What GEM Enterprise delivers" },
+      { label: "Leadership", path: "/company", description: "Leadership and trust signals" },
+      { label: "Client Access", path: "/client-login", description: "Access your client account" },
+      { label: "Get Started", path: "/get-started", description: "Begin onboarding" },
     ],
   },
   {
     label: "Intel",
     path: "/intel",
     items: [
-      { label: "Threat Intelligence", path: "/intel" },
-      { label: "News Feed", path: "/intel/news" },
+      { label: "Threat Intelligence", path: "/intel", description: "Global threat landscape and briefings" },
+      { label: "Reports", path: "/intel#reports", description: "Published intelligence reports" },
+      { label: "Monitoring", path: "/intel#monitoring", description: "Continuous threat monitoring" },
+      { label: "Intel Briefs", path: "/intel#briefs", description: "Concise intelligence summaries" },
+      { label: "Architecture Specs", path: "/developers", description: "Platform architecture and specs" },
     ],
   },
   {
     label: "Services",
     path: "/services",
     items: [
-      { label: "Cybersecurity", path: "/services#cyber" },
-      { label: "Financial", path: "/services#financial" },
-      { label: "Real Estate", path: "/services#real-estate" },
-      { label: "Alliance Trust Realty", path: "/atr" },
+      { label: "Cybersecurity", path: "/services#cyber", description: "Enterprise threat protection and response" },
+      { label: "Financial", path: "/services#financial", description: "Secure financial services and compliance" },
+      { label: "Real Estate", path: "/services#real-estate", description: "Real estate security and asset protection" },
+      { label: "Assessments", path: "/services#assessments", description: "Security posture assessments" },
+      { label: "Consultations", path: "/services#consultations", description: "Strategic security consultations" },
+      { label: "Alliance Trust Realty", path: "/atr", description: "Real estate investment platform — ATR Division" },
+      { label: "Properties", path: "/atr/properties", description: "ATR property portfolio and listings" },
+      { label: "Investment Platform", path: "/atr/invest", description: "Fractional, full ownership, fund, and REIT vehicles" },
     ],
   },
   {
     label: "Community",
     path: "/community-hub",
     items: [
-      { label: "Community Hub", path: "/community-hub" },
-      { label: "Opportunities", path: "/community-hub/opportunities" },
-      { label: "Request Access", path: "/request-access" },
+      { label: "Community Hub", path: "/community-hub", description: "Flagship vetted community experience" },
+      { label: "Opportunities", path: "/community-hub/opportunities", description: "Deal flow, mandates, and introductions" },
+      { label: "Members", path: "/community-hub/members", description: "Directory of vetted members and advisors" },
+      { label: "Circles", path: "/community-hub/circles", description: "Private topical working groups" },
+      { label: "Events", path: "/community-hub/events", description: "Summits, salons, and working sessions" },
+      { label: "Knowledge", path: "/community-hub/knowledge", description: "Member-only research and playbooks" },
+      { label: "Request Access", path: "/request-access", description: "Apply to join the GEM Community Hub" },
+      { label: "Community Overview", path: "/community-hub#overview", description: "Community structure and benefits" },
     ],
   },
   {
     label: "Hub",
     path: "/hub",
     items: [
-      { label: "Command Center", path: "/hub" },
-      { label: "Client Portal", path: "/client-login" },
+      { label: "Command Center", path: "/hub", description: "Operational command and control" },
+      { label: "Documents", path: "/app/documents", description: "Platform documents and agreements" },
+      { label: "Support Access", path: "/app/support", description: "Connect with enterprise support" },
+      { label: "Requests", path: "/app/requests", description: "Submit service requests" },
+      { label: "Client Portal", path: "/client-login", description: "Authenticated client access" },
     ],
   },
   {
     label: "Resources",
     path: "/resources",
     items: [
-      { label: "Resources", path: "/resources" },
-      { label: "Documentation", path: "/docs" },
-      { label: "Developers", path: "/developers" },
+      { label: "Market Insights", path: "/resources#insights", description: "Intelligence and market analysis" },
+      { label: "Templates", path: "/resources#templates", description: "Downloadable security templates" },
+      { label: "Bots", path: "/resources#bots", description: "Automated intelligence tools" },
+      { label: "News", path: "/intel/news", description: "Latest industry news" },
+      { label: "FAQ", path: "/resources#faq", description: "Frequently asked questions" },
     ],
   },
   {
     label: "Company",
     path: "/company",
     items: [
-      { label: "About", path: "/about" },
-      { label: "Compliance Notice", path: "/compliance-notice" },
-      { label: "Contact", path: "/contact" },
+      { label: "About", path: "/about", description: "About GEM Enterprise" },
+      { label: "Leadership & Vision", path: "/company#leadership", description: "Executive leadership and mission" },
+      { label: "Executive Board", path: "/company#board", description: "Board of directors" },
+      { label: "Teams", path: "/company#teams", description: "Expert teams and divisions" },
+      { label: "Personnel Board", path: "/personnel", description: "GEM & ATR personnel directory with AI Overseer" },
     ],
   },
 ];
@@ -202,18 +224,26 @@ export function Navigation() {
                         All {section.label}
                         <ArrowRight className="h-4 w-4" />
                       </Link>
-                      <div className="grid gap-3">
+                      <div className="grid gap-4">
                         {section.items.map((item) => (
                           <Link
                             key={item.path}
                             href={item.path}
                             className={cn(
-                              "rounded-xl px-3 py-3 text-base font-semibold transition-colors hover:bg-white/5",
-                              isActive(item.path) ? "bg-cyan-400/10 text-cyan-300" : "text-white/60",
+                              "rounded-xl px-3 py-3 transition-colors hover:bg-white/5",
+                              isActive(item.path) ? "bg-cyan-400/10" : "",
                             )}
                             onClick={closeMobile}
                           >
-                            {item.label}
+                            <div className={cn(
+                              "font-semibold",
+                              isActive(item.path) ? "text-cyan-300" : "text-white/60",
+                            )}>
+                              {item.label}
+                            </div>
+                            {item.description && (
+                              <div className="mt-1 text-sm text-white/40">{item.description}</div>
+                            )}
                           </Link>
                         ))}
                       </div>
