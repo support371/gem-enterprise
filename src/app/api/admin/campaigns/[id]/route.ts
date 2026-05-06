@@ -1,102 +1,87 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { getSession } from "@/lib/auth";
 import { z } from "zod";
-import nodemailer from "nodemailer";
+import { db } from "@/lib/db";
+import { emitAuditLog } from "@/lib/audit";
+import {
+  requireAdmin,
+  getRequestContext,
+  badRequest,
+  serverError,
+} from "@/lib/api/auth-helpers";
 
-async function requireAdmin() {
-  const session = await getSession();
-  if (!session) return null;
-  if (!['admin', 'super_admin', 'internal'].includes(session.role)) return null;
-  return session;
-}
-
-const UpdateSchema = z.object({
-  title: z.string().min(1).max(200).optional(),
-  subject: z.string().min(1).max(200).optional(),
-  body: z.string().min(1).optional(),
-  scheduledAt: z.string().datetime().nullable().optional(),
-  status: z.enum(["DRAFT", "SCHEDULED", "CANCELLED"]).optional(),
-});
+const UpdateSchema = z
+  .object({
+    title: z.string().trim().min(1).max(200).optional(),
+    subject: z.string().trim().min(1).max(200).optional(),
+    body: z.string().trim().min(1).max(100_000).optional(),
+    scheduledAt: z.string().datetime().nullable().optional(),
+    status: z.enum(["DRAFT", "SCHEDULED", "CANCELLED"]).optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: "No updatable fields provided" });
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const gate = await requireAdmin();
+  if (!gate.ok) return gate.response;
+  const session = gate.session;
+  const { ipAddress, userAgent } = getRequestContext(req);
 
   const { id } = await params;
-  const body = await req.json().catch(() => ({}));
-  const parsed = UpdateSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-
-  const existing = await db.emailCampaign.findUnique({ where: { id } });
-  if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (existing.status === "SENT") return NextResponse.json({ error: "Cannot modify a sent campaign" }, { status: 409 });
-
-  const campaign = await db.emailCampaign.update({
-    where: { id },
-    data: {
-      ...parsed.data,
-      scheduledAt: parsed.data.scheduledAt === null ? null : parsed.data.scheduledAt ? new Date(parsed.data.scheduledAt) : undefined,
-    },
-  });
-
-  return NextResponse.json({ campaign });
-}
-
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const session = await requireAdmin();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  const { id } = await params;
-  const url = new URL(req.url);
-  const action = url.pathname.endsWith("/send") ? "send" : null;
-
-  if (action !== "send") return NextResponse.json({ error: "Unknown action" }, { status: 400 });
-
-  const campaign = await db.emailCampaign.findUnique({ where: { id } });
-  if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (campaign.status === "SENT") return NextResponse.json({ error: "Already sent" }, { status: 409 });
-  if (campaign.status === "CANCELLED") return NextResponse.json({ error: "Campaign is cancelled" }, { status: 409 });
-
-  const users = await db.user.findMany({
-    where: { status: "active", isActive: true },
-    select: { email: true },
-  });
-
-  let sentCount = 0;
-  if (process.env.SMTP_HOST) {
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: Number(process.env.SMTP_PORT ?? 587),
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    });
-    for (const user of users) {
-      try {
-        await transporter.sendMail({
-          from: process.env.EMAIL_FROM ?? "noreply@gemcybersecurityassist.com",
-          to: user.email,
-          subject: campaign.subject,
-          text: campaign.body,
-        });
-        sentCount++;
-      } catch {
-        // continue on individual send failure
-      }
-    }
-  } else {
-    sentCount = users.length;
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return badRequest("Invalid JSON");
   }
 
-  const updated = await db.emailCampaign.update({
-    where: { id },
-    data: { status: "SENT", sentAt: new Date(), recipientCount: sentCount },
-  });
+  const parsed = UpdateSchema.safeParse(body);
+  if (!parsed.success) {
+    return badRequest("Validation failed", parsed.error.flatten().fieldErrors);
+  }
 
-  return NextResponse.json({ campaign: updated, sentCount });
+  try {
+    const existing = await db.emailCampaign.findUnique({ where: { id } });
+    if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (existing.status === "SENT") {
+      return NextResponse.json(
+        { error: "Cannot modify a sent campaign" },
+        { status: 409 },
+      );
+    }
+
+    const campaign = await db.emailCampaign.update({
+      where: { id },
+      data: {
+        ...parsed.data,
+        scheduledAt:
+          parsed.data.scheduledAt === null
+            ? null
+            : parsed.data.scheduledAt
+              ? new Date(parsed.data.scheduledAt)
+              : undefined,
+      },
+    });
+
+    await emitAuditLog({
+      userId: session.userId,
+      action: "admin_action",
+      resource: "email_campaign",
+      resourceId: id,
+      metadata: {
+        kind: "campaign_updated",
+        previousStatus: existing.status,
+        newStatus: campaign.status,
+        fields: Object.keys(parsed.data),
+      },
+      ipAddress,
+      userAgent,
+    });
+
+    return NextResponse.json({ campaign });
+  } catch (error) {
+    console.error("[PATCH /api/admin/campaigns/[id]]", error);
+    return serverError();
+  }
 }

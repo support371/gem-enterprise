@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/auth";
 import { emitAuditLog } from "@/lib/audit";
-
-function isAdmin(role: string) {
-  return role === "admin" || role === "internal";
-}
+import { requireAdmin, getRequestContext } from "@/lib/api/auth-helpers";
 
 const adminKycActionSchema = z.object({
   applicationId: z.string().min(1, "Application ID is required"),
@@ -14,13 +10,11 @@ const adminKycActionSchema = z.object({
   notes: z.string().optional(),
 });
 
-export async function GET(request: NextRequest) {
-  try {
-    const session = await getSession();
-    if (!session || !isAdmin(session.role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+export async function GET(_request: NextRequest) {
+  const gate = await requireAdmin();
+  if (!gate.ok) return gate.response;
 
+  try {
     const applications = await db.kYCApplication.findMany({
       orderBy: { createdAt: "desc" },
       include: {
@@ -49,12 +43,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const session = await getSession();
-    if (!session || !isAdmin(session.role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+  const gate = await requireAdmin();
+  if (!gate.ok) return gate.response;
+  const session = gate.session;
+  const { ipAddress, userAgent } = getRequestContext(request);
 
+  try {
     const body = await request.json();
     const parsed = adminKycActionSchema.safeParse(body);
 
@@ -133,7 +127,9 @@ export async function POST(request: NextRequest) {
         action: action === "approve" ? "kyc_approve" : action === "reject" ? "kyc_reject" : "kyc_flag",
         resource: "kyc_application",
         resourceId: applicationId,
-        metadata: { notes, newStatus }
+        metadata: { notes: notes ?? null, newStatus, targetUserId: application.userId },
+        ipAddress,
+        userAgent,
       });
     });
 
