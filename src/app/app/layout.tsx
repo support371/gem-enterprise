@@ -27,9 +27,11 @@ import {
   PiggyBank,
   Mail,
   Rss,
+  Activity,
 } from "lucide-react";
 import { AIChatWidget } from "@/components/AIChatWidget";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -70,17 +72,34 @@ const iconMap: Record<PlatformNavIcon, React.ComponentType<{ className?: string 
   Rss,
 };
 
+function isActivePath(pathname: string, href: string) {
+  if (href === "/app/dashboard") return pathname === href;
+  if (href === "/intel") return pathname === href;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 function SidebarContent({ isAdmin, pathname }: { isAdmin: boolean; pathname: string }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2.5 border-b border-white/10 px-4 py-5">
-        <div
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-          style={{ background: "hsl(185 100% 45%)" }}
-        >
-          <span className="text-sm font-bold text-black">G</span>
+      <div className="border-b border-white/10 px-4 py-5">
+        <Link href="/app/dashboard" className="flex items-center gap-2.5">
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+            style={{ background: "hsl(185 100% 45%)" }}
+          >
+            <span className="text-sm font-bold text-black">G</span>
+          </div>
+          <span className="truncate text-sm font-semibold text-white">GEM Enterprise</span>
+        </Link>
+        <div className="mt-4 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-3">
+          <div className="mb-1 flex items-center gap-2">
+            <Activity className="h-3.5 w-3.5 text-cyan-400" />
+            <span className="text-xs font-semibold text-cyan-400">Operations Online</span>
+          </div>
+          <p className="text-[11px] leading-relaxed text-slate-400">
+            Client, intelligence, compliance, and admin workflows aligned.
+          </p>
         </div>
-        <span className="truncate text-sm font-semibold text-white">GEM Enterprise</span>
       </div>
 
       <nav className="flex-1 space-y-5 overflow-y-auto px-2 py-4">
@@ -90,13 +109,14 @@ function SidebarContent({ isAdmin, pathname }: { isAdmin: boolean; pathname: str
               {label}
             </p>
             <div className="space-y-0.5">
-              {items.map(({ href, icon, label: itemLabel }) => {
+              {items.map(({ href, icon, label: itemLabel, description }) => {
                 const Icon = iconMap[icon];
-                const active = pathname === href || (href !== "/app/dashboard" && pathname.startsWith(href));
+                const active = isActivePath(pathname, href);
                 return (
                   <Link
                     key={href}
                     href={href}
+                    title={description}
                     className={cn(
                       "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                       active ? "nav-active" : "text-slate-400 hover:bg-white/8 hover:text-white",
@@ -125,13 +145,14 @@ function SidebarContent({ isAdmin, pathname }: { isAdmin: boolean; pathname: str
           <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
             Admin
           </p>
-          {adminPortalNavItems.map(({ href, icon, label: itemLabel }) => {
+          {adminPortalNavItems.map(({ href, icon, label: itemLabel, description }) => {
             const Icon = iconMap[icon];
-            const active = pathname === href || pathname.startsWith(href + "/");
+            const active = isActivePath(pathname, href);
             return (
               <Link
                 key={href}
                 href={href}
+                title={description}
                 className={cn(
                   "group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                   active ? "nav-active" : "text-slate-400 hover:bg-white/8 hover:text-white",
@@ -159,7 +180,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const segment = pathname.split("/").filter(Boolean).pop() ?? "dashboard";
   const pageTitle = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
-  const isAdmin = false;
+  const isAdmin = pathname.startsWith("/app/admin");
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -176,19 +197,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <Menu className="h-5 w-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-56 border-white/10 bg-background p-0">
+              <SheetContent side="left" className="w-64 border-white/10 bg-background p-0">
                 <SidebarContent isAdmin={isAdmin} pathname={pathname} />
               </SheetContent>
             </Sheet>
 
             <nav className="hidden items-center gap-1.5 text-sm text-slate-400 lg:flex">
-              <span className="text-slate-500">App</span>
+              <span className="text-slate-500">GEM Enterprise</span>
               <ChevronRight className="h-3 w-3" />
               <span className="font-medium text-white">{pageTitle}</span>
             </nav>
           </div>
 
           <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Badge className="hidden border-cyan-500/25 bg-cyan-500/10 text-xs text-cyan-400 sm:inline-flex">
+                Admin Ops
+              </Badge>
+            )}
             <Link href="/app/notifications">
               <Button variant="ghost" size="icon" className="relative text-slate-400 hover:text-white">
                 <Bell className="h-5 w-5" />
@@ -218,6 +244,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <Settings className="h-4 w-4" /> Settings
                   </Link>
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/app/admin" className="flex cursor-pointer items-center gap-2">
+                      <Shield className="h-4 w-4" /> Admin Center
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuSeparator className="bg-white/10" />
                 <DropdownMenuItem asChild>
                   <Link href="/api/auth/logout" className="flex cursor-pointer items-center gap-2 text-red-400">
