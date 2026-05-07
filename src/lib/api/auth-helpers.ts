@@ -69,8 +69,8 @@ export function serverError(message = "Internal server error") {
 
 // ─── Composite gates ──────────────────────────────────────────────────────────
 
-export type GateOk = { ok: true; session: SessionPayload };
-export type GateErr = { ok: false; response: NextResponse };
+export type GateOk = { ok: true; session: SessionPayload; response?: never };
+export type GateErr = { ok: false; response: NextResponse; session?: never };
 export type GateResult = GateOk | GateErr;
 
 /**
