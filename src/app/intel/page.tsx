@@ -1,388 +1,407 @@
 import Link from "next/link";
 import {
-  Shield,
-  Globe,
-  Eye,
-  AlertTriangle,
-  FileText,
-  Zap,
-  ArrowRight,
-  ChevronRight,
-  Terminal,
-  Search,
   Activity,
-  Lock,
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  Building2,
+  CheckCircle2,
+  ChevronRight,
   Cpu,
-  Radio,
-  Map,
-  Server,
+  Database,
+  Eye,
+  FileText,
+  Globe,
+  Landmark,
+  Network,
+  RefreshCw,
+  Search,
+  Shield,
+  ShieldCheck,
+  Terminal,
+  Zap,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export const metadata = {
-  title: "Threat Intelligence | GEM Enterprise",
+  title: "Intelligence Operations | GEM Enterprise",
   description:
-    "GEM Intelligence Command delivers real-time threat data, adversary intelligence, APT tracking, and vulnerability feeds for enterprise security teams.",
+    "GEM Enterprise intelligence operations console for cybersecurity, financial-risk, and real-estate monitoring.",
 };
 
-const threatMetrics = [
-  {
-    value: "14,200+",
-    label: "Active Threats Monitored",
-    description: "Concurrent threat indicators and active campaigns under analyst review.",
-    icon: AlertTriangle,
-    trend: "+8% vs last week",
-    color: "text-red-400",
-  },
-  {
-    value: "50M+",
-    label: "IOCs Processed Daily",
-    description:
-      "Indicators of compromise ingested and correlated from 200+ intelligence sources.",
-    icon: Cpu,
-    trend: "Updated every 15 min",
-    color: "text-primary",
-  },
-  {
-    value: "200+",
-    label: "Intelligence Sources",
-    description:
-      "Proprietary sensors, government feeds, commercial providers, and OSINT communities.",
-    icon: Radio,
-    trend: "Global coverage",
-    color: "text-primary",
-  },
-];
+const timeFilters = ["1H", "6H", "24H", "7D", "30D"];
 
-const intelCategories = [
+const kpis = [
   {
-    icon: Map,
-    title: "APT Tracking",
-    description:
-      "Continuous profiling of 40+ active advanced persistent threat groups. GEM analysts maintain up-to-date TTPs, infrastructure mappings, and attribution confidence scores for each tracked actor — updated in real time as new campaigns emerge.",
-    badge: "40+ Groups Tracked",
-    badgeColor: "bg-red-500/10 text-red-400 border-red-500/30",
+    label: "Signals Monitored",
+    value: "14.2K",
+    caption: "Cross-domain indicators",
+    icon: Activity,
+    className: "text-[hsl(var(--svc-cyber))] bg-[hsl(var(--svc-cyber-muted))]",
   },
   {
-    icon: Search,
-    title: "Vulnerability Research",
-    description:
-      "Proactive CVE tracking, zero-day intelligence, and exploit availability monitoring correlated with your registered asset inventory. CVSS-scored and prioritized for immediate remediation action.",
-    badge: "CVE-Correlated",
-    badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/30",
+    label: "Risk Domains",
+    value: "3",
+    caption: "Cyber · Financial · Real Estate",
+    icon: Network,
+    className: "text-[hsl(var(--svc-financial))] bg-[hsl(var(--svc-financial-muted))]",
   },
   {
+    label: "Open Watches",
+    value: "27",
+    caption: "Active analyst queues",
     icon: Eye,
-    title: "Dark Web Monitoring",
-    description:
-      "24/7 surveillance of dark web forums, paste sites, ransomware leak portals, and closed-access marketplaces. Instant alerting on brand mentions, credential leaks, and adversary discussions targeting your industry.",
-    badge: "Live Surveillance",
-    badgeColor: "bg-primary/10 text-primary border-primary/30",
+    className: "text-[hsl(var(--svc-realty))] bg-[hsl(var(--svc-realty-muted))]",
   },
   {
-    icon: Globe,
-    title: "Geopolitical Risk",
-    description:
-      "Nation-state threat assessments, critical infrastructure targeting analysis, and sanctions intelligence for multinational enterprise clients. Weekly geo-cyber risk bulletins with regional impact scoring.",
-    badge: "Weekly Briefs",
-    badgeColor: "bg-purple-500/10 text-purple-400 border-purple-500/30",
+    label: "Escalations",
+    value: "2",
+    caption: "Requires manual review",
+    icon: AlertTriangle,
+    className: "text-red-400 bg-red-500/10",
+  },
+  {
+    label: "Sources",
+    value: "42",
+    caption: "RSS, OSINT, client watchlists",
+    icon: Database,
+    className: "text-green-400 bg-green-500/10",
   },
 ];
 
-const intelReports = [
+const signalTrend = [42, 58, 51, 67, 74, 63, 88, 93, 86, 101, 98, 117];
+
+const recentSignals = [
   {
-    title: "Q1 2026 Global Threat Landscape Report",
-    date: "March 2026",
-    classification: "TLP:WHITE",
-    classColor: "bg-green-500/10 text-green-400 border-green-500/30",
-    category: "Quarterly Report",
-    excerpt:
-      "Comprehensive analysis of the evolving threat environment across all major verticals and geographies in Q1 2026. Key findings include a 34% increase in AI-assisted phishing, accelerating ransomware-as-a-service adoption, and expanded nation-state targeting of financial sector critical infrastructure.",
+    domain: "Cyber",
+    title: "Infrastructure exposure review",
+    severity: "Critical",
+    source: "Advisory monitor",
+    received: "4 min ago",
+    color: "text-red-400",
+    dot: "bg-red-400",
   },
   {
-    title: "APT Group Activity: 2026 Profiles — EMEA & APAC",
-    date: "February 2026",
-    classification: "TLP:AMBER",
-    classColor: "bg-yellow-500/10 text-yellow-400 border-yellow-500/30",
-    category: "Research Report",
-    excerpt:
-      "In-depth profiling of 12 active APT groups operating in the EMEA and Asia-Pacific regions. Includes TTP matrices mapped to MITRE ATT&CK, infrastructure analysis, and attribution confidence levels. Distribution restricted to authenticated clients.",
+    domain: "Financial",
+    title: "Account risk pattern review",
+    severity: "Elevated",
+    source: "Fraud-intel feed",
+    received: "18 min ago",
+    color: "text-yellow-400",
+    dot: "bg-yellow-400",
   },
   {
-    title: "Financial Sector Cyber Risk Bulletin — March 2026",
-    date: "March 2026",
-    classification: "TLP:GREEN",
-    classColor: "bg-green-500/10 text-green-400 border-green-500/30",
-    category: "Sector Brief",
-    excerpt:
-      "Tactical intelligence for CISO teams in banking, insurance, and capital markets. Covers emerging fraud vectors, insider threat indicators, third-party supply chain risk, and recommended detection signatures for the current threat environment.",
+    domain: "Real Estate",
+    title: "Commercial title-record anomaly cluster",
+    severity: "Watch",
+    source: "Property-risk monitor",
+    received: "41 min ago",
+    color: "text-[hsl(var(--svc-realty))]",
+    dot: "bg-[hsl(var(--svc-realty))]",
   },
   {
-    title: "Dark Web Threat Intelligence Summary — W10 2026",
-    date: "March 2026",
-    classification: "TLP:WHITE",
-    classColor: "bg-green-500/10 text-green-400 border-green-500/30",
-    category: "Intel Brief",
-    excerpt:
-      "Monthly digest of dark web forum activity, credential marketplace listings, and emerging threat actor communications. Notable findings include a 2.4M-record banking credential dump and two active ransomware recruitment campaigns targeting mid-market enterprises.",
+    domain: "Cyber",
+    title: "Identity perimeter review",
+    severity: "Medium",
+    source: "Security operations",
+    received: "1h ago",
+    color: "text-[hsl(var(--svc-cyber))]",
+    dot: "bg-[hsl(var(--svc-cyber))]",
+  },
+  {
+    domain: "Financial",
+    title: "Wire-risk trigger correlation update",
+    severity: "Medium",
+    source: "Transaction-risk model",
+    received: "2h ago",
+    color: "text-[hsl(var(--svc-financial))]",
+    dot: "bg-[hsl(var(--svc-financial))]",
   },
 ];
 
-const monitoringModules = [
+const distributions = [
+  { label: "Cybersecurity", value: 46, className: "bg-[hsl(var(--svc-cyber))]" },
+  { label: "Financial Risk", value: 34, className: "bg-[hsl(var(--svc-financial))]" },
+  { label: "Real Estate", value: 20, className: "bg-[hsl(var(--svc-realty))]" },
+];
+
+const topEventTypes = [
+  { label: "Identity Risk", value: 86 },
+  { label: "Infrastructure Advisory", value: 73 },
+  { label: "Fraud Pattern", value: 61 },
+  { label: "Title Risk", value: 44 },
+  { label: "Escalation Trigger", value: 32 },
+];
+
+const modules = [
   {
     icon: Shield,
-    title: "24/7 SOC Coverage",
-    description:
-      "GEM's Security Operations Center operates across three regional hubs — North America, EMEA, and Asia-Pacific — ensuring continuous analyst coverage with no shift gaps. Mean time to acknowledge: 6 minutes.",
-    metric: "MTTA: 6 min",
+    title: "Cyber Operations",
+    description: "Security intelligence, exposure review, endpoint visibility, and infrastructure advisory watchlists.",
+    metric: "Active Watch",
   },
   {
-    icon: Server,
-    title: "SIEM Integration",
-    description:
-      "Native integrations with Splunk, Microsoft Sentinel, IBM QRadar, and Elastic SIEM. Push IOC feeds directly to your security stack via REST API or STIX/TAXII 2.1 transport layer. Custom webhook support for all tiers.",
-    metric: "STIX/TAXII 2.1",
+    icon: Landmark,
+    title: "Financial Shield",
+    description: "Fraud pattern review, transaction-risk escalation, account-risk indicators, and protected asset workflows.",
+    metric: "Risk Review",
   },
   {
-    icon: Terminal,
-    title: "Endpoint Telemetry",
-    description:
-      "EDR telemetry analysis from CrowdStrike Falcon, Microsoft Defender for Endpoint, and SentinelOne. GEM analysts correlate endpoint signals with global threat intelligence for enhanced detection fidelity.",
-    metric: "3 EDR Platforms",
+    icon: Building2,
+    title: "Property Trust Intel",
+    description: "Title-risk monitoring, commercial property exposure, ownership anomaly review, and portfolio signals.",
+    metric: "Portfolio Watch",
   },
 ];
 
-const architectureSpecs = [
-  {
-    label: "Zero Trust",
-    detail: "Identity-verified, least-privilege access enforcement across all platform surfaces. No implicit trust — every request authenticated and logged.",
-  },
-  {
-    label: "SASE",
-    detail: "Secure Access Service Edge architecture converging network security and wide-area networking for distributed enterprise environments.",
-  },
-  {
-    label: "XDR",
-    detail: "Extended Detection and Response correlating signals across endpoint, network, cloud, and identity layers for unified threat visibility.",
-  },
-  {
-    label: "SOAR",
-    detail: "Security Orchestration, Automation, and Response reducing mean time to respond through pre-approved playbook automation and analyst-assisted triage.",
-  },
+const quickActions = [
+  { label: "Client Dashboard", href: "/app/dashboard", icon: BarChart3 },
+  { label: "Admin Review", href: "/app/admin", icon: ShieldCheck },
+  { label: "Architecture", href: "/architecture", icon: Cpu },
+  { label: "Compliance Notice", href: "/compliance-notice", icon: FileText },
+  { label: "Request Access", href: "/get-started", icon: Zap },
 ];
+
+function widthClass(value: number) {
+  if (value >= 80) return "w-[86%]";
+  if (value >= 70) return "w-[76%]";
+  if (value >= 60) return "w-[66%]";
+  if (value >= 50) return "w-[56%]";
+  if (value >= 40) return "w-[46%]";
+  return "w-[34%]";
+}
 
 export default function IntelPage() {
+  const maxTrend = Math.max(...signalTrend);
+
   return (
     <main className="min-h-screen bg-background text-foreground">
-      {/* ── Hero ── */}
-      <section id="hero" className="relative py-28 cyber-grid overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/80 to-background pointer-events-none" />
-        <div className="absolute top-1/3 right-1/4 w-80 h-80 rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+      <section className="relative overflow-hidden border-b border-white/10 py-16">
+        <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-background/80 to-background pointer-events-none" />
+        <div className="absolute left-1/4 top-1/3 h-96 w-96 rounded-full bg-cyan-500/10 blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full bg-purple-600/10 blur-3xl" />
 
-        <div className="relative z-10 container mx-auto px-6 text-center max-w-4xl">
-          <div className="flex justify-center mb-6">
-            <div className="p-4 rounded-2xl bg-primary/10 text-primary glow-cyan animate-float border border-primary/20">
-              <Shield className="h-12 w-12" />
+        <div className="relative z-10 container mx-auto max-w-screen-2xl px-6">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <div>
+              <Badge className="mb-5 inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-xs uppercase tracking-widest text-cyan-400">
+                <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+                Live Intelligence Operations
+              </Badge>
+              <h1 className="max-w-4xl text-5xl font-black leading-tight text-white md:text-7xl">
+                Operations Overview
+              </h1>
+              <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
+                Bentley-style live operations logic adapted for GEM: signal monitoring, risk distribution, event feeds, health state, and quick operational routing across cyber, financial, and real estate domains.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex rounded-full border border-white/10 bg-white/5 p-1">
+                {timeFilters.map((filter) => (
+                  <button
+                    key={filter}
+                    className={`rounded-full px-3 py-1.5 text-xs font-mono transition ${
+                      filter === "24H"
+                        ? "bg-cyan-400 text-black"
+                        : "text-slate-400 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    {filter}
+                  </button>
+                ))}
+              </div>
+              <Button asChild variant="outline" className="rounded-full border-white/20 text-white hover:bg-white/10">
+                <Link href="/app/dashboard">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Refresh View
+                </Link>
+              </Button>
             </div>
           </div>
-          <Badge className="mb-5 bg-primary/10 text-primary border-primary/30 font-mono text-xs tracking-widest uppercase px-4 py-1.5 inline-flex items-center gap-2">
-            <Activity className="h-3 w-3 animate-pulse" />
-            Intelligence Command — LIVE
-          </Badge>
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-5 leading-tight">
-            <span className="text-gradient-primary">GEM Intelligence</span> Command
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-            Real-time threat data, adversary intelligence, and vulnerability feeds — synthesized into
-            actionable briefings for enterprise security teams. Our analysts operate 24/7 so your
-            defenses are never standing still.
-          </p>
-          {/* Live status bar */}
-          <div className="inline-flex items-center gap-3 glass-panel rounded-full px-5 py-2.5 border-primary/20 glow-cyan">
-            <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-            <span className="font-mono text-xs text-muted-foreground">
-              LIVE FEED ACTIVE — Last updated: 2 min ago
-            </span>
-            <Badge className="bg-red-500/10 text-red-400 border-red-500/30 font-mono text-xs">
-              LIVE
-            </Badge>
-          </div>
         </div>
       </section>
 
-      {/* ── Threat Landscape Metrics ── */}
-      <section id="metrics" className="py-20 container mx-auto px-6">
-        <div className="text-center mb-12">
-          <h2 className="text-2xl md:text-3xl font-bold mb-3">
-            Threat Landscape{" "}
-            <span className="text-gradient-primary">Summary</span>
-          </h2>
-          <p className="text-muted-foreground max-w-lg mx-auto">
-            Live metrics from the GEM threat intelligence pipeline — updated continuously across
-            all monitored environments.
-          </p>
-        </div>
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {threatMetrics.map(({ value, label, description, icon: Icon, trend, color }) => (
-            <Card key={label} className="glass-panel bento-card border-border/50 text-center">
-              <CardHeader>
-                <div className="flex justify-center mb-3">
-                  <div className="p-3 rounded-xl bg-primary/10 text-primary">
-                    <Icon className="h-6 w-6" />
+      <section className="container mx-auto max-w-screen-2xl px-6 py-8">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {kpis.map(({ label, value, caption, icon: Icon, className }) => {
+            const [textClass, bgClass] = className.split(" ");
+
+            return (
+              <div key={label} className="glass-panel bento-card rounded-xl p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${bgClass}`}>
+                    <Icon className={`h-5 w-5 ${textClass}`} />
                   </div>
+                  <span className="font-mono text-2xl font-bold text-white">{value}</span>
                 </div>
-                <p className={`text-4xl font-extrabold ${color}`}>{value}</p>
-                <CardTitle className="text-sm font-semibold mt-1">{label}</CardTitle>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</p>
+                <p className="mt-1 text-xs text-slate-500">{caption}</p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="container mx-auto max-w-screen-2xl px-6 pb-20">
+        <div className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+          <div className="space-y-6">
+            <Card className="border-white/10 bg-card">
+              <CardHeader className="flex flex-row items-center justify-between pb-4">
+                <CardTitle className="flex items-center gap-2 text-sm text-white">
+                  <Activity className="h-4 w-4 text-[hsl(var(--svc-cyber))]" />
+                  Signal Volume Trend
+                </CardTitle>
+                <span className="text-xs text-slate-500">Last 24 hours · 936 signals</span>
               </CardHeader>
-              <CardContent className="space-y-2">
-                <p className="text-muted-foreground text-xs leading-relaxed">{description}</p>
-                <p className="font-mono text-xs text-primary/80">{trend}</p>
+              <CardContent>
+                <div className="flex h-56 items-end gap-3 rounded-2xl border border-white/10 bg-background/50 p-5">
+                  {signalTrend.map((value, index) => (
+                    <div key={index} className="flex h-full flex-1 flex-col justify-end gap-2">
+                      <div
+                        className="rounded-t-lg bg-cyan-400/80 shadow-[0_0_22px_rgba(34,211,238,0.22)]"
+                        style={{ height: `${Math.max(18, (value / maxTrend) * 100)}%` }}
+                      />
+                      <span className="text-center font-mono text-[10px] text-slate-600">{index + 1}</span>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
-          ))}
+
+            <Card className="border-white/10 bg-card">
+              <CardHeader className="flex flex-row items-center justify-between pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm text-white">
+                  <Terminal className="h-4 w-4 text-[hsl(var(--svc-cyber))]" />
+                  Recent Event Feed
+                </CardTitle>
+                <Badge className="border-green-500/25 bg-green-500/15 text-xs text-green-400">Auto-refresh enabled</Badge>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-hidden rounded-2xl border border-white/10">
+                  <div className="grid grid-cols-[0.85fr_1.65fr_0.75fr_0.8fr] border-b border-white/10 bg-white/5 px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-500">
+                    <span>Domain</span>
+                    <span>Signal</span>
+                    <span>Severity</span>
+                    <span className="text-right">Received</span>
+                  </div>
+                  {recentSignals.map(({ domain, title, severity, source, received, color, dot }) => (
+                    <div key={`${domain}-${title}`} className="grid grid-cols-[0.85fr_1.65fr_0.75fr_0.8fr] items-center border-b border-white/5 px-4 py-4 last:border-b-0">
+                      <div className="flex items-center gap-2 text-sm text-slate-300">
+                        <span className={`h-2 w-2 rounded-full ${dot}`} />
+                        {domain}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-white">{title}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">{source}</p>
+                      </div>
+                      <span className={`text-xs font-semibold ${color}`}>{severity}</span>
+                      <span className="text-right font-mono text-xs text-slate-500">{received}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-6">
+            <Card className="border-white/10 bg-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm text-white">
+                  <ShieldCheck className="h-4 w-4 text-green-400" />
+                  System Health
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-xl border border-green-500/20 bg-green-500/10 p-4">
+                  <div className="mb-2 flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-400" />
+                    <p className="text-sm font-semibold text-green-400">Operational</p>
+                  </div>
+                  <p className="text-xs leading-relaxed text-slate-400">
+                    Ingestion, scoring, escalation routing, and portal intelligence surfaces are online.
+                  </p>
+                </div>
+                {["Source ingestion", "Signal correlation", "Alert routing", "Client portal sync"].map((item) => (
+                  <div key={item} className="flex items-center justify-between text-sm">
+                    <span className="text-slate-300">{item}</span>
+                    <Badge className="border-green-500/25 bg-green-500/15 text-xs text-green-400">Ready</Badge>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm text-white">
+                  <Globe className="h-4 w-4 text-[hsl(var(--svc-cyber))]" />
+                  Domain Distribution
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {distributions.map(({ label, value, className }) => (
+                  <div key={label}>
+                    <div className="mb-1.5 flex items-center justify-between text-xs">
+                      <span className="text-slate-400">{label}</span>
+                      <span className="font-mono text-white">{value}%</span>
+                    </div>
+                    <div className="progress-track">
+                      <div className={`h-full rounded-full ${className}`} style={{ width: `${value}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="border-white/10 bg-card">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm text-white">
+                  <Search className="h-4 w-4 text-[hsl(var(--svc-realty))]" />
+                  Top Signal Types
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {topEventTypes.map(({ label, value }) => (
+                  <div key={label} className="grid grid-cols-[1fr_0.9fr_auto] items-center gap-3">
+                    <span className="truncate text-xs text-slate-400">{label}</span>
+                    <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+                      <div className={`h-full rounded-full bg-cyan-400 ${widthClass(value)}`} />
+                    </div>
+                    <span className="font-mono text-xs text-slate-500">{value}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
 
-      {/* ── Intelligence Categories ── */}
-      <section id="categories" className="py-20 bg-card/30 border-y border-border">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-12">
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/30 font-mono text-xs tracking-widest uppercase px-3 py-1">
-              Intelligence Domains
-            </Badge>
-            <h2 className="text-2xl md:text-3xl font-bold mb-3">
-              Intelligence{" "}
-              <span className="text-gradient-primary">Categories</span>
-            </h2>
-            <p className="text-muted-foreground max-w-lg mx-auto">
-              Four specialized intelligence domains — each staffed by dedicated analysts and
-              automated data pipelines operating in parallel.
+      <section className="border-y border-white/10 bg-white/5 py-20">
+        <div className="container mx-auto max-w-screen-2xl px-6">
+          <div className="mb-12 text-center">
+            <Badge className="mb-4 border-cyan-500/30 bg-cyan-500/10 text-cyan-400">Operational Modules</Badge>
+            <h2 className="text-4xl font-bold text-white">Aligned intelligence domains</h2>
+            <p className="mx-auto mt-3 max-w-2xl text-slate-400">
+              The Bentley dashboard pattern becomes GEM’s cross-domain operating model: live status, domain cards, event intelligence, and quick routing.
             </p>
           </div>
-          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
-            {intelCategories.map(({ icon: Icon, title, description, badge, badgeColor }) => (
-              <Card key={title} className="glass-panel bento-card border-border/50 group">
+
+          <div className="grid gap-6 md:grid-cols-3">
+            {modules.map(({ icon: Icon, title, description, metric }) => (
+              <Card key={title} className="glass-panel bento-card border-white/10">
                 <CardHeader>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <CardTitle className="text-base font-semibold">{title}</CardTitle>
-                    </div>
-                    <Badge className={`text-xs shrink-0 ${badgeColor}`}>{badge}</Badge>
+                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-500/10">
+                    <Icon className="h-5 w-5 text-cyan-400" />
                   </div>
+                  <CardTitle className="text-base text-white">{title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Intel Reports ── */}
-      <section id="reports" className="py-20 container mx-auto px-6">
-        <div className="text-center mb-12">
-          <Badge className="mb-4 bg-primary/10 text-primary border-primary/30 font-mono text-xs tracking-widest uppercase px-3 py-1">
-            Publications
-          </Badge>
-          <h2 className="text-2xl md:text-3xl font-bold mb-3">
-            Intelligence{" "}
-            <span className="text-gradient-primary">Reports</span>
-          </h2>
-          <p className="text-muted-foreground max-w-lg mx-auto">
-            In-depth research reports, sector briefings, and threat landscape analyses produced by
-            the GEM Intelligence team and distributed to authenticated clients.
-          </p>
-        </div>
-        <div className="grid md:grid-cols-2 gap-5 max-w-5xl mx-auto">
-          {intelReports.map((report, i) => (
-            <Card key={i} className="glass-panel bento-card border-border/50 flex flex-col">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-2 flex-wrap mb-2">
-                  <Badge className="bg-primary/10 text-primary border-primary/30 text-xs">
-                    {report.category}
-                  </Badge>
-                  <Badge className={`text-xs ${report.classColor}`}>
-                    {report.classification}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground font-mono ml-auto">
-                    {report.date}
-                  </span>
-                </div>
-                <CardTitle className="text-sm font-semibold leading-snug">
-                  {report.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col flex-1 gap-4">
-                <p className="text-muted-foreground text-xs leading-relaxed flex-1">
-                  {report.excerpt}
-                </p>
-                <div className="flex gap-3">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-primary/40 text-primary hover:bg-primary/10 text-xs"
-                  >
-                    <FileText className="mr-1.5 h-3 w-3" />
-                    View Report
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-muted-foreground hover:text-foreground text-xs"
-                  >
-                    Download PDF
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <p className="text-center text-xs text-muted-foreground mt-6">
-          TLP:AMBER and TLP:RED reports require authenticated client access.{" "}
-          <Link href="/client-login" className="text-primary hover:underline underline-offset-4">
-            Sign in to the Hub
-          </Link>
-        </p>
-      </section>
-
-      {/* ── Monitoring Modules ── */}
-      <section id="monitoring" className="py-20 bg-card/30 border-y border-border">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-12">
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/30 font-mono text-xs tracking-widest uppercase px-3 py-1">
-              Operations
-            </Badge>
-            <h2 className="text-2xl md:text-3xl font-bold mb-3">
-              Monitoring{" "}
-              <span className="text-gradient-primary">Modules</span>
-            </h2>
-            <p className="text-muted-foreground max-w-lg mx-auto">
-              Three operational layers provide continuous visibility across your security perimeter —
-              from SOC coverage to endpoint telemetry integration.
-            </p>
-          </div>
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {monitoringModules.map(({ icon: Icon, title, description, metric }) => (
-              <Card key={title} className="glass-panel bento-card border-border/50 group">
-                <CardHeader>
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary/20 transition-colors">
-                      <Icon className="h-5 w-5" />
-                    </div>
-                    <CardTitle className="text-base font-semibold">{title}</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
-                  <p className="font-mono text-xs text-primary/80 bg-primary/5 rounded px-2 py-1 inline-block">
+                  <p className="mb-4 text-sm leading-relaxed text-slate-400">{description}</p>
+                  <span className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 font-mono text-xs text-cyan-400">
                     {metric}
-                  </p>
+                  </span>
                 </CardContent>
               </Card>
             ))}
@@ -390,105 +409,30 @@ export default function IntelPage() {
         </div>
       </section>
 
-      {/* ── Architecture Specs ── */}
-      <section id="architecture" className="py-20 container mx-auto px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <Badge className="mb-4 bg-primary/10 text-primary border-primary/30 font-mono text-xs tracking-widest uppercase px-3 py-1">
-              Technical Foundation
-            </Badge>
-            <h2 className="text-2xl md:text-3xl font-bold mb-3">
-              GEM Security{" "}
-              <span className="text-gradient-primary">Architecture</span>
-            </h2>
-            <p className="text-muted-foreground max-w-lg mx-auto">
-              Our platform is purpose-built on a modern security architecture — designed for
-              enterprise resilience, operational visibility, and zero implicit trust.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-5 mb-10">
-            {architectureSpecs.map((spec) => (
-              <div key={spec.label} className="glass-panel rounded-xl p-5 border-border/50 bento-card flex gap-4">
-                <div className="p-2 rounded-lg bg-primary/10 text-primary h-fit">
-                  <Cpu className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="font-bold text-sm text-primary mb-1">{spec.label}</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{spec.detail}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card className="glass-panel border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Zap className="h-4 w-4 text-primary" />
-                  Ingestion & Correlation Engine
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-muted-foreground text-sm leading-relaxed space-y-3">
-                <p>
-                  GEM ingests over 50 million threat signals daily from proprietary sensors,
-                  government feeds, commercial threat intel providers, and open-source intelligence
-                  communities. Our AI-powered correlation engine identifies relationships between
-                  indicators, clusters threat actor activity, and surfaces actionable intelligence —
-                  reducing mean-time-to-detect by 73%.
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="glass-panel border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Lock className="h-4 w-4 text-primary" />
-                  Delivery & Integration Layer
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-muted-foreground text-sm leading-relaxed space-y-3">
-                <p>
-                  Intelligence is delivered through the GEM Hub portal, REST API, STIX/TAXII 2.1
-                  feeds, and SIEM integrations. All data is encrypted in transit and at rest with
-                  role-based access controls and full audit logging — satisfying SOC 2 Type II,
-                  ISO 27001, and PCI-DSS requirements.
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA ── */}
-      <section id="cta" className="py-24 bg-card/40 border-t border-border">
-        <div className="container mx-auto px-6 text-center max-w-2xl">
-          <h2 className="text-2xl md:text-3xl font-bold mb-4">
-            Need a{" "}
-            <span className="text-gradient-primary">dedicated briefing</span>?
-          </h2>
-          <p className="text-muted-foreground mb-10 text-base leading-relaxed">
-            Request a tailored threat intelligence consultation for your organization. Our analysts
-            will prepare a bespoke threat assessment and architectural recommendations within 48
-            hours.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              asChild
-              size="lg"
-              className="bg-primary text-primary-foreground hover:bg-primary/90 glow-cyan font-semibold px-8"
-            >
+      <section className="container mx-auto max-w-screen-2xl px-6 py-20">
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 md:p-8">
+          <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-white">Quick Actions</h2>
+              <p className="mt-1 text-sm text-slate-400">Operational routing shortcuts aligned to the existing GEM app surfaces.</p>
+            </div>
+            <Button asChild className="rounded-full bg-cyan-400 text-black hover:bg-cyan-500">
               <Link href="/get-started">
-                Request Consultation <ArrowRight className="ml-2 h-4 w-4" />
+                Request Access <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="border-primary/40 text-primary hover:bg-primary/10 font-semibold px-8"
-            >
-              <Link href="/client-login">Client Login <ChevronRight className="ml-1 h-4 w-4" /></Link>
-            </Button>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {quickActions.map(({ label, href, icon: Icon }) => (
+              <Link key={label} href={href} className="rounded-2xl border border-white/10 bg-background/60 p-4 transition hover:border-cyan-500/30 hover:bg-white/10">
+                <Icon className="mb-3 h-5 w-5 text-cyan-400" />
+                <p className="text-sm font-semibold text-white">{label}</p>
+                <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+                  Open surface <ChevronRight className="h-3 w-3" />
+                </p>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
