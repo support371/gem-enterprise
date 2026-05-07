@@ -23,10 +23,10 @@ export const metadata = {
 };
 
 const stats = [
-  { value: "$2.4B+", label: "Assets Protected" },
-  { value: "340+", label: "Enterprise Clients" },
-  { value: "99.97%", label: "Uptime SLA" },
-  { value: "24/7", label: "Threat Monitoring" },
+  { value: "KYC-Gated", label: "Client Access" },
+  { value: "RBAC", label: "Role-Based Controls" },
+  { value: "Audit-Ready", label: "Compliance Events" },
+  { value: "24/7", label: "Intelligence Monitoring" },
 ];
 
 const services = [
@@ -34,7 +34,7 @@ const services = [
     icon: Shield,
     title: "GEM Cyber Fund",
     description:
-      "Real-time threat intelligence, dark web monitoring, incident response, and institutional cybersecurity operations.",
+      "Threat intelligence, dark web monitoring, incident response, and institutional cybersecurity operations.",
     tags: ["Threat Intel", "Dark Web", "IR"],
     href: "/app/products/cyber",
     color: "cyan",
@@ -43,7 +43,7 @@ const services = [
     icon: Landmark,
     title: "Financial Shield",
     description:
-      "Asset protection, wealth preservation structures, escrow management, and multi-signature institutional vaults.",
+      "Asset protection workflows, wealth preservation structures, escrow coordination, and institutional vault operations.",
     tags: ["Vaults", "Escrow", "Preservation"],
     href: "/app/products/financial",
     color: "purple",
@@ -53,7 +53,7 @@ const services = [
     icon: Building2,
     title: "ATR Property Trust",
     description:
-      "Institutional real estate intelligence, REIT structures, and secured property asset management at scale.",
+      "Real estate intelligence, trust workflows, REIT-style portfolio visibility, and secured property asset management.",
     tags: ["REIT", "Property", "Trust"],
     href: "/app/products/real-estate",
     color: "amber",
@@ -64,53 +64,77 @@ const features = [
   {
     icon: LayoutDashboard,
     title: "Unified Dashboard",
-    description: "Real-time portfolio and risk overview",
+    description: "Portfolio, risk, compliance, and operational status in one view",
   },
   {
     icon: ShieldCheck,
     title: "KYC & Compliance",
-    description: "Automated identity verification flow",
+    description: "Applicant verification, review states, approval gates, and status tracking",
   },
   {
     icon: MessageSquare,
     title: "AI Concierge",
-    description: "Claude-powered 24/7 support assistant",
+    description: "Consent-aware support workflows with escalation readiness",
   },
   {
     icon: Bell,
     title: "Smart Notifications",
-    description: "Priority alerts across all portfolios",
+    description: "Priority alerts across portfolios, documents, requests, and reviews",
   },
   {
     icon: FileText,
     title: "Document Vault",
-    description: "Encrypted institutional document storage",
+    description: "Structured institutional document handling and review support",
   },
   {
     icon: Users,
     title: "Team Management",
-    description: "Role-based access and audit trails",
+    description: "Role-based access, admin operations, and controlled client workflows",
+  },
+];
+
+const operatingModel = [
+  "Qualified client request",
+  "Identity and entity verification",
+  "Compliance review",
+  "Entitlement approval",
+  "Secure portal access",
+  "Ongoing intelligence and audit trail",
+];
+
+const governanceControls = [
+  {
+    title: "Access Governance",
+    description: "Invite-only onboarding, role-based access, protected portal routing, and admin-only review surfaces.",
+  },
+  {
+    title: "Compliance Evidence",
+    description: "KYC submissions, document records, decision states, consent receipts, and immutable audit events.",
+  },
+  {
+    title: "Operational Oversight",
+    description: "Support escalation, service requests, meeting workflows, notifications, and intelligence ingestion visibility.",
   },
 ];
 
 const intelligence = [
   {
     category: "Cyber",
-    title: "Critical Vulnerability Disclosure in Enterprise VPN Solution",
-    summary: "New CVE discovered in popular VPN software affecting 5M+ institutions worldwide...",
-    timestamp: "12 min ago",
+    title: "Enterprise VPN Exposure Watch",
+    summary: "Monitoring infrastructure advisories, exploited CVEs, and identity perimeter risk across client environments.",
+    timestamp: "Active watch",
   },
   {
     category: "Financial",
-    title: "Q1 2026 Fraud Trend Analysis: AI-Powered Account Takeovers Rising",
-    summary: "Financial institutions report 47% increase in sophisticated ATO attacks leveraging...",
-    timestamp: "1h ago",
+    title: "Account Takeover Pattern Review",
+    summary: "Tracking AI-enabled fraud patterns, wire-risk indicators, and client-side transaction escalation triggers.",
+    timestamp: "Updated today",
   },
   {
     category: "Real Estate",
-    title: "Title Fraud Spike in Commercial Real Estate Market",
-    summary: "Coordinated title fraud schemes targeting high-value commercial properties detected...",
-    timestamp: "3h ago",
+    title: "Commercial Title Fraud Monitoring",
+    summary: "Reviewing property-record anomalies, ownership transfer risk, and high-value commercial portfolio exposure.",
+    timestamp: "Updated today",
   },
 ];
 
@@ -119,32 +143,27 @@ export default function HomePage() {
     <main className="min-h-screen bg-background text-foreground">
       {/* ── HERO SECTION ── */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Dark mesh background */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-cyan-500 blur-3xl" />
           <div className="absolute bottom-1/3 right-1/4 w-96 h-96 rounded-full bg-purple-600 blur-3xl" />
         </div>
 
         <div className="relative z-10 container mx-auto px-6 py-24 text-center max-w-4xl">
-          {/* Pill Badge */}
           <Badge className="mb-8 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-xs tracking-widest uppercase px-4 py-1.5 inline-flex items-center gap-2">
             <Activity className="h-3 w-3 animate-pulse" />
             GEM ENTERPRISE PLATFORM — 2026
           </Badge>
 
-          {/* H1 - Three Lines */}
           <h1 className="text-6xl md:text-8xl font-black leading-none mb-6">
             <div className="text-cyan-400">Defend.</div>
             <div className="text-white">Protect.</div>
             <div className="text-white">Prevail.</div>
           </h1>
 
-          {/* Body Text */}
           <p className="text-slate-400 text-lg max-w-2xl mx-auto text-center mb-10 leading-relaxed">
-            GEM Enterprise delivers institutional-grade cybersecurity, financial security, and real estate protection for qualified clients. Threat intelligence. Asset recovery. Wealth preservation.
+            GEM Enterprise delivers institutional-grade cybersecurity, financial security, and real estate protection for qualified clients. Built around KYC-gated access, compliance review, entitlement control, and audit-ready operations.
           </p>
 
-          {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
             <Button
               asChild
@@ -161,26 +180,25 @@ export default function HomePage() {
               variant="outline"
               className="border-white/20 text-white hover:bg-white/10 font-semibold rounded-full px-8"
             >
-              <Link href="/app/dashboard">
-                View Platform <ChevronDown className="ml-2 h-5 w-5" />
+              <Link href="/architecture">
+                View Architecture <ChevronDown className="ml-2 h-5 w-5" />
               </Link>
             </Button>
           </div>
 
-          {/* Scroll Indicator */}
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
             <ChevronDown className="w-6 h-6 text-cyan-400" />
           </div>
         </div>
       </section>
 
-      {/* ── STATS BAR ── */}
+      {/* ── CREDIBILITY BAR ── */}
       <section className="w-full bg-background/40 border-y border-white/10 py-12">
         <div className="container mx-auto px-6 max-w-screen-2xl">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             {stats.map((stat, i) => (
               <div key={i} className={`${i < 3 ? "border-r border-cyan-500/20" : ""}`}>
-                <p className="text-3xl md:text-4xl font-bold text-white mb-2">{stat.value}</p>
+                <p className="text-2xl md:text-4xl font-bold text-white mb-2">{stat.value}</p>
                 <p className="text-slate-400 text-sm">{stat.label}</p>
               </div>
             ))}
@@ -195,7 +213,7 @@ export default function HomePage() {
             Three Pillars of <span className="text-cyan-400">Enterprise Security</span>
           </h2>
           <p className="text-slate-400 max-w-2xl mx-auto">
-            Comprehensive protection across cybersecurity, financial assets, and real estate portfolios
+            Comprehensive protection across cybersecurity, financial operations, and real estate portfolio intelligence.
           </p>
         </div>
 
@@ -247,6 +265,67 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── OPERATING MODEL SECTION ── */}
+      <section className="py-24 bg-white/5 border-y border-white/10">
+        <div className="container mx-auto px-6 max-w-screen-2xl">
+          <div className="grid lg:grid-cols-[0.9fr_1.1fr] gap-12 items-start">
+            <div>
+              <Badge className="mb-5 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-xs tracking-widest uppercase px-4 py-1.5">
+                Operating Model
+              </Badge>
+              <h2 className="text-4xl md:text-5xl font-bold mb-5">
+                Built for gated, <span className="text-cyan-400">regulated access</span>.
+              </h2>
+              <p className="text-slate-400 leading-relaxed mb-8">
+                The platform moves clients from access request to verification, compliance review, entitlement approval, and protected portal operations without changing the current application data model.
+              </p>
+              <Button asChild className="bg-cyan-400 text-black hover:bg-cyan-500 font-semibold rounded-full px-7">
+                <Link href="/get-started">
+                  Start Access Request <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+
+            <div className="grid gap-3">
+              {operatingModel.map((step, i) => (
+                <div key={step} className="rounded-2xl border border-white/10 bg-background/50 p-5 flex items-center gap-4">
+                  <div className="w-9 h-9 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center font-mono text-sm">
+                    {String(i + 1).padStart(2, "0")}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-white font-semibold">{step}</p>
+                    <p className="text-slate-500 text-sm mt-1">Controlled workflow stage with traceable operational state.</p>
+                  </div>
+                  {i < operatingModel.length - 1 && <ArrowRight className="w-4 h-4 text-slate-600 hidden md:block" />}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── GOVERNANCE SECTION ── */}
+      <section className="py-24 container mx-auto px-6 max-w-screen-2xl">
+        <div className="text-center mb-16">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            Governance <span className="text-cyan-400">By Design</span>
+          </h2>
+          <p className="text-slate-400 max-w-2xl mx-auto">
+            Access, compliance, AI support, and operations are presented as one institutional control plane.
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {governanceControls.map((control) => (
+            <div key={control.title} className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-7">
+              <ShieldCheck className="w-8 h-8 text-cyan-400 mb-5" />
+              <h3 className="text-white text-lg font-bold mb-3">{control.title}</h3>
+              <p className="text-slate-400 text-sm leading-relaxed">{control.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* ── PLATFORM PREVIEW SECTION ── */}
       <section className="py-24 bg-white/5 border-y border-white/10">
         <div className="container mx-auto px-6 max-w-screen-2xl">
@@ -255,12 +334,11 @@ export default function HomePage() {
               Enterprise <span className="text-cyan-400">Grade Operations</span>
             </h2>
             <p className="text-slate-400 max-w-2xl mx-auto">
-              Everything your institution needs in one secure platform
+              Everything your institution needs in one secure platform.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Features Grid */}
             <div className="grid grid-cols-1 gap-6">
               {features.map((feature, i) => (
                 <div key={i} className="flex gap-4">
@@ -275,23 +353,25 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Mock Dashboard */}
             <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-8 font-mono text-sm">
               <div className="space-y-3">
                 <div className="text-cyan-400">
-                  <span className="text-slate-400">&gt;</span> threat_scan --live
+                  <span className="text-slate-400">&gt;</span> controls_status --portfolio
                 </div>
                 <div className="text-green-400">
-                  <span className="text-slate-400">✓</span> 0 critical vectors detected
+                  <span className="text-slate-400">✓</span> access gate: kyc_required
                 </div>
                 <div className="text-green-400">
-                  <span className="text-slate-400">✓</span> Portfolio integrity: 100%
+                  <span className="text-slate-400">✓</span> role policy: active
                 </div>
                 <div className="text-green-400">
-                  <span className="text-slate-400">✓</span> Vault status: sealed
+                  <span className="text-slate-400">✓</span> audit stream: enabled
                 </div>
                 <div className="text-cyan-400 mt-4">
-                  <span className="text-slate-400">&gt;</span> uptime: 99.97% (30d)
+                  <span className="text-slate-400">&gt;</span> intelligence_watch --live
+                </div>
+                <div className="text-slate-400">
+                  cyber · financial · real_estate · compliance
                 </div>
               </div>
             </div>
@@ -306,7 +386,7 @@ export default function HomePage() {
             Live <span className="text-cyan-400">Intelligence</span>
           </h2>
           <p className="text-slate-400 max-w-2xl mx-auto">
-            Institutional-grade market and threat intelligence
+            Institutional-grade market, threat, and portfolio intelligence.
           </p>
         </div>
 
@@ -348,12 +428,12 @@ export default function HomePage() {
           <div className="absolute inset-0 rounded-full bg-cyan-500 blur-3xl w-96 h-96 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" />
         </div>
 
-        <div className="relative z-10 container mx-auto px-6 text-center max-w-2xl max-w-screen-2xl">
+        <div className="relative z-10 container mx-auto px-6 text-center max-w-2xl">
           <h2 className="text-4xl md:text-5xl font-bold mb-4">
             Ready to secure your <span className="text-cyan-400">institution?</span>
           </h2>
           <p className="text-slate-400 text-lg mb-10">
-            Join 340+ enterprise clients. KYC-verified access only.
+            Qualified-client access only. Verification and compliance approval are required before portal entitlements are activated.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
