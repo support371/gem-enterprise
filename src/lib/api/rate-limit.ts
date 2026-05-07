@@ -14,7 +14,8 @@ interface Bucket {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
+  // We use var here to ensure the bucket storage persists across hot reloads
+  // in development and remains a singleton instance in production.
   var __gem_rate_limit_buckets: Map<string, Bucket> | undefined;
 }
 
