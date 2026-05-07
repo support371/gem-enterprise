@@ -6,7 +6,19 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { FileText, Download, CheckCircle2, Loader2 } from 'lucide-react'
+import {
+  Archive,
+  CheckCircle2,
+  Database,
+  Download,
+  FileCheck2,
+  FileText,
+  FolderLock,
+  Loader2,
+  LockKeyhole,
+  ShieldCheck,
+  UploadCloud,
+} from 'lucide-react'
 
 interface KycDoc {
   id: string
@@ -28,49 +40,64 @@ function typeBadge(type: string) {
     proof_of_address: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
   }
   const key = type.toLowerCase()
-  const cls = map[key] ?? 'bg-white/10 text-slate-300'
+  const cls = map[key] ?? 'bg-white/10 text-slate-300 border-white/10'
   return <Badge className={cls}>{type.replace(/_/g, ' ')}</Badge>
 }
 
 function DocsTable({ docs }: { docs: DocRow[] }) {
-  if (docs.length === 0) return <p className="text-sm text-slate-500 text-center py-6">No documents in this category.</p>
+  if (docs.length === 0) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
+        <Archive className="mx-auto mb-3 h-8 w-8 text-slate-600" />
+        <p className="text-sm text-slate-500">No documents in this category.</p>
+      </div>
+    )
+  }
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow className="border-white/10 hover:bg-transparent">
-          <TableHead className="text-slate-400">Name</TableHead>
-          <TableHead className="text-slate-400">Type</TableHead>
-          <TableHead className="text-slate-400">Date</TableHead>
-          <TableHead className="text-slate-400">Status</TableHead>
-          <TableHead className="text-slate-400">Action</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {docs.map(doc => (
-          <TableRow key={doc.id} className="border-white/5 hover:bg-white/5">
-            <TableCell>
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-slate-400 shrink-0" />
-                <span className="text-white text-sm font-medium">{doc.name}</span>
-              </div>
-            </TableCell>
-            <TableCell>{typeBadge(doc.type)}</TableCell>
-            <TableCell className="text-slate-400 text-sm">{doc.date}</TableCell>
-            <TableCell>
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
-                <span className="text-green-400 text-xs capitalize">{doc.status}</span>
-              </div>
-            </TableCell>
-            <TableCell>
-              <Button size="sm" variant="outline" className="border-white/10 text-slate-300 hover:text-white hover:bg-white/10 text-xs gap-1.5" disabled>
-                <Download className="w-3 h-3" /> Download
-              </Button>
-            </TableCell>
+    <div className="overflow-hidden rounded-2xl border border-white/10">
+      <Table>
+        <TableHeader>
+          <TableRow className="border-white/10 bg-white/5 hover:bg-white/5">
+            <TableHead className="text-slate-400">Name</TableHead>
+            <TableHead className="text-slate-400">Type</TableHead>
+            <TableHead className="text-slate-400">Date</TableHead>
+            <TableHead className="text-slate-400">Status</TableHead>
+            <TableHead className="text-slate-400">Action</TableHead>
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {docs.map(doc => (
+            <TableRow key={doc.id} className="border-white/5 hover:bg-white/5">
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-500/10">
+                    <FileText className="h-4 w-4 text-cyan-400" />
+                  </div>
+                  <div>
+                    <span className="block text-sm font-medium text-white">{doc.name}</span>
+                    <span className="font-mono text-[11px] text-slate-600">{doc.id.slice(0, 10)}</span>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>{typeBadge(doc.type)}</TableCell>
+              <TableCell className="text-sm text-slate-400">{doc.date}</TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-400" />
+                  <span className="text-xs capitalize text-green-400">{doc.status}</span>
+                </div>
+              </TableCell>
+              <TableCell>
+                <Button size="sm" variant="outline" className="gap-1.5 border-white/10 text-xs text-slate-300 hover:bg-white/10 hover:text-white" disabled>
+                  <Download className="h-3 w-3" /> Download
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
   )
 }
 
@@ -100,59 +127,106 @@ export default function DocumentsPage() {
   const statements = docs.filter(d => d.type.toLowerCase() === 'statement')
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-white">
-          Your <span className="text-gradient-primary">Documents</span>
-        </h1>
-        <p className="text-slate-400 mt-1">Access all your GEM Enterprise documents.</p>
+    <div className="space-y-8 animate-fade-in">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-3 py-1 text-xs font-mono uppercase tracking-wider text-cyan-400">
+            <FolderLock className="h-3.5 w-3.5" />
+            Encrypted Document Vault
+          </div>
+          <h1 className="text-2xl font-bold text-white">
+            Your <span className="text-gradient-primary">Documents</span>
+          </h1>
+          <p className="mt-1 max-w-2xl text-sm text-slate-400">
+            Access KYC evidence, compliance records, statements, agreements, and institutional files through the existing document API.
+          </p>
+        </div>
+        <Button disabled className="gap-2 rounded-full bg-cyan-400 text-black hover:bg-cyan-500 disabled:opacity-60">
+          <UploadCloud className="h-4 w-4" /> Upload Coming Soon
+        </Button>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         {[
-          { label: 'Total Documents', value: loading ? '…' : String(docs.length) },
-          { label: 'KYC / Identity', value: loading ? '…' : String(kycDocs.length) },
-          { label: 'Statements', value: loading ? '…' : String(statements.length) },
-          { label: 'Compliance', value: loading ? '…' : String(compliance.length) },
-        ].map(({ label, value }) => (
-          <div key={label} className="glass-panel rounded-xl p-4 text-center bento-card">
-            <p className="text-2xl font-bold text-cyan-400">{value}</p>
-            <p className="text-xs text-slate-400 mt-1">{label}</p>
+          { label: 'Total Documents', value: loading ? '…' : String(docs.length), icon: Database, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
+          { label: 'KYC / Identity', value: loading ? '…' : String(kycDocs.length), icon: ShieldCheck, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+          { label: 'Statements', value: loading ? '…' : String(statements.length), icon: FileText, color: 'text-[hsl(var(--svc-financial))]', bg: 'bg-[hsl(var(--svc-financial-muted))]' },
+          { label: 'Compliance', value: loading ? '…' : String(compliance.length), icon: FileCheck2, color: 'text-green-400', bg: 'bg-green-500/10' },
+        ].map(({ label, value, icon: Icon, color, bg }) => (
+          <div key={label} className="glass-panel bento-card rounded-xl p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${bg}`}>
+                <Icon className={`h-5 w-5 ${color}`} />
+              </div>
+              <p className={`text-3xl font-bold ${color}`}>{value}</p>
+            </div>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</p>
           </div>
         ))}
       </div>
 
-      <Card className="bg-card border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <FileText className="w-5 h-5 text-cyan-400" />
-            Document Library
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-8 gap-2 text-slate-500">
-              <Loader2 className="w-4 h-4 animate-spin" /> Loading documents…
+      <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
+        <Card className="border-white/10 bg-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-white">
+              <FileText className="h-5 w-5 text-cyan-400" />
+              Document Library
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center gap-2 py-8 text-slate-500">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading documents…
+              </div>
+            ) : docs.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-10 text-center">
+                <FolderLock className="mx-auto mb-4 h-10 w-10 text-slate-600" />
+                <p className="text-sm font-medium text-white">No documents available yet</p>
+                <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+                  Documents will appear here once your KYC is complete or institutional records are added to your profile.
+                </p>
+              </div>
+            ) : (
+              <Tabs defaultValue="all">
+                <TabsList className="mb-6 border border-white/10 bg-white/5">
+                  {['all', 'kyc', 'statements', 'compliance'].map(tab => (
+                    <TabsTrigger key={tab} value={tab} className="capitalize data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
+                      {tab === 'kyc' ? 'KYC' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                <TabsContent value="all"><DocsTable docs={docs} /></TabsContent>
+                <TabsContent value="kyc"><DocsTable docs={kycDocs} /></TabsContent>
+                <TabsContent value="statements"><DocsTable docs={statements} /></TabsContent>
+                <TabsContent value="compliance"><DocsTable docs={compliance} /></TabsContent>
+              </Tabs>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="space-y-4">
+          <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <LockKeyhole className="h-5 w-5 text-cyan-400" />
+              <p className="text-sm font-semibold text-cyan-400">Vault Controls</p>
             </div>
-          ) : docs.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-8">No documents available yet. Documents will appear here once your KYC is complete.</p>
-          ) : (
-            <Tabs defaultValue="all">
-              <TabsList className="bg-white/5 border border-white/10 mb-6">
-                {['all', 'kyc', 'statements', 'compliance'].map(tab => (
-                  <TabsTrigger key={tab} value={tab} className="capitalize data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-400">
-                    {tab === 'kyc' ? 'KYC' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              <TabsContent value="all"><DocsTable docs={docs} /></TabsContent>
-              <TabsContent value="kyc"><DocsTable docs={kycDocs} /></TabsContent>
-              <TabsContent value="statements"><DocsTable docs={statements} /></TabsContent>
-              <TabsContent value="compliance"><DocsTable docs={compliance} /></TabsContent>
-            </Tabs>
-          )}
-        </CardContent>
-      </Card>
+            <p className="text-xs leading-relaxed text-slate-400">
+              Document records are displayed from the current document API and grouped for verification, compliance, statement, and agreement workflows.
+            </p>
+          </div>
+
+          {[
+            ['KYC Evidence', 'Identity and proof-of-address documents'],
+            ['Compliance Records', 'Agreements, approvals, and notices'],
+            ['Statements', 'Portfolio and service reporting files'],
+          ].map(([title, body]) => (
+            <div key={title} className="rounded-xl border border-white/10 bg-white/5 p-5">
+              <p className="text-sm font-semibold text-white">{title}</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-400">{body}</p>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
