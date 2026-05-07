@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable React Compiler (stable in Next.js 16)
+  // Optimize package imports for smaller bundle
   experimental: {
-    reactCompiler: true,
-    // Optimize server components rendering
     optimizePackageImports: [
       '@radix-ui/react-accordion',
       '@radix-ui/react-alert-dialog',
@@ -46,7 +44,6 @@ const nextConfig = {
   // Bundle size optimization
   compress: true,
   productionBrowserSourceMaps: false,
-  swcMinify: true,
 
   // Performance optimizations
   onDemandEntries: {
