@@ -83,6 +83,12 @@ export const clientPortalNavGroups: PlatformNavGroup[] = [
         description: "Client overview, status, and operational summary.",
       },
       {
+        href: "/intel",
+        icon: "Rss",
+        label: "Intelligence",
+        description: "Live cross-domain intelligence operations console.",
+      },
+      {
         href: "/app/portfolios",
         icon: "Briefcase",
         label: "Portfolios",
@@ -239,6 +245,12 @@ export const adminPortalNavItems: PlatformNavItem[] = [
     icon: "Mail",
     label: "Campaigns",
     description: "Email campaign management and delivery.",
+  },
+  {
+    href: "/app/admin/news",
+    icon: "Rss",
+    label: "News Ingestion",
+    description: "Intelligence source management and ingestion run history.",
   },
 ];
 
