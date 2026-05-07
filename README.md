@@ -458,20 +458,74 @@ All `/app/*` routes are protected by `middleware.ts`, which validates the JWT on
 
 ## Deployment (Vercel)
 
-See [`DEPLOYMENT.md`](DEPLOYMENT.md) for the complete ordered deployment guide including:
+### Quick Start - 2-5 Minutes to Production
+
+See [`DEPLOYMENT_QUICK_START.md`](DEPLOYMENT_QUICK_START.md) for fast deployment options:
+
+**Option A: One-Click Deploy (Easiest)**
+- Click [Deploy with Vercel](https://vercel.com/new/clone?repository-url=https://github.com/support371/gem-enterprise) button
+- Creates new repo + project in 2 minutes
+- Automatic deployment to production
+
+**Option B: Vercel CLI (3 minutes)**
+```bash
+npm install -g vercel
+npm run build
+vercel --prod
+```
+
+**Option C: GitHub Auto-Deploy (5 minutes, best for teams)**
+1. Push to GitHub
+2. Connect GitHub to Vercel
+3. Auto-deploy on every push
+
+### Detailed Deployment Guide
+
+See [`VERCEL_DEPLOYMENT_GUIDE.md`](VERCEL_DEPLOYMENT_GUIDE.md) for the complete guide including:
 
 - All required environment variables and where to add them
 - Exact Vercel CLI commands
-- `prisma migrate deploy` steps
-- Full smoke test checklist covering auth, support consent, AI governance, and escalation
+- Custom domain setup
+- Performance monitoring
+- Team collaboration setup
+- Cost and limits
+- Troubleshooting
 
-Quick summary:
+### Deploying to Another Vercel Account
 
-1. Add all env vars in Vercel Dashboard → Project → Settings → Environment Variables
-2. Force redeploy: `vercel redeploy --force`
-3. Apply migrations: `DATABASE_URL="..." npx prisma migrate deploy`
-4. Seed admin: `npm run db:seed`
-5. Run smoke tests from [`DEPLOYMENT.md`](DEPLOYMENT.md)
+The project is configured for easy deployment to any Vercel account:
+
+1. **Configuration files ready**
+   - `vercel.json` - Standard Next.js 20.x configuration (portable)
+   - `.env.example` - All environment variable templates
+   - `package.json` - Standard npm scripts
+
+2. **Deploy to new account**
+   ```bash
+   # Option A: One-click (easiest)
+   # Click deploy button in DEPLOYMENT_QUICK_START.md
+   
+   # Option B: Manual
+   vercel login  # Login with your Vercel account
+   vercel link   # Link to new project
+   vercel --prod # Deploy
+   ```
+
+3. **Add environment variables** (if needed)
+   - Vercel Dashboard → Settings → Environment Variables
+   - Copy values from `.env.example`
+
+### Smoke Tests (Post-Deployment)
+
+After every deployment, verify these endpoints:
+
+| Endpoint | Expected |
+|----------|----------|
+| `/api/health` | `200 { "status": "ok" }` |
+| `/` | `200` — landing page renders |
+| `/client-login` | `200` — login form renders |
+| `/app/dashboard` | `302` redirect to `/client-login` (without auth) |
+| `POST /api/auth/login` (bad creds) | `401` |
 
 ---
 

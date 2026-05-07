@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useMemo, memo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, ChevronDown, Menu, Shield, X } from "lucide-react";
@@ -19,7 +19,8 @@ type NavSection = {
   items: NavItem[];
 };
 
-const navSections: NavSection[] = [
+// Memoized navigation sections - prevent unnecessary recalculations
+const NAV_SECTIONS_DATA: NavSection[] = [
   {
     label: "Home",
     path: "/",
@@ -105,16 +106,35 @@ const navSections: NavSection[] = [
   },
 ];
 
-export function Navigation() {
+const navSections = NAV_SECTIONS_DATA;
+
+function NavigationContent() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openSection, setOpenSection] = useState<string | null>(null);
 
-  const closeMobile = () => {
+  // Memoized callbacks for faster click response
+  const closeMobile = useCallback(() => {
     setMobileOpen(false);
     setOpenSection(null);
-  };
+  }, []);
 
+  const toggleMobileMenu = useCallback(() => {
+    setMobileOpen((prev) => !prev);
+  }, []);
+
+  const toggleSection = useCallback((label: string) => {
+    setOpenSection((prev) => (prev === label ? null : label));
+  }, []);
+
+  // Memoized isActive function
+  const isActive = useCallback((path: string) => {
+    const base = path.split("#")[0];
+    if (base === "/") return pathname === "/";
+    return pathname === base || pathname.startsWith(`${base}/`);
+  }, [pathname]);
+
+  // Handle scroll lock on mobile menu
   useEffect(() => {
     if (!mobileOpen) {
       document.body.style.overflow = "";
@@ -131,16 +151,10 @@ export function Navigation() {
     };
   }, [mobileOpen]);
 
+  // Close menu on route change
   useEffect(() => {
     closeMobile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
-
-  const isActive = (path: string) => {
-    const base = path.split("#")[0];
-    if (base === "/") return pathname === "/";
-    return pathname === base || pathname.startsWith(`${base}/`);
-  };
+  }, [pathname, closeMobile]);
 
   return (
     <header className="sticky top-0 z-[10000] w-full border-b border-white/[0.07] bg-[#131a26]/95 shadow-2xl shadow-black/20 backdrop-blur-xl">
@@ -187,8 +201,8 @@ export function Navigation() {
           aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
           aria-expanded={mobileOpen}
           aria-controls="mobile-nav"
-          className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-white/70 shadow-lg transition-colors hover:bg-white/10 hover:text-white lg:hidden"
-          onClick={() => setMobileOpen((prev) => !prev)}
+          className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 text-white/70 shadow-lg transition-all hover:bg-white/10 hover:text-white active:scale-95 lg:hidden"
+          onClick={toggleMobileMenu}
         >
           {mobileOpen ? <X className="h-6 w-6" aria-hidden="true" /> : <Menu className="h-6 w-6" aria-hidden="true" />}
         </button>
@@ -205,13 +219,13 @@ export function Navigation() {
                     type="button"
                     aria-expanded={isOpen}
                     className={cn(
-                      "flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-lg font-semibold transition-colors",
-                      isActive(section.path) ? "text-cyan-300" : "text-white/75",
+                      "flex w-full items-center justify-between rounded-2xl px-4 py-4 text-left text-lg font-semibold transition-all active:scale-95",
+                      isActive(section.path) ? "text-cyan-300 bg-cyan-400/5" : "text-white/75 hover:bg-white/[0.02]",
                     )}
-                    onClick={() => setOpenSection(isOpen ? null : section.label)}
+                    onClick={() => toggleSection(section.label)}
                   >
                     <span>{section.label}</span>
-                    <ChevronDown className={cn("h-5 w-5 text-white/30 transition-transform", isOpen && "rotate-180 text-cyan-300")} />
+                    <ChevronDown className={cn("h-5 w-5 text-white/30 transition-transform duration-200", isOpen && "rotate-180 text-cyan-300")} />
                   </button>
 
                   {isOpen && (
@@ -270,3 +284,6 @@ export function Navigation() {
     </header>
   );
 }
+
+// Memoize Navigation component to prevent unnecessary re-renders
+export const Navigation = memo(NavigationContent);
