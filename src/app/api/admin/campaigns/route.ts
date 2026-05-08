@@ -11,7 +11,7 @@ import {
 
 export async function GET() {
   const gate = await requireAdmin();
-  if (!gate.ok) return gate.response;
+  if (!gate.ok) return (gate as { ok: false; response: any }).response;
 
   try {
     const campaigns = await db.emailCampaign.findMany({
@@ -33,7 +33,7 @@ const CreateSchema = z.object({
 
 export async function POST(req: NextRequest) {
   const gate = await requireAdmin();
-  if (!gate.ok) return gate.response;
+  if (!gate.ok) return (gate as { ok: false; response: any }).response;
   const session = gate.session;
   const { ipAddress, userAgent } = getRequestContext(req);
 

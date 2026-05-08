@@ -85,7 +85,7 @@ function pickPublishedAt(item: Parser.Item): Date {
 }
 
 function pickGuid(item: Parser.Item, fallbackUrl: string): string {
-  return item.guid?.trim() || fallbackUrl;
+  return item.guid?.trim() || (item as any).id?.trim() || fallbackUrl;
 }
 
 async function uniqueSlug(baseSlug: string, fallback: string): Promise<string> {

@@ -13,7 +13,7 @@ import {
 
 export async function GET() {
   const gate = await requireSession();
-  if (!gate.ok) return gate.response;
+  if (!gate.ok) return (gate as { ok: false; response: any }).response;
   const session = gate.session;
 
   try {
@@ -88,7 +88,7 @@ const profilePatchSchema = z
 
 export async function PATCH(req: NextRequest) {
   const gate = await requireSession();
-  if (!gate.ok) return gate.response;
+  if (!gate.ok) return (gate as { ok: false; response: any }).response;
   const session = gate.session;
 
   let body: unknown;

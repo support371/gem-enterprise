@@ -12,7 +12,7 @@ const adminKycActionSchema = z.object({
 
 export async function GET(_request: NextRequest) {
   const gate = await requireAdmin();
-  if (!gate.ok) return gate.response;
+  if (!gate.ok) return (gate as { ok: false; response: any }).response;
 
   try {
     const applications = await db.kYCApplication.findMany({
@@ -44,7 +44,7 @@ export async function GET(_request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const gate = await requireAdmin();
-  if (!gate.ok) return gate.response;
+  if (!gate.ok) return (gate as { ok: false; response: any }).response;
   const session = gate.session;
   const { ipAddress, userAgent } = getRequestContext(request);
 

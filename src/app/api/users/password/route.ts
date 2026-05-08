@@ -20,7 +20,7 @@ const schema = z
 
 export async function PATCH(req: NextRequest) {
   const gate = await requireSession();
-  if (!gate.ok) return gate.response;
+  if (!gate.ok) return (gate as { ok: false; response: any }).response;
   const session = gate.session;
   const { ipAddress, userAgent } = getRequestContext(req);
 

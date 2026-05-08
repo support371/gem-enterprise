@@ -25,6 +25,7 @@ export async function PATCH(
 ) {
   const gate = await requireAdmin();
   if (!gate.ok) {
+    return (gate as { ok: false; response: NextResponse }).response;
     return gate.response;
   }
   const session = gate.session;
