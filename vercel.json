@@ -1,19 +1,12 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "nodejs": "20.x",
+  "buildCommand": "pnpm run build",
+  "devCommand": "pnpm run dev",
+  "installCommand": "pnpm install --frozen-lockfile",
   "regions": ["sfo1"],
   "git": {
     "deploymentEnabled": {
       "main": true
-    }
-  },
-  "env": {
-    "NEXT_PUBLIC_APP_NAME": {
-      "description": "Application name",
-      "value": "GEM Enterprise"
     }
   },
   "headers": [
@@ -36,7 +29,7 @@
       ]
     },
     {
-      "source": "/.*",
+      "source": "/(.*)",
       "headers": [
         {
           "key": "X-Frame-Options",
