@@ -206,6 +206,27 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── TRUST & CERTIFICATIONS ── */}
+      <section className="py-20 container mx-auto px-6 max-w-screen-2xl">
+        <div className="bg-gradient-to-br from-cyan-500/10 to-purple-500/10 border border-white/10 rounded-2xl p-12">
+          <h3 className="text-2xl font-bold text-white mb-8 text-center">Enterprise-Grade Security & Compliance</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-cyan-400 mb-2">SOC 2 Type II</div>
+              <p className="text-slate-400 text-sm">Security, availability, processing integrity, confidentiality, privacy</p>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-cyan-400 mb-2">Audit-Ready</div>
+              <p className="text-slate-400 text-sm">Complete audit trails, immutable compliance events, regulatory reporting</p>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold text-cyan-400 mb-2">24/7 Monitoring</div>
+              <p className="text-slate-400 text-sm">Continuous threat detection, incident response, intelligence ingestion</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── SERVICES SECTION ── */}
       <section className="py-24 container mx-auto px-6 max-w-screen-2xl">
         <div className="text-center mb-16">
