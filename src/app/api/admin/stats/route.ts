@@ -4,7 +4,7 @@ import { requireAdmin, serverError } from "@/lib/api/auth-helpers";
 
 export async function GET() {
   const gate = await requireAdmin();
-  if (!gate.ok) return gate.response;
+  if (!gate.ok) return (gate as { ok: false; response: any }).response;
 
   try {
     const [totalUsers, pendingKyc, openApprovals, openTickets] = await Promise.all([

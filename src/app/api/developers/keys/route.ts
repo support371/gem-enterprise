@@ -12,7 +12,7 @@ import {
 
 export async function GET() {
   const gate = await requireSession();
-  if (!gate.ok) return gate.response;
+  if (!gate.ok) return (gate as { ok: false; response: any }).response;
   const session = gate.session;
 
   try {
@@ -43,7 +43,7 @@ const MAX_ACTIVE_KEYS_PER_USER = 10;
 
 export async function POST(req: NextRequest) {
   const gate = await requireSession();
-  if (!gate.ok) return gate.response;
+  if (!gate.ok) return (gate as { ok: false; response: any }).response;
   const session = gate.session;
   const { ipAddress, userAgent } = getRequestContext(req);
 

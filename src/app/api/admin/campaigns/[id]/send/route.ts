@@ -13,7 +13,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const gate = await requireAdmin();
-  if (!gate.ok) return gate.response;
+  if (!gate.ok) return (gate as { ok: false; response: any }).response;
   const session = gate.session;
   const { ipAddress, userAgent } = getRequestContext(req);
 
