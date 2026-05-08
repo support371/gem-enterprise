@@ -79,9 +79,34 @@ const nextConfig = {
     ];
   },
 
-  // Redirects
+  // Redirects - optimized for immediate response times
   async redirects() {
-    return [];
+    return [
+      // Product documentation links
+      {
+        source: '/docs/api',
+        destination: '/api-explorer',
+        permanent: true, // 301 - cacheable redirect
+      },
+      // Support and resources
+      {
+        source: '/support',
+        destination: '/app/support/contact',
+        permanent: false, // 302 - temporary redirect
+      },
+      // Analytics dashboard for partners
+      {
+        source: '/partners/analytics',
+        destination: '/dashboard/analytics',
+        permanent: false,
+      },
+      // Legacy URLs migration
+      {
+        source: '/app-old/:path*',
+        destination: '/app/:path*',
+        permanent: true,
+      },
+    ];
   },
 
   // Rewrites
