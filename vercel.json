@@ -3,7 +3,6 @@
   "buildCommand": "pnpm run db:generate && pnpm run build",
   "devCommand": "pnpm dev",
   "installCommand": "pnpm install --frozen-lockfile",
-  "nodejs": "20.x",
   "regions": ["sfo1"],
   "git": {
     "deploymentEnabled": {
