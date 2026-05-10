@@ -41,7 +41,7 @@ GEM Enterprise is a cybersecurity, financial security, asset recovery, and real 
 - `src/lib/orchestration/orchestrate-support-reply.ts` — AI chat orchestration
 - `src/lib/policy/evaluate-policy.ts` — AI policy evaluation engine
 - `prisma/schema.prisma` — Database schema (22 models, 9 enums)
-- `next.config.ts` — Security headers, redirects, image optimization
+- `next.config.js` — Security headers, redirects, image optimization
 - `vercel.json` — Vercel deployment configuration
 
 ## Environment Variables

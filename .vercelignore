@@ -15,11 +15,8 @@ DEPLOYMENT.md
 
 # Config files not needed at runtime
 .env.example
-eslint.config.js
+eslint.config.mjs
 vitest.config.ts
-postcss.config.js
-tailwind.config.ts
-tsconfig*.json
 
 # Misc
 .idea/

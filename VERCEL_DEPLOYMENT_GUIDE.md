@@ -13,10 +13,10 @@ Click the button above to deploy directly to your Vercel account.
 #### Prerequisites
 ```bash
 # Install Vercel CLI globally
-npm install -g vercel
+pnpm add -g vercel
 
-# Or use npx (no installation needed)
-npx vercel
+# Or use pnpm dlx (no installation needed)
+pnpm dlx vercel
 ```
 
 #### Deploy Steps
@@ -28,7 +28,7 @@ npx vercel
 
 2. **Build locally (optional, to verify)**
    ```bash
-   npm run build
+   pnpm run db:generate && pnpm run build
    ```
 
 3. **Deploy to Vercel**
