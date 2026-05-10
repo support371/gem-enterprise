@@ -1,8 +1,6 @@
-name: CI
+name: CI (Tests & Validation Only - Vercel Handles Deployment)
 
 on:
-  push:
-    branches: [main, claude/**]
   pull_request:
     branches: [main]
 
