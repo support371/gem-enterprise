@@ -10,10 +10,7 @@
     }
   },
   "env": {
-    "NEXT_PUBLIC_APP_NAME": {
-      "description": "Application name",
-      "value": "GEM Enterprise"
-    }
+    "NEXT_PUBLIC_APP_NAME": "GEM Enterprise"
   },
   "headers": [
     {
