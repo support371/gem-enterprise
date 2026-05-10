@@ -22,7 +22,7 @@ dist-ssr
 .env.local
 .env.*.local
 
-# Package manager lock files (use npm only)
+# Package manager lock files (pnpm is the project package manager)
 bun.lock
 bun.lockb
 
