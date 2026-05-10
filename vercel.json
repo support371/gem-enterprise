@@ -8,6 +8,11 @@
   "git": {
     "deploymentEnabled": {
       "main": true
+    },
+    "deploymentEnabledForPR": false,
+    "deploymentBranches": ["main"],
+    "deploymentInvocationHook": {
+      "events": ["push"]
     }
   },
   "env": {
@@ -28,5 +33,6 @@
     }
   ],
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "outputDirectory": ".next"
 }

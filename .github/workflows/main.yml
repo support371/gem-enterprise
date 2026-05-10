@@ -1,13 +1,6 @@
-name: Guardian Workflow
+name: Guardian Workflow (DISABLED - Vercel Handles Deployment)
 
 on:
-  push:
-    branches:
-      - main
-      - v0/support-8685-38f7a890
-    branches: [main]
-  pull_request:
-    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
