@@ -21,8 +21,8 @@ export interface HealthResponse {
   environment: string;
   services: {
     d1: "ok" | "error";
-    r2: "ok" | "error";
-    kv: "ok" | "error";
+    r2: "ok" | "error" | "not_configured";
+    kv: "ok" | "error" | "not_configured";
   };
 }
 

@@ -8,15 +8,17 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "gem-enterprise-db"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "ee57c5bd-85d3-4740-a63b-6caef94b7c10"
 
-[[r2_buckets]]
-binding = "VAULT"
-bucket_name = "gem-enterprise-vault"
+# Uncomment when R2 bucket is created (wrangler r2 bucket create gem-enterprise-vault)
+# [[r2_buckets]]
+# binding = "VAULT"
+# bucket_name = "gem-enterprise-vault"
 
-[[kv_namespaces]]
-binding = "CACHE"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+# Uncomment when KV namespace is created (wrangler kv namespace create CACHE)
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "REPLACE_WITH_KV_NAMESPACE_ID"
 
 # Uncomment to enable Queues (requires Queues beta access)
 # [[queues.producers]]

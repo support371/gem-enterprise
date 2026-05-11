@@ -8,8 +8,8 @@ const health = new Hono<HonoEnv>();
 
 health.get("/health", async (c) => {
   let d1Status: "ok" | "error" = "ok";
-  let r2Status: "ok" | "error" = "ok";
-  let kvStatus: "ok" | "error" = "ok";
+  let r2Status: "ok" | "error" | "not_configured" = "not_configured";
+  let kvStatus: "ok" | "error" | "not_configured" = "not_configured";
 
   try {
     await c.env.DB.prepare("SELECT 1").first();
@@ -17,21 +17,27 @@ health.get("/health", async (c) => {
     d1Status = "error";
   }
 
-  try {
-    await c.env.VAULT.head("__health_check__");
-  } catch {
-    r2Status = "error";
+  if (c.env.VAULT) {
+    r2Status = "ok";
+    try {
+      await c.env.VAULT.head("__health_check__");
+    } catch {
+      r2Status = "error";
+    }
   }
 
-  try {
-    await c.env.CACHE.get("__health_check__");
-  } catch {
-    kvStatus = "error";
+  if (c.env.CACHE) {
+    kvStatus = "ok";
+    try {
+      await c.env.CACHE.get("__health_check__");
+    } catch {
+      kvStatus = "error";
+    }
   }
 
-  const allOk = d1Status === "ok" && r2Status === "ok" && kvStatus === "ok";
-  const allDown = d1Status === "error" && r2Status === "error" && kvStatus === "error";
-  const status = allOk ? "ok" : allDown ? "down" : "degraded";
+  const coreOk = d1Status === "ok";
+  const hasErrors = d1Status === "error" || r2Status === "error" || kvStatus === "error";
+  const status = !coreOk ? "down" : hasErrors ? "degraded" : "ok";
 
   const body: HealthResponse = {
     status,
@@ -41,7 +47,7 @@ health.get("/health", async (c) => {
     services: { d1: d1Status, r2: r2Status, kv: kvStatus },
   };
 
-  return c.json(body, allOk ? 200 : 503);
+  return c.json(body, coreOk ? 200 : 503);
 });
 
 health.get("/ready", async (c) => {
@@ -52,19 +58,27 @@ health.get("/ready", async (c) => {
     checks.database = true;
   } catch { /* not ready */ }
 
-  try {
-    await c.env.VAULT.head("__ready_check__");
-    checks.storage = true;
-  } catch { /* not ready */ }
+  if (c.env.VAULT) {
+    try {
+      await c.env.VAULT.head("__ready_check__");
+      checks.storage = true;
+    } catch { /* not ready */ }
+  } else {
+    checks.storage = true; // not configured, skip check
+  }
 
-  try {
-    await c.env.CACHE.get("__ready_check__");
-    checks.cache = true;
-  } catch { /* not ready */ }
+  if (c.env.CACHE) {
+    try {
+      await c.env.CACHE.get("__ready_check__");
+      checks.cache = true;
+    } catch { /* not ready */ }
+  } else {
+    checks.cache = true; // not configured, skip check
+  }
 
   checks.secrets = Boolean(c.env.JWT_SECRET && c.env.CLOUDFLARE_ACCOUNT_ID);
 
-  const ready = checks.database && checks.storage && checks.cache && checks.secrets;
+  const ready = checks.database && checks.secrets;
   const body: ReadyResponse = { ready, checks };
 
   return c.json(body, ready ? 200 : 503);

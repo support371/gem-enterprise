@@ -23,6 +23,10 @@ const ALLOWED_TYPES = [
 
 // POST /api/documents/upload — upload a document to R2 vault
 documents.post("/upload", async (c) => {
+  if (!c.env.VAULT) {
+    return c.json({ success: false, error: "Document storage (R2) is not configured", timestamp: new Date().toISOString() }, 503);
+  }
+
   const session = getSession(c);
   const formData = await c.req.formData();
   const file = formData.get("file") as File | null;
@@ -137,6 +141,10 @@ documents.get("/:id/download", async (c) => {
   const isAdmin = ["admin", "super_admin", "internal"].includes(session.role);
   if (doc.user_id !== session.userId && !isAdmin) {
     return c.json({ success: false, error: "Forbidden", timestamp: new Date().toISOString() }, 403);
+  }
+
+  if (!c.env.VAULT) {
+    return c.json({ success: false, error: "Document storage (R2) is not configured", timestamp: new Date().toISOString() }, 503);
   }
 
   const object = await c.env.VAULT.get(doc.r2_key);

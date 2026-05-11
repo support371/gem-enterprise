@@ -2,11 +2,11 @@ export interface Env {
   // D1 Database
   DB: D1Database;
 
-  // R2 Object Storage
-  VAULT: R2Bucket;
+  // R2 Object Storage (optional — enable in wrangler.toml when bucket is created)
+  VAULT?: R2Bucket;
 
-  // KV Namespace (cache)
-  CACHE: KVNamespace;
+  // KV Namespace (optional — enable in wrangler.toml when namespace is created)
+  CACHE?: KVNamespace;
 
   // Queues (optional)
   NOTIFICATION_QUEUE?: Queue<NotificationPayload>;
