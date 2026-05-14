@@ -12,7 +12,8 @@ export type OperationsDomain =
   | "analytics"
   | "security"
   | "integrations"
-  | "notifications";
+  | "notifications"
+  | "platform";
 
 export type OperationMode = "ready" | "partial" | "planned" | "external";
 
@@ -54,6 +55,96 @@ export const operationsRegistry: OperationRoute[] = [
     description: "Returns the operational instructions that govern the SaaS agent.",
   },
   {
+    domain: "agent",
+    label: "Agent Instructions v1",
+    method: "GET",
+    path: "/api/v1/agent/instructions",
+    mode: "ready",
+    risk: "safe",
+    description: "Returns GEM enterprise agent instructions and operating flow for v1 clients.",
+  },
+  {
+    domain: "platform",
+    label: "Platform Environment v1",
+    method: "GET",
+    path: "/api/v1/platform/environment",
+    mode: "ready",
+    risk: "safe",
+    description: "Returns GEM production domain, repository, runtime, and API base URL.",
+  },
+  {
+    domain: "platform",
+    label: "Update Platform Environment v1",
+    method: "PATCH",
+    path: "/api/v1/platform/environment",
+    mode: "partial",
+    risk: "approval_required",
+    description: "Reserved environment update endpoint. Requires persisted config and secret management before activation.",
+  },
+  {
+    domain: "platform",
+    label: "Platform Access Requests v1",
+    method: "GET",
+    path: "/api/v1/platform/access-requests",
+    mode: "partial",
+    risk: "safe",
+    description: "Lists platform access requests once a persisted approval store is configured.",
+  },
+  {
+    domain: "platform",
+    label: "Create Platform Access Request v1",
+    method: "POST",
+    path: "/api/v1/platform/access-requests",
+    mode: "partial",
+    risk: "approval_required",
+    description: "Reserved access request creation endpoint for API project building environment access.",
+  },
+  {
+    domain: "platform",
+    label: "Repository Connection v1",
+    method: "GET",
+    path: "/api/v1/platform/repository",
+    mode: "ready",
+    risk: "safe",
+    description: "Returns the support371/gem-enterprise repository connection metadata.",
+  },
+  {
+    domain: "platform",
+    label: "Connect Repository v1",
+    method: "POST",
+    path: "/api/v1/platform/repository",
+    mode: "partial",
+    risk: "approval_required",
+    description: "Reserved repository connection endpoint. Live changes must use connected GitHub/Vercel tools.",
+  },
+  {
+    domain: "platform",
+    label: "Repository Sync v1",
+    method: "POST",
+    path: "/api/v1/platform/repository/sync",
+    mode: "partial",
+    risk: "approval_required",
+    description: "Queues a metadata sync acknowledgement without mutating repository state.",
+  },
+  {
+    domain: "platform",
+    label: "Deployment Plan v1",
+    method: "GET",
+    path: "/api/v1/platform/deployment-plan",
+    mode: "ready",
+    risk: "safe",
+    description: "Returns the current GEM deployment plan.",
+  },
+  {
+    domain: "platform",
+    label: "Create Deployment Plan v1",
+    method: "POST",
+    path: "/api/v1/platform/deployment-plan",
+    mode: "partial",
+    risk: "approval_required",
+    description: "Reserved deployment-plan creation endpoint. Production deployment requires explicit approval.",
+  },
+  {
     domain: "security",
     label: "Audit Logs",
     method: "GET",
@@ -62,6 +153,16 @@ export const operationsRegistry: OperationRoute[] = [
     risk: "safe",
     existingGemRoute: "/api/admin/audit",
     description: "Lists audit evidence for admin/security review.",
+  },
+  {
+    domain: "security",
+    label: "Audit Logs v1",
+    method: "GET",
+    path: "/api/v1/security/audit-logs",
+    mode: "ready",
+    risk: "safe",
+    existingGemRoute: "/api/admin/audit",
+    description: "Lists normalized audit log records for v1 security clients.",
   },
   {
     domain: "admin",
@@ -282,6 +383,16 @@ export const operationsRegistry: OperationRoute[] = [
     risk: "safe",
     existingGemRoute: "/api/health",
     description: "Returns public health status for the application.",
+  },
+  {
+    domain: "production",
+    label: "Production Health v1",
+    method: "GET",
+    path: "/api/v1/production/health",
+    mode: "ready",
+    risk: "safe",
+    existingGemRoute: "/api/health",
+    description: "Returns normalized production health for v1 API clients.",
   },
   {
     domain: "development",
