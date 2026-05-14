@@ -19,7 +19,8 @@ export type PlatformNavIcon =
   | "Wallet"
   | "PiggyBank"
   | "Mail"
-  | "Rss";
+  | "Rss"
+  | "Activity";
 
 export interface PlatformSurface {
   id: "marketing-mobile" | "enterprise-web-app";
@@ -113,6 +114,12 @@ export const clientPortalNavGroups: PlatformNavGroup[] = [
         description: "Available products and gated service offerings.",
       },
       {
+        href: "/app/products/real-estate",
+        icon: "Package",
+        label: "ATR Property Trust",
+        description: "Institutional real estate trust intelligence and consultation routing.",
+      },
+      {
         href: "/app/profiles",
         icon: "UserCheck",
         label: "Profiles",
@@ -151,6 +158,12 @@ export const clientPortalNavGroups: PlatformNavGroup[] = [
         icon: "FileText",
         label: "Documents",
         description: "Statements, agreements, and document vault.",
+      },
+      {
+        href: "/app/meetings",
+        icon: "ClipboardList",
+        label: "Meetings",
+        description: "Consultation requests and scheduling workflow.",
       },
       {
         href: "/app/requests",
@@ -215,6 +228,12 @@ export const adminPortalNavItems: PlatformNavItem[] = [
     icon: "Shield",
     label: "Admin Center",
     description: "Administrative overview and controls.",
+  },
+  {
+    href: "/app/admin/audit",
+    icon: "Activity",
+    label: "Audit Logs",
+    description: "Compliance evidence, admin events, and platform activity.",
   },
   {
     href: "/app/admin/kyc",
