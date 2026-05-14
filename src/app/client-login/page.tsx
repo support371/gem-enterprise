@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,8 +24,24 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
+type LoginResponse = {
+  success?: boolean;
+  role?: string;
+  kycStatus?: string;
+  redirect?: string;
+  error?: string;
+};
+
+function safeRedirectTarget(value: string | null | undefined): string | null {
+  if (!value) return null;
+  if (!value.startsWith("/")) return null;
+  if (value.startsWith("//")) return null;
+  return value;
+}
+
 export default function ClientLoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -45,15 +61,20 @@ export default function ClientLoginPage() {
         body: JSON.stringify({ email: data.email, password: data.password }),
       });
 
+      const body = (await res.json().catch(() => ({}))) as LoginResponse;
+
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
         setServerError(
           body?.error || "Invalid credentials. Please check your email and password."
         );
         return;
       }
 
-      router.push("/access/continue");
+      const requestedNext = safeRedirectTarget(searchParams.get("next"));
+      const apiRedirect = safeRedirectTarget(body.redirect);
+      const target = requestedNext ?? apiRedirect ?? "/access/continue";
+
+      router.replace(target);
     } catch {
       setServerError("A network error occurred. Please try again.");
     }
@@ -61,14 +82,12 @@ export default function ClientLoginPage() {
 
   return (
     <div className="relative min-h-screen flex flex-col items-center justify-center cyber-grid bg-background overflow-hidden">
-      {/* Ambient glow */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[500px] w-[500px] rounded-full bg-[hsl(var(--electric-cyan)/0.06)] blur-3xl" />
         <div className="absolute bottom-0 right-0 h-[300px] w-[300px] rounded-full bg-[hsl(var(--night-plum)/0.08)] blur-3xl" />
       </div>
 
       <div className="relative z-10 w-full max-w-md px-4">
-        {/* Logo / Shield */}
         <div className="flex flex-col items-center mb-8">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl glass-panel glow-cyan">
             <svg
@@ -100,11 +119,10 @@ export default function ClientLoginPage() {
             Client Portal Access
           </h1>
           <p className="mt-1 text-sm text-muted-foreground text-center">
-            Sign in to your secure client account
+            Sign in to your secure client or admin account
           </p>
         </div>
 
-        {/* Glass card */}
         <div className="glass-panel rounded-2xl p-8 shadow-lg">
           {serverError && (
             <Alert variant="destructive" className="mb-6">
@@ -162,48 +180,32 @@ export default function ClientLoginPage() {
               disabled={isSubmitting}
               className="w-full bg-[hsl(var(--electric-cyan))] text-[hsl(var(--primary-foreground))] font-semibold hover:opacity-90 transition-opacity mt-2"
             >
-              {isSubmitting ? (
-                <span className="flex items-center gap-2">
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    aria-hidden="true"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"
-                    />
-                  </svg>
-                  Signing In…
-                </span>
-              ) : (
-                "Sign In"
-              )}
+              {isSubmitting ? "Signing In…" : "Sign In"}
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            New client?{" "}
-            <Link
-              href="/get-started"
-              className="text-[hsl(var(--electric-cyan))] font-medium hover:underline"
-            >
-              Begin application
-            </Link>
+          <div className="mt-6 grid gap-2 text-center text-sm text-muted-foreground">
+            <p>
+              New client?{" "}
+              <Link
+                href="/get-started"
+                className="text-[hsl(var(--electric-cyan))] font-medium hover:underline"
+              >
+                Begin application
+              </Link>
+            </p>
+            <p>
+              Checking access first?{" "}
+              <Link
+                href="/eligibility/status"
+                className="text-[hsl(var(--electric-cyan))] font-medium hover:underline"
+              >
+                View eligibility status
+              </Link>
+            </p>
           </div>
         </div>
 
-        {/* Trust bar */}
         <div className="mt-6 flex items-center justify-center gap-6 text-xs text-muted-foreground">
           {["Secure", "Encrypted", "Monitored"].map((label) => (
             <span key={label} className="flex items-center gap-1.5">
