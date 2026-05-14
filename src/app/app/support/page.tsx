@@ -1,254 +1,213 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
+import { useEffect, useMemo, useState } from "react";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  HeadphonesIcon,
-  Send,
-  Mail,
-  Phone,
+  AlertCircle,
+  ArrowRight,
+  Bot,
   CheckCircle2,
-  Eye,
+  Clock,
+  HeadphonesIcon,
+  LifeBuoy,
   Loader2,
-} from 'lucide-react'
+  MessageSquare,
+  ShieldCheck,
+  Ticket,
+} from "lucide-react";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface Ticket {
-  id: string
-  subject: string
-  status: string
-  priority: string
-  createdAt: string
+type TicketRecord = {
+  id: string;
+  subject: string;
+  description?: string | null;
+  status: string;
+  priority: string;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+const supportTopics = [
+  { label: "Account Access", description: "Login, profile, authentication, and access issues.", value: "account_access" },
+  { label: "KYC / Compliance", description: "Verification, documents, decisions, and disclosures.", value: "kyc_compliance" },
+  { label: "Portfolio Operations", description: "Portfolio visibility, reporting, allocations, and statements.", value: "portfolio_operations" },
+  { label: "ATR Property Trust", description: "Real estate trust, consultation, and document readiness.", value: "atr_property_trust" },
+  { label: "Cyber Briefing", description: "Intelligence briefing, exposure review, and escalation.", value: "cyber_briefing" },
+  { label: "General Support", description: "Other operational support and service desk requests.", value: "general_support" },
+];
+
+function statusClass(status: string) {
+  const value = status.toLowerCase();
+  if (value === "resolved" || value === "closed") return "border-green-500/25 bg-green-500/15 text-green-400";
+  if (value === "in_progress") return "border-cyan-500/25 bg-cyan-500/15 text-cyan-400";
+  if (value === "waiting_on_client") return "border-yellow-500/25 bg-yellow-500/15 text-yellow-400";
+  return "border-white/10 bg-white/10 text-slate-300";
 }
 
-const statusColor: Record<string, string> = {
-  open:              'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  in_progress:       'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  waiting_on_client: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  resolved:          'bg-green-500/20 text-green-400 border-green-500/30',
-  closed:            'bg-slate-500/20 text-slate-400 border-slate-500/30',
-}
-
-const priorityColor: Record<string, string> = {
-  critical: 'bg-red-500/20 text-red-400 border-red-500/30',
-  high:     'bg-red-500/20 text-red-400 border-red-500/30',
-  medium:   'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  low:      'bg-slate-500/20 text-slate-400 border-slate-500/30',
+function formatLabel(value: string) {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 export default function SupportPage() {
-  const [subject, setSubject] = useState('')
-  const [priority, setPriority] = useState('medium')
-  const [description, setDescription] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-  const [tickets, setTickets] = useState<Ticket[]>([])
-  const [loadingTickets, setLoadingTickets] = useState(true)
+  const [tickets, setTickets] = useState<TicketRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [topic, setTopic] = useState("general_support");
+  const [subject, setSubject] = useState("");
+  const [description, setDescription] = useState("");
 
-  const fetchTickets = useCallback(async () => {
-    setLoadingTickets(true)
+  async function loadTickets() {
+    setLoading(true);
     try {
-      const res = await fetch('/api/ticket')
-      const data = await res.json()
-      if (data.tickets) setTickets(data.tickets)
+      const response = await fetch("/api/ticket");
+      const data = await response.json();
+      if (Array.isArray(data.tickets)) setTickets(data.tickets);
     } finally {
-      setLoadingTickets(false)
-    }
-  }, [])
-
-  useEffect(() => { fetchTickets() }, [fetchTickets])
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitting(true)
-    try {
-      const res = await fetch('/api/ticket/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ subject, priority, description }),
-      })
-      if (res.ok) {
-        setSubmitted(true)
-        setSubject('')
-        setPriority('medium')
-        setDescription('')
-        await fetchTickets()
-        setTimeout(() => setSubmitted(false), 4000)
-      }
-    } finally {
-      setSubmitting(false)
+      setLoading(false);
     }
   }
 
+  useEffect(() => {
+    loadTickets();
+  }, []);
+
+  const summary = useMemo(() => ({
+    total: tickets.length,
+    open: tickets.filter((item) => item.status === "open").length,
+    inProgress: tickets.filter((item) => item.status === "in_progress").length,
+    resolved: tickets.filter((item) => item.status === "resolved" || item.status === "closed").length,
+  }), [tickets]);
+
+  async function createTicket(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!subject.trim() || !description.trim()) return;
+    setCreating(true);
+    try {
+      const response = await fetch("/api/ticket/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject,
+          description: `[${formatLabel(topic)}] ${description}`,
+          priority: topic === "kyc_compliance" || topic === "account_access" ? "high" : "medium",
+        }),
+      });
+      if (response.ok) {
+        setSubject("");
+        setDescription("");
+        setTopic("general_support");
+        await loadTickets();
+      }
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  const cards = [
+    { label: "Total Tickets", value: summary.total, icon: Ticket, color: "text-cyan-400", bg: "bg-cyan-500/10" },
+    { label: "Open", value: summary.open, icon: AlertCircle, color: "text-yellow-400", bg: "bg-yellow-500/10" },
+    { label: "In Progress", value: summary.inProgress, icon: Clock, color: "text-cyan-400", bg: "bg-cyan-500/10" },
+    { label: "Resolved", value: summary.resolved, icon: CheckCircle2, color: "text-green-400", bg: "bg-green-500/10" },
+  ];
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-white">
-          Enterprise <span className="text-gradient-primary">Support</span>
-        </h1>
-        <p className="text-slate-400 mt-1">Create tickets and manage your support requests.</p>
+    <div className="space-y-8 animate-fade-in">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-3 py-1 text-xs font-mono uppercase tracking-wider text-cyan-400">
+            <HeadphonesIcon className="h-3.5 w-3.5" /> Support Command Center
+          </div>
+          <h1 className="text-2xl font-bold text-white">Enterprise Support</h1>
+          <p className="mt-1 max-w-2xl text-sm text-slate-400">
+            Open tickets, route issues, request escalation, and connect support into meetings, requests, compliance, and portfolio workflows.
+          </p>
+        </div>
+        <Badge className="border-green-500/25 bg-green-500/15 text-green-400">
+          <ShieldCheck className="mr-1 h-3.5 w-3.5" /> Governed Support
+        </Badge>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Create ticket form */}
-        <div className="lg:col-span-2">
-          <Card className="bg-card border-white/10">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Send className="w-5 h-5 text-cyan-400" />
-                Create Support Ticket
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {submitted ? (
-                <div className="flex flex-col items-center justify-center py-10 text-center gap-3">
-                  <CheckCircle2 className="w-10 h-10 text-green-400" />
-                  <p className="text-white font-semibold">Ticket Submitted</p>
-                  <p className="text-slate-400 text-sm">Our team will respond within 24 hours.</p>
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        {cards.map(({ label, value, icon: Icon, color, bg }) => (
+          <div key={label} className="glass-panel bento-card rounded-xl p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${bg}`}><Icon className={`h-5 w-5 ${color}`} /></div>
+              <p className={`text-3xl font-bold ${color}`}>{loading ? "—" : value}</p>
+            </div>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <Card className="border-white/10 bg-card">
+          <CardHeader><CardTitle className="flex items-center gap-2 text-white"><LifeBuoy className="h-5 w-5 text-cyan-400" /> Open Support Ticket</CardTitle></CardHeader>
+          <CardContent>
+            <form onSubmit={createTicket} className="space-y-5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {supportTopics.map((item) => (
+                  <button key={item.value} type="button" onClick={() => setTopic(item.value)} className={`rounded-2xl border p-4 text-left transition ${topic === item.value ? "border-cyan-500/40 bg-cyan-500/10" : "border-white/10 bg-white/5 hover:border-white/20"}`}>
+                    <p className="text-sm font-semibold text-white">{item.label}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-400">{item.description}</p>
+                  </button>
+                ))}
+              </div>
+              <input value={subject} onChange={(event) => setSubject(event.target.value)} className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-500/40" placeholder="Short support issue" />
+              <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={5} className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-500/40" placeholder="Describe the issue, affected service, desired outcome, and urgency." />
+              <Button type="submit" disabled={creating || !subject.trim() || !description.trim()} className="w-full rounded-xl bg-cyan-400 text-black hover:bg-cyan-300">
+                {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowRight className="mr-2 h-4 w-4" />}
+                {creating ? "Opening Ticket" : "Open Ticket"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+
+        <div className="space-y-6">
+          <Card className="border-white/10 bg-card">
+            <CardHeader><CardTitle className="flex items-center gap-2 text-white"><Bot className="h-5 w-5 text-cyan-400" /> AI Concierge Path</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              {[
+                "Consent-aware support session starts",
+                "AI concierge provides initial routing",
+                "Restricted or sensitive cases escalate",
+                "Ticket, request, or meeting path is created",
+              ].map((step, index) => (
+                <div key={step} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full border border-cyan-500/25 bg-cyan-500/10 font-mono text-xs text-cyan-400">{String(index + 1).padStart(2, "0")}</div>
+                  <p className="text-sm text-slate-300">{step}</p>
                 </div>
+              ))}
+              <Button asChild variant="outline" className="w-full border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">
+                <Link href="/app/requests">Route Through Requests <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/10 bg-card">
+            <CardHeader><CardTitle className="flex items-center gap-2 text-white"><MessageSquare className="h-5 w-5 text-cyan-400" /> Ticket History</CardTitle></CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center gap-2 py-10 text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Loading tickets…</div>
+              ) : tickets.length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-8 text-center"><Ticket className="mx-auto mb-3 h-8 w-8 text-slate-600" /><p className="text-sm text-slate-500">No support tickets yet.</p></div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="subject" className="text-slate-300">Subject</Label>
-                    <Input
-                      id="subject"
-                      placeholder="Briefly describe your issue"
-                      value={subject}
-                      onChange={e => setSubject(e.target.value)}
-                      className="bg-white/5 border-white/10 text-white placeholder:text-slate-500"
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-slate-300">Priority</Label>
-                    <Select value={priority} onValueChange={setPriority}>
-                      <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-background border-white/10">
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="description" className="text-slate-300">Description</Label>
-                    <Textarea
-                      id="description"
-                      placeholder="Provide a detailed description of your issue..."
-                      value={description}
-                      onChange={e => setDescription(e.target.value)}
-                      className="bg-white/5 border-white/10 text-white placeholder:text-slate-500 min-h-[120px]"
-                      required
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full bg-cyan-500 text-black hover:bg-cyan-400 font-semibold"
-                  >
-                    {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                    {submitting ? 'Submitting…' : 'Submit Ticket'}
-                  </Button>
-                </form>
+                <div className="space-y-3">
+                  {tickets.map((ticket) => (
+                    <div key={ticket.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div><p className="text-sm font-semibold text-white">{ticket.subject}</p><p className="mt-1 line-clamp-2 text-xs text-slate-400">{ticket.description || "No description provided."}</p></div>
+                        <Badge className={statusClass(ticket.status)}>{formatLabel(ticket.status)}</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </CardContent>
           </Card>
         </div>
-
-        {/* Contact methods */}
-        <div className="space-y-4">
-          <Card className="bg-card border-white/10">
-            <CardHeader>
-              <CardTitle className="text-white text-base flex items-center gap-2">
-                <HeadphonesIcon className="w-4 h-4 text-cyan-400" />
-                Contact Methods
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="glass-panel rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Mail className="w-4 h-4 text-cyan-400" />
-                  <p className="text-sm font-medium text-white">Email Support</p>
-                </div>
-                <p className="text-xs text-slate-400">support@gemcybersecurityassist.com</p>
-                <p className="text-xs text-slate-500 mt-1">Response within 24 hours</p>
-              </div>
-              <div className="glass-panel rounded-lg p-4 border border-red-500/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Phone className="w-4 h-4 text-red-400" />
-                  <p className="text-sm font-medium text-white">Emergency Line</p>
-                </div>
-                <p className="text-xs text-slate-400">+1 (401) 702-2460</p>
-                <p className="text-xs text-slate-500 mt-1">24/7 for critical incidents</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
-
-      {/* Tickets table */}
-      <Card className="bg-card border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white">Your Tickets</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loadingTickets ? (
-            <div className="flex items-center justify-center py-8 text-slate-500 gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" /> Loading tickets…
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className="border-white/10 hover:bg-transparent">
-                  <TableHead className="text-slate-400">ID</TableHead>
-                  <TableHead className="text-slate-400">Subject</TableHead>
-                  <TableHead className="text-slate-400">Status</TableHead>
-                  <TableHead className="text-slate-400">Priority</TableHead>
-                  <TableHead className="text-slate-400">Created</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tickets.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-slate-500 py-8">No tickets yet. Submit one above.</TableCell>
-                  </TableRow>
-                )}
-                {tickets.map(t => (
-                  <TableRow key={t.id} className="border-white/5 hover:bg-white/5">
-                    <TableCell className="font-mono text-cyan-400 text-xs">{t.id.slice(0, 8)}…</TableCell>
-                    <TableCell className="text-white text-sm">{t.subject}</TableCell>
-                    <TableCell><Badge className={`${statusColor[t.status] ?? 'bg-slate-500/20 text-slate-400'} text-xs`}>{t.status.replace('_', ' ')}</Badge></TableCell>
-                    <TableCell><Badge className={`${priorityColor[t.priority] ?? 'bg-slate-500/20 text-slate-400'} text-xs`}>{t.priority}</Badge></TableCell>
-                    <TableCell className="text-slate-400 text-xs">{new Date(t.createdAt).toLocaleDateString()}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
     </div>
-  )
+  );
 }
