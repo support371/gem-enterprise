@@ -1,143 +1,117 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback } from 'react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Mail, Plus, Send, X, Loader2, RefreshCw } from 'lucide-react'
-import Link from 'next/link'
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { AlertTriangle, Mail, Plus, RefreshCw, ShieldCheck, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Campaign {
-  id: string
-  title: string
-  subject: string
-  status: string
-  scheduledAt: string | null
-  sentAt: string | null
-  recipientCount: number
-  createdAt: string
+  id: string;
+  title: string;
+  subject: string;
+  status: string;
+  scheduledAt: string | null;
+  sentAt: string | null;
+  recipientCount: number;
+  createdAt: string;
 }
 
 const statusColor: Record<string, string> = {
-  DRAFT:     'bg-slate-500/20 text-slate-300',
-  SCHEDULED: 'bg-blue-500/20 text-blue-400',
-  SENDING:   'bg-yellow-500/20 text-yellow-400',
-  SENT:      'bg-green-500/20 text-green-400',
-  CANCELLED: 'bg-red-500/20 text-red-400',
-}
+  DRAFT: "border-slate-500/25 bg-slate-500/15 text-slate-300",
+  SCHEDULED: "border-blue-500/25 bg-blue-500/15 text-blue-400",
+  SENDING: "border-yellow-500/25 bg-yellow-500/15 text-yellow-400",
+  SENT: "border-green-500/25 bg-green-500/15 text-green-400",
+  CANCELLED: "border-red-500/25 bg-red-500/15 text-red-400",
+};
 
 export default function AdminCampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([])
-  const [loading, setLoading] = useState(true)
-  const [sending, setSending] = useState<string | null>(null)
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchCampaigns = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const res = await fetch('/api/admin/campaigns')
-      const data = await res.json()
-      if (data.campaigns) setCampaigns(data.campaigns)
+      const response = await fetch("/api/admin/campaigns");
+      const data = await response.json();
+      if (Array.isArray(data.campaigns)) setCampaigns(data.campaigns);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
-  useEffect(() => { fetchCampaigns() }, [fetchCampaigns])
-
-  async function sendCampaign(id: string) {
-    setSending(id)
-    try {
-      await fetch(`/api/admin/campaigns/${id}/send`, { method: 'POST' })
-      await fetchCampaigns()
-    } finally {
-      setSending(null)
-    }
-  }
-
-  async function cancelCampaign(id: string) {
-    await fetch(`/api/admin/campaigns/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'CANCELLED' }),
-    })
-    await fetchCampaigns()
-  }
+  useEffect(() => {
+    fetchCampaigns();
+  }, [fetchCampaigns]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 animate-fade-in">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Mail className="w-6 h-6 text-cyan-400" />
-            Email Campaigns
-          </h1>
-          <p className="text-slate-400 text-sm mt-0.5">Create and send campaigns to all active users.</p>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-3 py-1 text-xs font-mono uppercase tracking-wider text-cyan-400">
+            <Mail className="h-3.5 w-3.5" /> Campaign Governance
+          </div>
+          <h1 className="text-2xl font-bold text-white">Email Campaigns</h1>
+          <p className="mt-1 max-w-2xl text-sm text-slate-400">
+            Review lifecycle campaigns, recipients, and send readiness. Sending remains an explicit approval-gated operation.
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={fetchCampaigns} className="border-white/10 text-slate-300 gap-2">
-            <RefreshCw className="w-3.5 h-3.5" />
+          <Button variant="outline" size="sm" onClick={fetchCampaigns} className="border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">
+            <RefreshCw className="h-3.5 w-3.5" />
           </Button>
-          <Link href="/app/admin/campaigns/new">
-            <Button size="sm" className="bg-cyan-500 text-black hover:opacity-90 gap-2">
-              <Plus className="w-4 h-4" /> New Campaign
-            </Button>
-          </Link>
+          <Button asChild size="sm" className="bg-cyan-400 text-black hover:bg-cyan-300">
+            <Link href="/app/admin/campaigns/new"><Plus className="mr-2 h-4 w-4" /> New Campaign</Link>
+          </Button>
         </div>
       </div>
 
-      <Card className="bg-card border-white/10">
+      <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/10 p-5">
+        <div className="mb-2 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-yellow-400" />
+          <p className="text-sm font-semibold text-yellow-400">Send approval gate active</p>
+        </div>
+        <p className="text-sm leading-relaxed text-slate-400">
+          Campaign sends are intentionally not exposed as one-click actions here. Use explicit review and confirmation before triggering any send operation.
+        </p>
+      </div>
+
+      <Card className="border-white/10 bg-card">
         <CardHeader>
-          <CardTitle className="text-white text-sm">All Campaigns</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-sm text-white">
+            <ShieldCheck className="h-4 w-4 text-cyan-400" /> Campaign Register
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-10 gap-2 text-slate-500">
-              <Loader2 className="w-4 h-4 animate-spin" /> Loading…
+            <div className="flex items-center justify-center gap-2 py-10 text-slate-500">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading campaigns…
             </div>
           ) : campaigns.length === 0 ? (
-            <p className="text-sm text-slate-500 text-center py-8">No campaigns yet. Create one above.</p>
+            <p className="py-8 text-center text-sm text-slate-500">No campaigns yet. Create one above.</p>
           ) : (
             <div className="space-y-3">
-              {campaigns.map(c => (
-                <div key={c.id} className="flex items-center justify-between bg-white/5 rounded-lg p-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="text-sm font-medium text-white truncate">{c.title}</p>
-                      <Badge className={`text-xs ${statusColor[c.status] ?? 'bg-white/10 text-slate-300'}`}>
-                        {c.status}
-                      </Badge>
+              {campaigns.map((campaign) => (
+                <div key={campaign.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-medium text-white">{campaign.title}</p>
+                        <Badge className={`${statusColor[campaign.status] ?? "border-white/10 bg-white/10 text-slate-300"} text-xs`}>{campaign.status}</Badge>
+                      </div>
+                      <p className="truncate text-xs text-slate-500">{campaign.subject}</p>
+                      <p className="mt-1 text-xs text-slate-600">
+                        {campaign.sentAt
+                          ? `Sent ${new Date(campaign.sentAt).toLocaleDateString()} · ${campaign.recipientCount} recipients`
+                          : campaign.scheduledAt
+                          ? `Scheduled for ${new Date(campaign.scheduledAt).toLocaleString()}`
+                          : `Created ${new Date(campaign.createdAt).toLocaleDateString()}`}
+                      </p>
                     </div>
-                    <p className="text-xs text-slate-500 truncate">{c.subject}</p>
-                    <p className="text-xs text-slate-600 mt-1">
-                      {c.sentAt
-                        ? `Sent ${new Date(c.sentAt).toLocaleDateString()} · ${c.recipientCount} recipients`
-                        : c.scheduledAt
-                        ? `Scheduled for ${new Date(c.scheduledAt).toLocaleString()}`
-                        : `Created ${new Date(c.createdAt).toLocaleDateString()}`}
-                    </p>
-                  </div>
-                  <div className="flex gap-2 ml-4 shrink-0">
-                    {(c.status === 'DRAFT' || c.status === 'SCHEDULED') && (
-                      <>
-                        <Button
-                          size="sm"
-                          onClick={() => sendCampaign(c.id)}
-                          disabled={sending === c.id}
-                          className="bg-cyan-500 text-black hover:opacity-90 text-xs gap-1.5"
-                        >
-                          {sending === c.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                          Send Now
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => cancelCampaign(c.id)}
-                          className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs gap-1.5"
-                        >
-                          <X className="w-3.5 h-3.5" /> Cancel
-                        </Button>
-                      </>
-                    )}
+                    <Button asChild variant="outline" size="sm" className="border-white/10 text-xs text-slate-300 hover:bg-white/10 hover:text-white">
+                      <Link href="/app/admin/audit">Review Audit</Link>
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -146,5 +120,5 @@ export default function AdminCampaignsPage() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
