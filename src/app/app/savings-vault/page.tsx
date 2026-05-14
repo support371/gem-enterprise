@@ -1,259 +1,114 @@
-"use client"
-
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
+import Link from "next/link";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
-  Landmark,
-  Shield,
+  ArrowRight,
+  Briefcase,
+  CheckCircle2,
+  ClipboardList,
+  FileText,
   Lock,
   PiggyBank,
-  Clock,
   ShieldCheck,
-  ArrowUpRight,
-  Percent,
-  Zap,
-  Plus
-} from 'lucide-react'
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
-const vaultStats = [
-  { label: 'Total Balance', value: '$115,000', change: '+2.4% this month', icon: Landmark, color: 'cyan' },
-  { label: 'Interest Earned', value: '$2,430', change: '+$320 this month', icon: Percent, color: 'green' },
-  { label: 'Active Vaults', value: '3', change: '+1 this quarter', icon: PiggyBank, color: 'purple' },
-  { label: 'Protected Value', value: '$250M', change: 'Insurance coverage', icon: Shield, color: 'yellow' },
-]
+const vaultRoutes = [
+  {
+    title: "Portfolio Review",
+    description: "Review vault-related allocation, access, and account structure with the operations team.",
+    href: "/app/requests?type=portfolio_review",
+    icon: Briefcase,
+  },
+  {
+    title: "Document Readiness",
+    description: "Open vault-related statements, agreements, identity files, and compliance records.",
+    href: "/app/documents",
+    icon: FileText,
+  },
+  {
+    title: "Compliance Check",
+    description: "Review KYC state, disclosure status, and entitlement readiness before vault access changes.",
+    href: "/app/compliance",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Service Request",
+    description: "Submit a structured request for account review, transfer support, or advisor follow-up.",
+    href: "/app/requests?type=document_request",
+    icon: ClipboardList,
+  },
+];
 
-const vaultAccounts = [
-  { name: 'Primary Reserve', type: 'Savings', balance: '$45,000', apy: '4.5%', interest: '+$168.75', status: 'Active', lockPeriod: 'No lock' },
-  { name: 'Q3 Tax Lock', type: 'Term Deposit', balance: '$20,000', apy: '5.2%', interest: '+$86.67', status: 'Locked', lockPeriod: '90 days' },
-  { name: 'Estate Escrow', type: 'Escrow', balance: '$50,000', apy: '3.8%', interest: '+$158.33', status: 'Active', lockPeriod: 'Variable' },
-  { name: 'Emergency Fund', type: 'Target Savings', balance: '$70,000', apy: '4.2%', interest: '+$245.00', status: 'Active', lockPeriod: 'No lock', goal: '$100,000', progress: 70 },
-]
-
-const recentActivity = [
-  { date: 'Apr 24, 2026', type: 'Interest', description: 'Monthly yield payment - Primary Reserve', amount: '+$42.50' },
-  { date: 'Apr 20, 2026', type: 'Deposit', description: 'Transfer from external account', amount: '+$10,000.00' },
-  { date: 'Apr 15, 2026', type: 'Interest', description: 'Yield payment - Q3 Tax Lock', amount: '+$20.12' },
-  { date: 'Apr 10, 2026', type: 'Transfer', description: 'Internal transfer to Estate Escrow', amount: '-$10,000.00' },
-]
+const controls = [
+  "No hardcoded balances are shown in this client surface.",
+  "Vault actions are routed through existing request and document workflows.",
+  "Access changes remain dependent on compliance and entitlement state.",
+  "Future live balances should come from a verified account ledger API.",
+];
 
 export default function SavingsVaultPage() {
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-8 animate-fade-in">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">
-            Savings <span className="text-cyan-400">Vault</span>
-          </h1>
-          <p className="text-slate-400 mt-1">Secure institutional-grade savings and escrow management.</p>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-3 py-1 text-xs font-mono uppercase tracking-wider text-cyan-400">
+            <PiggyBank className="h-3.5 w-3.5" /> Vault Operations
+          </div>
+          <h1 className="text-2xl font-bold text-white">Savings Vault</h1>
+          <p className="mt-1 max-w-2xl text-sm text-slate-400">
+            Coordinate vault-related reviews, documents, compliance checks, and service requests through controlled GEM Enterprise workflows.
+          </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" className="border-white/10 text-slate-300 hover:bg-white/5">
-            <Zap className="w-4 h-4 mr-2" />
-            Quick Transfer
-          </Button>
-          <Button className="bg-cyan-500 hover:bg-cyan-600 text-black font-semibold">
-            <Plus className="w-4 h-4 mr-2" />
-            New Vault
-          </Button>
-        </div>
+        <Badge className="border-green-500/25 bg-green-500/15 text-green-400">
+          <CheckCircle2 className="mr-1 h-3.5 w-3.5" /> Workflow Controlled
+        </Badge>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {vaultStats.map((stat) => (
-          <Card key={stat.label} className={`bg-card border-white/10 ${stat.color === 'cyan' ? 'glow-cyan' : ''}`}>
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs text-slate-400 uppercase tracking-wider">{stat.label}</p>
-                  <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
-                  <div className="flex items-center gap-1 mt-1 text-slate-400">
-                    <ArrowUpRight className="w-3 h-3 text-green-400" />
-                    <span className="text-xs">{stat.change}</span>
-                  </div>
-                </div>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  stat.color === 'cyan' ? 'bg-cyan-500/10' :
-                  stat.color === 'green' ? 'bg-green-500/10' :
-                  stat.color === 'purple' ? 'bg-purple-500/10' :
-                  'bg-yellow-500/10'
-                }`}>
-                  <stat.icon className={`w-5 h-5 ${
-                    stat.color === 'cyan' ? 'text-cyan-400' :
-                    stat.color === 'green' ? 'text-green-400' :
-                    stat.color === 'purple' ? 'text-purple-400' :
-                    'text-yellow-400'
-                  }`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Vault Accounts */}
-      <Card className="bg-card border-white/10">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
-                <PiggyBank className="w-5 h-5 text-cyan-400" />
-              </div>
-              <div>
-                <CardTitle className="text-white">Vault Accounts</CardTitle>
-                <CardDescription className="text-slate-400">Manage your savings vaults and deposits</CardDescription>
-              </div>
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-6 md:p-8">
+        <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div>
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10">
+              <Lock className="h-6 w-6 text-cyan-400" />
             </div>
-            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-              {vaultAccounts.length} Vaults Active
-            </Badge>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {vaultAccounts.map((vault) => (
-            <div 
-              key={vault.name} 
-              className="glass-panel rounded-xl p-4 hover:bg-white/5 transition-colors"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                    vault.status === 'Locked' ? 'bg-yellow-500/10' : 'bg-cyan-500/10'
-                  }`}>
-                    {vault.status === 'Locked' ? (
-                      <Lock className="w-6 h-6 text-yellow-400" />
-                    ) : (
-                      <PiggyBank className="w-6 h-6 text-cyan-400" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-white">{vault.name}</h3>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <Badge variant="outline" className="border-white/10 text-slate-400 text-xs">
-                        {vault.type}
-                      </Badge>
-                      <span className="text-xs text-slate-500">•</span>
-                      {vault.lockPeriod !== 'No lock' && <span className="text-xs text-slate-400">{vault.lockPeriod}</span>}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-6 flex-wrap">
-                  <div className="text-center sm:text-right">
-                    <p className="text-xs text-slate-400">Balance</p>
-                    <p className="text-lg font-bold text-white">{vault.balance}</p>
-                  </div>
-                  <div className="text-center sm:text-right">
-                    <p className="text-xs text-slate-400">APY</p>
-                    <p className="text-lg font-bold text-green-400">{vault.apy}</p>
-                  </div>
-                  <div className="text-center sm:text-right">
-                    <p className="text-xs text-slate-400">Interest/mo</p>
-                    <p className="text-lg font-bold text-cyan-400">{vault.interest}</p>
-                  </div>
-                  <Badge className={`${
-                    vault.status === 'Active' 
-                      ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                      : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                  }`}>
-                    {vault.status}
-                  </Badge>
-                </div>
-              </div>
-
-              {/* Goal progress for locked vaults */}
-              {'progress' in vault && vault.progress != null && (
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-slate-400">Progress</span>
-                    <span className="text-sm font-medium text-white">
-                      {vault.progress}% complete
-                    </span>
-                  </div>
-                  <Progress value={vault.progress} className="h-2 bg-white/10" />
-                  <p className="text-xs text-slate-500 mt-1">
-                    {vault.progress}% towards goal
-                  </p>
-                </div>
-              )}
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Security Banner */}
-      <Card className="bg-gradient-to-r from-cyan-500/10 via-cyan-500/5 to-transparent border-cyan-500/20">
-        <CardContent className="p-4 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center shrink-0">
-            <ShieldCheck className="w-6 h-6 text-cyan-400" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-white">Enterprise-Grade Security</p>
-            <p className="text-xs text-slate-400 mt-0.5">
-              All vaults are protected by multi-signature authorization, insurance coverage up to $250M, and 24/7 monitoring.
+            <h2 className="text-2xl font-bold text-white">Vault access is operationally gated.</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-400">
+              Savings and vault workflows should not display unverified balances or simulated transactions. This surface routes clients to the live operational systems already present in the application.
             </p>
           </div>
-          <Badge className="bg-green-500/20 text-green-400 border-green-500/30 shrink-0">Protected</Badge>
-        </CardContent>
-      </Card>
-
-      {/* Recent Activity */}
-      <Card className="bg-card border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Clock className="w-5 h-5 text-cyan-400" />
-            Recent Activity
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-white/10 hover:bg-transparent">
-                  <TableHead className="text-slate-400">Date</TableHead>
-                  <TableHead className="text-slate-400">Type</TableHead>
-                  <TableHead className="text-slate-400">Description</TableHead>
-                  <TableHead className="text-slate-400 text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentActivity.map((activity, idx) => (
-                  <TableRow key={idx} className="border-white/5 hover:bg-white/5">
-                    <TableCell className="text-slate-400 text-sm">{activity.date}</TableCell>
-                    <TableCell>
-                      <Badge className={`${
-                        activity.type === 'Interest' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                        activity.type === 'Deposit' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' :
-                        activity.type === 'Transfer' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' :
-                        'bg-red-500/20 text-red-400 border-red-500/30'
-                      }`}>
-                        {activity.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-white">{activity.description}</TableCell>
-                    <TableCell className={`text-right font-semibold ${
-                      activity.amount.startsWith('+') ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {activity.amount}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="grid gap-3">
+            {controls.map((control) => (
+              <div key={control} className="rounded-2xl border border-white/10 bg-background/60 p-4 text-sm text-slate-300">
+                {control}
+              </div>
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
+
+      <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        {vaultRoutes.map(({ title, description, href, icon: Icon }) => (
+          <Link key={title} href={href} className="glass-panel bento-card rounded-2xl p-6 transition hover:border-cyan-500/30">
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10">
+              <Icon className="h-6 w-6 text-cyan-400" />
+            </div>
+            <h2 className="text-lg font-bold text-white">{title}</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-400">{description}</p>
+            <div className="mt-6 flex items-center gap-2 text-sm font-semibold text-cyan-400">
+              Open workflow <ArrowRight className="h-4 w-4" />
+            </div>
+          </Link>
+        ))}
+      </section>
+
+      <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/10 p-5">
+        <p className="text-sm font-semibold text-yellow-400">Ledger integration pending</p>
+        <p className="mt-2 text-sm leading-relaxed text-slate-400">
+          Real balances, transfers, interest activity, escrow states, and coverage indicators should be displayed only after a verified vault ledger API is connected.
+        </p>
+        <Button asChild variant="outline" className="mt-4 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">
+          <Link href="/app/requests?type=portfolio_review">Request Vault Review</Link>
+        </Button>
+      </div>
     </div>
-  )
+  );
 }
