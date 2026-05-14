@@ -1,191 +1,155 @@
-"use client"
+"use client";
 
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Wallet, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Plus, Clock, Calendar, DollarSign } from 'lucide-react'
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { AlertCircle, ArrowRight, Briefcase, FileText, Loader2, PieChart, Wallet } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-const portfolioMetrics = [
-  { label: 'Total Balance', value: '$1,245,890.50', change: '+5.2%', trend: 'up', icon: Wallet },
-  { label: 'Monthly Return', value: '+$42,350', change: '+3.4%', trend: 'up', icon: TrendingUp },
-  { label: 'Active Positions', value: '12', change: '+2', trend: 'up', icon: Wallet },
-  { label: 'Pending Orders', value: '3', change: '-1', trend: 'down', icon: Clock },
-]
+type Portfolio = {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  totalValue: string | null;
+  currency: string;
+  role: string;
+  assignedAt: string;
+};
 
-const holdings = [
-  { name: 'GEM Cyber Fund', type: 'Fund', shares: '500 units', price: '$900/unit', value: '$450,000', allocation: 36, change: '+8.2%', trend: 'up' },
-  { name: 'ATR Property Trust', type: 'REIT', shares: '1,200 units', price: '$300/unit', value: '$360,000', allocation: 29, change: '+4.1%', trend: 'up' },
-  { name: 'Financial Shield', type: 'Product', shares: '1 license', price: 'N/A', value: '$185,890', allocation: 15, change: '+2.3%', trend: 'up' },
-  { name: 'Intel Premium', type: 'Subscription', shares: '12 mo', price: 'N/A', value: '$125,000', allocation: 10, change: '+0.8%', trend: 'up' },
-  { name: 'Cash Reserve', type: 'Cash', shares: '-', price: 'N/A', value: '$125,000.50', allocation: 10, change: '0%', trend: 'neutral' },
-]
-
-const recentTransactions = [
-  { date: 'Apr 18, 2026', type: 'Buy', asset: 'GEM Cyber Fund', amount: '+50 units', value: '$45,000' },
-  { date: 'Apr 15, 2026', type: 'Dividend', asset: 'ATR Property Trust', amount: '+$4,200', value: '+$4,200' },
-  { date: 'Apr 10, 2026', type: 'Sell', asset: 'Financial Shield', amount: '-1 unit', value: '+$185,890' },
-  { date: 'Apr 5, 2026', type: 'Transfer', asset: 'Cash Reserve', amount: '+$10,000', value: '+$10,000' },
-]
+function formatCurrency(value: string | null, currency: string) {
+  if (!value) return "—";
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return "—";
+  return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(parsed);
+}
 
 export default function MyPortfolioPage() {
+  const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/portfolios")
+      .then((response) => response.json())
+      .then((data) => setPortfolios(Array.isArray(data.portfolios) ? data.portfolios : []))
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const summary = useMemo(() => {
+    const totalValue = portfolios.reduce((sum, portfolio) => {
+      const parsed = Number(portfolio.totalValue ?? 0);
+      return sum + (Number.isFinite(parsed) ? parsed : 0);
+    }, 0);
+
+    return {
+      count: portfolios.length,
+      totalValue,
+      categories: new Set(portfolios.map((portfolio) => portfolio.category)).size,
+    };
+  }, [portfolios]);
+
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-8 animate-fade-in">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">
-            My <span className="text-cyan-400">Portfolio</span>
-          </h1>
-          <p className="text-slate-400 mt-1">Your personal investment dashboard and holdings overview.</p>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-3 py-1 text-xs font-mono uppercase tracking-wider text-cyan-400">
+            <Wallet className="h-3.5 w-3.5" /> Client Portfolio
+          </div>
+          <h1 className="text-2xl font-bold text-white">My Portfolio</h1>
+          <p className="mt-1 max-w-2xl text-sm text-slate-400">
+            View your assigned portfolio memberships and route reviews through documents, requests, and consultations.
+          </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" className="border-white/10 text-slate-300 hover:bg-white/5">
-            <Calendar className="w-4 h-4 mr-2" />
-            Statement
-          </Button>
-          <Button className="bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/30">
-            <DollarSign className="w-4 h-4 mr-2" />
-            Deposit Funds
-          </Button>
-        </div>
+        <Button asChild className="rounded-xl bg-cyan-400 text-black hover:bg-cyan-300">
+          <Link href="/app/requests?type=portfolio_review">Request Review</Link>
+        </Button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {portfolioMetrics.map((stat) => (
-          <Card key={stat.label} className="bg-slate-900/50 border-white/10">
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs text-slate-400 uppercase tracking-wider">{stat.label}</p>
-                  <p className="text-2xl font-bold text-white mt-1">{stat.value}</p>
-                  <div className={`flex items-center gap-1 mt-1 ${
-                    stat.trend === 'up' ? 'text-green-400' : 'text-red-400'
-                  }`}>
-                    {stat.trend === 'up' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                    <span className="text-xs font-medium">{stat.change}</span>
-                  </div>
-                </div>
-                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
-                  <stat.icon className="w-5 h-5 text-cyan-400" />
-                </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {[
+          { label: "Assigned Portfolios", value: loading ? "—" : String(summary.count), icon: Briefcase },
+          { label: "Portfolio Value", value: loading ? "—" : summary.totalValue > 0 ? `$${summary.totalValue.toLocaleString()}` : "—", icon: PieChart },
+          { label: "Categories", value: loading ? "—" : String(summary.categories), icon: Wallet },
+        ].map(({ label, value, icon: Icon }) => (
+          <div key={label} className="glass-panel bento-card rounded-xl p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-500/10">
+                <Icon className="h-5 w-5 text-cyan-400" />
               </div>
-            </CardContent>
-          </Card>
+              <p className="text-2xl font-bold text-white">{value}</p>
+            </div>
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</p>
+          </div>
         ))}
       </div>
 
-      {/* Holdings Table */}
-      <Card className="bg-slate-900/50 border-white/10">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-cyan-400" />
-              </div>
-              <div>
-                <CardTitle className="text-white">Holdings</CardTitle>
-                <CardDescription className="text-slate-400">Your current investment positions</CardDescription>
-              </div>
-            </div>
-            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-              {holdings.length} Active Holdings
-            </Badge>
+      {loading ? (
+        <div className="flex items-center justify-center gap-2 py-16 text-slate-500">
+          <Loader2 className="h-5 w-5 animate-spin" /> Loading portfolio records…
+        </div>
+      ) : error ? (
+        <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-red-400">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <p className="text-sm">Unable to load portfolio records.</p>
+        </div>
+      ) : portfolios.length === 0 ? (
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center">
+          <Briefcase className="mx-auto mb-4 h-10 w-10 text-slate-600" />
+          <p className="text-sm font-semibold text-white">No portfolio records assigned</p>
+          <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+            Portfolio records appear after compliance approval and entitlement assignment.
+          </p>
+          <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
+            <Button asChild className="rounded-xl bg-cyan-400 text-black hover:bg-cyan-300">
+              <Link href="/app/requests?type=portfolio_review">Request Portfolio Review</Link>
+            </Button>
+            <Button asChild variant="outline" className="rounded-xl border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">
+              <Link href="/app/compliance">Check Compliance</Link>
+            </Button>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-white/10 hover:bg-transparent">
-                  <TableHead className="text-slate-400">Asset</TableHead>
-                  <TableHead className="text-slate-400">Type</TableHead>
-                  <TableHead className="text-slate-400 text-right">Quantity</TableHead>
-                  <TableHead className="text-slate-400 text-right">Price</TableHead>
-                  <TableHead className="text-slate-400 text-right">Value</TableHead>
-                  <TableHead className="text-slate-400">Allocation</TableHead>
-                  <TableHead className="text-slate-400 text-right">Change</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {holdings.map((holding, idx) => (
-                  <TableRow key={idx} className="border-white/5 hover:bg-white/5">
-                    <TableCell className="text-white font-medium">{holding.name}</TableCell>
-                    <TableCell>
-                      <Badge className="bg-white/10 text-slate-300 border-white/10">{holding.type}</Badge>
-                    </TableCell>
-                    <TableCell className="text-slate-300 text-right">{holding.shares}</TableCell>
-                    <TableCell className="text-slate-300 text-right">{holding.price}</TableCell>
-                    <TableCell className="text-white font-semibold text-right">{holding.value}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 min-w-[100px]">
-                        <Progress value={holding.allocation} className="h-1.5 flex-1 bg-white/10" />
-                        <span className="text-xs text-slate-400 w-8">{holding.allocation}%</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className={`text-right font-semibold ${holding.trend === 'up' ? 'text-green-400' : holding.trend === 'down' ? 'text-red-400' : 'text-slate-400'}`}>
-                      {holding.change}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Recent Transactions */}
-      <Card className="bg-slate-900/50 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Clock className="w-5 h-5 text-cyan-400" />
-            Recent Transactions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-white/10 hover:bg-transparent">
-                  <TableHead className="text-slate-400">Date</TableHead>
-                  <TableHead className="text-slate-400">Type</TableHead>
-                  <TableHead className="text-slate-400">Asset</TableHead>
-                  <TableHead className="text-slate-400">Amount</TableHead>
-                  <TableHead className="text-slate-400 text-right">Value</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentTransactions.map((tx, idx) => (
-                  <TableRow key={idx} className="border-white/5 hover:bg-white/5">
-                    <TableCell className="text-slate-400 text-sm">{tx.date}</TableCell>
-                    <TableCell>
-                      <Badge className={`${
-                        tx.type === 'Buy' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                        tx.type === 'Sell' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
-                        'bg-purple-500/20 text-purple-400 border-purple-500/30'
-                      }`}>
-                        {tx.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-white font-medium">{tx.asset}</TableCell>
-                    <TableCell className="text-slate-300">{tx.amount}</TableCell>
-                    <TableCell className="text-cyan-400 font-semibold text-right">{tx.value}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      ) : (
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          {portfolios.map((portfolio) => (
+            <Card key={portfolio.id} className="border-white/10 bg-card">
+              <CardHeader>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-white">{portfolio.name}</CardTitle>
+                    <p className="mt-1 font-mono text-[11px] text-slate-600">{portfolio.id.slice(0, 12).toUpperCase()}</p>
+                  </div>
+                  <Badge className="border-green-500/25 bg-green-500/15 text-green-400">{portfolio.role}</Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm font-semibold text-cyan-400">{portfolio.category}</p>
+                {portfolio.description && <p className="text-sm leading-relaxed text-slate-400">{portfolio.description}</p>}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-xl bg-white/5 p-3">
+                    <p className="text-xs text-slate-500">Value</p>
+                    <p className="mt-1 text-sm font-semibold text-white">{formatCurrency(portfolio.totalValue, portfolio.currency)}</p>
+                  </div>
+                  <div className="rounded-xl bg-white/5 p-3">
+                    <p className="text-xs text-slate-500">Assigned</p>
+                    <p className="mt-1 text-sm font-semibold text-white">{new Date(portfolio.assignedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</p>
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Button asChild variant="outline" className="border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">
+                    <Link href="/app/documents"><FileText className="mr-2 h-4 w-4" /> Documents</Link>
+                  </Button>
+                  <Button asChild variant="outline" className="border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">
+                    <Link href="/app/requests?type=portfolio_review">Request Review <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
-  )
+  );
 }
