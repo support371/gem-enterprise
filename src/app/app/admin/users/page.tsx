@@ -1,192 +1,176 @@
-'use client'
+"use client";
 
-import { useState, useEffect, useCallback } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Users, Search, Shield, ChevronLeft, UserPlus, DollarSign, Building2, Loader2,
-} from 'lucide-react'
-import Link from 'next/link'
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { ChevronLeft, Loader2, Search, ShieldCheck, UserPlus, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface UserRecord {
-  id: string
-  email: string
-  role: string
-  status: string
-  isActive: boolean
-  createdAt: string
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  isActive: boolean;
+  createdAt: string;
   profile: {
-    firstName: string | null
-    lastName: string | null
-    entityType: string | null
-  } | null
+    firstName: string | null;
+    lastName: string | null;
+    entityType: string | null;
+  } | null;
 }
 
 const statusColor: Record<string, string> = {
-  active:           'bg-green-500/15 text-green-400 border-green-500/25',
-  suspended:        'bg-red-500/15 text-red-400 border-red-500/25',
-  pending_approval: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/25',
-}
+  active: "bg-green-500/15 text-green-400 border-green-500/25",
+  suspended: "bg-red-500/15 text-red-400 border-red-500/25",
+  pending_approval: "bg-yellow-500/15 text-yellow-400 border-yellow-500/25",
+};
 
 const roleColor: Record<string, string> = {
-  client:      'text-slate-300',
-  analyst:     'text-blue-400',
-  admin:       'text-[hsl(var(--svc-cyber))]',
-  super_admin: 'text-[hsl(var(--svc-financial))]',
-  internal:    'text-violet-400',
+  client: "text-slate-300",
+  analyst: "text-blue-400",
+  admin: "text-cyan-400",
+  super_admin: "text-purple-400",
+  internal: "text-violet-400",
+};
+
+function displayName(user: UserRecord) {
+  if (user.profile?.firstName || user.profile?.lastName) {
+    return [user.profile.firstName, user.profile.lastName].filter(Boolean).join(" ");
+  }
+
+  return user.email;
 }
 
-function displayName(u: UserRecord) {
-  if (u.profile?.firstName || u.profile?.lastName) {
-    return [u.profile.firstName, u.profile.lastName].filter(Boolean).join(' ')
-  }
-  return u.email
+function formatLabel(value?: string | null) {
+  if (!value) return "—";
+  return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<UserRecord[]>([])
-  const [query, setQuery] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [users, setUsers] = useState<UserRecord[]>([]);
+  const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const fetchUsers = useCallback(async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      const res = await fetch('/api/admin/users')
-      const data = await res.json()
-      if (data.users) setUsers(data.users)
+      const response = await fetch("/api/admin/users");
+      const data = await response.json();
+      if (Array.isArray(data.users)) setUsers(data.users);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [])
+  }, []);
 
-  useEffect(() => { fetchUsers() }, [fetchUsers])
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
-  async function handleRoleChange(id: string, role: string) {
-    await fetch('/api/admin/users', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, role }),
-    })
-    await fetchUsers()
-  }
+  const filtered = useMemo(() => {
+    const normalized = query.toLowerCase();
+    return users.filter((user) => displayName(user).toLowerCase().includes(normalized) || user.email.toLowerCase().includes(normalized));
+  }, [query, users]);
 
-  async function handleStatusToggle(u: UserRecord) {
-    await fetch('/api/admin/users', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: u.id, isActive: !u.isActive }),
-    })
-    await fetchUsers()
-  }
-
-  const filtered = users.filter(u =>
-    displayName(u).toLowerCase().includes(query.toLowerCase()) ||
-    u.email.toLowerCase().includes(query.toLowerCase())
-  )
+  const summary = useMemo(() => ({
+    total: users.length,
+    active: users.filter((user) => user.isActive).length,
+    suspended: users.filter((user) => !user.isActive).length,
+    admins: users.filter((user) => user.role === "admin" || user.role === "super_admin").length,
+  }), [users]);
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div className="flex items-center gap-3">
-        <Link href="/app/admin">
-          <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white w-8 h-8">
-            <ChevronLeft className="w-4 h-4" />
-          </Button>
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-white">Users</h1>
-          <p className="text-slate-400 text-sm mt-0.5">Manage client accounts, roles, and access permissions.</p>
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div className="flex items-start gap-3">
+          <Link href="/app/admin">
+            <Button variant="ghost" size="icon" className="mt-1 h-8 w-8 text-slate-400 hover:text-white">
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <div>
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-3 py-1 text-xs font-mono uppercase tracking-wider text-cyan-400">
+              <Users className="h-3.5 w-3.5" /> User Governance
+            </div>
+            <h1 className="text-2xl font-bold text-white">Users</h1>
+            <p className="mt-1 max-w-2xl text-sm text-slate-400">
+              Review account status, role assignments, entity type, and access posture. Role/status changes should be handled through explicit admin actions.
+            </p>
+          </div>
         </div>
-        <Button size="sm" className="bg-[hsl(var(--svc-cyber))] text-black hover:opacity-90 gap-2">
-          <UserPlus className="w-4 h-4" /> Invite User
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Badge className="border-green-500/25 bg-green-500/15 text-green-400"><ShieldCheck className="mr-1 h-3.5 w-3.5" /> Review Mode</Badge>
+          <Button asChild size="sm" className="bg-cyan-400 text-black hover:bg-cyan-300">
+            <Link href="/app/admin/audit"><UserPlus className="mr-2 h-4 w-4" /> Audit Trail</Link>
+          </Button>
+        </div>
       </div>
 
-      {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
-          { label: 'Active',    value: users.filter(u => u.isActive).length,  color: 'text-green-400' },
-          { label: 'Suspended', value: users.filter(u => !u.isActive).length, color: 'text-red-400' },
-          { label: 'Total',     value: users.length,                          color: 'text-white' },
+          { label: "Total", value: summary.total, color: "text-white" },
+          { label: "Active", value: summary.active, color: "text-green-400" },
+          { label: "Suspended", value: summary.suspended, color: "text-red-400" },
+          { label: "Admins", value: summary.admins, color: "text-cyan-400" },
         ].map(({ label, value, color }) => (
-          <div key={label} className="glass-panel rounded-xl p-4 text-center bento-card">
-            <p className="text-xs text-slate-400 uppercase tracking-wide">{label}</p>
-            <p className={`text-3xl font-bold mt-1 ${color}`}>{loading ? '—' : value}</p>
+          <div key={label} className="glass-panel bento-card rounded-xl p-4 text-center">
+            <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
+            <p className={`mt-1 text-3xl font-bold ${color}`}>{loading ? "—" : value}</p>
           </div>
         ))}
       </div>
 
-      {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <Input
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={(event) => setQuery(event.target.value)}
           placeholder="Search by name or email…"
-          className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus-visible:ring-[hsl(var(--svc-cyber))]"
+          className="border-white/10 bg-white/5 pl-10 text-white placeholder:text-slate-500 focus-visible:ring-cyan-400"
         />
       </div>
 
-      {/* Table */}
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-slate-500 gap-2">
-          <Loader2 className="w-4 h-4 animate-spin" /> Loading users…
+        <div className="flex items-center justify-center gap-2 py-16 text-slate-500">
+          <Loader2 className="h-4 w-4 animate-spin" /> Loading users…
         </div>
       ) : (
-        <div className="glass-panel rounded-xl overflow-hidden">
+        <div className="glass-panel overflow-hidden rounded-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/10">
-                  {['User', 'Role', 'Status', 'Entity Type', 'Joined', 'Actions'].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-xs text-slate-500 uppercase tracking-widest font-semibold">{h}</th>
+                  {["User", "Role", "Status", "Entity Type", "Joined", "Review"].map((heading) => (
+                    <th key={heading} className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-slate-500">{heading}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((u, i) => (
-                  <tr key={u.id} className={`border-b border-white/5 hover:bg-white/5 transition-colors ${i % 2 === 0 ? '' : 'bg-white/[0.02]'}`}>
+                {filtered.map((user, index) => (
+                  <tr key={user.id} className={`border-b border-white/5 transition-colors hover:bg-white/5 ${index % 2 === 0 ? "" : "bg-white/[0.02]"}`}>
                     <td className="px-4 py-3">
-                      <p className="text-white font-medium">{displayName(u)}</p>
-                      <p className="text-xs text-slate-500">{u.email}</p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <select
-                        value={u.role}
-                        onChange={e => handleRoleChange(u.id, e.target.value)}
-                        className={`text-xs font-semibold bg-transparent border-none outline-none cursor-pointer ${roleColor[u.role] ?? 'text-slate-300'}`}
-                      >
-                        {['client', 'analyst', 'admin'].map(r => (
-                          <option key={r} value={r} className="bg-slate-900">{r}</option>
-                        ))}
-                      </select>
+                      <p className="font-medium text-white">{displayName(user)}</p>
+                      <p className="text-xs text-slate-500">{user.email}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <Badge className={`${statusColor[u.status] ?? 'bg-slate-500/20 text-slate-400'} text-xs`}>
-                        {u.status.replace('_', ' ')}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-400 capitalize">
-                      {u.profile?.entityType?.replace('_', ' ') ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      {new Date(u.createdAt).toLocaleDateString()}
+                      <span className={`text-xs font-semibold ${roleColor[user.role] ?? "text-slate-300"}`}>{formatLabel(user.role)}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleStatusToggle(u)}
-                        className={`text-xs ${u.isActive ? 'border-red-500/30 text-red-400 hover:bg-red-500/10' : 'border-green-500/30 text-green-400 hover:bg-green-500/10'}`}
-                      >
-                        {u.isActive ? 'Suspend' : 'Activate'}
+                      <Badge className={`${statusColor[user.status] ?? "bg-slate-500/20 text-slate-400"} text-xs`}>{formatLabel(user.status)}</Badge>
+                    </td>
+                    <td className="px-4 py-3 text-xs capitalize text-slate-400">{formatLabel(user.profile?.entityType)}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500">{new Date(user.createdAt).toLocaleDateString()}</td>
+                    <td className="px-4 py-3">
+                      <Button asChild variant="outline" size="sm" className="border-white/10 text-xs text-slate-300 hover:bg-white/10 hover:text-white">
+                        <Link href={`/app/admin/audit?user=${user.id}`}>Audit</Link>
                       </Button>
                     </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-slate-500 text-sm">No users found.</td>
+                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">No users found.</td>
                   </tr>
                 )}
               </tbody>
@@ -195,5 +179,5 @@ export default function UsersPage() {
         </div>
       )}
     </div>
-  )
+  );
 }
