@@ -1,124 +1,224 @@
-"use client"
-
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
+import Link from "next/link";
 import {
+  ArrowRight,
   Building2,
   CheckCircle2,
-  MapPin,
-  Eye,
-  AlertTriangle,
-  Clock,
+  ClipboardList,
   FileText,
-  Shield,
-} from 'lucide-react'
+  Landmark,
+  LockKeyhole,
+  MapPinned,
+  ShieldCheck,
+  TrendingUp,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
-const monitoredProperties = [
+const opportunities = [
   {
-    id: 'PROP-001',
-    address: '1420 Harbor Blvd, Suite 800',
-    city: 'Newport Beach, CA 92660',
-    type: 'Commercial Office',
-    value: ',200,000',
-    status: 'Protected',
-    lastCheck: 'Mar 15, 2026',
+    title: "Commercial Trust Portfolio",
+    location: "Northeast Corridor",
+    status: "Document Review",
+    risk: "Moderate",
+    readiness: "82%",
+    description:
+      "Institutional commercial real estate trust opportunity with document readiness and compliance routing.",
   },
   {
-    id: 'PROP-002',
-    address: '780 Canyon View Drive',
-    city: 'Scottsdale, AZ 85251',
-    type: 'Residential Estate',
-    value: ',850,000',
-    status: 'Protected',
-    lastCheck: 'Mar 15, 2026',
+    title: "Secured Property Income Structure",
+    location: "Southeast Region",
+    status: "Eligible Review",
+    risk: "Low",
+    readiness: "91%",
+    description:
+      "Income-oriented property structure designed for qualified client trust and portfolio workflows.",
   },
-]
+  {
+    title: "Private Real Estate Mandate",
+    location: "Multi-market",
+    status: "Advisor Review",
+    risk: "Controlled",
+    readiness: "76%",
+    description:
+      "Private mandate requiring advisor consultation, eligibility review, and document verification.",
+  },
+];
 
-function statusBadge(status: string) {
-  const map: Record<string, string> = {
-    Clear: 'bg-green-500/20 text-green-400 border-green-500/30',
-    Investigated: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-    Resolved: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    Protected: 'bg-green-500/20 text-green-400 border-green-500/30',
-  }
-  return <Badge className={map[status] ?? 'bg-slate-500/20 text-slate-400'}>{status}</Badge>
-}
+const trustControls = [
+  "KYC-gated access",
+  "Document readiness review",
+  "Compliance decision path",
+  "Advisor consultation routing",
+  "Portfolio visibility alignment",
+];
+
+const workflow = [
+  {
+    label: "Qualified Client Access",
+    description: "Client must pass verification and entitlement checks before trust opportunities unlock.",
+  },
+  {
+    label: "Property Intelligence Review",
+    description: "Opportunity, ownership, risk, readiness, and documentation are reviewed in one workflow.",
+  },
+  {
+    label: "Compliance & Document Routing",
+    description: "Documents, disclosures, and KYC evidence are routed into compliance review surfaces.",
+  },
+  {
+    label: "Advisor Consultation",
+    description: "A trust consultation is routed through meetings and request-center workflows.",
+  },
+];
 
 export default function RealEstateProductPage() {
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center">
-            <Building2 className="w-6 h-6 text-yellow-400" />
-          </div>
+    <div className="space-y-8 animate-fade-in">
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-6 md:p-8">
+        <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
           <div>
-            <h1 className="text-2xl font-bold text-white">
-              <span className="text-yellow-400">Real Estate Protection</span>
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/25 bg-amber-500/10 px-3 py-1 text-xs font-mono uppercase tracking-wider text-amber-400">
+              <Landmark className="h-3.5 w-3.5" />
+              ATR Property Trust
+            </div>
+
+            <h1 className="text-3xl font-bold text-white md:text-5xl">
+              Property Trust Intelligence
             </h1>
-            <p className="text-slate-400 text-sm mt-0.5">Title monitoring and property fraud protection.</p>
+
+            <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-400 md:text-base">
+              Institutional real estate intelligence for qualified clients. Review property trust opportunities, readiness, document state, risk rating, and advisor consultation paths without turning GEM into a public listing marketplace.
+            </p>
+
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <Button asChild className="rounded-full bg-amber-400 text-black hover:bg-amber-300">
+                <Link href="/app/meetings">
+                  Request Trust Consultation <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+
+              <Button asChild variant="outline" className="rounded-full border-white/10 text-white hover:bg-white/10">
+                <Link href="/app/documents">Review Documents</Link>
+              </Button>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-6">
+            <div className="mb-5 flex items-center gap-3">
+              <LockKeyhole className="h-5 w-5 text-amber-400" />
+              <p className="text-sm font-semibold text-amber-400">Qualified Client Access</p>
+            </div>
+
+            <div className="grid gap-3">
+              {trustControls.map((control) => (
+                <div key={control} className="flex items-center gap-3 rounded-xl border border-white/10 bg-background/60 p-3">
+                  <CheckCircle2 className="h-4 w-4 text-green-400" />
+                  <span className="text-sm text-slate-300">{control}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-        <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-sm px-3 py-1">
-          <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" /> Active
-        </Badge>
-      </div>
+      </section>
 
-      <Card className="bg-slate-900/50 border-white/10">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Shield className="w-5 h-5 text-yellow-400" />
-            PropertyShield Overview
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-slate-400 mb-5 leading-relaxed">
-            PropertyShield delivers continuous title monitoring, fraud detection, and ownership
-            verification for all properties in your portfolio.
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[
-              { label: 'Monitored', value: '2', icon: Eye, color: 'text-yellow-400' },
-              { label: 'Scans (30d)', value: '248', icon: FileText, color: 'text-cyan-400' },
-              { label: 'Alerts', value: '1', icon: AlertTriangle, color: 'text-orange-400' },
-              { label: 'Interval', value: '4h', icon: Clock, color: 'text-green-400' },
-            ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="glass-panel rounded-lg p-4 text-center">
-                <Icon className={`w-5 h-5 ${color} mx-auto mb-1.5`} />
-                <p className="text-xl font-bold text-white">{value}</p>
-                <p className="text-xs text-slate-400">{label}</p>
+      <section className="grid gap-5 md:grid-cols-3">
+        {opportunities.map((item) => (
+          <div key={item.title} className="glass-panel bento-card rounded-2xl p-6 svc-realty-card">
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[hsl(var(--svc-realty-muted))]">
+                <Building2 className="h-5 w-5 text-[hsl(var(--svc-realty))]" />
               </div>
-            ))}
+
+              <Badge className="border-amber-500/25 bg-amber-500/10 text-amber-400">
+                {item.status}
+              </Badge>
+            </div>
+
+            <h2 className="text-lg font-bold text-white">{item.title}</h2>
+
+            <p className="mt-2 flex items-center gap-2 text-xs text-slate-500">
+              <MapPinned className="h-3.5 w-3.5" />
+              {item.location}
+            </p>
+
+            <p className="mt-4 text-sm leading-relaxed text-slate-400">
+              {item.description}
+            </p>
+
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-white/5 p-3">
+                <p className="text-xs text-slate-500">Risk Rating</p>
+                <p className="mt-1 text-sm font-semibold text-white">{item.risk}</p>
+              </div>
+
+              <div className="rounded-xl bg-white/5 p-3">
+                <p className="text-xs text-slate-500">Readiness</p>
+                <p className="mt-1 text-sm font-semibold text-amber-400">{item.readiness}</p>
+              </div>
+            </div>
+
+            <Button asChild variant="outline" className="mt-5 w-full border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">
+              <Link href="/app/requests?type=real_estate_trust">
+                Request Review <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid md:grid-cols-2 gap-4">
-        {monitoredProperties.map((prop) => (
-          <Card key={prop.id} className="bg-slate-900/50 border-white/10">
-            <CardContent className="p-5">
-              <div className="flex items-start justify-between mb-3">
-                <span className="text-xs font-mono text-cyan-400">{prop.id}</span>
-                {statusBadge(prop.status)}
-              </div>
-              <p className="font-semibold text-white">{prop.address}</p>
-              <p className="text-sm text-slate-400">{prop.city}</p>
-              <Separator className="my-3 bg-white/10" />
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <p className="text-xs text-slate-400">Type</p>
-                  <p className="text-sm text-white mt-0.5">{prop.type}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400">Value</p>
-                  <p className="text-sm font-semibold text-cyan-400 mt-0.5">{prop.value}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         ))}
-      </div>
+      </section>
+
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-6 md:p-8">
+        <div className="mb-6 flex items-center gap-3">
+          <ClipboardList className="h-5 w-5 text-amber-400" />
+          <div>
+            <h2 className="text-xl font-bold text-white">ATR Operating Workflow</h2>
+            <p className="mt-1 text-sm text-slate-400">How real estate trust opportunities move through GEM Enterprise.</p>
+          </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-4">
+          {workflow.map((step, index) => (
+            <div key={step.label} className="rounded-2xl border border-white/10 bg-background/60 p-4">
+              <div className="mb-4 flex h-8 w-8 items-center justify-center rounded-full border border-amber-500/25 bg-amber-500/10 font-mono text-xs text-amber-400">
+                {String(index + 1).padStart(2, "0")}
+              </div>
+              <p className="text-sm font-semibold text-white">{step.label}</p>
+              <p className="mt-2 text-xs leading-relaxed text-slate-400">{step.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-3">
+        {[
+          {
+            icon: FileText,
+            title: "Document Readiness",
+            body: "Surface agreement, compliance, property, and identity files required before review.",
+            href: "/app/documents",
+          },
+          {
+            icon: ShieldCheck,
+            title: "Compliance Routing",
+            body: "Route trust opportunities through approval, KYC, and entitlement workflows.",
+            href: "/app/compliance",
+          },
+          {
+            icon: TrendingUp,
+            title: "Portfolio Intelligence",
+            body: "Tie real estate exposure back into the broader GEM portfolio operations layer.",
+            href: "/app/portfolios",
+          },
+        ].map(({ icon: Icon, title, body, href }) => (
+          <Link key={title} href={href} className="rounded-2xl border border-white/10 bg-white/5 p-6 transition hover:border-amber-500/30">
+            <Icon className="mb-4 h-6 w-6 text-amber-400" />
+            <h3 className="text-base font-bold text-white">{title}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-slate-400">{body}</p>
+            <p className="mt-5 flex items-center gap-2 text-sm font-semibold text-amber-400">
+              Open workflow <ArrowRight className="h-4 w-4" />
+            </p>
+          </Link>
+        ))}
+      </section>
     </div>
-  )
+  );
 }
