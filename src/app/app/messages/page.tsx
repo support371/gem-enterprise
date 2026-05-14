@@ -1,179 +1,108 @@
-'use client'
+import Link from "next/link";
+import {
+  ArrowRight,
+  CalendarClock,
+  ClipboardList,
+  HeadphonesIcon,
+  Lock,
+  MessageSquare,
+  ShieldCheck,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { MessageSquare, Send, Shield, DollarSign, Building2, User, Search, Lock } from 'lucide-react'
-
-interface Thread {
-  id: string
-  subject: string
-  participant: string
-  role: string
-  lastMessage: string
-  lastAt: string
-  unread: number
-  domain: 'cyber' | 'financial' | 'realty' | 'general'
-  messages: Array<{ from: 'client' | 'advisor'; text: string; at: string }>
-}
-
-const threads: Thread[] = [
+const communicationPaths = [
   {
-    id: 'T-001', subject: 'Q1 threat summary review',
-    participant: 'J. Martinez', role: 'Security Advisor',
-    lastMessage: 'The Q1 threat summary is ready for your review. Three items require your acknowledgment before we close the period.',
-    lastAt: '2h ago', unread: 1, domain: 'cyber',
-    messages: [
-      { from: 'advisor', text: 'The Q1 threat summary is ready for your review. Three items require your acknowledgment before we close the period.', at: 'Today, 10:22' },
-      { from: 'client',  text: 'Thanks — I\'ll review this afternoon. Can you flag which ones are highest priority?', at: 'Today, 10:45' },
-    ],
+    title: "Support Ticket",
+    description: "Open a governed support ticket for account, KYC, portfolio, or operational service issues.",
+    href: "/app/support",
+    icon: HeadphonesIcon,
   },
   {
-    id: 'T-002', subject: 'Portfolio rebalance discussion',
-    participant: 'K. Osei', role: 'Financial Advisor',
-    lastMessage: 'Based on the current allocation drift, we recommend moving 5% from Cybersecurity to Real Estate to align with your target.',
-    lastAt: 'Yesterday', unread: 0, domain: 'financial',
-    messages: [
-      { from: 'advisor', text: 'Based on the current allocation drift, we recommend moving 5% from Cybersecurity to Real Estate to align with your target.', at: 'Yesterday, 14:30' },
-    ],
+    title: "Service Request",
+    description: "Route a structured request to portfolio, compliance, cyber, document, or ATR operations.",
+    href: "/app/requests",
+    icon: ClipboardList,
   },
   {
-    id: 'T-003', subject: 'ATR — 44 Elm Street update',
-    participant: 'ATR Operations', role: 'Real Estate Team',
-    lastMessage: 'County records are expected by Thursday. We\'ll notify you as soon as the title search is complete.',
-    lastAt: '3 days ago', unread: 0, domain: 'realty',
-    messages: [
-      { from: 'advisor', text: 'County records are expected by Thursday. We\'ll notify you as soon as the title search is complete.', at: 'Mar 14, 10:30' },
-    ],
+    title: "Consultation Request",
+    description: "Request a portfolio review, compliance review, cyber briefing, or trust consultation.",
+    href: "/app/meetings",
+    icon: CalendarClock,
   },
-]
+];
 
-const domainColors = {
-  cyber:     'text-[hsl(var(--svc-cyber))]',
-  financial: 'text-[hsl(var(--svc-financial))]',
-  realty:    'text-[hsl(var(--svc-realty))]',
-  general:   'text-slate-400',
-}
-
-const domainIcons = {
-  cyber:     Shield,
-  financial: DollarSign,
-  realty:    Building2,
-  general:   MessageSquare,
-}
+const controls = [
+  "No advisor thread data is fabricated in the client UI.",
+  "Operational communication is routed through existing backend workflows.",
+  "Support and request flows preserve auditability and escalation paths.",
+  "Future real-time messaging should connect to SupportSession records or a dedicated message model.",
+];
 
 export default function MessagesPage() {
-  const [selected, setSelected] = useState<Thread | null>(threads[0])
-  const [draft, setDraft] = useState('')
-
   return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="flex items-start justify-between">
+    <div className="space-y-8 animate-fade-in">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-3 py-1 text-xs font-mono uppercase tracking-wider text-cyan-400">
+            <MessageSquare className="h-3.5 w-3.5" /> Secure Communications
+          </div>
           <h1 className="text-2xl font-bold text-white">Messages</h1>
-          <p className="text-slate-400 mt-1 text-sm flex items-center gap-1.5">
-            <Lock className="w-3.5 h-3.5" /> Encrypted advisor communications
+          <p className="mt-1 max-w-2xl text-sm text-slate-400">
+            Route sensitive client communication through governed support, request, and consultation workflows until real-time messaging is connected.
           </p>
         </div>
-        <Badge className="bg-[hsl(var(--svc-cyber-muted))] text-[hsl(var(--svc-cyber))] border-0 text-xs">
-          {threads.reduce((a, t) => a + t.unread, 0)} unread
+        <Badge className="border-green-500/25 bg-green-500/15 text-green-400">
+          <ShieldCheck className="mr-1 h-3.5 w-3.5" /> Controlled Routing
         </Badge>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-4 h-[calc(100vh-16rem)]">
-
-        {/* Thread list */}
-        <div className="lg:col-span-1 glass-panel rounded-xl overflow-hidden flex flex-col">
-          <div className="p-3 border-b border-white/10">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              <Input placeholder="Search…" className="pl-8 bg-white/5 border-white/10 text-white placeholder:text-slate-500 text-xs h-8" />
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-6 md:p-8">
+        <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+          <div>
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10">
+              <Lock className="h-6 w-6 text-cyan-400" />
             </div>
+            <h2 className="text-2xl font-bold text-white">Use governed communication paths.</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-400">
+              GEM Enterprise should avoid showing fabricated advisor conversations. This surface now routes clients into the operational communication channels that already exist in the platform.
+            </p>
           </div>
-          <div className="flex-1 overflow-y-auto">
-            {threads.map(t => {
-              const Icon = domainIcons[t.domain]
-              const color = domainColors[t.domain]
-              return (
-                <div
-                  key={t.id}
-                  className={`p-3 cursor-pointer border-b border-white/5 hover:bg-white/5 transition-colors ${selected?.id === t.id ? 'bg-white/8' : ''}`}
-                  onClick={() => setSelected(t)}
-                >
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                      <Icon className={`w-4 h-4 ${color}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs font-semibold text-white truncate">{t.subject}</p>
-                        <span className="text-[10px] text-slate-500 shrink-0 ml-1">{t.lastAt}</span>
-                      </div>
-                      <p className="text-[10px] text-slate-500">{t.participant}</p>
-                      <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{t.lastMessage}</p>
-                    </div>
-                    {t.unread > 0 && (
-                      <span className={`w-4 h-4 rounded-full ${color.replace('text-', 'bg-').replace('[hsl(var(', '').replace('))]', '')} flex items-center justify-center text-[9px] text-black font-bold shrink-0 bg-[hsl(var(--svc-cyber))]`}>
-                        {t.unread}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+
+          <div className="grid gap-3">
+            {controls.map((control) => (
+              <div key={control} className="rounded-2xl border border-white/10 bg-background/60 p-4 text-sm text-slate-300">
+                {control}
+              </div>
+            ))}
           </div>
         </div>
+      </section>
 
-        {/* Message thread */}
-        {selected ? (
-          <div className="lg:col-span-2 glass-panel rounded-xl flex flex-col overflow-hidden">
-            {/* Header */}
-            <div className="p-4 border-b border-white/10 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-                <User className="w-4 h-4 text-slate-400" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-white">{selected.participant}</p>
-                <p className="text-xs text-slate-500">{selected.role} · {selected.subject}</p>
-              </div>
+      <section className="grid gap-5 md:grid-cols-3">
+        {communicationPaths.map(({ title, description, href, icon: Icon }) => (
+          <Link key={title} href={href} className="glass-panel bento-card rounded-2xl p-6 transition hover:border-cyan-500/30">
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/10">
+              <Icon className="h-6 w-6 text-cyan-400" />
             </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {selected.messages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.from === 'client' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[75%] rounded-xl p-3 ${msg.from === 'client' ? 'bg-[hsl(var(--svc-cyber-muted))] border border-[hsl(var(--svc-cyber))]/20' : 'bg-white/5'}`}>
-                    <p className="text-sm text-white leading-relaxed">{msg.text}</p>
-                    <p className="text-[10px] text-slate-500 mt-1.5">{msg.at}</p>
-                  </div>
-                </div>
-              ))}
+            <h2 className="text-lg font-bold text-white">{title}</h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-400">{description}</p>
+            <div className="mt-6 flex items-center gap-2 text-sm font-semibold text-cyan-400">
+              Open workflow <ArrowRight className="h-4 w-4" />
             </div>
+          </Link>
+        ))}
+      </section>
 
-            {/* Compose */}
-            <div className="p-3 border-t border-white/10 flex gap-2">
-              <Textarea
-                value={draft}
-                onChange={e => setDraft(e.target.value)}
-                placeholder="Type a secure message…"
-                rows={2}
-                className="flex-1 bg-white/5 border-white/10 text-white placeholder:text-slate-500 text-sm resize-none"
-              />
-              <Button size="sm" className="self-end bg-[hsl(var(--svc-cyber))] text-black hover:opacity-90">
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="lg:col-span-2 glass-panel rounded-xl flex items-center justify-center">
-            <p className="text-slate-500 text-sm">Select a thread to read</p>
-          </div>
-        )}
-
+      <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/10 p-5">
+        <p className="text-sm font-semibold text-yellow-400">Implementation note</p>
+        <p className="mt-2 text-sm leading-relaxed text-slate-400">
+          Real-time encrypted messaging should be implemented only after a persisted message/thread model or SupportSession-backed message API is confirmed. Until then, this page intentionally routes to existing safe workflows.
+        </p>
+        <Button asChild variant="outline" className="mt-4 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">
+          <Link href="/app/support">Start With Support</Link>
+        </Button>
       </div>
     </div>
-  )
+  );
 }
