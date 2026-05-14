@@ -28,15 +28,13 @@ const legalLinks = [
 
 const clientAccessLinks = [
   { label: "Client Login", path: "/client-login" },
-  { label: "KYC Status", path: "/kyc/status" },
+  { label: "Eligibility Status", path: "/eligibility/status" },
   { label: "Get Started", path: "/get-started" },
   { label: "Contact", path: "/contact" },
 ];
 
 // Ensure footer routes exist for all static links (used for type safety reference only)
 void footerRoutes;
-
-// ── Sub-components ──────────────────────────────────────────────────────────
 
 function FooterColumnHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -71,32 +69,18 @@ function FooterLink({ href, children, external = false }: { href: string; childr
   );
 }
 
-// ── Footer component ────────────────────────────────────────────────────────
-
 export function Footer() {
   return (
-    <footer
-      className="border-t border-white/[0.07] bg-[#0a1018]"
-      aria-label="Site footer"
-    >
-      {/* ── Main footer body ────────────────────────────────────── */}
+    <footer className="border-t border-white/[0.07] bg-[#0a1018]" aria-label="Site footer">
       <div className="mx-auto max-w-screen-xl px-4 pt-16 pb-10 sm:px-6 lg:px-8">
-
-        {/* Top: logo + tagline */}
         <div className="mb-12 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-sm">
             <Link href="/" className="group inline-flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[hsl(185,100%,45%)]/10 ring-1 ring-[hsl(185,100%,45%)]/25 transition-all group-hover:ring-[hsl(185,100%,45%)]/50">
-                <Shield
-                  className="h-5 w-5 text-[hsl(185,100%,45%)]"
-                  strokeWidth={2}
-                  aria-hidden="true"
-                />
+                <Shield className="h-5 w-5 text-[hsl(185,100%,45%)]" strokeWidth={2} aria-hidden="true" />
               </div>
               <div className="flex flex-col leading-none">
-                <span className="text-base font-bold tracking-widest text-[hsl(185,100%,45%)]">
-                  GEM
-                </span>
+                <span className="text-base font-bold tracking-widest text-[hsl(185,100%,45%)]">GEM</span>
                 <span className="text-[10px] font-semibold tracking-[0.25em] text-white/35 uppercase">
                   Enterprise
                 </span>
@@ -104,58 +88,23 @@ export function Footer() {
             </Link>
 
             <p className="mt-4 text-sm leading-relaxed text-white/45">
-              Institutional-grade cybersecurity, financial security, and real
-              estate protection.
+              Institutional-grade cybersecurity, financial security, and real estate protection.
             </p>
-
-            {/* Status badges */}
-            <div className="mt-5 flex flex-wrap gap-2">
-              {[
-                { label: "SOC 2 Type II" },
-                { label: "ISO 27001" },
-                { label: "GDPR Compliant" },
-              ].map(({ label }) => (
-                <span
-                  key={label}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[hsl(185,100%,45%)]/15 bg-[hsl(185,100%,45%)]/5 px-2.5 py-0.5 text-[10px] font-medium text-[hsl(185,100%,45%)]/80"
-                >
-                  <span
-                    className="h-1.5 w-1.5 rounded-full bg-[hsl(185,100%,45%)]"
-                    aria-hidden="true"
-                  />
-                  {label}
-                </span>
-              ))}
-            </div>
           </div>
 
-          {/* Disclaimer box */}
           <div className="max-w-xs rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
             <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[hsl(280,40%,60%)]">
               Qualified Clients Only
             </p>
             <p className="text-xs leading-relaxed text-white/35">
-              GEM Enterprise services are available exclusively to accredited
-              investors and qualified institutional clients. All access requires
-              KYC verification and compliance approval.
+              GEM Enterprise services are available exclusively to accredited investors and qualified institutional clients.
             </p>
-            <Link
-              href="/compliance-notice"
-              className="mt-3 inline-flex items-center gap-1 text-xs text-[hsl(185,100%,45%)]/70 transition-colors hover:text-[hsl(185,100%,45%)]"
-            >
-              Read Compliance Notice
-              <ExternalLink className="h-3 w-3" aria-hidden="true" />
-            </Link>
           </div>
         </div>
 
-        {/* Divider */}
         <div className="mb-12 h-px bg-white/[0.06]" />
 
-        {/* 4-column link grid */}
         <div className="grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4">
-
-          {/* Column 1: Platform */}
           <div>
             <FooterColumnHeading>Platform</FooterColumnHeading>
             <ul className="space-y-2.5">
@@ -164,12 +113,9 @@ export function Footer() {
                   {section.label}
                 </FooterLink>
               ))}
-              <FooterLink href="/intel#architecture">Architecture Specs</FooterLink>
-              <FooterLink href="/services#assessments">Assessments</FooterLink>
             </ul>
           </div>
 
-          {/* Column 2: Company */}
           <div>
             <FooterColumnHeading>Company</FooterColumnHeading>
             <ul className="space-y-2.5">
@@ -181,7 +127,6 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Column 3: Legal */}
           <div>
             <FooterColumnHeading>Legal</FooterColumnHeading>
             <ul className="space-y-2.5">
@@ -193,7 +138,6 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Column 4: Client Access */}
           <div>
             <FooterColumnHeading>Client Access</FooterColumnHeading>
             <ul className="space-y-2.5">
@@ -204,56 +148,15 @@ export function Footer() {
               ))}
             </ul>
 
-            {/* Get Started CTA */}
             <div className="mt-6">
               <Link
-                href="/get-started"
-                className="inline-flex items-center gap-2 rounded-lg bg-[hsl(185,100%,45%)] px-4 py-2 text-sm font-semibold text-[#131a26] shadow-[0_0_18px_hsl(185,100%,45%,0.3)] transition-all hover:bg-[hsl(185,100%,50%)] hover:shadow-[0_0_26px_hsl(185,100%,45%,0.45)]"
+                href="/request-access"
+                className="inline-flex items-center gap-2 rounded-lg bg-[hsl(185,100%,45%)] px-4 py-2 text-sm font-semibold text-[#131a26] shadow-[0_0_18px_hsl(185,100%,45%,0.3)] transition-all hover:bg-[hsl(185,100%,50%)]"
               >
                 Apply for Access
               </Link>
             </div>
           </div>
-        </div>
-
-        {/* Divider */}
-        <div className="my-10 h-px bg-white/[0.06]" />
-
-        {/* ── Bottom bar ─────────────────────────────────────────── */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1.5">
-            <p className="text-xs text-white/35">
-              &copy; 2026 GEM Enterprise. All rights reserved.
-            </p>
-            <p className="max-w-md text-[11px] leading-relaxed text-white/25">
-              GEM Enterprise provides information for qualified clients only.
-              This is not investment advice. Past performance does not guarantee
-              future results. All investments carry risk.
-            </p>
-          </div>
-
-          {/* Bottom legal links */}
-          <nav aria-label="Legal links" className="shrink-0">
-            <ul className="flex flex-wrap items-center gap-x-4 gap-y-1">
-              {[
-                { label: "Privacy", path: "/privacy" },
-                { label: "Terms", path: "/terms" },
-                { label: "Compliance Notice", path: "/compliance-notice" },
-              ].map(({ label, path }, i, arr) => (
-                <li key={path} className="flex items-center gap-4">
-                  <Link
-                    href={path}
-                    className="text-xs text-white/35 transition-colors hover:text-[hsl(185,100%,45%)]"
-                  >
-                    {label}
-                  </Link>
-                  {i < arr.length - 1 && (
-                    <span className="text-white/15" aria-hidden="true">|</span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </nav>
         </div>
       </div>
     </footer>
