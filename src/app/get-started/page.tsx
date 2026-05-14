@@ -1,58 +1,75 @@
 import Link from "next/link";
+import { ArrowRight, CheckCircle2, ShieldCheck, FileCheck2, LockKeyhole, Activity } from "lucide-react";
 
 export const metadata = {
   title: "Get Started | GEM Enterprise",
-  description: "Start a secure GEM Enterprise onboarding flow with a unified platform intake experience.",
+  description: "Start a secure GEM Enterprise onboarding flow with eligibility review, KYC gating, and protected portal access.",
 };
 
 const eligibilitySignals = [
-  "Regulated financial services, trust, or real-asset operations",
-  "Active cybersecurity, compliance, or digital-asset exposure",
-  "Need for monitored onboarding, risk review, or secure client access",
+  "Regulated financial services, trust, family office, or real-asset operations",
+  "Active cybersecurity, compliance, fraud, or digital-asset exposure",
+  "Need for monitored onboarding, risk review, entitlement control, or secure client access",
 ];
 
 const onboardingSteps = [
   {
-    title: "Confirm eligibility",
-    description: "Share your operating profile so GEM can route you to the right enterprise workflow.",
+    title: "Check eligibility status",
+    description: "Review supported applicant tracks before entering a protected KYC workflow.",
+    href: "/eligibility/status",
+    icon: CheckCircle2,
   },
   {
-    title: "Complete secure intake",
-    description: "Move through one platform-controlled onboarding path instead of duplicated marketing forms.",
+    title: "Submit access request",
+    description: "Enter the public access request lifecycle with traceable intake and reviewer context.",
+    href: "/request-access",
+    icon: FileCheck2,
   },
   {
-    title: "Activate the right lane",
-    description: "Transition into client portal, trust services, or cybersecurity engagement workflows.",
+    title: "Sign in or continue KYC",
+    description: "Authenticated users continue through KYC, decision review, entitlement approval, and portal activation.",
+    href: "/client-login",
+    icon: LockKeyhole,
   },
+];
+
+const operatingModel = [
+  "Qualified client request",
+  "Identity and entity verification",
+  "Compliance review",
+  "Entitlement approval",
+  "Secure portal access",
+  "Ongoing intelligence and audit trail",
 ];
 
 export default function GetStartedPage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
-      <section className="relative overflow-hidden border-b border-border/60 px-6 py-24 sm:py-28 lg:px-8">
+      <section className="relative overflow-hidden border-b border-border/60 px-6 py-24 sm:py-28 lg:px-8 cyber-grid">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.18),transparent_34%),radial-gradient(circle_at_bottom_right,hsl(var(--accent)/0.12),transparent_30%)]" />
         <div className="mx-auto max-w-4xl text-center">
-          <p className="mx-auto mb-6 inline-flex rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
-            Enterprise onboarding
+          <p className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-medium text-primary">
+            <ShieldCheck className="h-4 w-4" />
+            Qualified Client Access
           </p>
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-            Start with one clean path into GEM Enterprise.
+            Start with one controlled path into GEM Enterprise.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-            Validate fit, protect context, and move into the right service lane through a unified intake experience that inherits the platform header, theme, and global layout.
+            Validate eligibility, submit an access request, complete KYC, and move into the right protected service lane through a single institutional onboarding flow.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Link
-              href="/register"
-              className="inline-flex w-full items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-auto"
+              href="/eligibility/status"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-auto"
             >
-              Check Eligibility
+              Check Eligibility Status <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="/login"
+              href="/client-login"
               className="inline-flex w-full items-center justify-center rounded-md border border-input bg-background px-6 py-3 text-sm font-semibold text-foreground shadow-sm transition hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:w-auto"
             >
-              Sign In
+              Client / Admin Sign In
             </Link>
           </div>
         </div>
@@ -60,15 +77,48 @@ export default function GetStartedPage() {
 
       <section className="mx-auto max-w-7xl px-6 py-16 lg:px-8">
         <div className="grid gap-6 lg:grid-cols-3">
-          {onboardingSteps.map((step, index) => (
-            <article key={step.title} className="rounded-2xl border border-border/70 bg-card/70 p-6 shadow-sm backdrop-blur">
-              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-lg font-bold text-primary">
-                {index + 1}
-              </div>
-              <h2 className="text-xl font-semibold">{step.title}</h2>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">{step.description}</p>
-            </article>
-          ))}
+          {onboardingSteps.map((step, index) => {
+            const Icon = step.icon;
+            return (
+              <Link key={step.title} href={step.href} className="group rounded-2xl border border-border/70 bg-card/70 p-6 shadow-sm backdrop-blur transition hover:border-primary/40 hover:bg-card">
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Icon className="h-5 w-5" />
+                </div>
+                <p className="mb-2 text-xs font-mono uppercase tracking-[0.22em] text-primary">Step {index + 1}</p>
+                <h2 className="text-xl font-semibold">{step.title}</h2>
+                <p className="mt-3 text-sm leading-6 text-muted-foreground">{step.description}</p>
+                <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                  Continue <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-6 pb-16 lg:px-8">
+        <div className="rounded-3xl border border-border/70 bg-card/70 p-6 shadow-sm backdrop-blur sm:p-8 lg:p-10">
+          <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">Operating model</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+                Built for gated, regulated access.
+              </h2>
+              <p className="mt-4 text-muted-foreground">
+                GEM Enterprise moves applicants from request to verification, compliance review, entitlement approval, and protected portal operations without breaking the current platform model.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {operatingModel.map((stage, index) => (
+                <div key={stage} className="flex gap-3 rounded-xl border border-border/60 bg-background/60 p-4">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 text-xs font-mono text-primary">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="text-sm font-medium leading-6 text-foreground">{stage}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -78,16 +128,16 @@ export default function GetStartedPage() {
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.3em] text-primary">Fit criteria</p>
               <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-                Built for serious operating environments.
+                Designed for serious operating environments.
               </h2>
               <p className="mt-4 text-muted-foreground">
-                This page intentionally renders no local navigation, no hard-coded menu lists, and no copied marketing header. The global app layout owns the header and footer.
+                The onboarding flow preserves public discovery while keeping KYC, decisions, admin reviews, and portal entitlements inside authenticated control surfaces.
               </p>
             </div>
             <div className="space-y-4">
               {eligibilitySignals.map((signal) => (
                 <div key={signal} className="flex gap-3 rounded-xl border border-border/60 bg-background/60 p-4">
-                  <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
+                  <Activity className="mt-1 h-4 w-4 shrink-0 text-primary" />
                   <span className="text-sm leading-6 text-muted-foreground">{signal}</span>
                 </div>
               ))}
