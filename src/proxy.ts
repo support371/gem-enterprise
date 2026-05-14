@@ -21,6 +21,7 @@ const ALWAYS_PUBLIC = [
   "/company",
   "/get-started",
   "/eligibility",
+  "/eligibility/status",
   "/privacy",
   "/terms",
   "/compliance-notice",
@@ -50,6 +51,11 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/api/") ||
     pathname.includes(".") // static files
   ) {
+    return NextResponse.next();
+  }
+
+  // Public routes must remain public even when they share prefixes with protected surfaces.
+  if (ALWAYS_PUBLIC.includes(pathname)) {
     return NextResponse.next();
   }
 
