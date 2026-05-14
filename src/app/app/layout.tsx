@@ -70,6 +70,7 @@ const iconMap: Record<PlatformNavIcon, React.ComponentType<{ className?: string 
   PiggyBank,
   Mail,
   Rss,
+  Activity,
 };
 
 function isActivePath(pathname: string, href: string) {
