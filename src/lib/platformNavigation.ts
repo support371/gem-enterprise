@@ -230,6 +230,12 @@ export const adminPortalNavItems: PlatformNavItem[] = [
     description: "Administrative overview and controls.",
   },
   {
+    href: "/app/admin/api",
+    icon: "Activity",
+    label: "API Operations",
+    description: "Operational API registry, OpenAPI descriptor, connector status, and agent guardrails.",
+  },
+  {
     href: "/app/admin/audit",
     icon: "Activity",
     label: "Audit Logs",
