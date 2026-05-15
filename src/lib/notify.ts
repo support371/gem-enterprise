@@ -52,7 +52,7 @@ export function formatIntakeApplicantText(input: IntakeNotificationInput) {
     `GEM Enterprise access request received`,
     `Reference: ${input.caseId}`,
     "",
-    `Thank you, ${input.name}. Your access request has entered review.",
+    `Thank you, ${input.name}. Your access request has entered review.`,
     "",
     "Next step: GEM reviews your applicant track, jurisdiction, service lane, and qualification context.",
     `Eligibility Status: ${getAppUrl()}/eligibility/status`,
