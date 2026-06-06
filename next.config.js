@@ -1,3 +1,4 @@
+// GEM Build: 2026-06-06 10:54 UTC
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Optimize package imports for smaller bundle
