@@ -61,7 +61,7 @@ export default function CommunityHubPage() {
                 </div>
               </Link>
             );
-          }}
+          )}
         </div>
       </section>
 
