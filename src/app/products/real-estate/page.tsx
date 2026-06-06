@@ -124,7 +124,7 @@ export default function ATRPropertyTrustPage() {
                 </div>
               </div>
             );
-          }}
+          )}
         </div>
       </section>
 
