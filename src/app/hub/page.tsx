@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ShieldCheck, FileText, Users, Zap, ArrowRight, Globe, AlertTriangle, Terminal, Phone, Mail, MessageSquare, ClipboardList, BookOpen, Archive, FlaskConical } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -105,6 +106,10 @@ export default function HubPage() {
         id="hero"
         className="relative py-28 cyber-grid overflow-hidden"
       >
+        <div className="absolute inset-0 -z-10">
+          <Image src="https://media.base44.com/images/public/69d42975b7b1794c3dc01661/b42c69a20_generated_image.png" alt="GEM Enterprise global intelligence hub — glowing cyan network nodes and connection lines spanning the globe on a deep navy background, representing the unified intelligence and operations center" fill className="object-cover opacity-15" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-transparent to-background/80" />
+        </div>
         <div className="absolute inset-0 bg-gradient-to-b from-background/70 to-background pointer-events-none" />
         <div className="relative z-10 container mx-auto px-6 text-center max-w-4xl">
           <div className="flex justify-center mb-6">
