@@ -1,106 +1,39 @@
-name: Guardian Workflow (DISABLED - Vercel Handles Deployment)
+name: Deploy to Vercel Production
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
-permissions:
-  contents: write
-  pull-requests: read
-
-concurrency:
-  group: guardian-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  guardian-check:
-    name: Inspect, validate, and verify
-    runs-on: ubuntu-latest
-
-    env:
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
-      NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL }}
-      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-      VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
-
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-22.04
     steps:
-      - name: Checkout repository code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
           version: 9
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20
           cache: pnpm
-
-      - name: Inspect repository contract
-        run: |
-          set -euo pipefail
-          echo "Guardian inspection started"
-          test -f package.json
-          test -f pnpm-lock.yaml
-          test -f .github/workflows/main.yml
-          test -f next.config.ts
-          test -f prisma/schema.prisma
-          test -f docs/api.md
-          grep -q '"build": "next build"' package.json
-          echo "Branch: ${GITHUB_REF_NAME}"
-          test -f prisma/schema.prisma
-          test -f next.config.ts
-          test -f .github/workflows/main.yml
-          grep -q '"build": "next build"' package.json
-          echo "Tracked branch: ${GITHUB_REF_NAME}"
-          git status --short
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma client when configured
-        run: |
-          set -euo pipefail
-          if [ -f prisma/schema.prisma ]; then
-            pnpm exec prisma generate
-          fi
+      - name: Generate Prisma client
+        run: pnpm run db:generate
+        env:
+          POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost/gem
+          POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost/gem
 
-      - name: Verify required production secret contract
-        run: |
-          set -euo pipefail
-          missing=0
-          if [ -z "${JWT_SECRET:-}" ]; then
-            echo "Missing recommended secret: JWT_SECRET"
-            missing=1
-          fi
-          if [ -z "${DATABASE_URL:-}" ]; then
-            echo "Missing recommended secret: DATABASE_URL"
-            missing=1
-          fi
-          if [ "$missing" -ne 0 ]; then
-            echo "Continuing build validation without production runtime secrets, but deployment auth/data paths will require them in Vercel."
-          fi
-
-      - name: Run lint when available
-        run: |
-          set -euo pipefail
-          if pnpm run | grep -q " lint"; then pnpm run lint; else echo "No lint script"; fi
-
-      - name: Run tests when available
-        run: |
-          set -euo pipefail
-          if pnpm run | grep -q " test"; then pnpm test; else echo "No test script"; fi
-
-      - name: Build application
-        run: pnpm run build
-
-      - name: Log output
-        run: echo "Guardian workflow completed."
+      - name: Deploy to Vercel Production
+        run: npx vercel --prod --token $VERCEL_TOKEN --yes
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
