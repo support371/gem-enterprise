@@ -1,85 +1,132 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Shield, BarChart2, Lock, Eye, Globe, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export const metadata = {
   title: "Financial Shield | Asset Protection & Wealth Security | GEM Enterprise",
-  description: "Asset protection workflows, wealth preservation structures, secure escrow coordination, and institutional vault operations for qualified clients.",
+  description: "Asset protection workflows, wealth preservation structures, secure escrow coordination, and institutional vault operations.",
 };
 
 const capabilities = [
-  { icon: BarChart2, title: "Secure Transaction Monitoring", desc: "Real-time surveillance of financial transactions across banking, trading, and payment infrastructure. Anomaly detection, threshold alerting, and full audit trail generation.", tags: ["Real-Time Analysis", "Anomaly Detection", "Audit Trail"] },
-  { icon: Shield, title: "Fraud Prevention & Detection", desc: "Multi-layer fraud prevention combining behavioral biometrics, identity verification, and ML-assisted pattern recognition. Protects against account takeover, wire fraud, and insider threats.", tags: ["Wire Fraud", "ATO Prevention", "Insider Threat"] },
-  { icon: Eye, title: "AML Compliance Support", desc: "KYC/AML program design, suspicious activity monitoring, SAR preparation, and regulatory filing guidance for financial institutions and qualified entities.", tags: ["KYC/AML", "SAR Preparation", "Risk Scoring"] },
-  { icon: Lock, title: "Financial Forensics", desc: "Forensic investigation of fraud, embezzlement, and asset misappropriation. Legally defensible findings for litigation, arbitration, and regulatory proceedings.", tags: ["Asset Tracing", "Expert Witness", "Litigation-Ready"] },
-  { icon: Globe, title: "Institutional Vault Operations", desc: "Secure digital vault infrastructure for critical financial documents, ownership records, legal agreements, and compliance evidence — encrypted and audit-logged.", tags: ["Encrypted Storage", "Access Control", "Document Vault"] },
-  { icon: Users, title: "Wealth Preservation Structures", desc: "Advisory support for trust frameworks, multi-jurisdictional compliance alignment, and coordinated escrow operations for high-value transactions.", tags: ["Trust Structures", "Escrow", "Multi-Jurisdiction"] },
+  { icon: BarChart2, title: "Secure Transaction Monitoring", desc: "Real-time surveillance across banking, trading, and payment infrastructure. Anomaly detection, threshold alerting, and full audit trail generation.", tags: ["Real-Time Analysis", "Anomaly Detection", "Audit Trail"], img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/f1610090d_generated_image.png", imgAlt: "GEM Financial Shield — institutional wealth management meeting with portfolio allocation screen showing cyan and gold asset distribution, floor-to-ceiling windows overlooking financial district at dusk" },
+  { icon: Shield, title: "Fraud Prevention & Detection", desc: "Multi-layer fraud prevention combining behavioral biometrics, identity verification, and ML-assisted pattern recognition against account takeover, wire fraud, and insider threats.", tags: ["Wire Fraud", "ATO Prevention", "Insider Threat"], img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/2e5c40e81_generated_image.png", imgAlt: "GEM financial fraud detection compliance analyst reviewing multi-screen fraud monitoring dashboard with transaction anomaly indicators and suspicious activity flagging" },
+  { icon: Eye, title: "AML Compliance Support", desc: "KYC/AML program design, suspicious activity monitoring, SAR preparation, and regulatory filing guidance for financial institutions and qualified entities.", tags: ["KYC/AML", "SAR Preparation", "Risk Scoring"], img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/f42ed0ce5_generated_image.png", imgAlt: "GEM Enterprise KYC and AML compliance workflow — professional woman holding identity document toward verification camera in bright modern office, representing GEM Financial Shield KYC onboarding process" },
+  { icon: Lock, title: "Financial Forensics", desc: "Forensic investigation of fraud, embezzlement, and asset misappropriation. Legally defensible findings for litigation, arbitration, and regulatory proceedings.", tags: ["Asset Tracing", "Expert Witness", "Litigation-Ready"], img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/fe8b6bcec_generated_image.png", imgAlt: "GEM financial forensics investigation room — analysts reviewing transaction records, evidence timelines and financial pattern analysis across multiple curved monitors" },
+  { icon: Globe, title: "Institutional Vault Operations", desc: "Secure digital vault for critical financial documents, ownership records, legal agreements, and compliance evidence — encrypted, access-controlled, and audit-logged.", tags: ["Encrypted Storage", "Access Control", "Document Vault"], img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/c0b3cf9af_generated_image.png", imgAlt: "GEM Enterprise institutional digital vault room — sleek dark server environment with holographic vault door and cyan biometric security interface, representing secure document and asset storage" },
+  { icon: Users, title: "Wealth Preservation Structures", desc: "Advisory support for trust frameworks, multi-jurisdictional compliance, and coordinated escrow operations for high-value transactions.", tags: ["Trust Structures", "Escrow", "Multi-Jurisdiction"], img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/9b9d1f784_generated_image.png", imgAlt: "GEM Financial Shield institutional wealth preservation — modern glass skyscraper at golden hour with digital security shield overlay, representing institutional asset protection and escrow coordination" },
 ];
 
 export default function FinancialShieldPage() {
   return (
-    <div className="min-h-screen bg-[#0a0e1a] text-white pt-20">
-      <section className="relative min-h-[520px] flex items-center overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(https://media.base44.com/images/public/69d42975b7b1794c3dc01661/e50d238c1_generated_image.png)`, opacity: 0.22 }} aria-hidden="true" />
-        <span className="sr-only">Hero: Modern glass skyscraper at dusk reflected in water with digital security network overlay and glowing protection shield — representing GEM Financial Shield institutional asset protection and wealth security operations</span>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0a0e1a]/95 via-[#0a0e1a]/80 to-[#0a0e1a]/30" />
-        <div className="relative container mx-auto px-4 py-20 z-10 max-w-7xl">
-          <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 mb-6"><Shield className="w-3.5 h-3.5 text-cyan-400" /><span className="text-xs font-semibold tracking-widest text-cyan-400 uppercase">Financial Shield</span></div>
-            <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6">Institutional Asset Protection<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">&amp; Wealth Preservation</span></h1>
-            <p className="text-lg text-slate-400 max-w-2xl leading-relaxed mb-8">Asset protection workflows, wealth preservation structures, secure escrow coordination, and institutional vault operations — designed for qualified individuals, family offices, and enterprise clients.</p>
-            <div className="flex flex-wrap gap-4">
-              <Link href="/request-access" className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 rounded-lg font-semibold text-lg transition-all text-white">Request Access</Link>
-              <Link href="/services" className="px-8 py-4 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10 rounded-lg font-semibold transition-all">View All Services</Link>
+    <div className="min-h-screen bg-background text-foreground">
+
+      {/* HERO */}
+      <section className="relative min-h-[600px] flex items-end overflow-hidden">
+        <div className="absolute inset-0">
+          <Image src="https://media.base44.com/images/public/69d42975b7b1794c3dc01661/9b9d1f784_generated_image.png" alt="GEM Financial Shield hero — modern glass and steel financial district skyscrapers at golden hour with digital security network overlay, representing institutional asset protection and wealth preservation for qualified clients" fill className="object-cover" priority />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-background/20" />
+        </div>
+        <div className="relative z-10 container mx-auto px-6 max-w-7xl pb-20">
+          <Badge className="mb-6 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-xs tracking-widest uppercase px-4 py-1.5">Financial Shield</Badge>
+          <h1 className="text-5xl md:text-7xl font-black text-white mb-6 max-w-4xl leading-tight">
+            Institutional Asset Protection<br /><span className="text-cyan-400">&amp; Wealth Preservation</span>
+          </h1>
+          <p className="text-slate-300 text-xl max-w-2xl leading-relaxed mb-8">Asset protection workflows, wealth preservation structures, secure escrow coordination, and institutional vault operations — for qualified individuals, family offices, and enterprise clients.</p>
+          <div className="flex flex-wrap gap-4">
+            <Button asChild size="lg" className="bg-cyan-400 text-black hover:bg-cyan-500 font-semibold rounded-full px-8">
+              <Link href="/request-access">Request Access</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 font-semibold rounded-full px-8">
+              <Link href="/services">All Services</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* WEALTH MEETING FEATURE */}
+      <section className="py-24 container mx-auto px-6 max-w-7xl">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <Badge className="mb-4 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-xs tracking-widest uppercase px-4 py-1.5">What Is Financial Shield?</Badge>
+            <h2 className="text-4xl font-black text-white mb-6">The Same Protection Reserved for the World&apos;s Largest Institutions</h2>
+            <p className="text-slate-400 leading-relaxed mb-5">GEM Financial Shield delivers comprehensive asset protection and financial security for qualified clients — including accredited investors, family offices, corporate treasuries, and institutional entities.</p>
+            <p className="text-slate-400 leading-relaxed mb-5">Unlike traditional financial advisors, GEM operates at the intersection of cybersecurity and financial risk — protecting not just the legal structures around your assets, but the digital and operational pathways through which those assets move.</p>
+            <p className="text-slate-400 leading-relaxed">Every Financial Shield client receives a dedicated financial security analyst, a secure vault for critical documentation, and real-time alerting on anomalous activity across all monitored accounts.</p>
+          </div>
+          <div className="relative rounded-2xl overflow-hidden h-[420px]">
+            <Image src="https://media.base44.com/images/public/69d42975b7b1794c3dc01661/f1610090d_generated_image.png" alt="GEM Financial Shield wealth preservation meeting — two senior advisors in a premium conference room reviewing a portfolio allocation chart on a large wall screen with cyan and gold color scheme, floor-to-ceiling windows overlooking financial district at dusk" fill className="object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
+          </div>
+        </div>
+      </section>
+
+      {/* VAULT SECTION */}
+      <section className="relative overflow-hidden border-y border-white/10">
+        <div className="grid lg:grid-cols-2">
+          <div className="relative h-[420px] lg:h-auto">
+            <Image src="https://media.base44.com/images/public/69d42975b7b1794c3dc01661/c0b3cf9af_generated_image.png" alt="GEM Enterprise institutional digital vault — sleek dark server room with holographic transparent vault door glowing cyan, biometric scanner panel, and reflective polished floor. Representing secure storage for critical financial documents, ownership records and compliance evidence." fill className="object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-background/40" />
+          </div>
+          <div className="bg-white/[0.02] p-12 lg:p-16 flex flex-col justify-center">
+            <Badge className="mb-4 self-start rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-xs tracking-widest uppercase px-4 py-1.5">Vault Operations</Badge>
+            <h2 className="text-4xl font-black text-white mb-6">Institutional-Grade Document Security</h2>
+            <p className="text-slate-400 leading-relaxed mb-5">Every Financial Shield engagement includes access to GEM&apos;s encrypted institutional vault — a secure digital repository for your most critical financial documents, legal agreements, ownership records, and compliance evidence.</p>
+            <p className="text-slate-400 leading-relaxed mb-6">Access is role-controlled, fully audit-logged, and protected by multi-factor authentication and hardware key support. Every access event is time-stamped and immutable.</p>
+            <div className="grid grid-cols-2 gap-3">
+              {["AES-256 Encryption","Role-Based Access","Immutable Audit Log","Multi-Factor Auth","Legal-Grade Integrity","Cross-Jurisdiction"].map(item => (
+                <div key={item} className="flex items-center gap-2 text-slate-300 text-sm">
+                  <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />{item}
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-24 container mx-auto px-4 max-w-7xl">
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          <div>
-            <h2 className="text-3xl font-bold mb-6">What Is Financial Shield?</h2>
-            <p className="text-slate-400 leading-relaxed mb-5">GEM Financial Shield is a comprehensive asset protection and financial security service for qualified clients — including accredited investors, family offices, corporate treasuries, and institutional entities.</p>
-            <p className="text-slate-400 leading-relaxed mb-5">Unlike traditional financial advisors, GEM operates at the intersection of cybersecurity and financial risk — protecting not just the legal structures around your assets, but the digital and operational pathways through which those assets move.</p>
-            <p className="text-slate-400 leading-relaxed">Every Financial Shield client receives a dedicated financial security analyst, a secure vault for critical documentation, and real-time alerting on anomalous activity across all monitored accounts.</p>
-          </div>
-          <div className="bg-slate-900/80 border border-cyan-500/20 rounded-xl aspect-video flex flex-col items-center justify-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-cyan-500/15 border-2 border-cyan-500 flex items-center justify-center"><div className="w-0 h-0 border-t-[12px] border-t-transparent border-b-[12px] border-b-transparent border-l-[20px] border-l-cyan-400 ml-1" /></div>
-            <div className="text-center px-8"><p className="text-white font-semibold mb-1">Video: Financial Shield Overview</p><p className="text-slate-500 text-sm">2-minute introduction to GEM&apos;s asset protection and wealth security. <span className="text-slate-600">[To be recorded and embedded here by GEM financial team]</span></p></div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-24 bg-slate-900/30 border-y border-slate-800">
-        <div className="container mx-auto px-4 max-w-7xl">
-          <h2 className="text-3xl font-bold text-center mb-16">Core Capabilities</h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {capabilities.map((cap, i) => { const Icon = cap.icon; return (
-              <div key={i} className="bg-slate-900/60 border border-slate-800 hover:border-cyan-500/30 rounded-xl p-7 transition-all">
-                <Icon className="w-8 h-8 text-cyan-500 mb-4" /><h3 className="text-lg font-bold mb-3">{cap.title}</h3><p className="text-slate-400 text-sm leading-relaxed mb-4">{cap.desc}</p>
-                <div className="flex flex-wrap gap-2">{cap.tags.map(t => <span key={t} className="text-xs bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded px-2 py-0.5">{t}</span>)}</div>
+      {/* CAPABILITIES GRID */}
+      <section className="py-24 container mx-auto px-6 max-w-7xl">
+        <h2 className="text-4xl font-black text-white text-center mb-16">Core Capabilities</h2>
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {capabilities.map((cap, i) => {
+            const Icon = cap.icon;
+            return (
+              <div key={i} className="bg-white/[0.02] border border-white/10 hover:border-cyan-500/30 rounded-2xl overflow-hidden transition-all group">
+                <div className="relative h-44">
+                  <Image src={cap.img} alt={cap.imgAlt} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+                  <div className="absolute top-4 left-4">
+                    <div className="w-9 h-9 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center">
+                      <Icon className="w-4 h-4 text-cyan-400" />
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <h3 className="text-lg font-bold text-white mb-2">{cap.title}</h3>
+                  <p className="text-slate-400 text-sm leading-relaxed mb-4">{cap.desc}</p>
+                  <div className="flex flex-wrap gap-2">
+                    {cap.tags.map(t => <span key={t} className="text-xs bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-full px-3 py-0.5">{t}</span>)}
+                  </div>
+                </div>
               </div>
-            ); }}
-          </div>
+            );
+          }}
         </div>
       </section>
 
-      <section className="py-24 container mx-auto px-4 max-w-7xl">
-        <h2 className="text-3xl font-bold text-center mb-16">Who Financial Shield Is For</h2>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[{t:"Accredited Investors",d:"High-net-worth individuals requiring asset protection, fraud monitoring, and secure transaction oversight."},{t:"Family Offices",d:"Single and multi-family offices managing complex multi-asset portfolios across multiple jurisdictions."},{t:"Corporate Treasuries",d:"Enterprise finance teams requiring real-time monitoring of outbound payments and counterparty risk."},{t:"Fund Managers",d:"Investment advisors and fund managers under regulatory obligations requiring AML, KYC, and compliance oversight."}].map((c,i)=>(
-            <div key={i} className="bg-slate-900/60 border border-slate-800 rounded-xl p-6"><div className="w-8 h-1 bg-cyan-500 rounded mb-4"/><h3 className="font-bold mb-3">{c.t}</h3><p className="text-slate-400 text-sm leading-relaxed">{c.d}</p></div>
-          ))}
-        </div>
-      </section>
-
-      <section className="py-24 text-center bg-slate-900/30 border-t border-slate-800">
-        <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold mb-4">Protect Your Financial Assets with GEM</h2>
-          <p className="text-slate-400 mb-10 max-w-lg mx-auto">Begin your eligibility review today. Financial Shield is available to qualified clients only.</p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/request-access" className="px-10 py-4 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 rounded-lg font-semibold text-lg transition-all text-white">Apply for Access</Link>
-            <Link href="/contact" className="px-10 py-4 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10 rounded-lg font-semibold transition-all">Talk to a Specialist</Link>
+      {/* CTA */}
+      <section className="py-24 text-center bg-white/[0.02] border-t border-white/10">
+        <div className="container mx-auto px-6 max-w-3xl">
+          <h2 className="text-4xl font-black text-white mb-6">Protect Your Financial Assets with GEM</h2>
+          <p className="text-slate-400 text-lg mb-10 leading-relaxed">Financial Shield is available to qualified clients only. Begin your eligibility review today.</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button asChild size="lg" className="bg-cyan-400 text-black hover:bg-cyan-500 font-semibold rounded-full px-10">
+              <Link href="/request-access">Apply for Access</Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 font-semibold rounded-full px-10">
+              <Link href="/contact">Talk to a Specialist</Link>
+            </Button>
           </div>
         </div>
       </section>
