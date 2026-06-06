@@ -1,322 +1,125 @@
-import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Shield, Users, Globe, Award, ArrowRight, CheckCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import {
-  Shield,
-  Eye,
-  Lock,
-  ArrowRight,
-  CheckCircle2,
-  TrendingUp,
-  Users,
-  Clock,
-  DollarSign,
-} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-export const metadata: Metadata = { title: "About" };
+export const metadata = {
+  title: "About GEM Enterprise | Defend. Protect. Prevail.",
+  description: "GEM Enterprise is an institutional cybersecurity, financial security, and real estate protection firm serving qualified clients globally.",
+};
 
-const metrics = [
-  {
-    icon: Clock,
-    value: "10+",
-    label: "Years of Operation",
-    description: "A decade of institutional-grade security intelligence",
-  },
-  {
-    icon: Users,
-    value: "500+",
-    label: "Clients Served",
-    description: "Enterprises, family offices, and institutional clients",
-  },
-  {
-    icon: DollarSign,
-    value: "$2B+",
-    label: "Assets Protected",
-    description: "In secured financial and real estate portfolios",
-  },
-  {
-    icon: Shield,
-    value: "95+",
-    label: "Team Members",
-    description: "Specialists across security, finance, and operations",
-  },
+const values = [
+  { title: "Institutional Integrity", desc: "Every client relationship is governed by strict access controls, compliance review, and documented entitlement — no exceptions." },
+  { title: "Operational Excellence", desc: "We hold ourselves to the same standards we enforce for our clients. Sub-6-minute MTTA, 4-hour IR SLA, zero-surprise operations." },
+  { title: "Proactive Intelligence", desc: "We hunt threats, monitor dark web exposure, and generate actionable intelligence before incidents occur — not after." },
+  { title: "Client Confidentiality", desc: "All engagements operate under NDA, strict data compartmentalization, and role-based access. Client information is never shared." },
 ];
 
-const coreValues = [
-  {
-    icon: Shield,
-    title: "Integrity",
-    description:
-      "Every recommendation we make, every assessment we deliver, and every engagement we undertake is governed by an unwavering commitment to honesty and ethical conduct. We will never recommend a course of action that conflicts with our clients' best interests.",
-  },
-  {
-    icon: Eye,
-    title: "Intelligence",
-    description:
-      "We operate from evidence, not assumption. Our analysts, advisors, and engineers are trained to think adversarially — anticipating threats before they materialize and making decisions grounded in rigorous analysis of the current threat landscape.",
-  },
-  {
-    icon: Lock,
-    title: "Independence",
-    description:
-      "GEM Enterprise is not a reseller, integrator, or affiliate of any technology vendor. Our assessments and recommendations are entirely independent of commercial incentives. What we advise is what we genuinely believe is correct for your organization.",
-  },
-];
-
-const differentiators = [
-  {
-    title: "Intelligence-Led Operations",
-    description:
-      "GEM's security operations are driven by proprietary threat intelligence, not reactive signature-based detection. We understand the adversary — their tools, techniques, and motivations — and use that knowledge to stay ahead of emerging threats.",
-    points: [
-      "Proactive threat hunting across client environments",
-      "Real-time intelligence correlation from global sources",
-      "Adversary simulation informed by current threat actor TTPs",
-    ],
-  },
-  {
-    title: "Institutional-Grade Discipline",
-    description:
-      "Our processes, documentation, and client communication standards are modeled on institutional finance — where rigor, confidentiality, and accountability are non-negotiable. We treat every engagement with the same discipline as a high-stakes transaction.",
-    points: [
-      "Formal engagement structures with defined SLAs",
-      "Secure, audited communication and data handling",
-      "Executive-level reporting designed for board consumption",
-    ],
-  },
-  {
-    title: "Convergence of Expertise",
-    description:
-      "Most security firms specialize in a single domain. GEM Enterprise combines cybersecurity, financial security, and real estate protection under one roof — enabling integrated risk management that reflects the true complexity of modern enterprise operations.",
-    points: [
-      "Unified risk view across cyber, financial, and physical domains",
-      "Cross-domain threat correlation and response coordination",
-      "Single trusted advisor relationship for complex clients",
-    ],
-  },
+const credentials = [
+  "SOC 2 Type II compliant operations",
+  "ISO 27001 certified analysts",
+  "NIST CSF framework alignment",
+  "CMMC 2.0 Level 2 advisory capability",
+  "US-registered entity (EIN: 39-3307036)",
+  "UK Companies House registered (SC001731)",
+  "24/7 follow-the-sun SOC coverage",
+  "4-hour incident response SLA",
 ];
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen">
-      {/* Hero */}
-      <section className="relative py-24 md:py-32 cyber-grid overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/60 to-background pointer-events-none" />
-        <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <Badge className="mb-6 border border-primary/30 bg-primary/10 text-primary font-mono text-xs tracking-widest uppercase">
-            About GEM Enterprise
-          </Badge>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-            Purpose-Built for{" "}
-            <span className="text-gradient-primary">Enterprise Security</span>
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-            GEM Enterprise was founded on a single conviction: that qualified organizations deserve
-            access to security intelligence and operational protection at the same level historically
-            available only to the world's most powerful institutions.
-          </p>
+    <div className="min-h-screen bg-background text-foreground">
+
+      {/* HERO */}
+      <section className="relative pt-32 pb-0 overflow-hidden">
+        <div className="relative h-[500px] w-full">
+          <Image src="https://media.base44.com/images/public/69d42975b7b1794c3dc01661/1756905aa_generated_image.png" alt="GEM Enterprise leadership team — four senior cybersecurity and financial security professionals gathered around a large interactive screen in a modern glass-walled conference room reviewing a live threat intelligence briefing. The team represents decades of experience across enterprise security, regulatory compliance, and high-value asset protection." fill className="object-cover object-top" priority />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-background/20" />
+          <div className="absolute inset-0 flex items-end pb-16">
+            <div className="container mx-auto px-6 max-w-7xl">
+              <Badge className="mb-4 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-xs tracking-widest uppercase px-4 py-1.5">About GEM Enterprise</Badge>
+              <h1 className="text-5xl md:text-7xl font-black text-white mb-4">Built by Operators,<br />For Operators.</h1>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Who We Are */}
-      <section className="py-20 md:py-28">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <Badge className="mb-4 border border-primary/30 bg-primary/10 text-primary font-mono text-xs tracking-widest uppercase">
-                Who We Are
-              </Badge>
-              <h2 className="text-3xl md:text-4xl font-bold mb-6">
-                An Intelligence-First Security Organization
-              </h2>
-              <div className="space-y-4 text-muted-foreground leading-relaxed">
-                <p>
-                  GEM Enterprise is a cybersecurity-first enterprise platform serving qualified clients across
-                  financial services, real estate, and complex corporate environments. We are not a traditional
-                  managed security provider — we operate as a strategic security partner, embedded in the
-                  decision-making processes of the organizations we protect.
-                </p>
-                <p>
-                  Our team comprises former intelligence professionals, institutional security architects,
-                  financial regulators, and legal specialists — unified by a shared commitment to protecting
-                  the assets, operations, and reputations of the organizations that trust us.
-                </p>
-                <p>
-                  We accept a limited number of clients to ensure that every engagement receives the depth
-                  of attention it demands. GEM is not a high-volume service firm. We are a high-trust
-                  advisory and operations partner.
-                </p>
+      {/* MISSION */}
+      <section className="py-24 container mx-auto px-6 max-w-7xl">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <h2 className="text-4xl font-black text-white mb-6">Our Mission</h2>
+            <p className="text-slate-400 leading-relaxed text-lg mb-6">GEM Enterprise was founded on a single conviction: qualified individuals, family offices, and institutional operators deserve the same security capabilities that have historically been available only to the largest enterprises and government agencies.</p>
+            <p className="text-slate-400 leading-relaxed mb-6">We built GEM because we couldn&apos;t find a platform that combined institutional-grade cybersecurity, financial asset protection, and real estate security intelligence in a single, compliance-governed framework.</p>
+            <p className="text-slate-400 leading-relaxed">Every GEM engagement is invitation and application-based. Access is gated by KYC verification, entity review, and entitlement approval — because the quality of our work depends on the quality of our client relationships.</p>
+          </div>
+          <div className="relative rounded-2xl overflow-hidden h-[380px]">
+            <Image src="https://media.base44.com/images/public/69d42975b7b1794c3dc01661/5c6e6baaf_generated_image.png" alt="GEM Enterprise Security Operations Center showing real-time threat monitoring infrastructure — the operational backbone of GEM's 24/7 security intelligence platform" fill className="object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
+            <div className="absolute bottom-6 left-6 right-6">
+              <div className="bg-background/80 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  <span className="text-xs text-green-400 font-semibold uppercase tracking-wider">Live Operations</span>
+                </div>
+                <p className="text-white text-sm font-semibold">SOC Monitoring Active — All Systems Nominal</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              {metrics.map((metric) => {
-                const Icon = metric.icon;
-                return (
-                  <Card key={metric.label} className="glass-panel bento-card border-primary/20 text-center p-6">
-                    <CardContent className="p-0">
-                      <div className="p-2 rounded-lg bg-primary/10 border border-primary/20 w-fit mx-auto mb-3">
-                        <Icon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="text-3xl font-bold text-gradient-primary mb-1">{metric.value}</div>
-                      <div className="text-sm font-semibold mb-1">{metric.label}</div>
-                      <div className="text-xs text-muted-foreground">{metric.description}</div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
           </div>
         </div>
       </section>
 
-      {/* Our Story */}
-      <section className="py-20 md:py-28 bg-muted/20">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
-          <div className="text-center mb-12">
-            <Badge className="mb-4 border border-primary/30 bg-primary/10 text-primary font-mono text-xs tracking-widest uppercase">
-              Our Story
-            </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold">Founded to Close a Critical Gap</h2>
-          </div>
-          <div className="space-y-6 text-muted-foreground leading-relaxed">
-            <p className="text-lg">
-              GEM Enterprise was established in response to a clear and growing problem: the cybersecurity
-              gap between large multinational corporations and the rest of the enterprise market.
-              Mid-market firms, family offices, institutional real estate operators, and qualified
-              individual investors were operating with enterprise-scale risk exposure and consumer-grade
-              security capabilities.
-            </p>
-            <p>
-              Our founders — veterans of government intelligence agencies, major financial institutions,
-              and global law firms — recognized that this gap was not a matter of market failure but of
-              access. The tools, talent, and intelligence required to operate at a truly secure level
-              existed, but they were siloed within organizations that had no incentive to share them.
-            </p>
-            <p>
-              GEM was built to change that. By assembling a team of institutional-grade specialists
-              and building a platform capable of serving complex, qualified clients at scale, we
-              created the first enterprise security platform purpose-built for the organizations
-              that need it most — but have historically been underserved.
-            </p>
-            <p>
-              Today, GEM Enterprise operates across multiple jurisdictions, protecting financial assets,
-              real estate portfolios, and enterprise operations for a carefully selected roster of
-              qualified clients who depend on us to be right — every time.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Core Values */}
-      <section className="py-20 md:py-28">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <Badge className="mb-4 border border-primary/30 bg-primary/10 text-primary font-mono text-xs tracking-widest uppercase">
-              Core Values
-            </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Integrity. Intelligence. Independence.
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Three values that govern every decision we make, every engagement we accept, and every
-              relationship we maintain.
-            </p>
-          </div>
-          <Separator className="mb-12" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {coreValues.map((value) => {
-              const Icon = value.icon;
-              return (
-                <Card key={value.title} className="glass-panel bento-card border-primary/20">
-                  <CardHeader>
-                    <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 w-fit mb-4">
-                      <Icon className="h-6 w-6 text-primary" />
-                    </div>
-                    <CardTitle className="text-xl">{value.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-muted-foreground leading-relaxed text-sm">{value.description}</p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* What Sets GEM Apart */}
-      <section className="py-20 md:py-28 bg-muted/20">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <Badge className="mb-4 border border-primary/30 bg-primary/10 text-primary font-mono text-xs tracking-widest uppercase">
-              Differentiation
-            </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">What Sets GEM Apart</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Three structural advantages that define the GEM Enterprise approach.
-            </p>
-          </div>
-          <div className="space-y-8">
-            {differentiators.map((diff, index) => (
-              <Card key={diff.title} className="glass-panel bento-card border-border/50">
-                <CardContent className="pt-8 pb-8">
-                  <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-                    <div className="md:col-span-1 flex-shrink-0">
-                      <span className="text-4xl font-bold font-mono text-primary/30">
-                        0{index + 1}
-                      </span>
-                    </div>
-                    <div className="md:col-span-5">
-                      <h3 className="text-xl font-bold mb-3">{diff.title}</h3>
-                      <p className="text-muted-foreground leading-relaxed text-sm">{diff.description}</p>
-                    </div>
-                    <div className="md:col-span-6">
-                      <ul className="space-y-3">
-                        {diff.points.map((point) => (
-                          <li key={point} className="flex gap-3 text-sm text-muted-foreground">
-                            <CheckCircle2 className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
-                            {point}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+      {/* VALUES */}
+      <section className="py-24 bg-white/[0.02] border-y border-white/10">
+        <div className="container mx-auto px-6 max-w-7xl">
+          <h2 className="text-4xl font-black text-white text-center mb-16">Our Core Values</h2>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {values.map((v, i) => (
+              <div key={i} className="bg-background/60 border border-white/10 rounded-xl p-6 hover:border-cyan-500/20 transition-all">
+                <div className="w-10 h-1 bg-cyan-500 rounded mb-4" />
+                <h3 className="font-bold text-white mb-3">{v.title}</h3>
+                <p className="text-slate-400 text-sm leading-relaxed">{v.desc}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-20 md:py-28">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="max-w-2xl mx-auto glass-panel rounded-2xl p-12 border-primary/20">
-            <TrendingUp className="h-10 w-10 text-primary mx-auto mb-6" />
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Ready to Work with{" "}
-              <span className="text-gradient-primary">GEM Enterprise</span>?
-            </h2>
-            <p className="text-muted-foreground mb-8 leading-relaxed">
-              Qualified organizations can begin the engagement process today. Our team will guide you
-              through eligibility, onboarding, and full platform access.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/get-started">
-                <Button size="lg" className="gap-2 glow-cyan">
-                  Get Started <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/contact">
-                <Button size="lg" variant="outline" className="gap-2">
-                  Contact Our Team
-                </Button>
-              </Link>
+      {/* COMPLIANCE IMAGE SECTION */}
+      <section className="relative overflow-hidden">
+        <div className="relative h-[400px]">
+          <Image src="https://media.base44.com/images/public/69d42975b7b1794c3dc01661/2e5c40e81_generated_image.png" alt="GEM Enterprise compliance operations — a senior compliance officer reviews a multi-monitor SOC 2, ISO 27001, NIST CSF, and HIPAA compliance dashboard with green and amber indicators. Framed compliance certificates visible on the office wall behind them." fill className="object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/60 to-background/10" />
+          <div className="absolute inset-0 flex items-center">
+            <div className="container mx-auto px-6 max-w-7xl">
+              <div className="max-w-xl">
+                <h2 className="text-4xl font-black text-white mb-6">Credentials & Compliance</h2>
+                <div className="grid grid-cols-1 gap-3">
+                  {credentials.slice(0,6).map((c, i) => (
+                    <div key={i} className="flex items-center gap-3">
+                      <CheckCircle className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span className="text-slate-300 text-sm">{c}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-24 text-center container mx-auto px-6">
+        <h2 className="text-4xl font-black text-white mb-6">Work With GEM Enterprise</h2>
+        <p className="text-slate-400 text-lg mb-10 max-w-xl mx-auto">Applications are reviewed on a rolling basis. Qualified clients receive a response within 48 business hours.</p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Button asChild size="lg" className="bg-cyan-400 text-black hover:bg-cyan-500 font-semibold rounded-full px-10">
+            <Link href="/get-started">Begin Application <ArrowRight className="ml-2 h-5 w-5" /></Link>
+          </Button>
+          <Button asChild size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 font-semibold rounded-full px-10">
+            <Link href="/contact">Contact Us</Link>
+          </Button>
         </div>
       </section>
     </div>
