@@ -1,298 +1,94 @@
 import Link from "next/link";
-import type { Metadata } from "next";
-import { ArrowRight, Users2, Sparkles, ArrowUpRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import { Users, MessageSquare, Calendar, BookOpen, Globe, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { TrustRibbon } from "@/components/hub/TrustRibbon";
-import { HubSectionHeader } from "@/components/hub/HubSectionHeader";
-import { OpportunityCard } from "@/components/hub/OpportunityCard";
-import { EventCard } from "@/components/hub/EventCard";
-import { ResourceCard } from "@/components/hub/ResourceCard";
-import { AccessRequestCTA } from "@/components/hub/AccessRequestCTA";
-import {
-  MEMBER_TYPES,
-  OPPORTUNITIES,
-  EVENTS,
-  RESOURCES,
-} from "@/lib/hub/mock-data";
+import { Button } from "@/components/ui/button";
 
-export const metadata: Metadata = {
-  title: "Community Hub",
-  description:
-    "The GEM Community Hub is an invitation-only network for qualified partners, operators, investors, clients, and advisors.",
+export const metadata = {
+  title: "Community Hub | GEM Enterprise",
+  description: "Connect with qualified GEM Enterprise clients, access exclusive intelligence, join circles, and collaborate on financial security and investment strategy.",
 };
 
-const HUB_STATS = [
-  { value: "1,100+", label: "Verified members" },
-  { value: "64", label: "Partner firms" },
-  { value: "38", label: "Jurisdictions" },
-  { value: "USD 2.8B+", label: "Mandates in motion" },
+const sections = [
+  { icon: Users, title: "Member Circles", href: "/community-hub/circles", desc: "Topic-focused groups for cybersecurity professionals, real estate investors, and financial protection clients. Share intelligence, ask questions, and collaborate.", img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/f2294c5d6_generated_image.png", imgAlt: "GEM Community Hub member circles — diverse professionals collaborating in a modern co-working space with warm lighting and community dashboard visible on wall display" },
+  { icon: Calendar, title: "Events", href: "/community-hub/events", desc: "Exclusive webinars, roundtables, and intelligence briefings hosted by GEM analysts. Live Q&A sessions with senior cybersecurity and financial security experts.", img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/fe8b6bcec_generated_image.png", imgAlt: "GEM Community events — intelligence briefing session with analysts presenting to attendees in a modern conference setting with curved monitor displays showing threat data" },
+  { icon: BookOpen, title: "Knowledge Base", href: "/community-hub/knowledge", desc: "Curated library of threat research, regulatory guides, property fraud alerts, and tactical playbooks — continuously updated by the GEM intelligence team.", img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/2e5c40e81_generated_image.png", imgAlt: "GEM Knowledge Base — compliance and intelligence resource library with structured documentation on cybersecurity, financial fraud prevention and real estate security" },
+  { icon: MessageSquare, title: "Direct Messaging", href: "/community-hub/messages", desc: "Secure, encrypted peer-to-peer messaging between verified GEM clients. All communications are end-to-end encrypted and stored in your document vault.", img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/c0b3cf9af_generated_image.png", imgAlt: "GEM Community Hub secure messaging — encrypted digital vault communication system for verified institutional clients" },
+  { icon: Globe, title: "Opportunities", href: "/community-hub/opportunities", desc: "Vetted co-investment opportunities, partnership introductions, and strategic referrals — shared exclusively within the GEM client network.", img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/9b9d1f784_generated_image.png", imgAlt: "GEM Community opportunities — institutional investment and partnership networking in a premium financial district setting" },
 ];
 
-export default function CommunityHubLandingPage() {
-  const featuredOpportunities = OPPORTUNITIES.slice(0, 3);
-  const upcomingEvents = EVENTS.slice(0, 3);
-  const featuredResources = RESOURCES.slice(0, 3);
-
+export default function CommunityHubPage() {
   return (
-    <>
-      {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden border-b border-white/[0.06]">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 opacity-60"
-          style={{
-            background:
-              "radial-gradient(40% 60% at 80% 0%, hsl(var(--electric-cyan) / 0.08), transparent 70%), radial-gradient(40% 60% at 10% 100%, hsl(var(--night-plum) / 0.12), transparent 70%)",
-          }}
-        />
-        <div className="relative z-10 mx-auto max-w-screen-xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-          <div className="grid items-start gap-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-            <div className="flex flex-col gap-6">
-              <Badge className="w-fit rounded-full border border-primary/25 bg-primary/5 px-3 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-primary/85">
-                <Users2 className="mr-1.5 h-3 w-3" aria-hidden="true" />
-                Verified · Private · Executive
-              </Badge>
+    <div className="min-h-screen bg-background text-foreground">
 
-              <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl md:text-6xl text-balance">
-                The <span className="text-gradient-primary">GEM Community Hub</span>
-                <span className="block text-white/70">
-                  A private network for cross-border execution.
-                </span>
-              </h1>
+      {/* HERO */}
+      <section className="relative pt-32 pb-0 overflow-hidden">
+        <div className="relative h-[500px]">
+          <Image src="https://media.base44.com/images/public/69d42975b7b1794c3dc01661/f2294c5d6_generated_image.png" alt="GEM Enterprise Community Hub — bright modern co-working space with warm lighting and large glass walls overlooking a city. Groups of verified institutional professionals are connecting, sharing intelligence, and collaborating. A large wall display shows the community dashboard with member circles, event cards, and intelligence feeds." fill className="object-cover" priority />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-background/10" />
+          <div className="absolute inset-0 flex items-end pb-16">
+            <div className="container mx-auto px-6 max-w-7xl">
+              <Badge className="mb-4 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-xs tracking-widest uppercase px-4 py-1.5">Community Hub</Badge>
+              <h1 className="text-5xl md:text-7xl font-black text-white mb-4">The GEM Client Network</h1>
+              <p className="text-slate-300 text-xl max-w-2xl">Intelligence sharing, peer collaboration, and exclusive opportunities — exclusively for verified GEM Enterprise clients.</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-              <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg text-pretty">
-                An invitation-only network for the partners, operators, investors,
-                clients, and advisors who move GEM mandates forward — with
-                verified identity, compliance-aware controls, and coordinated
-                execution across jurisdictions.
-              </p>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  asChild
-                  size="lg"
-                  className="bg-primary font-semibold text-primary-foreground shadow-[0_0_24px_hsl(var(--electric-cyan)/0.35)] hover:bg-primary/90"
-                >
-                  <Link href="/client-login">
-                    Member Login
-                    <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-                  </Link>
-                </Button>
-                <Button
-                  asChild
-                  size="lg"
-                  variant="outline"
-                  className="border-white/15 bg-transparent text-white/80 hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
-                >
-                  <Link href="/request-access">Request Access</Link>
-                </Button>
-              </div>
-
-              {/* Live stats strip */}
-              <dl className="mt-4 grid grid-cols-2 gap-4 rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5 sm:grid-cols-4">
-                {HUB_STATS.map((s) => (
-                  <div key={s.label} className="flex flex-col gap-1">
-                    <dt className="text-[11px] uppercase tracking-wider text-white/40">
-                      {s.label}
-                    </dt>
-                    <dd className="font-mono text-lg font-semibold text-primary">
-                      {s.value}
-                    </dd>
+      {/* SECTIONS GRID */}
+      <section className="py-24 container mx-auto px-6 max-w-7xl">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {sections.map((sec, i) => {
+            const Icon = sec.icon;
+            return (
+              <Link key={i} href={sec.href} className="group bg-white/[0.02] border border-white/10 hover:border-cyan-500/30 rounded-2xl overflow-hidden transition-all hover:-translate-y-1">
+                <div className="relative h-48">
+                  <Image src={sec.img} alt={sec.imgAlt} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
+                  <div className="absolute top-4 left-4">
+                    <div className="w-9 h-9 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center">
+                      <Icon className="w-4 h-4 text-cyan-400" />
+                    </div>
                   </div>
-                ))}
-              </dl>
-            </div>
-
-            {/* Right — trust pillars */}
-            <div className="lg:pl-6">
-              <div className="mb-3 flex items-center gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-white/40">
-                <span className="h-1 w-6 bg-primary/50" aria-hidden="true" />
-                What the Hub guarantees
-              </div>
-              <TrustRibbon />
-              <p className="mt-4 text-xs leading-relaxed text-white/45">
-                The Hub operates under GEM&apos;s enterprise controls:
-                identity verification, entitlement-based access, and audited
-                activity across every workspace action.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Why join ─────────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-screen-xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-        <HubSectionHeader
-          eyebrow="Why members join"
-          title={<>Execution-grade infrastructure for serious operators</>}
-          description="The Hub is not a social feed. It is an operating surface — curated, credentialled, and built for the work of deploying capital, running mandates, and moving across jurisdictions."
-        />
-
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            {
-              title: "Verified identity, by default",
-              body: "Every member passes KYC, entitlement review, and compliance screening. No anonymous counterparties. No generic social profiles.",
-            },
-            {
-              title: "Opportunity flow, not noise",
-              body: "Qualified opportunities — capital, mandates, partnerships, secondaries — surfaced only to members with the right profile and jurisdiction fit.",
-            },
-            {
-              title: "Cross-border coordination",
-              body: "Operators, advisors, and counsel attached on-demand to move work across regulatory regimes without losing the chain of custody.",
-            },
-            {
-              title: "Private working groups",
-              body: "Strategic Circles bring together senior principals on focused domains — cross-border capital, regtech, real estate, infrastructure.",
-            },
-            {
-              title: "Audit-ready activity",
-              body: "Every introduction, request, and mandate interaction is logged into an auditable trail aligned to SOC 2 and ISO 27001 controls.",
-            },
-            {
-              title: "GEM-directed support",
-              body: "Direct access to GEM concierge, legal, and compliance teams — escalation paths that execute, not ticket queues that linger.",
-            },
-          ].map((w) => (
-            <div
-              key={w.title}
-              className="flex flex-col gap-2 rounded-2xl border border-white/[0.07] bg-[#0e1420] p-6 transition-colors hover:border-primary/20"
-            >
-              <div className="flex h-8 w-8 items-center justify-center rounded-md border border-primary/20 bg-primary/10 text-primary">
-                <Sparkles className="h-4 w-4" aria-hidden="true" />
-              </div>
-              <h3 className="mt-1 text-sm font-semibold text-foreground">{w.title}</h3>
-              <p className="text-sm leading-relaxed text-muted-foreground">{w.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Member types ─────────────────────────────────────────────────── */}
-      <section className="border-y border-white/[0.06] bg-[#0b111c]">
-        <div className="mx-auto max-w-screen-xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-          <HubSectionHeader
-            eyebrow="Membership composition"
-            title={<>Five member tiers, one working network</>}
-            description="The Hub is deliberately mixed — capital, operators, counsel, and mandate-holders on the same surface, with every interaction verified."
-          />
-
-          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {MEMBER_TYPES.map((t) => (
-              <div
-                key={t.tier}
-                className="flex flex-col gap-2 rounded-2xl border border-white/[0.07] bg-[#0e1420] p-5"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-primary/80">
-                    {t.tier}
-                  </span>
-                  <span className="font-mono text-[11px] text-white/35">{t.count}</span>
                 </div>
-                <p className="text-sm font-semibold text-foreground">{t.tagline}</p>
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  {t.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Featured opportunities preview ───────────────────────────────── */}
-      <section className="mx-auto max-w-screen-xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-        <HubSectionHeader
-          eyebrow="Featured opportunities"
-          title={<>Qualified flow, surfaced to the right members</>}
-          description="A curated sample of current mandates and allocations. Full listings, filters, and intros require verified membership."
-          actions={
-            <Button
-              asChild
-              variant="ghost"
-              className="h-9 border border-white/10 bg-transparent text-white/70 hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-            >
-              <Link href="/community-hub/opportunities">
-                View all
-                <ArrowUpRight className="ml-1.5 h-3.5 w-3.5" aria-hidden="true" />
+                <div className="p-6">
+                  <h3 className="text-lg font-bold text-white mb-2 group-hover:text-cyan-400 transition-colors">{sec.title}</h3>
+                  <p className="text-slate-400 text-sm leading-relaxed mb-4">{sec.desc}</p>
+                  <div className="flex items-center gap-1 text-cyan-400 text-sm font-semibold group-hover:gap-2 transition-all">
+                    Explore <ArrowRight className="w-4 h-4" />
+                  </div>
+                </div>
               </Link>
-            </Button>
-          }
-        />
-
-        <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {featuredOpportunities.map((op) => (
-            <OpportunityCard key={op.id} opportunity={op} />
-          ))}
+            );
+          }}
         </div>
       </section>
 
-      {/* ── Briefings + Knowledge preview ────────────────────────────────── */}
-      <section className="border-y border-white/[0.06] bg-[#0b111c]">
-        <div className="mx-auto max-w-screen-xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-          <div className="grid gap-10 lg:grid-cols-2">
-            {/* Events */}
-            <div className="flex flex-col gap-6">
-              <HubSectionHeader
-                eyebrow="Upcoming briefings"
-                title={<>Executive sessions, on the record</>}
-                description="Closed-door briefings and summits — members-only, curated attendance, Chatham-House posture."
-                actions={
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 border border-white/10 bg-transparent text-xs text-white/70 hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-                  >
-                    <Link href="/community-hub/events">
-                      Calendar
-                      <ArrowUpRight className="ml-1 h-3 w-3" aria-hidden="true" />
-                    </Link>
-                  </Button>
-                }
-              />
-              <div className="flex flex-col gap-3">
-                {upcomingEvents.map((e) => (
-                  <EventCard key={e.id} event={e} compact />
-                ))}
+      {/* MEMBERSHIP INFO */}
+      <section className="py-24 bg-white/[0.02] border-t border-white/10">
+        <div className="container mx-auto px-6 max-w-7xl">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <h2 className="text-4xl font-black text-white mb-6">Access Requires Verified GEM Membership</h2>
+              <p className="text-slate-400 leading-relaxed mb-5">The GEM Community Hub is accessible only to clients who have completed the full onboarding process — KYC verification, entity review, and entitlement approval. This ensures that every member of the network is a verified, qualified operator.</p>
+              <p className="text-slate-400 leading-relaxed mb-8">All community interactions are governed by GEM&apos;s confidentiality framework. Intelligence shared within the platform remains within the platform.</p>
+              <div className="flex flex-wrap gap-4">
+                <Button asChild className="bg-cyan-400 text-black hover:bg-cyan-500 font-semibold rounded-full px-6">
+                  <Link href="/get-started">Apply for Access</Link>
+                </Button>
+                <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10 font-semibold rounded-full px-6">
+                  <Link href="/app/community">Member Login</Link>
+                </Button>
               </div>
             </div>
-
-            {/* Knowledge */}
-            <div className="flex flex-col gap-6">
-              <HubSectionHeader
-                eyebrow="Knowledge Center"
-                title={<>Intelligence you can act on</>}
-                description="Briefs, playbooks, and regulatory analysis authored by GEM analysts for working principals."
-                actions={
-                  <Button
-                    asChild
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 border border-white/10 bg-transparent text-xs text-white/70 hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
-                  >
-                    <Link href="/community-hub/knowledge">
-                      Library
-                      <ArrowUpRight className="ml-1 h-3 w-3" aria-hidden="true" />
-                    </Link>
-                  </Button>
-                }
-              />
-              <div className="grid gap-3">
-                {featuredResources.map((r) => (
-                  <ResourceCard key={r.id} resource={r} compact />
-                ))}
-              </div>
+            <div className="relative rounded-2xl overflow-hidden h-[360px]">
+              <Image src="https://media.base44.com/images/public/69d42975b7b1794c3dc01661/1756905aa_generated_image.png" alt="GEM Enterprise verified client network — four senior professionals collaborating in a modern glass-walled meeting room, reviewing intelligence briefings on a large wall display representing the exclusive GEM Community Hub membership" fill className="object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent" />
             </div>
           </div>
         </div>
       </section>
-
-      {/* ── Access CTA ───────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-screen-xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
-        <AccessRequestCTA />
-      </section>
-    </>
+    </div>
   );
 }
