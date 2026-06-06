@@ -1,243 +1,91 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  Building2,
-  CheckCircle2,
-  Clock,
-  FileCheck2,
-  Fingerprint,
-  Landmark,
-  LockKeyhole,
-  ShieldCheck,
-  UploadCloud,
-  User,
-  Users,
-} from "lucide-react";
+import Image from "next/image";
+import { Shield, CheckCircle, Clock, FileText, User, ArrowRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
-const ENTITY_TYPES = [
-  {
-    id: "individual",
-    label: "Individual",
-    description: "For individual accredited investors seeking personal verification.",
-    href: "/kyc/individual",
-    icon: User,
-    requirements: [
-      "Government-issued photo ID",
-      "Proof of address (< 3 months)",
-      "Financial accreditation evidence",
-    ],
-  },
-  {
-    id: "business",
-    label: "Business",
-    description: "For corporations, LLCs, and other registered business entities.",
-    href: "/kyc/business",
-    icon: Building2,
-    requirements: [
-      "Certificate of incorporation",
-      "Beneficial ownership disclosure",
-      "Registered address documentation",
-    ],
-  },
-  {
-    id: "trust",
-    label: "Trust",
-    description: "For trust entities including revocable and irrevocable trusts.",
-    href: "/kyc/trust",
-    icon: Landmark,
-    requirements: [
-      "Trust deed / trust agreement",
-      "Trustee identification",
-      "Beneficiary information",
-    ],
-  },
-  {
-    id: "family-office",
-    label: "Family Office",
-    description: "For single and multi-family office investment structures.",
-    href: "/kyc/family-office",
-    icon: Users,
-    requirements: [
-      "Family office establishment documents",
-      "Principal family member IDs",
-      "Investment mandate disclosure",
-    ],
-  },
-];
+export const metadata = {
+  title: "KYC Verification | GEM Enterprise",
+  description: "Complete your identity verification to unlock full access to the GEM Enterprise platform.",
+};
 
-const FLOW_STEPS = [
-  {
-    title: "Select Entity",
-    description: "Choose individual, business, trust, or family-office verification.",
-    icon: Fingerprint,
-  },
-  {
-    title: "Complete Application",
-    description: "Submit the required identity and ownership information.",
-    icon: FileCheck2,
-  },
-  {
-    title: "Upload Evidence",
-    description: "Attach supporting documents for compliance review.",
-    icon: UploadCloud,
-  },
-  {
-    title: "Review & Decision",
-    description: "Compliance team approves, rejects, or escalates for manual review.",
-    icon: ShieldCheck,
-  },
-];
-
-const TRUST_ITEMS = [
-  "Encrypted verification workflow",
-  "Compliance review before entitlement access",
-  "Document-backed audit trail",
-  "Manual review path for complex entities",
+const steps = [
+  { icon: User, title: "Identity Verification", desc: "Upload a government-issued photo ID and complete a live selfie capture. Processed securely by our compliance team.", time: "~3 minutes" },
+  { icon: FileText, title: "Entity Documentation", desc: "For business, trust, or family office applicants. Provide supporting entity documents. Personal applicants skip this step.", time: "~5 minutes" },
+  { icon: Shield, title: "Compliance Review", desc: "Our compliance team reviews your submission within 24–48 business hours. You will receive an email notification on your status.", time: "24–48 hrs" },
+  { icon: CheckCircle, title: "Access Granted", desc: "Upon approval, your entitled service tier is unlocked in your secure portal. Full platform access is immediate.", time: "Instant" },
 ];
 
 export default function KYCStartPage() {
   return (
-    <div className="mx-auto max-w-6xl space-y-10">
-      <Link
-        href="/get-started"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden="true">
-          <path
-            fillRule="evenodd"
-            d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z"
-            clipRule="evenodd"
-          />
-        </svg>
-        Back to Get Started
-      </Link>
+    <div className="min-h-screen bg-background text-foreground">
 
-      <section className="grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
-        <div>
-          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[hsl(var(--electric-cyan)/0.3)] bg-[hsl(var(--electric-cyan)/0.1)] px-3 py-1 text-xs font-mono uppercase tracking-wider text-[hsl(var(--electric-cyan))]">
-            <ShieldCheck className="h-3 w-3" />
-            Identity Verification
-          </div>
-
-          <h1 className="mb-4 text-4xl font-bold tracking-tight text-foreground md:text-5xl">
-            Begin institutional verification.
-          </h1>
-
-          <p className="max-w-2xl text-muted-foreground leading-relaxed">
-            Select the entity type that matches your client profile. GEM Enterprise uses this onboarding stage to route your application through the correct verification, document, and compliance-review path.
-          </p>
-
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            {TRUST_ITEMS.map((item) => (
-              <div key={item} className="flex items-start gap-3 rounded-xl border border-[hsl(var(--border))] bg-white/5 p-4">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-400" />
-                <p className="text-sm text-muted-foreground">{item}</p>
-              </div>
-            ))}
+      {/* HERO */}
+      <section className="relative pt-32 pb-0 overflow-hidden">
+        <div className="relative h-[480px]">
+          <Image src="https://media.base44.com/images/public/69d42975b7b1794c3dc01661/f42ed0ce5_generated_image.png" alt="GEM Enterprise KYC verification — a professional woman confidently holding her government-issued photo ID toward a verification camera in a softly lit modern office. The interface behind her shows a document upload zone, live selfie capture circle, and a green verified checkmark — representing GEM's secure, fast identity verification process for institutional onboarding." fill className="object-cover" priority />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-background/20" />
+          <div className="absolute inset-0 flex items-end pb-16">
+            <div className="container mx-auto px-6 max-w-7xl">
+              <Badge className="mb-4 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-xs tracking-widest uppercase px-4 py-1.5">Identity Verification</Badge>
+              <h1 className="text-5xl md:text-6xl font-black text-white mb-4">Complete Your KYC</h1>
+              <p className="text-slate-300 text-xl max-w-2xl">Secure identity verification is required to access GEM Enterprise. Under 10 minutes. Reviewed within 48 hours.</p>
+            </div>
           </div>
         </div>
+      </section>
 
-        <div className="glass-panel rounded-3xl border border-[hsl(var(--electric-cyan)/0.2)] p-6">
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold text-foreground">Verification lifecycle</p>
-              <p className="mt-1 text-xs text-muted-foreground">Typical completion: 10–15 minutes before review submission.</p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[hsl(var(--electric-cyan)/0.1)]">
-              <Clock className="h-5 w-5 text-[hsl(var(--electric-cyan))]" />
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {FLOW_STEPS.map(({ title, description, icon: Icon }, index) => (
-              <div key={title} className="flex gap-4 rounded-2xl border border-[hsl(var(--border))] bg-background/60 p-4">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[hsl(var(--electric-cyan)/0.25)] bg-[hsl(var(--electric-cyan)/0.1)] font-mono text-xs text-[hsl(var(--electric-cyan))]">
-                  {String(index + 1).padStart(2, "0")}
+      {/* STEPS */}
+      <section className="py-24 container mx-auto px-6 max-w-4xl">
+        <h2 className="text-4xl font-black text-white text-center mb-16">The Verification Process</h2>
+        <div className="space-y-4">
+          {steps.map((step, i) => {
+            const Icon = step.icon;
+            return (
+              <div key={i} className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 flex items-start gap-6 hover:border-cyan-500/20 transition-all">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
+                  <Icon className="w-5 h-5 text-cyan-400" />
                 </div>
                 <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Icon className="h-4 w-4 text-[hsl(var(--electric-cyan))]" />
-                    <p className="text-sm font-semibold text-foreground">{title}</p>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="font-bold text-white">Step {i + 1}: {step.title}</h3>
+                    <span className="text-xs text-slate-500 flex items-center gap-1"><Clock className="w-3 h-3" /> {step.time}</span>
                   </div>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
+                  <p className="text-slate-400 text-sm leading-relaxed">{step.desc}</p>
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section>
-        <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-mono uppercase tracking-wider text-[hsl(var(--electric-cyan))]">Entity Routing</p>
-            <h2 className="mt-2 text-2xl font-bold text-foreground">Choose your verification path</h2>
-          </div>
-          <p className="max-w-md text-sm text-muted-foreground">
-            Your selection determines the application questions and documents requested next.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {ENTITY_TYPES.map((entity) => {
-            const Icon = entity.icon;
-
-            return (
-              <Link
-                key={entity.id}
-                href={entity.href}
-                className="group glass-panel block rounded-2xl border border-[hsl(var(--border))] p-6 transition-all duration-200 hover:-translate-y-1 hover:border-[hsl(var(--electric-cyan)/0.5)] hover:shadow-[0_0_24px_hsl(var(--electric-cyan)/0.1)] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--electric-cyan))] focus:ring-offset-2 focus:ring-offset-background"
-              >
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[hsl(var(--electric-cyan)/0.1)] transition-colors group-hover:bg-[hsl(var(--electric-cyan)/0.15)]">
-                  <Icon className="h-6 w-6 text-[hsl(var(--electric-cyan))]" aria-hidden="true" />
-                </div>
-
-                <h3 className="mb-1.5 font-semibold text-foreground transition-colors group-hover:text-[hsl(var(--electric-cyan))]">
-                  {entity.label}
-                </h3>
-                <p className="mb-4 text-sm leading-relaxed text-muted-foreground">
-                  {entity.description}
-                </p>
-
-                <div className="space-y-1.5">
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground/70">
-                    Typical Requirements
-                  </p>
-                  <ul className="space-y-1">
-                    {entity.requirements.map((req) => (
-                      <li key={req} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                        <span className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full bg-[hsl(var(--electric-cyan)/0.6)]" />
-                        {req}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="mt-5 flex items-center gap-1 text-xs font-medium text-[hsl(var(--electric-cyan))] opacity-0 transition-opacity group-hover:opacity-100">
-                  Begin verification
-                  <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                </div>
-              </Link>
             );
-          })}
+          }}
+        </div>
+        <div className="mt-12 text-center">
+          <Button asChild size="lg" className="bg-cyan-400 text-black hover:bg-cyan-500 font-semibold rounded-full px-10">
+            <Link href="/kyc/individual">Begin Verification <ArrowRight className="ml-2 w-5 h-5" /></Link>
+          </Button>
+          <p className="text-slate-500 text-xs mt-4">All data is encrypted in transit and at rest. GEM does not sell or share your personal information.</p>
         </div>
       </section>
 
-      <section className="glass-panel rounded-2xl border border-[hsl(var(--electric-cyan)/0.2)] p-6">
-        <div className="flex gap-4">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--electric-cyan)/0.1)]">
-            <LockKeyhole className="h-5 w-5 text-[hsl(var(--electric-cyan))]" aria-hidden="true" />
-          </div>
-          <div>
-            <p className="mb-1 text-sm font-medium text-foreground">
-              Verification is required before client entitlements are activated
-            </p>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Identity verification is required to access GEM Enterprise client services. Information is encrypted in transit and at rest, used for verification and compliance purposes, and routed into the existing KYC review process.
-            </p>
-            <p className="mt-2 text-xs text-muted-foreground/70">
-              Keep your supporting documentation ready before you begin. Complex business, trust, and family-office submissions may require manual review.
-            </p>
+      {/* WHY KYC */}
+      <section className="py-24 bg-white/[0.02] border-t border-white/10">
+        <div className="container mx-auto px-6 max-w-7xl">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div className="relative rounded-2xl overflow-hidden h-[380px]">
+              <Image src="https://media.base44.com/images/public/69d42975b7b1794c3dc01661/2e5c40e81_generated_image.png" alt="GEM Enterprise KYC compliance team — professional compliance officer reviewing identity verification submissions on a multi-screen compliance dashboard showing AML regulatory indicators and client verification status" fill className="object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
+            </div>
+            <div>
+              <h2 className="text-4xl font-black text-white mb-6">Why Verification Is Required</h2>
+              <p className="text-slate-400 leading-relaxed mb-5">GEM Enterprise serves qualified clients with access to sensitive threat intelligence, financial asset protection workflows, and institutional-grade security services. KYC verification ensures the integrity of our client network and protects every member.</p>
+              <p className="text-slate-400 leading-relaxed mb-6">Our verification process is compliant with AML and KYC regulatory requirements in the United States (EIN 39-3307036) and the United Kingdom (Companies House SC001731).</p>
+              <div className="flex flex-col gap-3">
+                {["AML/KYC compliant — US &amp; UK", "SOC 2 Type II data handling standards", "Your data is never sold or shared", "AES-256 encryption in transit &amp; at rest"].map(item => (
+                  <div key={item} className="flex items-center gap-3">
+                    <CheckCircle className="w-4 h-4 text-cyan-400 shrink-0" />
+                    <span className="text-slate-300 text-sm" dangerouslySetInnerHTML={{ __html: item }} />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
