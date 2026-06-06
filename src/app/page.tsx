@@ -36,7 +36,7 @@ const services = [
     description:
       "Threat intelligence, dark web monitoring, incident response, and institutional cybersecurity operations.",
     tags: ["Threat Intel", "Dark Web", "IR"],
-    href: "/app/products/cyber",
+    href: "/products/cyber",
     color: "cyan",
   },
   {
@@ -45,7 +45,7 @@ const services = [
     description:
       "Asset protection workflows, wealth preservation structures, escrow coordination, and institutional vault operations.",
     tags: ["Vaults", "Escrow", "Preservation"],
-    href: "/app/products/financial",
+    href: "/products/financial",
     color: "purple",
     featured: true,
   },
@@ -55,7 +55,7 @@ const services = [
     description:
       "Real estate intelligence, trust workflows, REIT-style portfolio visibility, and secured property asset management.",
     tags: ["REIT", "Property", "Trust"],
-    href: "/app/products/real-estate",
+    href: "/products/real-estate",
     color: "amber",
   },
 ];
