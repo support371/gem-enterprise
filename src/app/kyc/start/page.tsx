@@ -55,7 +55,7 @@ export default function KYCStartPage() {
                 </div>
               </div>
             );
-          )}
+          })}
         </div>
         <div className="mt-12 text-center">
           <Button asChild size="lg" className="bg-cyan-400 text-black hover:bg-cyan-500 font-semibold rounded-full px-10">

@@ -144,7 +144,7 @@ export default function HomePage() {
                 </div>
               </Link>
             );
-          )}
+          })}
         </div>
       </section>
 
@@ -184,7 +184,7 @@ export default function HomePage() {
                   <p className="text-slate-400 text-sm leading-relaxed">{f.description}</p>
                 </div>
               );
-            )}
+            })}
           </div>
         </div>
       </section>

@@ -111,7 +111,7 @@ export default function FinancialShieldPage() {
                 </div>
               </div>
             );
-          )}
+          })}
         </div>
       </section>
 

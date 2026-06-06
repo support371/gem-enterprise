@@ -95,7 +95,7 @@ export default function IntelPage() {
                   </div>
                 </div>
               );
-            )}
+            })}
           </div>
         </div>
       </section>

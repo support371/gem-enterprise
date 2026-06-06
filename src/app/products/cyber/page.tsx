@@ -88,7 +88,7 @@ export default function GEMCyberFundPage() {
                 </div>
               </div>
             );
-          )}
+          })}
         </div>
       </section>
 
