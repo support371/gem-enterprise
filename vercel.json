@@ -3,15 +3,21 @@
   "buildCommand": "pnpm run db:generate && pnpm run build",
   "devCommand": "pnpm dev",
   "installCommand": "pnpm install --frozen-lockfile",
-  "regions": ["sfo1"],
+  "regions": [
+    "sfo1"
+  ],
   "git": {
     "deploymentEnabled": {
       "main": true
     },
     "deploymentEnabledForPR": false,
-    "deploymentBranches": ["main"],
+    "deploymentBranches": [
+      "main"
+    ],
     "deploymentInvocationHook": {
-      "events": ["push"]
+      "events": [
+        "push"
+      ]
     }
   },
   "env": {
@@ -30,5 +36,6 @@
   ],
   "cleanUrls": true,
   "trailingSlash": false,
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "_buildNote": "Triggered redeploy for /products/* pages - June 6 2026"
 }
