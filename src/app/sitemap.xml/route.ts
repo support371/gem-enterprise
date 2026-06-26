@@ -1,0 +1,2 @@
+const routes=["/","/services","/intel","/resources","/company","/about","/contact","/get-started","/eligibility/status","/privacy","/terms","/compliance-notice","/cookie-policy","/trust-center"];
+export function GET(){const base=process.env.NEXT_PUBLIC_APP_URL || "https://gemcybersecurityassist.com"; const xml=`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${routes.map(r=>`<url><loc>${base}${r}</loc></url>`).join("")}</urlset>`; return new Response(xml,{headers:{"content-type":"application/xml"}})}

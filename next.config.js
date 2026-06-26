@@ -74,6 +74,18 @@ const nextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload',
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), browsing-topics=()',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://vitals.vercel-insights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://vitals.vercel-insights.com https://*.vercel-insights.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'",
+          },
         ],
       },
       {
@@ -90,7 +102,9 @@ const nextConfig = {
 
   // Redirects
   async redirects() {
-    return [];
+    return [
+      { source: '/blog', destination: '/resources', permanent: true },
+    ];
   },
 
   // Rewrites
