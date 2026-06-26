@@ -1,0 +1,75 @@
+name: Generate multilingual translations
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_branch:
+        description: Branch to translate from
+        required: true
+        default: main
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  translate:
+    name: Translate dictionaries and open pull request
+    runs-on: ubuntu-latest
+    env:
+      GT_API_KEY: ${{ secrets.GT_API_KEY }}
+      GT_PROJECT_ID: ${{ secrets.GT_PROJECT_ID }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base_branch }}
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - name: Verify translation credentials
+        run: |
+          test -n "$GT_API_KEY" || (echo "GT_API_KEY is not configured" && exit 1)
+          test -n "$GT_PROJECT_ID" || (echo "GT_PROJECT_ID is not configured" && exit 1)
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate translations
+        run: npx gt@latest translate
+
+      - name: Validate dictionaries
+        env:
+          I18N_STRICT: 'true'
+        run: pnpm exec tsx scripts/validate-i18n.ts
+
+      - name: Open translation pull request
+        shell: bash
+        run: |
+          if git diff --quiet -- src/i18n/dictionaries; then
+            echo "No translation changes were generated."
+            exit 0
+          fi
+
+          BRANCH="i18n/general-translation-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add src/i18n/dictionaries
+          git commit -m "i18n: refresh GLOBAL-1 translations"
+          git push --set-upstream origin "$BRANCH"
+
+          gh pr create \
+            --base "${{ inputs.base_branch }}" \
+            --head "$BRANCH" \
+            --title "i18n: refresh GLOBAL-1 translations" \
+            --body "Automated General Translation update. Review language quality, RTL rendering, and the preview deployment before merging."
