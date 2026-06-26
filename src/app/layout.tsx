@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import { Navigation } from "@/components/Navigation";
-import { Footer } from "@/components/Footer";
+import { GlobalNavigation } from "@/components/GlobalNavigation";
+import { GlobalFooter } from "@/components/GlobalFooter";
 import { I18nProvider } from "@/components/I18nProvider";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getDirection } from "@/i18n/config";
@@ -54,9 +54,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 Skip to main content
               </a>
             )}
-            {!isPortal && <Navigation />}
+            {!isPortal && <GlobalNavigation />}
             <main id="main-content" className={isPortal ? undefined : "min-h-screen"}>{children}</main>
-            {!isPortal && <Footer />}
+            {!isPortal && <GlobalFooter />}
           </Providers>
         </I18nProvider>
         <SpeedInsights />
