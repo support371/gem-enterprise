@@ -1,0 +1,9 @@
+{
+  "defaultLocale": "en",
+  "locales": ["es", "fr", "de", "ar"],
+  "files": {
+    "json": {
+      "include": ["src/i18n/dictionaries/[locale].json"]
+    }
+  }
+}
