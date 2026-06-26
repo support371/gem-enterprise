@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Globe2 } from "lucide-react";
 import { getDirection, LOCALE_OPTIONS, type Locale } from "@/i18n/config";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 export function LanguageSwitcher({ className }: { className?: string }) {
   const router = useRouter();
+  const selectId = useId();
   const { locale, dictionary } = useI18n();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -39,15 +40,12 @@ export function LanguageSwitcher({ className }: { className?: string }) {
 
   return (
     <div className={cn("relative inline-flex items-center", className)}>
-      <Globe2
-        className="pointer-events-none absolute left-2.5 h-4 w-4 text-cyan-300"
-        aria-hidden="true"
-      />
-      <label htmlFor="gem-language" className="sr-only">
+      <Globe2 className="pointer-events-none absolute left-2.5 h-4 w-4 text-cyan-300" aria-hidden="true" />
+      <label htmlFor={selectId} className="sr-only">
         {dictionary.common.selectLanguage}
       </label>
       <select
-        id="gem-language"
+        id={selectId}
         value={locale}
         disabled={isPending}
         onChange={(event) => void changeLocale(event.target.value as Locale)}
