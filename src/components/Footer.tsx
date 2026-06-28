@@ -23,7 +23,7 @@ const legalLinks = [
   { label: "Privacy Policy", path: "/privacy" },
   { label: "Terms of Service", path: "/terms" },
   { label: "Compliance Notice", path: "/compliance-notice" },
-  { label: "Cookie Policy", path: "/privacy#cookies" },
+  { label: "Cookie Policy", path: "/cookie-policy" },
 ];
 
 const clientAccessLinks = [
