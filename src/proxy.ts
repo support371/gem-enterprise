@@ -1,8 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFromRequest, resolveAccessDestination } from "@/lib/auth";
 
-const PROTECTED_PREFIXES = ["/app", "/kyc", "/decision", "/portal", "/access"];
-const ADMIN_PREFIXES = ["/app/admin"];
+const PROTECTED_PREFIXES = [
+  "/app",
+  "/kyc",
+  "/decision",
+  "/portal",
+  "/access",
+  "/account",
+  "/billing",
+  "/documents",
+  "/messages",
+  "/requests",
+  "/community-hub/members",
+  "/community-hub/messages",
+  "/community-hub/requests",
+  "/community-hub/profile",
+  "/community-hub/settings",
+  "/community-hub/opportunities",
+];
+const ADMIN_PREFIXES = ["/app/admin", "/admin", "/review", "/compliance/admin"];
 
 const ALWAYS_PUBLIC = [
   "/",
@@ -22,6 +39,8 @@ const ALWAYS_PUBLIC = [
   "/privacy",
   "/terms",
   "/compliance-notice",
+  "/cookie-policy",
+  "/trust-center",
   "/client-login",
   "/forgot-password",
   "/api/health",

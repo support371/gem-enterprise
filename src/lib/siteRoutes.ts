@@ -535,6 +535,28 @@ export const canonicalRoutes: SiteRoute[] = [
     showInNav: false,
     showInFooter: true,
   },
+  {
+    path: "/cookie-policy",
+    label: "Cookie Policy",
+    category: "compliance",
+    description: "Cookie categories, consent behavior, and privacy controls",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "legal",
+    showInFooter: true,
+  },
+  {
+    path: "/trust-center",
+    label: "Trust Center",
+    category: "compliance",
+    description: "Security, data protection, responsible disclosure, and compliance mapping",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "company",
+    owner: "legal",
+    showInFooter: true,
+  },
 
   // PROTECTED APPLICATION
   {
@@ -833,7 +855,6 @@ export const legacyRedirects: LegacyRedirect[] = [
   { source: "/about-us", destination: "/about", permanent: true, reason: "canonical slug is /about" },
   { source: "/architecture", destination: "/intel", permanent: true, reason: "architecture content lives under /intel" },
   { source: "/specs", destination: "/intel", permanent: true, reason: "specs content lives under /intel" },
-  { source: "/trust-center", destination: "/compliance-notice", permanent: true, reason: "renamed to /compliance-notice" },
   { source: "/solutions", destination: "/services", permanent: true, reason: "renamed to /services" },
   { source: "/pricing", destination: "/get-started", permanent: true, reason: "pricing entry is /get-started" },
   { source: "/blog", destination: "/resources", permanent: true, reason: "blog content merged into /resources" },
