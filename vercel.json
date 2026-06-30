@@ -1,4 +1,5 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "buildCommand": "pnpm run db:generate && pnpm run build",
   "devCommand": "pnpm dev",
@@ -9,15 +10,6 @@
   "git": {
     "deploymentEnabled": {
       "main": true
-    },
-    "deploymentEnabledForPR": false,
-    "deploymentBranches": [
-      "main"
-    ],
-    "deploymentInvocationHook": {
-      "events": [
-        "push"
-      ]
     }
   },
   "env": {
@@ -36,6 +28,5 @@
   ],
   "cleanUrls": true,
   "trailingSlash": false,
-  "outputDirectory": ".next",
-  "_buildNote": "Triggered redeploy for /products/* pages - June 6 2026"
+  "outputDirectory": ".next"
 }
