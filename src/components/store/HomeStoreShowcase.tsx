@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { storeProducts } from "@/lib/storeCatalog";
 
+const channelHighlights = ["Shopify", "TikTok Shop", "Google Merchant", "TikTok Campaign Hub", "Wix Sync"];
+
 export function HomeStoreShowcase() {
   const featuredProducts = storeProducts.slice(0, 3);
 
@@ -20,19 +22,26 @@ export function HomeStoreShowcase() {
           <div className="max-w-3xl">
             <Badge className="mb-4 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-xs uppercase tracking-widest text-cyan-300">
               <ShoppingBag className="mr-2 h-3.5 w-3.5" />
-              GEM Security Store
+              GEM Unified Commerce Hub
             </Badge>
             <h2 className="text-4xl font-black text-white md:text-5xl">
-              Protection you can activate today
+              One store architecture for every channel
             </h2>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
-              Explore monitoring, assessment, compliance, and advisory solutions presented inside the trusted GEM Enterprise experience.
+              GEM now separates the official service catalog from Shopify checkout, TikTok Shop, Google Merchant, TikTok Campaign Hub, and Wix Store Sync so each integration has a clear place to connect.
             </p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              {channelHighlights.map((channel) => (
+                <span key={channel} className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-200">
+                  {channel}
+                </span>
+              ))}
+            </div>
           </div>
 
           <Button asChild size="lg" className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-300">
-            <Link href="/store">
-              Explore the Store <ArrowRight className="ml-2 h-5 w-5" />
+            <Link href="/store#commerce-channels">
+              View Commerce Map <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </Button>
         </div>
@@ -67,6 +76,13 @@ export function HomeStoreShowcase() {
                 <div className="mt-5 flex items-center gap-2 text-sm text-slate-300">
                   <CheckCircle2 className="h-4 w-4 text-cyan-400" />
                   {product.delivery}
+                </div>
+                <div className="mt-4 flex flex-wrap gap-1.5">
+                  {product.commerceChannels.slice(0, 3).map((channel) => (
+                    <span key={channel} className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[11px] text-slate-400">
+                      {channel}
+                    </span>
+                  ))}
                 </div>
                 <div className="mt-6 flex items-center font-semibold text-cyan-300">
                   View solution <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
