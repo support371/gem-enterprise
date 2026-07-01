@@ -1,0 +1,548 @@
+openapi: 3.1.0
+info:
+  title: GEM Enterprise Worker API
+  version: 1.0.0
+  description: >
+    Cloudflare Worker backend for GEM Enterprise. Provides operational endpoints
+    for auth validation, RBAC, KYC hooks, document vault, service requests,
+    audit logging, and notifications.
+  contact:
+    name: GEM Enterprise
+    url: https://www.gemcybersecurityassist.com
+
+servers:
+  - url: https://gem-enterprise-worker.{account}.workers.dev
+    description: Production
+  - url: http://localhost:8787
+    description: Local development
+
+tags:
+  - name: Health
+    description: Health, readiness, and version endpoints
+  - name: Auth
+    description: Token validation and session management
+  - name: RBAC
+    description: Role-based access control
+  - name: KYC
+    description: KYC service hooks and status
+  - name: Documents
+    description: Document vault (R2-backed storage)
+  - name: Service Requests
+    description: Service request management
+  - name: Audit
+    description: Audit log access
+  - name: Notifications
+    description: Notification management
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    CookieAuth:
+      type: apiKey
+      in: cookie
+      name: gem_session
+
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+        error:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded, down]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        environment:
+          type: string
+        services:
+          type: object
+          properties:
+            d1:
+              type: string
+              enum: [ok, error]
+            r2:
+              type: string
+              enum: [ok, error]
+            kv:
+              type: string
+              enum: [ok, error]
+
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+        totalPages:
+          type: integer
+
+paths:
+  /api/health:
+    get:
+      summary: Health check
+      tags: [Health]
+      responses:
+        "200":
+          description: All services healthy
+        "503":
+          description: One or more services degraded
+
+  /api/ready:
+    get:
+      summary: Readiness check
+      tags: [Health]
+      responses:
+        "200":
+          description: Worker is ready
+        "503":
+          description: Worker is not ready
+
+  /api/version:
+    get:
+      summary: Version info
+      tags: [Health]
+      responses:
+        "200":
+          description: Version information
+
+  /api/auth/validate:
+    post:
+      summary: Validate a JWT token
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+              required: [token]
+      responses:
+        "200":
+          description: Token validation result
+
+  /api/auth/session:
+    get:
+      summary: Get current session
+      tags: [Auth]
+      security:
+        - BearerAuth: []
+        - CookieAuth: []
+      responses:
+        "200":
+          description: Session payload
+        "401":
+          description: Unauthorized
+
+  /api/rbac/permissions:
+    get:
+      summary: Get permissions for current user
+      tags: [RBAC]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: User permissions
+
+  /api/rbac/check:
+    post:
+      summary: Check a specific permission
+      tags: [RBAC]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                permission:
+                  type: string
+              required: [permission]
+      responses:
+        "200":
+          description: Permission check result
+
+  /api/rbac/roles:
+    get:
+      summary: List all roles (admin+)
+      tags: [RBAC]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Role definitions
+
+  /api/rbac/assign:
+    post:
+      summary: Assign a role (admin+)
+      tags: [RBAC]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                role:
+                  type: string
+                  enum: [client, analyst, admin]
+              required: [userId, role]
+      responses:
+        "200":
+          description: Role assigned
+
+  /api/kyc/webhook:
+    post:
+      summary: Receive KYC status webhook (admin+)
+      tags: [KYC]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                event:
+                  type: string
+                applicationId:
+                  type: string
+                  format: uuid
+                userId:
+                  type: string
+                  format: uuid
+                status:
+                  type: string
+              required: [event, applicationId, userId, status]
+      responses:
+        "200":
+          description: Webhook processed
+
+  /api/kyc/status/{applicationId}:
+    get:
+      summary: Check KYC status
+      tags: [KYC]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: KYC status
+
+  /api/kyc/pending:
+    get:
+      summary: List pending KYC applications (analyst+)
+      tags: [KYC]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Pending KYC applications
+
+  /api/documents:
+    get:
+      summary: List user documents
+      tags: [Documents]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Document list
+
+  /api/documents/upload:
+    post:
+      summary: Upload document to vault
+      tags: [Documents]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                category:
+                  type: string
+      responses:
+        "201":
+          description: Document uploaded
+
+  /api/documents/{id}/download:
+    get:
+      summary: Download document
+      tags: [Documents]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File stream
+
+  /api/service-requests:
+    get:
+      summary: List service requests
+      tags: [Service Requests]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Service request list
+    post:
+      summary: Create service request
+      tags: [Service Requests]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                priority:
+                  type: string
+                  enum: [low, medium, high, critical]
+              required: [title, description]
+      responses:
+        "201":
+          description: Service request created
+
+  /api/audit/logs:
+    get:
+      summary: Query audit logs (admin+)
+      tags: [Audit]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: userId
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+        - name: endDate
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Audit log entries
+
+  /api/audit/summary:
+    get:
+      summary: Audit summary stats (admin+)
+      tags: [Audit]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: hours
+          in: query
+          schema:
+            type: integer
+            default: 24
+      responses:
+        "200":
+          description: Audit summary
+
+  /api/notifications:
+    get:
+      summary: List user notifications
+      tags: [Notifications]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+        - name: unreadOnly
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Notification list
+    post:
+      summary: Create notification (admin+)
+      tags: [Notifications]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  format: uuid
+                title:
+                  type: string
+                message:
+                  type: string
+                channel:
+                  type: string
+                  enum: [in_app, email, sms, push]
+              required: [userId, title, message]
+      responses:
+        "201":
+          description: Notification created
+
+  /api/notifications/{id}/read:
+    patch:
+      summary: Mark notification as read
+      tags: [Notifications]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Notification marked read
+
+  /api/notifications/read-all:
+    patch:
+      summary: Mark all notifications as read
+      tags: [Notifications]
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: All notifications marked read
+
+  /api/notifications/bulk:
+    post:
+      summary: Send bulk notifications (admin+)
+      tags: [Notifications]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userIds:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                title:
+                  type: string
+                message:
+                  type: string
+                channel:
+                  type: string
+                  enum: [in_app, email, sms, push]
+              required: [userIds, title, message]
+      responses:
+        "201":
+          description: Bulk notifications sent

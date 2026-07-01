@@ -1,0 +1,32 @@
+{
+  "name": "gem-enterprise-worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:dry": "wrangler deploy --dry-run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts --max-warnings=0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:migrate": "wrangler d1 migrations apply gem-enterprise-db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply gem-enterprise-db --remote",
+    "tail": "wrangler tail"
+  },
+  "dependencies": {
+    "hono": "^4.7.0",
+    "jose": "^5.9.6",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250102.0",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.0",
+    "wrangler": "^4.14.0"
+  },
+  "engines": {
+    "node": ">=20.x"
+  }
+}
