@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { HomeStoreShowcase } from "@/components/store/HomeStoreShowcase";
 
 export const metadata = {
   title: "GEM Enterprise | Defend. Protect. Prevail.",
@@ -120,7 +121,6 @@ export default function HomePage() {
             const iconColor = svc.color === "cyan" ? "text-cyan-400" : svc.color === "purple" ? "text-purple-400" : "text-amber-400";
             return (
               <Link key={i} href={svc.href} className={`group relative bg-white/[0.02] border ${borderColor} rounded-2xl overflow-hidden transition-all hover:bg-white/[0.04] hover:-translate-y-1`}>
-                {/* Card image */}
                 <div className="relative h-48 overflow-hidden">
                   <Image src={svc.img} alt={`${svc.title} — GEM Enterprise institutional ${svc.color === "cyan" ? "cybersecurity operations center with analysts monitoring global threats in real time" : svc.color === "purple" ? "financial asset protection, wealth preservation meeting room with portfolio screens" : "real estate property trust management, luxury tower at dusk"} `} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
@@ -147,6 +147,8 @@ export default function HomePage() {
           })}
         </div>
       </section>
+
+      <HomeStoreShowcase />
 
       {/* ── SOC OPERATIONS IMAGE BREAK ── */}
       <section className="relative py-0 overflow-hidden">
