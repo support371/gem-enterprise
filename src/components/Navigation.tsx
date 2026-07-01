@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo, memo } from "react";
+import { useEffect, useState, useCallback, memo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ArrowRight, ChevronDown, Menu, Shield, X } from "lucide-react";
@@ -19,7 +19,6 @@ type NavSection = {
   items: NavItem[];
 };
 
-// Memoized navigation sections - prevent unnecessary recalculations
 const NAV_SECTIONS_DATA: NavSection[] = [
   {
     label: "Home",
@@ -55,6 +54,17 @@ const NAV_SECTIONS_DATA: NavSection[] = [
       { label: "Alliance Trust Realty", path: "/atr", description: "Real estate investment platform — ATR Division" },
       { label: "Properties", path: "/atr/properties", description: "ATR property portfolio and listings" },
       { label: "Investment Platform", path: "/atr/invest", description: "Fractional, full ownership, fund, and REIT vehicles" },
+    ],
+  },
+  {
+    label: "Store",
+    path: "/store",
+    items: [
+      { label: "All Solutions", path: "/store", description: "Browse the complete GEM Security Store" },
+      { label: "24/7 Threat Monitoring", path: "/store/24-7-threat-monitoring", description: "Continuous monitoring and prioritized alerts" },
+      { label: "Security Assessment", path: "/store/security-posture-assessment", description: "Review controls, vulnerabilities, and exposure" },
+      { label: "Compliance Readiness", path: "/store/compliance-readiness-review", description: "Identify policy, evidence, and control gaps" },
+      { label: "Cybersecurity Consultation", path: "/store/cybersecurity-consultation", description: "Book a focused advisory engagement" },
     ],
   },
   {
@@ -113,7 +123,6 @@ function NavigationContent() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openSection, setOpenSection] = useState<string | null>(null);
 
-  // Memoized callbacks for faster click response
   const closeMobile = useCallback(() => {
     setMobileOpen(false);
     setOpenSection(null);
@@ -127,14 +136,12 @@ function NavigationContent() {
     setOpenSection((prev) => (prev === label ? null : label));
   }, []);
 
-  // Memoized isActive function
   const isActive = useCallback((path: string) => {
     const base = path.split("#")[0];
     if (base === "/") return pathname === "/";
     return pathname === base || pathname.startsWith(`${base}/`);
   }, [pathname]);
 
-  // Handle scroll lock on mobile menu
   useEffect(() => {
     if (!mobileOpen) {
       document.body.style.overflow = "";
@@ -151,14 +158,13 @@ function NavigationContent() {
     };
   }, [mobileOpen]);
 
-  // Close menu on route change
   useEffect(() => {
     closeMobile();
   }, [pathname, closeMobile]);
 
   return (
     <header className="sticky top-0 z-[10000] w-full border-b border-white/[0.07] bg-[#131a26]/95 shadow-2xl shadow-black/20 backdrop-blur-xl">
-      <div className="mx-auto flex h-20 max-w-screen-xl items-center justify-between px-5 sm:px-6 lg:h-16 lg:px-8">
+      <div className="mx-auto flex h-20 max-w-screen-2xl items-center justify-between px-5 sm:px-6 lg:h-16 lg:px-8">
         <Link href="/" className="group flex shrink-0 items-center gap-3" onClick={closeMobile}>
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[hsl(185,100%,45%)]/10 ring-1 ring-[hsl(185,100%,45%)]/30 transition-all group-hover:bg-[hsl(185,100%,45%)]/20 group-hover:ring-[hsl(185,100%,45%)]/60 lg:h-9 lg:w-9 lg:rounded-xl">
             <Shield className="h-7 w-7 text-[hsl(185,100%,45%)] lg:h-5 lg:w-5" strokeWidth={2} />
@@ -169,13 +175,13 @@ function NavigationContent() {
           </div>
         </Link>
 
-        <nav aria-label="Primary navigation" className="hidden items-center gap-1 lg:flex">
+        <nav aria-label="Primary navigation" className="hidden items-center gap-0.5 lg:flex">
           {navSections.map((section) => (
             <Link
               key={section.path}
               href={section.path}
               className={cn(
-                "rounded-lg px-3 py-2 text-sm font-medium text-white/60 transition-all hover:bg-white/5 hover:text-white",
+                "rounded-lg px-2.5 py-2 text-sm font-medium text-white/60 transition-all hover:bg-white/5 hover:text-white",
                 isActive(section.path) && "bg-cyan-400/10 text-cyan-300",
               )}
             >
@@ -285,5 +291,4 @@ function NavigationContent() {
   );
 }
 
-// Memoize Navigation component to prevent unnecessary re-renders
 export const Navigation = memo(NavigationContent);
