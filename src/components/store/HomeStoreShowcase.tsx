@@ -28,7 +28,7 @@ export function HomeStoreShowcase() {
               One store architecture for every channel
             </h2>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
-              GEM now separates the official service catalog from Shopify checkout, TikTok Shop, Google Merchant, TikTok Campaign Hub, and Wix Store Sync so each integration has a clear place to connect.
+              Browse the official GEM catalog, enter the dedicated Shopify storefront, or review TikTok, Google Merchant, and Wix channel readiness from one connected commerce experience.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
               {channelHighlights.map((channel) => (
@@ -39,11 +39,16 @@ export function HomeStoreShowcase() {
             </div>
           </div>
 
-          <Button asChild size="lg" className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-300">
-            <Link href="/store#commerce-channels">
-              View Commerce Map <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button asChild size="lg" className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-300">
+              <Link href="/store/shopify">
+                Open Shopify Store <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="rounded-full border-white/20 px-8 text-white hover:bg-white/10">
+              <Link href="/store#commerce-channels">View All Channels</Link>
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-7 lg:grid-cols-3">
