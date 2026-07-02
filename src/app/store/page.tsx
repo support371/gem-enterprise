@@ -8,7 +8,6 @@ import {
   Clock3,
   ExternalLink,
   Headphones,
-  LockKeyhole,
   Megaphone,
   RefreshCcw,
   ShieldCheck,
@@ -20,24 +19,28 @@ import { Button } from "@/components/ui/button";
 import { commerceChannels, storeCategories, storeProducts } from "@/lib/storeCatalog";
 
 export const metadata: Metadata = {
-  title: "GEM Unified Commerce Hub | Security Store, Shopify, TikTok, Google & Wix",
+  title: "GEM Unified Commerce Store | Shopify, TikTok, Google & Wix",
   description:
-    "Navigate GEM Enterprise services, Shopify checkout, TikTok Shop, Google Merchant, TikTok Campaign Hub, Wix Store Sync, and unified orders from one store architecture.",
+    "Shop GEM Enterprise services and navigate connected Shopify, TikTok Shop, Google Merchant, TikTok Campaign Hub, Wix Store Sync, and order channels.",
 };
 
 const trustSignals = [
-  { icon: ShieldCheck, title: "GEM-owned storefront", text: "The enterprise website remains the authoritative catalog and product-detail environment." },
-  { icon: RefreshCcw, title: "Multi-channel sync", text: "Shopify, TikTok, Google Merchant, Wix, and campaign channels are organized without mixing ownership." },
-  { icon: Headphones, title: "Clear agent handoff", text: "Each integration has a visible page anchor so Base44 and future agents know exactly where to extend." },
+  { icon: ShieldCheck, title: "Public storefront", text: "Visitors can browse products, open product pages, and continue through the available channel." },
+  { icon: RefreshCcw, title: "Connected routing", text: "Each product shows Shopify, TikTok, Google, Wix, and campaign availability where applicable." },
+  { icon: Headphones, title: "Service handoff", text: "Custom services route into GEM contact and onboarding instead of leaving visitors stranded." },
 ];
 
 const storeFlow = [
-  "Maintain one canonical GEM product record",
-  "Map products into Shopify, TikTok Shop, Google Merchant, and Wix sections",
-  "Route paid TikTok campaigns to the correct product destination",
-  "Track sync status in Unified Orders & Inventory",
-  "Preserve GEM onboarding, compliance, and support controls",
+  "Browse official GEM product pages",
+  "Choose checkout, quote, booking, or channel status",
+  "Use Shopify where payment checkout is connected",
+  "Map TikTok, Google, Wix, and campaign flows back to canonical pages",
+  "Complete GEM onboarding after purchase or request",
 ];
+
+function resolveActionUrl(url: string) {
+  return url.startsWith("http") ? url : url;
+}
 
 export default function StorePage() {
   return (
@@ -58,23 +61,23 @@ export default function StorePage() {
           <div className="max-w-5xl">
             <Badge className="mb-6 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-xs uppercase tracking-[0.2em] text-cyan-300">
               <ShoppingBag className="mr-2 h-3.5 w-3.5" />
-              GEM Unified Commerce Hub
+              GEM Public Store
             </Badge>
             <h1 className="text-5xl font-black leading-tight text-white md:text-7xl">
-              One enterprise store,
-              <span className="block text-cyan-300">many commerce channels.</span>
+              Buy, request, or route
+              <span className="block text-cyan-300">from one complete store.</span>
             </h1>
             <p className="mt-7 max-w-4xl text-lg leading-relaxed text-slate-300 md:text-xl">
-              GEM Cybersecurity Assist now presents the store as a unified commerce architecture: GEM services, Shopify products, TikTok Shop, Google Merchant, TikTok Campaign Hub, Wix Store Sync, and unified orders each have a clear place to connect and scale.
+              GEM Cybersecurity Assist now presents a public storefront with direct product actions, channel status, Shopify checkout routing, TikTok campaign routing, Google Merchant preparation, Wix synchronization mapping, and unified order planning.
             </p>
             <div className="mt-10 flex flex-col gap-4 sm:flex-row">
               <Button asChild size="lg" className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-300">
-                <Link href="#commerce-channels">
-                  Navigate Channels <ArrowRight className="ml-2 h-5 w-5" />
+                <Link href="#solutions">
+                  Shop Solutions <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
               <Button asChild size="lg" variant="outline" className="rounded-full border-white/20 px-8 text-white hover:bg-white/10">
-                <Link href="#solutions">Browse Canonical Products</Link>
+                <Link href="#commerce-channels">View Store Channels</Link>
               </Button>
             </div>
           </div>
@@ -102,58 +105,76 @@ export default function StorePage() {
           <div>
             <Badge className="mb-4 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-300">
               <Store className="mr-2 h-4 w-4" />
-              Channel map for Base44 and future agents
+              Active store channels
             </Badge>
-            <h2 className="text-4xl font-black text-white md:text-5xl">Where each store feature belongs</h2>
+            <h2 className="text-4xl font-black text-white md:text-5xl">Every store route has a direct action</h2>
             <p className="mt-4 max-w-3xl text-lg leading-relaxed text-slate-400">
-              This section makes it easy to locate the correct page anchor for every integration without confusing Shopify checkout, TikTok Shop, Google Merchant, Wix synchronization, or campaign management.
+              Use this section to access the current store channel, checkout route, campaign route, or integration preparation area without guessing where each commerce flow belongs.
             </p>
           </div>
           <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10">
             <Link href="/api/store/catalog" target="_blank">
-              View Catalog API <ExternalLink className="ml-2 h-4 w-4" />
+              Open Catalog API <ExternalLink className="ml-2 h-4 w-4" />
             </Link>
           </Button>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {commerceChannels.map((channel) => (
-            <article
-              key={channel.slug}
-              id={channel.slug}
-              className="scroll-mt-28 rounded-3xl border border-white/10 bg-white/[0.025] p-6 transition-all hover:border-cyan-400/40 hover:bg-white/[0.045]"
-            >
-              <div className="mb-5 flex items-start justify-between gap-4">
-                <div>
-                  <Badge className="mb-3 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-300">
-                    {channel.status}
-                  </Badge>
-                  <h3 className="text-2xl font-bold text-white">{channel.name}</h3>
-                </div>
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-300">
-                  {channel.slug === "tiktok-campaign-hub" ? <Megaphone className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />}
-                </div>
-              </div>
-
-              <p className="text-sm leading-relaxed text-slate-400">{channel.summary}</p>
-              <p className="mt-4 text-sm leading-relaxed text-slate-300">{channel.purpose}</p>
-
-              <div className="mt-5 space-y-2">
-                {channel.actions.map((action) => (
-                  <div key={action} className="flex items-start gap-2 text-sm text-slate-300">
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-400" />
-                    <span>{action}</span>
+          {commerceChannels.map((channel) => {
+            const mappedCount = storeProducts.filter((product) =>
+              product.channelAvailability.some((item) => item.channelSlug === channel.slug),
+            ).length;
+            return (
+              <article
+                key={channel.slug}
+                id={channel.slug}
+                className="scroll-mt-28 rounded-3xl border border-white/10 bg-white/[0.025] p-6 transition-all hover:border-cyan-400/40 hover:bg-white/[0.045]"
+              >
+                <div className="mb-5 flex items-start justify-between gap-4">
+                  <div>
+                    <Badge className="mb-3 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-300">
+                      {channel.status}
+                    </Badge>
+                    <h3 className="text-2xl font-bold text-white">{channel.name}</h3>
                   </div>
-                ))}
-              </div>
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-300">
+                    {channel.slug === "tiktok-campaign-hub" ? <Megaphone className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />}
+                  </div>
+                </div>
 
-              <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
-                <div className="text-xs uppercase tracking-widest text-slate-500">Agent anchor</div>
-                <code className="mt-2 block break-all text-sm text-cyan-300">{channel.ownerPage}</code>
-                <p className="mt-3 text-xs leading-relaxed text-slate-500">{channel.agentNotes}</p>
-              </div>
-            </article>
-          ))}
+                <p className="text-sm leading-relaxed text-slate-400">{channel.summary}</p>
+                <p className="mt-4 text-sm leading-relaxed text-slate-300">{channel.statusDetails}</p>
+
+                <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div className="text-xs uppercase tracking-widest text-slate-500">Products</div>
+                    <div className="mt-2 text-2xl font-black text-white">{mappedCount}</div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <div className="text-xs uppercase tracking-widest text-slate-500">Status</div>
+                    <div className="mt-2 font-bold text-cyan-300">{channel.status}</div>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex flex-col gap-3">
+                  {channel.canonicalUrl ? (
+                    <Button asChild className="bg-cyan-400 font-semibold text-black hover:bg-cyan-300">
+                      <a href={channel.canonicalUrl} target="_blank" rel="noreferrer">
+                        {channel.publicCtaLabel} <ExternalLink className="ml-2 h-4 w-4" />
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button asChild className="bg-cyan-400 font-semibold text-black hover:bg-cyan-300">
+                      <Link href="#solutions">{channel.publicCtaLabel}</Link>
+                    </Button>
+                  )}
+                  <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                    <Link href={`#${channel.slug}`}>View this section</Link>
+                  </Button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
@@ -164,9 +185,9 @@ export default function StorePage() {
               <Badge id="gem-security-services" className="mb-4 scroll-mt-28 rounded-full border border-white/10 bg-white/5 text-slate-300">
                 GEM Security Services
               </Badge>
-              <h2 className="text-4xl font-black text-white md:text-5xl">Canonical GEM product catalog</h2>
+              <h2 className="text-4xl font-black text-white md:text-5xl">Shop the official GEM catalog</h2>
               <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-400">
-                These are the official product-detail pages that Shopify, TikTok Shop, Google Merchant, Wix, and campaign flows should map back to.
+                Each product now includes details, direct customer action, channel status, and the safest path into checkout or GEM onboarding.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -193,9 +214,10 @@ export default function StorePage() {
                     <Badge className="rounded-full border border-cyan-500/30 bg-[#07101c]/80 text-cyan-300 backdrop-blur">
                       {product.category}
                     </Badge>
-                    {product.featured && (
-                      <Badge className="rounded-full border-0 bg-cyan-400 text-black">Featured</Badge>
-                    )}
+                    <Badge className="rounded-full border border-white/10 bg-[#07101c]/80 text-slate-300 backdrop-blur">
+                      {product.purchaseMode}
+                    </Badge>
+                    {product.featured && <Badge className="rounded-full border-0 bg-cyan-400 text-black">Featured</Badge>}
                   </div>
                 </div>
 
@@ -214,24 +236,47 @@ export default function StorePage() {
                     </div>
                   </div>
 
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    {product.commerceChannels.map((channel) => (
-                      <span key={channel} className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-slate-300">
-                        {channel}
-                      </span>
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    {product.outcomes.slice(0, 2).map((outcome) => (
+                      <div key={outcome} className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-300">
+                        {outcome}
+                      </div>
                     ))}
                   </div>
 
-                  <div className="mt-7 flex flex-col gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="mt-6 flex flex-wrap gap-2">
+                    {product.channelAvailability.map((channel) => (
+                      <Link
+                        key={channel.channelSlug}
+                        href={resolveActionUrl(channel.actionUrl)}
+                        className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-slate-300 transition-colors hover:border-cyan-400/40 hover:text-cyan-300"
+                      >
+                        {channel.channelSlug.replaceAll("-", " ")}: {channel.status}
+                      </Link>
+                    ))}
+                  </div>
+
+                  <div className="mt-7 flex flex-col gap-4 border-t border-white/10 pt-6">
                     <div>
                       <div className="text-xs uppercase tracking-widest text-slate-500">Access</div>
                       <div className="mt-1 font-semibold text-white">{product.priceLabel}</div>
                     </div>
-                    <Button asChild className="bg-cyan-400 font-semibold text-black hover:bg-cyan-300">
-                      <Link href={`/store/${product.slug}`}>
-                        View Details <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <Button asChild className="bg-cyan-400 font-semibold text-black hover:bg-cyan-300">
+                        <Link href={`/store/${product.slug}`}>View Details</Link>
+                      </Button>
+                      {product.checkoutUrl ? (
+                        <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                          <a href={product.checkoutUrl} target="_blank" rel="noreferrer">
+                            Buy / Checkout <ExternalLink className="ml-2 h-4 w-4" />
+                          </a>
+                        </Button>
+                      ) : (
+                        <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                          <Link href={`/contact?service=${encodeURIComponent(product.slug)}`}>{product.primaryCtaLabel}</Link>
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </article>
@@ -249,7 +294,7 @@ export default function StorePage() {
             </Badge>
             <h2 className="text-4xl font-black text-white">A clear path from product source to customer action</h2>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
-              Shopify, TikTok Shop, Google Merchant, Wix Store Sync, and TikTok Campaign Hub can all exist together as channels under the GEM Enterprise website. Each channel has a defined purpose, while the official product pages stay on gemcybersecurityassist.com.
+              Shopify, TikTok Shop, Google Merchant, Wix Store Sync, and TikTok Campaign Hub can exist together under the GEM Enterprise website. Each public button now routes visitors toward the correct action or preparation path.
             </p>
           </div>
           <div className="grid gap-4">
@@ -266,15 +311,18 @@ export default function StorePage() {
       </section>
 
       <section className="container mx-auto max-w-4xl px-6 py-24 text-center">
-        <h2 className="text-4xl font-black text-white">Ready for the next integration agent?</h2>
+        <h2 className="text-4xl font-black text-white">Need help choosing the right channel?</h2>
         <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
-          Future Base44, Shopify, TikTok, Google Merchant, and Wix agents should start from the channel map above, then connect their work to the canonical GEM product catalog and API.
+          Use the product details for public purchasing, or contact GEM when a service requires qualification, scoping, or compliance review.
         </p>
-        <Button asChild size="lg" className="mt-8 rounded-full bg-cyan-400 px-9 font-semibold text-black hover:bg-cyan-300">
-          <Link href="/api/store/catalog" target="_blank">
-            Open Store Catalog API <ExternalLink className="ml-2 h-5 w-5" />
-          </Link>
-        </Button>
+        <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
+          <Button asChild size="lg" className="rounded-full bg-cyan-400 px-9 font-semibold text-black hover:bg-cyan-300">
+            <Link href="/contact">Contact GEM Support</Link>
+          </Button>
+          <Button asChild size="lg" variant="outline" className="rounded-full border-white/20 px-9 text-white hover:bg-white/10">
+            <Link href="/api/store/catalog" target="_blank">Open Store Catalog API</Link>
+          </Button>
+        </div>
       </section>
     </main>
   );
