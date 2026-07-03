@@ -45,14 +45,7 @@ export function StorefrontProductGrid({ products, storefront, categories }: Stor
     const normalizedQuery = query.trim().toLowerCase();
     return products.filter((product) => {
       const categoryMatches =
-        category === "All" ||
-        product.category === category ||
-        (category === "Physical Products" && product.deliveryType === "Physical") ||
-        (category === "Imported Products" && product.storefronts.includes("wix")) ||
-        (category === "Lifestyle" && ["Client Gifts", "Home Safety", "Office Essentials"].includes(product.category)) ||
-        (category === "Campaign Services" && product.deliveryType === "Service") ||
-        (category === "Lead Generation" && ["Security Awareness", "Cybersecurity"].includes(product.category)) ||
-        (category === "Security Services" && ["Cybersecurity", "Security Awareness"].includes(product.category));
+        category === "All" || product.category === category;
 
       const queryMatches =
         !normalizedQuery ||
@@ -137,29 +130,40 @@ export function StorefrontProductGrid({ products, storefront, categories }: Stor
                 key={product.id}
                 className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.025] transition-all hover:-translate-y-1 hover:border-cyan-400/35 hover:bg-white/[0.045]"
               >
-                <div className={`relative h-48 border-b bg-gradient-to-br ${accent}`}>
+                <div className={`relative h-52 border-b bg-gradient-to-br ${accent}`}>
+                  {product.image ? (
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="absolute inset-0 h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  ) : null}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-                    <Badge className="rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+                    <Badge className="rounded-full border border-emerald-500/30 bg-black/40 text-emerald-300 backdrop-blur-sm">
                       {product.stockLabel}
                     </Badge>
                     {product.originalPrice && product.originalPrice > product.price && (
-                      <Badge className="rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-300">
+                      <Badge className="rounded-full border border-cyan-500/30 bg-black/40 text-cyan-300 backdrop-blur-sm">
                         Save {Math.round((1 - product.price / product.originalPrice) * 100)}%
                       </Badge>
                     )}
                   </div>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex h-24 w-24 items-center justify-center rounded-full border border-current bg-black/20">
-                      {product.deliveryType === "Digital" ? (
-                        <ShieldCheck className="h-10 w-10" />
-                      ) : product.deliveryType === "Service" ? (
-                        <CheckCircle2 className="h-10 w-10" />
-                      ) : (
-                        <Package className="h-10 w-10" />
-                      )}
+                  {!product.image && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="flex h-24 w-24 items-center justify-center rounded-full border border-current bg-black/20">
+                        {product.deliveryType === "Digital" ? (
+                          <ShieldCheck className="h-10 w-10" />
+                        ) : product.deliveryType === "Service" ? (
+                          <CheckCircle2 className="h-10 w-10" />
+                        ) : (
+                          <Package className="h-10 w-10" />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="absolute bottom-4 left-4 rounded-full border border-white/10 bg-black/30 px-3 py-1 text-xs font-semibold tracking-widest text-slate-300">
+                  )}
+                  <div className="absolute bottom-4 left-4 rounded-full border border-white/10 bg-black/40 px-3 py-1 text-xs font-semibold tracking-widest text-slate-300 backdrop-blur-sm">
                     {product.sku}
                   </div>
                 </div>
