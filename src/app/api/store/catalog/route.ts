@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { commerceChannels, storeProducts } from "@/lib/storeCatalog";
 import { storefrontDefinitions, storefrontProducts } from "@/lib/storefrontCatalog";
+import { tiktokPlanningProducts } from "@/lib/tiktokPlanningCatalog";
 
 const origin = "https://www.gemcybersecurityassist.com";
 
@@ -14,18 +15,34 @@ export async function GET() {
       ...storefront,
       page_url: `${origin}/store/${storefront.slug}`,
       external_url: storefront.externalUrl ?? null,
-      product_count: storefrontProducts.filter((product) =>
-        product.storefronts.includes(storefront.slug),
-      ).length,
+      product_count:
+        storefront.slug === "tiktok"
+          ? tiktokPlanningProducts.length
+          : storefrontProducts.filter((product) => product.storefronts.includes(storefront.slug)).length,
     })),
     marketplace_products: storefrontProducts.map((product) => ({
       ...product,
-      store_pages: product.storefronts.map((storefront) =>
-        `${origin}/store/${storefront}`,
-      ),
+      store_pages: product.storefronts.map((storefront) => `${origin}/store/${storefront}`),
       checkout_url: product.checkoutUrl ?? null,
       inquiry_url: `${origin}/contact?product=${encodeURIComponent(product.name)}`,
     })),
+    tiktok_planning_catalog: {
+      status: "draft-validation-required",
+      source_rows: tiktokPlanningProducts.length,
+      store_url: `${origin}/store/tiktok`,
+      required_before_upload: [
+        "real product images",
+        "GTIN/UPC or approved exemption",
+        "verified physical inventory",
+        "category eligibility",
+        "shipping package data",
+        "TikTok Seller Center approval"
+      ],
+      products: tiktokPlanningProducts.map((product) => ({
+        ...product,
+        inquiry_url: `${origin}/contact?store=tiktok&product=${encodeURIComponent(product.name)}`,
+      })),
+    },
     service_channels: commerceChannels.map((channel) => ({
       slug: channel.slug,
       name: channel.name,
@@ -55,13 +72,9 @@ export async function GET() {
       commerce_channels: product.commerceChannels,
       channel_availability: product.channelAvailability.map((item) => ({
         ...item,
-        actionUrl: item.actionUrl.startsWith("http")
-          ? item.actionUrl
-          : `${origin}${item.actionUrl}`,
+        actionUrl: item.actionUrl.startsWith("http") ? item.actionUrl : `${origin}${item.actionUrl}`,
       })),
-      integration_targets: product.integrationTargets.map(
-        (target) => `${origin}${target}`,
-      ),
+      integration_targets: product.integrationTargets.map((target) => `${origin}${target}`),
       product_url: `${origin}/store/${product.slug}`,
       checkout_url: product.checkoutUrl ?? null,
       image_url: product.image,
