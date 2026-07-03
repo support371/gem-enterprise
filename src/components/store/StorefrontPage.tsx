@@ -1,15 +1,17 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, BadgeCheck, ExternalLink, ShoppingBag } from "lucide-react";
+import { ArrowLeft, ArrowRight, BadgeCheck, ExternalLink, ShoppingBag, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StorefrontProductGrid } from "@/components/store/StorefrontProductGrid";
 import { getProductsForStorefront, getStorefrontDefinition, type StorefrontSlug } from "@/lib/storefrontCatalog";
+import { tiktokPlanningCategories, tiktokPlanningProducts } from "@/lib/tiktokPlanningCatalog";
 
 type Props = { storefront: StorefrontSlug };
 
 export function StorefrontPage({ storefront }: Props) {
   const definition = getStorefrontDefinition(storefront);
-  const products = getProductsForStorefront(storefront);
+  const products = storefront === "tiktok" ? tiktokPlanningProducts : getProductsForStorefront(storefront);
+  const categories = storefront === "tiktok" ? tiktokPlanningCategories : definition?.categories ?? ["All"];
   if (!definition) return null;
 
   return (
@@ -46,12 +48,12 @@ export function StorefrontPage({ storefront }: Props) {
 
           <aside className="rounded-3xl border border-cyan-500/20 bg-white/[0.035] p-7">
             <div className="flex items-start justify-between gap-4">
-              <div><div className="text-xs uppercase tracking-[0.2em] text-slate-500">Store status</div><div className="mt-2 text-2xl font-black text-white">{definition.status}</div></div>
+              <div><div className="text-xs uppercase tracking-[0.2em] text-slate-500">Store status</div><div className="mt-2 text-2xl font-black text-white">{storefront === "tiktok" ? "Catalog imported — validation pending" : definition.status}</div></div>
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-300"><BadgeCheck className="h-6 w-6" /></div>
             </div>
             <div className="mt-6 grid grid-cols-2 gap-4">
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4"><div className="text-xs uppercase tracking-widest text-slate-500">Products</div><div className="mt-2 text-3xl font-black text-white">{products.length}</div></div>
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4"><div className="text-xs uppercase tracking-widest text-slate-500">Categories</div><div className="mt-2 text-3xl font-black text-white">{Math.max(definition.categories.length - 1, 0)}</div></div>
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4"><div className="text-xs uppercase tracking-widest text-slate-500">Categories</div><div className="mt-2 text-3xl font-black text-white">{Math.max(categories.length - 1, 0)}</div></div>
             </div>
             <p className="mt-6 text-sm leading-relaxed text-slate-400">The GEM website remains the canonical product and support destination. External checkout appears only when an approved destination exists.</p>
           </aside>
@@ -61,8 +63,14 @@ export function StorefrontPage({ storefront }: Props) {
       <section id="products" className="container mx-auto max-w-7xl px-6 py-20">
         <Badge className="mb-4 rounded-full border border-white/10 bg-white/5 text-slate-300">{definition.name}</Badge>
         <h2 className="text-4xl font-black text-white">Products for this store</h2>
-        <p className="mt-4 max-w-3xl text-lg leading-relaxed text-slate-400">Search, filter, review pricing, open an approved checkout, or add products to a GEM order request.</p>
-        <div className="mt-10"><StorefrontProductGrid products={products} storefront={storefront} categories={definition.categories} /></div>
+        <p className="mt-4 max-w-3xl text-lg leading-relaxed text-slate-400">Search, filter, review pricing, open an approved checkout, or submit a product review request.</p>
+        {storefront === "tiktok" && (
+          <div className="mt-6 flex gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5 text-sm leading-relaxed text-amber-100">
+            <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0" />
+            <p>These 100 products came from the TikTok upload-planning workbook. All remain draft listings until real images, GTIN/UPC or exemption, physical inventory, category eligibility, shipping data, and TikTok Seller Center approval are confirmed.</p>
+          </div>
+        )}
+        <div className="mt-10"><StorefrontProductGrid products={products} storefront={storefront} categories={categories} /></div>
       </section>
     </main>
   );
