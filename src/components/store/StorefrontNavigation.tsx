@@ -1,13 +1,13 @@
+"use client";
+
 import Link from "next/link";
-import { storefrontDefinitions, type StorefrontSlug } from "@/lib/storefrontCatalog";
+import { usePathname } from "next/navigation";
+import { storefrontDefinitions } from "@/lib/storefrontCatalog";
 
-type StorefrontNavigationProps = {
-  active?: StorefrontSlug | "all";
-};
-
-export function StorefrontNavigation({ active = "all" }: StorefrontNavigationProps) {
+export function StorefrontNavigation() {
+  const pathname = usePathname();
   const links = [
-    { slug: "all" as const, label: "All Products", href: "/store" },
+    { slug: "all", label: "All Products", href: "/store" },
     ...storefrontDefinitions.map((storefront) => ({
       slug: storefront.slug,
       label: storefront.shortName,
@@ -16,11 +16,15 @@ export function StorefrontNavigation({ active = "all" }: StorefrontNavigationPro
   ];
 
   return (
-    <nav aria-label="Store sections" className="border-b border-white/10 bg-[#07101c]">
+    <nav aria-label="Store sections" className="sticky top-0 z-40 border-b border-white/10 bg-[#07101c]/95 backdrop-blur-xl">
       <div className="container mx-auto max-w-7xl overflow-x-auto px-6">
         <div className="flex min-w-max gap-2 py-4">
           {links.map((link) => {
-            const isActive = active === link.slug;
+            const isActive =
+              link.href === "/store"
+                ? pathname === "/store"
+                : pathname === link.href || pathname.startsWith(`${link.href}/`);
+
             return (
               <Link
                 key={link.slug}
