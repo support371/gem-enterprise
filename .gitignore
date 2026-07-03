@@ -39,3 +39,5 @@ bun.lockb
 
 # TypeScript build info
 *.tsbuildinfo
+.vercel
+.env*

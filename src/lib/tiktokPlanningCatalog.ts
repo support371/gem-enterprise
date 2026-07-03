@@ -12,7 +12,7 @@ const categoryMap: Record<string, string> = {
   "Event Supplies > Presentation & Signage": "Event Supplies",
   "Home Improvement > Safety & Security": "Home Safety",
   "Home Supplies > Organization": "Home Organization",
-  "Gifts > Gift Wrap & Accessories": "Client Gifts",
+  "Gift Wrap & Accessories": "Client Gifts",
   "Apparel & Accessories > Lifestyle Accessories": "Lifestyle"
 };
 
@@ -34,7 +34,7 @@ export const tiktokPlanningProducts: StorefrontProduct[] = (planningRows as Plan
     stockLabel: "Request access",
     storefronts: ["tiktok"],
     accent: accents[index % accents.length]
-  }))
+  })
 );
 
 export const tiktokPlanningCategories = [

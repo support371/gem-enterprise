@@ -14,6 +14,8 @@ export function StorefrontPage({ storefront }: Props) {
   const categories = storefront === "tiktok" ? tiktokPlanningCategories : definition?.categories ?? ["All"];
   if (!definition) return null;
 
+  const hasExternal = definition.externalUrl && definition.externalLabel;
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <section className="border-b border-white/10 bg-[#07101c]">
@@ -38,8 +40,8 @@ export function StorefrontPage({ storefront }: Props) {
               <Button asChild size="lg" className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-300">
                 <Link href="#products">Browse Products <ArrowRight className="ml-2 h-5 w-5" /></Link>
               </Button>
-              {definition.externalUrl && definition.externalLabel && (
-                <Button asChild size="lg" variant="outline" className="rounded-full border-white/20 px-8 text-white hover:bg-white/10">
+              {hasExternal && (
+                <Button asChild size="lg" variant="outline" className="rounded-full border-cyan-400/40 px-8 text-cyan-300 hover:bg-cyan-400/10">
                   <a href={definition.externalUrl} target="_blank" rel="noreferrer">{definition.externalLabel} <ExternalLink className="ml-2 h-5 w-5" /></a>
                 </Button>
               )}
@@ -55,6 +57,20 @@ export function StorefrontPage({ storefront }: Props) {
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4"><div className="text-xs uppercase tracking-widest text-slate-500">Products</div><div className="mt-2 text-3xl font-black text-white">{products.length}</div></div>
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4"><div className="text-xs uppercase tracking-widest text-slate-500">Categories</div><div className="mt-2 text-3xl font-black text-white">{Math.max(categories.length - 1, 0)}</div></div>
             </div>
+            {hasExternal && (
+              <div className="mt-6 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+                <div className="text-xs uppercase tracking-widest text-cyan-400">External destination</div>
+                <div className="mt-2 break-all text-sm font-semibold text-white">{definition.externalUrl}</div>
+                <a
+                  href={definition.externalUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-2 rounded-full bg-cyan-400 px-5 py-2 text-sm font-bold text-black transition-colors hover:bg-cyan-300"
+                >
+                  {definition.externalLabel} <ExternalLink className="h-4 w-4" />
+                </a>
+              </div>
+            )}
             <p className="mt-6 text-sm leading-relaxed text-slate-400">The GEM website remains the canonical product and support destination. External checkout appears only when an approved destination exists.</p>
           </aside>
         </div>
