@@ -1,14 +1,18 @@
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, ShoppingBag } from "lucide-react";
+import { ArrowRight, Package, ShieldCheck, ShoppingBag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { storeProducts } from "@/lib/storeCatalog";
+import { storefrontDefinitions, storefrontProducts } from "@/lib/storefrontCatalog";
 
-const channelHighlights = ["Shopify", "TikTok Shop", "Google Merchant", "TikTok Campaign Hub", "Wix Sync"];
+function formatMoney(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(value);
+}
 
 export function HomeStoreShowcase() {
-  const featuredProducts = storeProducts.slice(0, 3);
+  const featuredProducts = storefrontProducts.slice(0, 3);
 
   return (
     <section className="relative overflow-hidden border-y border-cyan-500/10 bg-[#08111d] py-24">
@@ -21,79 +25,63 @@ export function HomeStoreShowcase() {
         <div className="mb-12 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl">
             <Badge className="mb-4 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-xs uppercase tracking-widest text-cyan-300">
-              <ShoppingBag className="mr-2 h-3.5 w-3.5" />
-              GEM Unified Commerce Hub
+              <ShoppingBag className="mr-2 h-3.5 w-3.5" /> GEM Enterprise Store
             </Badge>
             <h2 className="text-4xl font-black text-white md:text-5xl">
-              One store architecture for every channel
+              All products, organized into dedicated store pages
             </h2>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
-              Browse the official GEM catalog, enter the dedicated Shopify storefront, or review TikTok, Google Merchant, and Wix channel readiness from one connected commerce experience.
+              Enter the Main Store for the complete catalog, or use Campaign Hub, TikTok Shop, Shopify, Google Merchant, and Wix Store as focused subpages inside the GEM website.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
-              {channelHighlights.map((channel) => (
-                <span key={channel} className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-200">
-                  {channel}
-                </span>
+              {storefrontDefinitions.map((storefront) => (
+                <Link
+                  key={storefront.slug}
+                  href={`/store/${storefront.slug}`}
+                  className="rounded-full border border-cyan-500/20 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-200 transition-colors hover:border-cyan-400/50 hover:text-white"
+                >
+                  {storefront.shortName}
+                </Link>
               ))}
             </div>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild size="lg" className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-300">
-              <Link href="/store/shopify">
-                Open Shopify Store <ArrowRight className="ml-2 h-5 w-5" />
+              <Link href="/store/main">
+                Open Main Store <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="rounded-full border-white/20 px-8 text-white hover:bg-white/10">
-              <Link href="/store#commerce-channels">View All Channels</Link>
+              <Link href="/store">View All Products</Link>
             </Button>
           </div>
         </div>
 
         <div className="grid gap-7 lg:grid-cols-3">
           {featuredProducts.map((product) => (
-            <Link
-              key={product.slug}
-              href={`/store/${product.slug}`}
-              className="group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] transition-all hover:-translate-y-1 hover:border-cyan-400/40 hover:bg-white/[0.045]"
+            <article
+              key={product.id}
+              className="rounded-2xl border border-white/10 bg-white/[0.025] p-6 transition-all hover:-translate-y-1 hover:border-cyan-400/40 hover:bg-white/[0.045]"
             >
-              <div className="relative h-52 overflow-hidden">
-                <Image
-                  src={product.image}
-                  alt={`${product.name} from GEM Enterprise`}
-                  fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#08111d] via-[#08111d]/30 to-transparent" />
-                <Badge className="absolute left-4 top-4 rounded-full border border-cyan-500/30 bg-[#08111d]/80 text-cyan-300 backdrop-blur">
-                  {product.category}
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-300">
+                  {product.deliveryType === "Digital" ? <ShieldCheck className="h-6 w-6" /> : <Package className="h-6 w-6" />}
+                </div>
+                <Badge className="rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+                  {product.stockLabel}
                 </Badge>
               </div>
-
-              <div className="p-6">
-                <h3 className="text-xl font-bold text-white transition-colors group-hover:text-cyan-300">
-                  {product.name}
-                </h3>
-                <p className="mt-3 min-h-20 text-sm leading-relaxed text-slate-400">
-                  {product.shortDescription}
-                </p>
-                <div className="mt-5 flex items-center gap-2 text-sm text-slate-300">
-                  <CheckCircle2 className="h-4 w-4 text-cyan-400" />
-                  {product.delivery}
-                </div>
-                <div className="mt-4 flex flex-wrap gap-1.5">
-                  {product.commerceChannels.slice(0, 3).map((channel) => (
-                    <span key={channel} className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[11px] text-slate-400">
-                      {channel}
-                    </span>
-                  ))}
-                </div>
-                <div className="mt-6 flex items-center font-semibold text-cyan-300">
-                  View solution <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </div>
+              <h3 className="mt-6 text-xl font-bold text-white">{product.name}</h3>
+              <p className="mt-3 min-h-20 text-sm leading-relaxed text-slate-400">{product.shortDescription}</p>
+              <div className="mt-5 text-2xl font-black text-cyan-300">{formatMoney(product.price)}</div>
+              <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-5">
+                <span className="text-xs uppercase tracking-widest text-slate-500">{product.sku}</span>
+                <Link href="/store/main" className="inline-flex items-center font-semibold text-cyan-300 hover:text-cyan-200">
+                  View product <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
               </div>
-            </Link>
+            </article>
           ))}
         </div>
       </div>
