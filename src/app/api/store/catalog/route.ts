@@ -1,20 +1,39 @@
 import { NextResponse } from "next/server";
 import { commerceChannels, storeProducts } from "@/lib/storeCatalog";
+import { storefrontDefinitions, storefrontProducts } from "@/lib/storefrontCatalog";
+
+const origin = "https://www.gemcybersecurityassist.com";
 
 export async function GET() {
   return NextResponse.json({
     ok: true,
     brand: "GEM Enterprise",
-    store_url: "https://www.gemcybersecurityassist.com/store",
-    architecture: "unified-commerce-hub",
-    channels: commerceChannels.map((channel) => ({
+    store_url: `${origin}/store`,
+    architecture: "parent-store-with-dedicated-subpages",
+    storefronts: storefrontDefinitions.map((storefront) => ({
+      ...storefront,
+      page_url: `${origin}/store/${storefront.slug}`,
+      external_url: storefront.externalUrl ?? null,
+      product_count: storefrontProducts.filter((product) =>
+        product.storefronts.includes(storefront.slug),
+      ).length,
+    })),
+    marketplace_products: storefrontProducts.map((product) => ({
+      ...product,
+      store_pages: product.storefronts.map((storefront) =>
+        `${origin}/store/${storefront}`,
+      ),
+      checkout_url: product.checkoutUrl ?? null,
+      inquiry_url: `${origin}/contact?product=${encodeURIComponent(product.name)}`,
+    })),
+    service_channels: commerceChannels.map((channel) => ({
       slug: channel.slug,
       name: channel.name,
       status: channel.status,
       summary: channel.summary,
       purpose: channel.purpose,
-      owner_page: `https://www.gemcybersecurityassist.com${channel.ownerPage}`,
-      channel_page: `https://www.gemcybersecurityassist.com${channel.channelPage}`,
+      owner_page: `${origin}${channel.ownerPage}`,
+      channel_page: `${origin}${channel.channelPage}`,
       canonical_url: channel.canonicalUrl ?? null,
       public_cta_label: channel.publicCtaLabel,
       status_details: channel.statusDetails,
@@ -22,7 +41,7 @@ export async function GET() {
       actions: channel.actions,
       agent_notes: channel.agentNotes,
     })),
-    products: storeProducts.map((product) => ({
+    service_products: storeProducts.map((product) => ({
       slug: product.slug,
       name: product.name,
       category: product.category,
@@ -38,12 +57,12 @@ export async function GET() {
         ...item,
         actionUrl: item.actionUrl.startsWith("http")
           ? item.actionUrl
-          : `https://www.gemcybersecurityassist.com${item.actionUrl}`,
+          : `${origin}${item.actionUrl}`,
       })),
       integration_targets: product.integrationTargets.map(
-        (target) => `https://www.gemcybersecurityassist.com${target}`,
+        (target) => `${origin}${target}`,
       ),
-      product_url: `https://www.gemcybersecurityassist.com/store/${product.slug}`,
+      product_url: `${origin}/store/${product.slug}`,
       checkout_url: product.checkoutUrl ?? null,
       image_url: product.image,
       featured: Boolean(product.featured),
