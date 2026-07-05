@@ -1,6 +1,9 @@
-name: Deploy to Vercel Production
+name: Validate and deploy GEM Enterprise
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -10,8 +13,8 @@ permissions:
   contents: read
 
 jobs:
-  deploy:
-    name: Deploy to Vercel
+  validate:
+    name: Validate application
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,8 +37,47 @@ jobs:
           POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost/gem
           POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost/gem
 
-      - name: Deploy to Vercel Production
-        run: npx vercel --prod --token $VERCEL_TOKEN --yes
+      - name: Validate multilingual dictionaries
+        env:
+          I18N_STRICT: 'true'
+        run: pnpm exec tsx scripts/validate-i18n.ts
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Test
+        run: pnpm run test
+
+      - name: Build
+        run: pnpm run build
+        env:
+          POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost/gem
+          POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost/gem
+          JWT_SECRET: ci-only-secret-at-least-32-characters-long
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+  deploy:
+    name: Deploy to Vercel production
+    needs: validate
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy to Vercel production
+        run: npx vercel --prod --token "$VERCEL_TOKEN" --yes
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
