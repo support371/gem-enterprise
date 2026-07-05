@@ -1,18 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 type FormState = "idle" | "loading" | "success" | "error";
 
-function ResetPasswordForm() {
-  const searchParams = useSearchParams();
-  const token = useMemo(() => searchParams.get("token") ?? "", [searchParams]);
+export default function ResetPasswordPage() {
+  const [token, setToken] = useState("");
+  const [tokenLoaded, setTokenLoaded] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [state, setState] = useState<FormState>("idle");
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const fragment = window.location.hash.replace(/^#/, "");
+    const fragmentToken = new URLSearchParams(fragment).get("token") ?? "";
+    setToken(fragmentToken);
+    setTokenLoaded(true);
+
+    if (window.location.hash) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+
+    if (!fragmentToken) {
+      setState("error");
+      setMessage("This password reset link is missing its security token.");
+    }
+  }, []);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,7 +50,10 @@ function ResetPasswordForm() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ token, newPassword }),
       });
-      const data = (await response.json().catch(() => ({}))) as { error?: string; message?: string };
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        message?: string;
+      };
       if (!response.ok) {
         setState("error");
         setMessage(data.error ?? "The password could not be reset.");
@@ -43,6 +61,7 @@ function ResetPasswordForm() {
       }
       setState("success");
       setMessage(data.message ?? "Your password has been reset.");
+      setToken("");
       setNewPassword("");
       setConfirmPassword("");
     } catch {
@@ -89,7 +108,7 @@ function ResetPasswordForm() {
               />
             </label>
             <button
-              disabled={state === "loading" || !token}
+              disabled={state === "loading" || !tokenLoaded || !token}
               className="w-full rounded-xl bg-cyan-300 px-4 py-3 font-semibold text-slate-950 disabled:opacity-60"
             >
               {state === "loading" ? "Updating…" : "Reset password"}
@@ -117,13 +136,5 @@ function ResetPasswordForm() {
         </p>
       </div>
     </section>
-  );
-}
-
-export default function ResetPasswordPage() {
-  return (
-    <Suspense fallback={<section className="mx-auto max-w-xl px-4 py-24 text-slate-300">Loading reset form…</section>}>
-      <ResetPasswordForm />
-    </Suspense>
   );
 }
