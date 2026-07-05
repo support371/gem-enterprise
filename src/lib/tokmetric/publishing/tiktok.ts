@@ -18,6 +18,9 @@ const errorSchema = z.object({
   logid: z.string().optional(),
 });
 
+type TikTokError = z.infer<typeof errorSchema>;
+type TikTokEnvelope = { error: TikTokError };
+
 const creatorInfoSchema = z.object({
   data: z.object({
     creator_avatar_url: z.string().nullable().optional(),
@@ -77,13 +80,14 @@ async function callTikTok<T extends z.ZodTypeAny>(
     throw new TokMetricError(502, "TIKTOK_INVALID_RESPONSE", "TikTok returned an unexpected response.");
   }
 
-  if (!response.ok || parsed.data.error.code !== "ok") {
-    const code = parsed.data.error.code || "unknown_error";
+  const data = parsed.data as z.infer<T> & TikTokEnvelope;
+  if (!response.ok || data.error.code !== "ok") {
+    const code = data.error.code || "unknown_error";
     const status = response.status === 401 ? 401 : response.status === 429 ? 429 : 502;
-    throw new TokMetricError(status, `TIKTOK_${code.toUpperCase()}`, parsed.data.error.message || "TikTok rejected the request.");
+    throw new TokMetricError(status, `TIKTOK_${code.toUpperCase()}`, data.error.message || "TikTok rejected the request.");
   }
 
-  return parsed.data;
+  return data;
 }
 
 export async function queryTikTokCreatorInfo(accessToken: string): Promise<TikTokCreatorInfo> {
