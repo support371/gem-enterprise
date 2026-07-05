@@ -8,6 +8,8 @@ import { rateLimit, rateLimitedResponse } from "@/lib/api/rate-limit";
 import { sendMail } from "@/lib/mail/send";
 import { createPasswordResetToken } from "@/lib/passwordReset";
 
+const DEFAULT_APP_URL = "https://www.gemcybersecurityassist.com";
+
 const forgotPasswordSchema = z.object({
   email: z.string().trim().email("Enter a valid email address.").max(254),
 });
@@ -21,10 +23,13 @@ function emailBucket(email: string): string {
   return createHash("sha256").update(email).digest("hex");
 }
 
-function appBaseUrl(request: NextRequest): string {
-  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (configured) return configured.replace(/\/$/, "");
-  return request.nextUrl.origin;
+function appBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim() || DEFAULT_APP_URL;
+  const parsed = new URL(configured);
+  if (process.env.NODE_ENV === "production" && parsed.protocol !== "https:") {
+    throw new Error("NEXT_PUBLIC_APP_URL must use HTTPS in production.");
+  }
+  return parsed.toString().replace(/\/$/, "");
 }
 
 export async function POST(request: NextRequest) {
@@ -82,7 +87,7 @@ export async function POST(request: NextRequest) {
         email: user.email,
         passwordHash: user.passwordHash,
       });
-      const resetUrl = new URL("/reset-password", appBaseUrl(request));
+      const resetUrl = new URL("/reset-password", appBaseUrl());
       resetUrl.searchParams.set("token", token);
       const result = await sendMail({
         to: user.email,
