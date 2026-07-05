@@ -3,13 +3,13 @@ import {
   calculateTikTokChunkPlan,
   chunkByteRange,
 } from "@/lib/tokmetric/publishing/types";
+import { getTokMetricPublishingGate } from "@/lib/tokmetric/publishing/gates";
 import { validateVerifiedMediaUrl } from "@/lib/tokmetric/publishing/service";
 
-const originalHosts = process.env.TOKMETRIC_VERIFIED_MEDIA_HOSTS;
+const originalEnv = { ...process.env };
 
 afterEach(() => {
-  if (originalHosts === undefined) delete process.env.TOKMETRIC_VERIFIED_MEDIA_HOSTS;
-  else process.env.TOKMETRIC_VERIFIED_MEDIA_HOSTS = originalHosts;
+  process.env = { ...originalEnv };
 });
 
 describe("TikTok video upload planning", () => {
@@ -56,6 +56,37 @@ describe("TikTok video upload planning", () => {
 
   it("rejects files larger than TikTok's 4 GB maximum", () => {
     expect(() => calculateTikTokChunkPlan(4 * 1024 * 1024 * 1024 + 1)).toThrow(/4 GB/);
+  });
+});
+
+describe("TikTok publishing activation gates", () => {
+  it("does not let the production flag activate a sandbox environment", () => {
+    process.env.TIKTOK_ENVIRONMENT = "sandbox";
+    process.env.TOKMETRIC_LIVE_PUBLISHING_ENABLED = "true";
+    process.env.TOKMETRIC_SANDBOX_PUBLISHING_ENABLED = "false";
+    const gate = getTokMetricPublishingGate();
+    expect(gate.enabled).toBe(false);
+    expect(gate.configurationMismatch).toBe(true);
+  });
+
+  it("does not let the sandbox flag activate a production environment", () => {
+    process.env.TIKTOK_ENVIRONMENT = "production";
+    process.env.TOKMETRIC_LIVE_PUBLISHING_ENABLED = "false";
+    process.env.TOKMETRIC_SANDBOX_PUBLISHING_ENABLED = "true";
+    const gate = getTokMetricPublishingGate();
+    expect(gate.enabled).toBe(false);
+    expect(gate.configurationMismatch).toBe(true);
+  });
+
+  it("activates only the matching sandbox gate", () => {
+    process.env.TIKTOK_ENVIRONMENT = "sandbox";
+    process.env.TOKMETRIC_LIVE_PUBLISHING_ENABLED = "false";
+    process.env.TOKMETRIC_SANDBOX_PUBLISHING_ENABLED = "true";
+    expect(getTokMetricPublishingGate()).toMatchObject({
+      environment: "sandbox",
+      enabled: true,
+      mode: "sandbox",
+    });
   });
 });
 
