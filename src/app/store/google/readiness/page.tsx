@@ -152,12 +152,12 @@ export default function GoogleMerchantReadinessPage() {
             </dl>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <Button asChild className="bg-cyan-400 font-semibold text-black hover:bg-cyan-300">
-                <a href={feedUrl} target="_blank" rel="noreferrer">
+                <a href={feedUrl} target="_blank" rel="noopener noreferrer">
                   Open expected feed <ExternalLink className="ml-2 h-4 w-4" />
                 </a>
               </Button>
               <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                <a href="/api/google-merchant/readiness" target="_blank" rel="noreferrer">
+                <a href="/api/google-merchant/readiness" target="_blank" rel="noopener noreferrer">
                   Open readiness JSON
                 </a>
               </Button>
