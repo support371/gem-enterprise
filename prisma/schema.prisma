@@ -141,56 +141,69 @@ enum MeetingStatus {
 // ─── Core Models ──────────────────────────────────────────────────────────────
 
 model User {
-  id              String      @id @default(cuid())
-  email           String      @unique
+  id              String     @id @default(cuid())
+  email           String     @unique
   passwordHash    String
-  role            UserRole    @default(client)
-  status          UserStatus  @default(active)
+  role            UserRole   @default(client)
+  status          UserStatus @default(active)
   organizationId  String?
   lastLoginAt     DateTime?
-  isActive        Boolean     @default(true)
-  isEmailVerified Boolean     @default(false)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  isActive        Boolean    @default(true)
+  isEmailVerified Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
-  profile         Profile?
-  kycApplications KYCApplication[]
-  notifications   Notification[]
-  auditLogs       AuditLog[]
-  portfolioMemberships PortfolioMembership[]
-  entitlements    Entitlement[]
-  tickets            SupportTicket[]
-  requests           ServiceRequest[]
-  apiKeys            ApiKey[]
-  meetingRequests    MeetingRequest[] @relation("MeetingRequests")
+  profile                   Profile?
+  kycApplications           KYCApplication[]
+  notifications             Notification[]
+  auditLogs                 AuditLog[]
+  portfolioMemberships      PortfolioMembership[]
+  entitlements              Entitlement[]
+  tickets                   SupportTicket[]
+  requests                  ServiceRequest[]
+  apiKeys                   ApiKey[]
+  meetingRequests           MeetingRequest[]            @relation("MeetingRequests")
+  WorkspaceMember           WorkspaceMember[]
+  Campaign                  Campaign[]
+  CampaignVersion           CampaignVersion[]
+  Content                   Content[]
+  ContentVersion            ContentVersion[]
+  MediaAsset                MediaAsset[]
+  CompliancePolicyVersion   CompliancePolicyVersion[]
+  ComplianceReview          ComplianceReview[]
+  ApprovalRequest           ApprovalRequest[]
+  ApprovalDecision          ApprovalDecision[]
+  PublishJob                PublishJob[]
+  AuditEvent                AuditEvent[]
+  OAuthAuthorizationAttempt OAuthAuthorizationAttempt[]
 
   @@map("users")
 }
 
 model Profile {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  firstName   String?
-  lastName    String?
-  displayName String?
-  avatarUrl   String?
-  bio         String?
-  country     String?
-  phone       String?
-  entityType  EntityType?
-  accreditedStatus Boolean? @default(false)
-  preferences Json?    @default("{}")
-  updatedAt   DateTime @updatedAt
+  id               String      @id @default(cuid())
+  userId           String      @unique
+  firstName        String?
+  lastName         String?
+  displayName      String?
+  avatarUrl        String?
+  bio              String?
+  country          String?
+  phone            String?
+  entityType       EntityType?
+  accreditedStatus Boolean?    @default(false)
+  preferences      Json?       @default("{}")
+  updatedAt        DateTime    @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
 }
 
 model KYCApplication {
-  id              String   @id @default(cuid())
+  id              String     @id @default(cuid())
   userId          String
-  status          KYCStatus @default(not_started)
+  status          KYCStatus  @default(not_started)
   entityType      EntityType @default(individual)
   data            Json?
   formData        Json?
@@ -200,70 +213,70 @@ model KYCApplication {
   reviewerId      String?
   rejectionReason String?
   reviewNotes     String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  decision        Decision?
-  documents       KycDocument[]
-  reviews         KYCReview[]
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  decision  Decision?
+  documents KycDocument[]
+  reviews   KYCReview[]
 
   @@map("kyc_applications")
 }
 
 model KycDocument {
-  id              String   @id @default(cuid())
-  applicationId   String
-  documentType    String
-  storagePath     String
-  fileName        String
-  fileSize        Int
-  mimeType        String
-  status          String   @default("pending")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            String   @id @default(cuid())
+  applicationId String
+  documentType  String
+  storagePath   String
+  fileName      String
+  fileSize      Int
+  mimeType      String
+  status        String   @default("pending")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  application     KYCApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application KYCApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   @@map("kyc_documents")
 }
 
 model Decision {
-  id              String   @id @default(cuid())
-  applicationId   String   @unique
-  decision        String
-  decisionBy      String
-  decisionAt      DateTime @default(now())
-  reason          String?
+  id            String   @id @default(cuid())
+  applicationId String   @unique
+  decision      String
+  decisionBy    String
+  decisionAt    DateTime @default(now())
+  reason        String?
 
-  application     KYCApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application KYCApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   @@map("decisions")
 }
 
 model KYCReview {
-  id              String   @id @default(cuid())
-  applicationId   String
-  reviewerId      String
-  action          String
-  notes           String?
-  createdAt       DateTime @default(now())
+  id            String   @id @default(cuid())
+  applicationId String
+  reviewerId    String
+  action        String
+  notes         String?
+  createdAt     DateTime @default(now())
 
-  application     KYCApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  application KYCApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   @@map("kyc_reviews")
 }
 
 model Entitlement {
-  id          String   @id @default(cuid())
-  userId      String
-  slug        String
-  isActive    Boolean  @default(true)
-  grantedBy   String?
-  grantedAt   DateTime @default(now())
-  notes       String?
+  id        String   @id @default(cuid())
+  userId    String
+  slug      String
+  isActive  Boolean  @default(true)
+  grantedBy String?
+  grantedAt DateTime @default(now())
+  notes     String?
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, slug])
   @@map("entitlements")
@@ -305,51 +318,51 @@ model PortfolioMembership {
   assignedBy  String?
   assignedAt  DateTime @default(now())
 
-  portfolio   Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  portfolio Portfolio @relation(fields: [portfolioId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([portfolioId, userId])
   @@map("portfolio_memberships")
 }
 
 model SupportTicket {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   userId      String
   subject     String
   description String
-  status      TicketStatus @default(open)
+  status      TicketStatus    @default(open)
   priority    RequestPriority @default(medium)
   assignedTo  String?
   resolvedAt  DateTime?
   closedAt    DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("support_tickets")
 }
 
 model ServiceRequest {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   userId      String
   type        String
   subject     String
   description String
-  status      RequestStatus @default(open)
+  status      RequestStatus   @default(open)
   priority    RequestPriority @default(medium)
   assignedTo  String?
   resolvedAt  DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("requests")
 }
 
 model SupportBooking {
-  id          String   @id @default(cuid())
+  id          String        @id @default(cuid())
   sessionId   String?
   userId      String?
   name        String
@@ -358,75 +371,77 @@ model SupportBooking {
   preferredAt DateTime?
   status      BookingStatus @default(pending)
   notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  session     SupportSession? @relation(fields: [sessionId], references: [id])
+  session SupportSession? @relation(fields: [sessionId], references: [id])
 
   @@map("support_bookings")
 }
 
 model SupportEscalation {
-  id          String   @id @default(cuid())
-  sessionId   String
-  reason      String
-  queue       String?
-  resolvedAt  DateTime?
-  createdAt   DateTime @default(now())
+  id         String    @id @default(cuid())
+  sessionId  String
+  reason     String
+  queue      String?
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
 
-  session     SupportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session SupportSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@map("support_escalations")
 }
 
 model Notification {
-  id          String    @id @default(cuid())
-  userId      String
-  title       String
-  body        String
-  channel     NotificationChannel @default(in_app)
-  isRead      Boolean   @default(false)
-  readAt      DateTime?
-  data        Json?
-  createdAt   DateTime  @default(now())
+  id        String              @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  channel   NotificationChannel @default(in_app)
+  isRead    Boolean             @default(false)
+  readAt    DateTime?
+  data      Json?
+  createdAt DateTime            @default(now())
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Workspace   Workspace? @relation(fields: [workspaceId], references: [id])
+  workspaceId String?
 
   @@map("notifications")
 }
 
 model AuditLog {
-  id          String   @id @default(cuid())
-  userId      String?
-  action      AuditAction
-  resource    String?
-  resourceId  String?
-  metadata    Json?
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime @default(now())
+  id         String      @id @default(cuid())
+  userId     String?
+  action     AuditAction
+  resource   String?
+  resourceId String?
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
 
-  user        User?    @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 
   @@map("audit_logs")
 }
 
 model AiRun {
-  id                   String    @id @default(cuid())
-  profileId            String
-  modelVersion         String
-  promptClass          String    @default("GENERAL")
-  consentReceiptId     String
-  disclosureTextHash   String
-  transcriptPointer    String?
-  escalationTriggered  Boolean   @default(false)
-  escalationReason     String?
-  outputStatus         String    @default("open")
-  messageCount         Int       @default(0)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  id                  String   @id @default(cuid())
+  profileId           String
+  modelVersion        String
+  promptClass         String   @default("GENERAL")
+  consentReceiptId    String
+  disclosureTextHash  String
+  transcriptPointer   String?
+  escalationTriggered Boolean  @default(false)
+  escalationReason    String?
+  outputStatus        String   @default("open")
+  messageCount        Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  consentRecord        ConsentRecord?
+  consentRecord ConsentRecord?
 
   @@map("ai_runs")
 }
@@ -440,83 +455,83 @@ model ConsentRecord {
   ipAddress          String?
   userAgent          String?
 
-  aiRun              AiRun    @relation(fields: [aiRunId], references: [id], onDelete: Cascade)
+  aiRun AiRun @relation(fields: [aiRunId], references: [id], onDelete: Cascade)
 
   @@map("consent_records")
 }
 
 model NewsSource {
-  id            String       @id @default(cuid())
-  name          String
-  slug          String       @unique
-  feedUrl       String       @unique
-  siteUrl       String?
-  category      NewsCategory
-  description   String?
-  isActive      Boolean      @default(true)
-  pollIntervalMinutes Int    @default(360)
-  lastFetchedAt DateTime?
-  lastSuccessAt DateTime?
-  lastErrorAt   DateTime?
-  lastError     String?
-  consecutiveFailures Int    @default(0)
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  id                  String       @id @default(cuid())
+  name                String
+  slug                String       @unique
+  feedUrl             String       @unique
+  siteUrl             String?
+  category            NewsCategory
+  description         String?
+  isActive            Boolean      @default(true)
+  pollIntervalMinutes Int          @default(360)
+  lastFetchedAt       DateTime?
+  lastSuccessAt       DateTime?
+  lastErrorAt         DateTime?
+  lastError           String?
+  consecutiveFailures Int          @default(0)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
 
-  articles      NewsArticle[]
+  articles NewsArticle[]
 
   @@map("news_sources")
 }
 
 model NewsArticle {
-  id             String            @id @default(cuid())
+  id             String       @id @default(cuid())
   sourceId       String?
-  externalGuid   String            @unique
+  externalGuid   String       @unique
   externalUrl    String
-  slug           String            @unique
+  slug           String       @unique
   title          String
   summary        String?
   aiSummary      String?
   body           String?
   category       NewsCategory
-  tags           String[]          @default([])
+  tags           String[]     @default([])
   author         String?
-  mediaType      String            @default("none")
+  mediaType      String       @default("none")
   imageUrl       String?
   imageAlt       String?
   videoUrl       String?
   videoThumbnail String?
   videoProvider  String?
-  status         String            @default("published")
-  isFeatured     Boolean           @default(false)
-  isEditorsPick  Boolean           @default(false)
-  relevanceScore Int               @default(0)
+  status         String       @default("published")
+  isFeatured     Boolean      @default(false)
+  isEditorsPick  Boolean      @default(false)
+  relevanceScore Int          @default(0)
   publishedAt    DateTime
-  ingestedAt     DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  ingestedAt     DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-  source         NewsSource?       @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  source NewsSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
 
   @@map("news_articles")
 }
 
 model NewsIngestionRun {
-  id               String   @id @default(cuid())
-  status           String   @default("running")
+  id               String    @id @default(cuid())
+  status           String    @default("running")
   triggeredBy      String
-  sourcesAttempted Int      @default(0)
-  sourcesSucceeded Int      @default(0)
-  sourcesFailed    Int      @default(0)
-  articlesFound    Int      @default(0)
-  articlesCreated  Int      @default(0)
-  articlesUpdated  Int      @default(0)
-  articlesSkipped  Int      @default(0)
-  aiEnrichments    Int      @default(0)
-  aiFailures       Int      @default(0)
+  sourcesAttempted Int       @default(0)
+  sourcesSucceeded Int       @default(0)
+  sourcesFailed    Int       @default(0)
+  articlesFound    Int       @default(0)
+  articlesCreated  Int       @default(0)
+  articlesUpdated  Int       @default(0)
+  articlesSkipped  Int       @default(0)
+  aiEnrichments    Int       @default(0)
+  aiFailures       Int       @default(0)
   durationMs       Int?
   errorSummary     String?
   metadata         Json?
-  startedAt        DateTime @default(now())
+  startedAt        DateTime  @default(now())
   completedAt      DateTime?
 
   @@map("news_ingestion_runs")
@@ -532,24 +547,24 @@ model ApiKey {
   revokedAt  DateTime?
   createdAt  DateTime  @default(now())
 
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("api_keys")
 }
 
 model SupportSession {
-  id            String               @id @default(cuid())
-  userId        String?
-  userTier      String               @default("standard")
-  status        SupportSessionStatus @default(active)
-  consentGiven  Boolean              @default(false)
-  consentAt     DateTime?
-  messages      Json                 @default("[]")
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
+  id           String               @id @default(cuid())
+  userId       String?
+  userTier     String               @default("standard")
+  status       SupportSessionStatus @default(active)
+  consentGiven Boolean              @default(false)
+  consentAt    DateTime?
+  messages     Json                 @default("[]")
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
 
-  bookings      SupportBooking[]
-  escalations   SupportEscalation[]
+  bookings    SupportBooking[]
+  escalations SupportEscalation[]
 
   @@map("support_sessions")
 }
@@ -585,4 +600,580 @@ model MeetingRequest {
   updatedAt   DateTime      @updatedAt
 
   @@map("meeting_requests")
+}
+
+// ─── TokMetric Production Foundation Models ─────────────────────────────────
+
+enum TokMetricConnectorProvider {
+  TIKTOK_LOGIN_KIT
+  TIKTOK_DISPLAY_API
+  TIKTOK_CONTENT_POSTING_API
+  TIKTOK_BUSINESS_API
+  TIKTOK_SHOP_SELLER
+  TIKTOK_SHOP_CREATOR
+}
+
+enum TokMetricConnectorState {
+  NOT_CONFIGURED
+  AUTHORIZATION_REQUIRED
+  AUTHORIZATION_PENDING
+  CONNECTED
+  DEGRADED
+  TOKEN_EXPIRED
+  REAUTHORIZATION_REQUIRED
+  DISCONNECTED
+  PLATFORM_APPROVAL_REQUIRED
+  BLOCKED
+}
+
+enum TokMetricObjectState {
+  DRAFT
+  REVIEW_READY
+  APPROVAL_REQUIRED
+  APPROVED
+  REJECTED
+  REVOKED
+  EXPIRED
+  BLOCKED
+  ARCHIVED
+}
+
+enum TokMetricPolicyResult {
+  PASS
+  PASS_WITH_DISCLOSURE
+  CHANGES_REQUIRED
+  HUMAN_REVIEW_REQUIRED
+  BLOCKED
+}
+
+enum TokMetricPublishState {
+  QUEUED
+  RUNNING
+  RETRYING
+  WAITING_FOR_APPROVAL
+  WAITING_FOR_EXTERNAL_AUTHORIZATION
+  WAITING_FOR_PLATFORM
+  COMPLETED
+  FAILED
+  CANCELLED
+  BLOCKED
+}
+
+enum TokMetricExternalPublishState {
+  NOT_SUBMITTED
+  UPLOAD_INITIALIZED
+  UPLOADED
+  PROCESSING
+  PUBLISHED_CONFIRMED
+  FAILED
+  UNKNOWN
+}
+
+enum TokMetricAnalyticsSource {
+  LIVE_PLATFORM
+  IMPORTED
+  MANUAL
+  SEEDED
+  CALCULATED
+  UNKNOWN
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  status      String   @default("active")
+  billingPlan String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspaces      Workspace[]
+  serviceAccounts ServiceAccount[]
+
+  @@map("tokmetric_organizations")
+}
+
+model Workspace {
+  id                  String   @id @default(cuid())
+  organizationId      String
+  name                String
+  slug                String
+  globalEmergencyLock Boolean  @default(false)
+  publishingDisabled  Boolean  @default(true)
+  advertisingDisabled Boolean  @default(true)
+  shopWriteDisabled   Boolean  @default(true)
+  connectorDisabled   Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organization               Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members                    WorkspaceMember[]
+  connectors                 Connector[]
+  campaigns                  Campaign[]
+  contents                   Content[]
+  mediaAssets                MediaAsset[]
+  compliancePolicies         CompliancePolicy[]
+  complianceReviews          ComplianceReview[]
+  approvalRequests           ApprovalRequest[]
+  publishJobs                PublishJob[]
+  analyticsSnapshots         AnalyticsSnapshot[]
+  webhookEvents              WebhookEvent[]
+  domainEvents               DomainEvent[]
+  auditEvents                AuditEvent[]
+  notifications              Notification[]
+  idempotencyRecords         IdempotencyRecord[]
+  oauthAuthorizationAttempts OAuthAuthorizationAttempt[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@map("tokmetric_workspaces")
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  roleId      String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role?     @relation(fields: [roleId], references: [id])
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@map("tokmetric_workspace_members")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  workspaceId String?
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  permissions Permission[]
+  members     WorkspaceMember[]
+
+  @@unique([workspaceId, name])
+  @@map("tokmetric_roles")
+}
+
+model Permission {
+  id        String   @id @default(cuid())
+  roleId    String
+  action    String
+  scope     String
+  createdAt DateTime @default(now())
+
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, action, scope])
+  @@map("tokmetric_permissions")
+}
+
+model ServiceAccount {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@map("tokmetric_service_accounts")
+}
+
+model Connector {
+  id                String                     @id @default(cuid())
+  workspaceId       String
+  provider          TokMetricConnectorProvider
+  state             TokMetricConnectorState    @default(NOT_CONFIGURED)
+  displayName       String
+  externalAccountId String?
+  grantedScopes     String[]                   @default([])
+  disabledAt        DateTime?
+  lastHealthAt      DateTime?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+
+  workspace            Workspace                      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  credentialReferences ConnectorCredentialReference[]
+  publishJobs          PublishJob[]
+
+  @@unique([workspaceId, provider, externalAccountId])
+  @@index([workspaceId, state])
+  @@map("tokmetric_connectors")
+}
+
+model ConnectorCredentialReference {
+  id            String    @id @default(cuid())
+  connectorId   String
+  referenceType String
+  secretRef     String
+  expiresAt     DateTime?
+  rotatedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  connector Connector @relation(fields: [connectorId], references: [id], onDelete: Cascade)
+
+  @@unique([connectorId, referenceType])
+  @@map("tokmetric_connector_credential_references")
+}
+
+model Campaign {
+  id               String               @id @default(cuid())
+  workspaceId      String
+  ownerId          String?
+  title            String
+  state            TokMetricObjectState @default(DRAFT)
+  currentVersionId String?              @unique
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  workspace Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner     User?             @relation(fields: [ownerId], references: [id])
+  versions  CampaignVersion[]
+  contents  Content[]
+
+  @@index([workspaceId, state])
+  @@map("tokmetric_campaigns")
+}
+
+model CampaignVersion {
+  id          String   @id @default(cuid())
+  campaignId  String
+  version     Int
+  objectHash  String
+  payload     Json
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  campaign  Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  createdBy User?    @relation(fields: [createdById], references: [id])
+
+  @@unique([campaignId, version])
+  @@unique([campaignId, objectHash])
+  @@map("tokmetric_campaign_versions")
+}
+
+model Content {
+  id               String               @id @default(cuid())
+  workspaceId      String
+  campaignId       String?
+  ownerId          String?
+  title            String
+  state            TokMetricObjectState @default(DRAFT)
+  currentVersionId String?              @unique
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  workspace   Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  campaign    Campaign?          @relation(fields: [campaignId], references: [id])
+  owner       User?              @relation(fields: [ownerId], references: [id])
+  versions    ContentVersion[]
+  reviews     ComplianceReview[]
+  approvals   ApprovalRequest[]
+  publishJobs PublishJob[]
+
+  @@index([workspaceId, state])
+  @@map("tokmetric_contents")
+}
+
+model ContentVersion {
+  id            String   @id @default(cuid())
+  contentId     String
+  version       Int
+  objectHash    String
+  script        String?
+  caption       String?
+  hashtags      String[] @default([])
+  settings      Json     @default("{}")
+  mediaAssetIds String[] @default([])
+  createdById   String?
+  createdAt     DateTime @default(now())
+
+  content          Content            @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  createdBy        User?              @relation(fields: [createdById], references: [id])
+  reviews          ComplianceReview[]
+  approvalRequests ApprovalRequest[]
+  publishJobs      PublishJob[]
+
+  @@unique([contentId, version])
+  @@unique([contentId, objectHash])
+  @@map("tokmetric_content_versions")
+}
+
+model MediaAsset {
+  id          String   @id @default(cuid())
+  workspaceId String
+  ownerId     String?
+  version     Int      @default(1)
+  objectHash  String
+  fileName    String
+  mimeType    String
+  fileSize    Int
+  checksum    String
+  storageRef  String
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  owner     User?     @relation(fields: [ownerId], references: [id])
+
+  @@unique([workspaceId, checksum, version])
+  @@map("tokmetric_media_assets")
+}
+
+model CompliancePolicy {
+  id               String   @id @default(cuid())
+  workspaceId      String
+  name             String
+  state            String   @default("active")
+  currentVersionId String?  @unique
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  workspace Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  versions  CompliancePolicyVersion[]
+
+  @@unique([workspaceId, name])
+  @@map("tokmetric_compliance_policies")
+}
+
+model CompliancePolicyVersion {
+  id          String   @id @default(cuid())
+  policyId    String
+  version     Int
+  objectHash  String
+  rules       Json
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  policy    CompliancePolicy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  createdBy User?              @relation(fields: [createdById], references: [id])
+  reviews   ComplianceReview[]
+
+  @@unique([policyId, version])
+  @@unique([policyId, objectHash])
+  @@map("tokmetric_compliance_policy_versions")
+}
+
+model ComplianceReview {
+  id               String                @id @default(cuid())
+  workspaceId      String
+  contentId        String?
+  contentVersionId String?
+  policyVersionId  String?
+  result           TokMetricPolicyResult
+  findings         Json                  @default("[]")
+  reviewerId       String?
+  createdAt        DateTime              @default(now())
+
+  workspace      Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  content        Content?                 @relation(fields: [contentId], references: [id])
+  contentVersion ContentVersion?          @relation(fields: [contentVersionId], references: [id])
+  policyVersion  CompliancePolicyVersion? @relation(fields: [policyVersionId], references: [id])
+  reviewer       User?                    @relation(fields: [reviewerId], references: [id])
+
+  @@index([workspaceId, result])
+  @@map("tokmetric_compliance_reviews")
+}
+
+model ApprovalRequest {
+  id               String               @id @default(cuid())
+  workspaceId      String
+  contentId        String?
+  contentVersionId String?
+  requestedById    String?
+  requiredRole     String
+  action           String
+  objectHash       String
+  state            TokMetricObjectState @default(APPROVAL_REQUIRED)
+  expiresAt        DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  workspace      Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  content        Content?           @relation(fields: [contentId], references: [id])
+  contentVersion ContentVersion?    @relation(fields: [contentVersionId], references: [id])
+  requestedBy    User?              @relation(fields: [requestedById], references: [id])
+  decisions      ApprovalDecision[]
+
+  @@index([workspaceId, state])
+  @@map("tokmetric_approval_requests")
+}
+
+model ApprovalDecision {
+  id                String   @id @default(cuid())
+  approvalRequestId String
+  actorId           String?
+  decision          String
+  objectHash        String
+  reason            String?
+  createdAt         DateTime @default(now())
+
+  approvalRequest ApprovalRequest @relation(fields: [approvalRequestId], references: [id], onDelete: Cascade)
+  actor           User?           @relation(fields: [actorId], references: [id])
+
+  @@index([approvalRequestId, decision])
+  @@map("tokmetric_approval_decisions")
+}
+
+model PublishJob {
+  id                String                        @id @default(cuid())
+  workspaceId       String
+  connectorId       String?
+  contentId         String?
+  contentVersionId  String?
+  requestedById     String?
+  idempotencyKey    String?
+  internalState     TokMetricPublishState         @default(QUEUED)
+  externalState     TokMetricExternalPublishState @default(NOT_SUBMITTED)
+  externalRequestId String?
+  objectHash        String
+  scheduledFor      DateTime?
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  connector      Connector?      @relation(fields: [connectorId], references: [id])
+  content        Content?        @relation(fields: [contentId], references: [id])
+  contentVersion ContentVersion? @relation(fields: [contentVersionId], references: [id])
+  requestedBy    User?           @relation(fields: [requestedById], references: [id])
+  attempts       JobAttempt[]
+
+  @@unique([workspaceId, idempotencyKey])
+  @@index([workspaceId, internalState, externalState])
+  @@map("tokmetric_publish_jobs")
+}
+
+model JobAttempt {
+  id           String                @id @default(cuid())
+  publishJobId String
+  attempt      Int
+  state        TokMetricPublishState
+  safeMetadata Json                  @default("{}")
+  createdAt    DateTime              @default(now())
+
+  publishJob PublishJob @relation(fields: [publishJobId], references: [id], onDelete: Cascade)
+
+  @@unique([publishJobId, attempt])
+  @@map("tokmetric_job_attempts")
+}
+
+model AnalyticsSnapshot {
+  id          String                   @id @default(cuid())
+  workspaceId String
+  source      TokMetricAnalyticsSource @default(UNKNOWN)
+  metric      String
+  value       Decimal                  @db.Decimal(18, 6)
+  dimensions  Json                     @default("{}")
+  capturedAt  DateTime                 @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, metric, capturedAt])
+  @@map("tokmetric_analytics_snapshots")
+}
+
+model WebhookEvent {
+  id           String    @id @default(cuid())
+  workspaceId  String
+  provider     String
+  eventType    String
+  eventId      String
+  payloadHash  String
+  processedAt  DateTime?
+  safeMetadata Json      @default("{}")
+  createdAt    DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, eventId])
+  @@index([workspaceId, eventType])
+  @@map("tokmetric_webhook_events")
+}
+
+model DomainEvent {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  aggregateType String
+  aggregateId   String
+  eventType     String
+  correlationId String
+  safeMetadata  Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, aggregateType, aggregateId])
+  @@index([correlationId])
+  @@map("tokmetric_domain_events")
+}
+
+model AuditEvent {
+  id            String   @id @default(cuid())
+  workspaceId   String?
+  actorId       String?
+  action        String
+  entityType    String
+  entityId      String?
+  correlationId String
+  outcome       String
+  sourceChannel String
+  safeMetadata  Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+  actor     User?      @relation(fields: [actorId], references: [id])
+
+  @@index([workspaceId, createdAt])
+  @@index([correlationId])
+  @@map("tokmetric_audit_events")
+}
+
+model IdempotencyRecord {
+  id          String   @id @default(cuid())
+  workspaceId String
+  key         String
+  requestHash String
+  response    Json
+  statusCode  Int
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, key])
+  @@index([expiresAt])
+  @@map("tokmetric_idempotency_records")
+}
+
+model OAuthAuthorizationAttempt {
+  id                    String                     @id @default(cuid())
+  nonce                 String                     @unique
+  workspaceId           String
+  actorId               String
+  provider              TokMetricConnectorProvider
+  environment           String
+  encryptedCodeVerifier String
+  createdAt             DateTime                   @default(now())
+  expiresAt             DateTime
+  consumedAt            DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actor     User      @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([workspaceId, actorId])
+  @@index([consumedAt])
+  @@map("tokmetric_oauth_authorization_attempts")
 }
