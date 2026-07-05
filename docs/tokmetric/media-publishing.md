@@ -2,7 +2,7 @@
 
 ## Implemented flow
 
-TokMetric now supports a governed end-to-end TikTok video publishing workflow:
+TokMetric supports a governed end-to-end TikTok video publishing workflow:
 
 1. An authenticated operator selects a TokMetric workspace.
 2. The operator selects a connected TikTok Content Posting API account.
@@ -15,7 +15,9 @@ TokMetric now supports a governed end-to-end TikTok video publishing workflow:
 9. A local MP4, MOV, or WebM file is uploaded directly from the browser to TikTok's temporary upload URL in sequential chunks.
 10. A server-hosted video can use `PULL_FROM_URL` only when its hostname is included in `TOKMETRIC_VERIFIED_MEDIA_HOSTS` and has been verified in the TikTok Developer Portal.
 11. TokMetric polls the official post-status endpoint and records the internal and external state of the publishing job.
-12. Operators can refresh or cancel an active TikTok publishing request.
+12. Operators can refresh the status until TikTok reports a final success or failure state.
+
+TikTok does not document a general cancellation operation after a Direct Post request has been initialized, so TokMetric does not present a misleading cancel control.
 
 Access tokens, refresh tokens, client secrets, and TikTok upload URLs are never persisted in browser storage or returned through logs and audit metadata.
 
@@ -53,7 +55,7 @@ Production activation should occur only after TikTok approves the required produ
 
 ### FILE_UPLOAD
 
-Use this mode when the video is on the user's device. The browser uploads the video directly to TikTok using the one-hour upload URL returned by TikTok. TokMetric plans sequential chunks that follow TikTok's 5 MB minimum, 64 MB normal maximum, 128 MB final-chunk allowance, 1,000-chunk maximum, and 4 GB video maximum.
+Use this mode when the video is on the user's device. The browser uploads the video directly to TikTok using the temporary upload URL returned by TikTok. TokMetric plans sequential chunks that follow TikTok's 5 MB minimum, 64 MB normal maximum, 128 MB final-chunk allowance, 1,000-chunk maximum, and 4 GB video maximum.
 
 ### PULL_FROM_URL
 
@@ -72,7 +74,6 @@ Every configured domain or URL prefix must also be verified in the TikTok Develo
 - `POST /api/tokmetric/publishing/init`
 - `POST /api/tokmetric/publishing/upload-complete`
 - `POST /api/tokmetric/publishing/status`
-- `POST /api/tokmetric/publishing/cancel`
 
 All routes require an authenticated TokMetric session, workspace access, and the `publish:content` permission where a workspace role is present.
 
