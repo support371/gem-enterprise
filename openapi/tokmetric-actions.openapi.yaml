@@ -1,0 +1,61 @@
+openapi: 3.1.0
+info:
+  title: TokMetric GPT Actions API
+  version: 0.3.0
+  description: |
+    Server-to-server GPT action contract for TokMetric controlled planning and context.
+    These actions do not publish externally and require a bearer token.
+servers:
+  - url: https://gemcybersecurityassist.com
+security:
+  - bearerAuth: []
+paths:
+  /functions/tokmetric/context:
+    get:
+      operationId: getTokMetricContext
+      summary: Get workspace control context
+      parameters:
+        - in: query
+          name: workspaceId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Workspace context and available agents
+        '401':
+          description: Invalid bearer token
+  /functions/tokmetric/agent-plan:
+    post:
+      operationId: createTokMetricAgentPlan
+      summary: Create a draft-only agent plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [agent, outputType, workspaceId, brief]
+              properties:
+                agent:
+                  type: string
+                  enum: [content_strategist, script_writer, quality_reviewer, publishing_coordinator]
+                outputType:
+                  type: string
+                workspaceId:
+                  type: string
+                brief:
+                  type: string
+                  maxLength: 5000
+      responses:
+        '200':
+          description: Draft-only plan result
+        '400':
+          description: Invalid request
+        '401':
+          description: Invalid bearer token
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
