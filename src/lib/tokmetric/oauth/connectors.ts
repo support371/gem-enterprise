@@ -4,7 +4,7 @@ import { decryptCredential, encryptCredential } from "./crypto";
 import { getTikTokOAuthConfig, isPlatformApprovalRequired, providerScopes, validateTikTokOAuthConfig, type TikTokEnvironment, type TokMetricConnectorProvider } from "./config";
 import { refreshTikTokToken, revokeTikTokToken, safeTokenMetadata, type TikTokTokenResponse } from "./client";
 
-interface StoredTikTokCredential {
+export interface StoredTikTokCredential {
   accessToken: string;
   refreshToken?: string;
   expiresAt?: string;
@@ -106,6 +106,60 @@ async function loadEnvironmentCredential(connectorId: string, environment: TikTo
   const ref = await db.connectorCredentialReference.findUnique({ where: { connectorId_referenceType: { connectorId, referenceType: referenceTypeFor(environment) } } });
   if (!ref) throw new TokMetricError(409, "REAUTHORIZATION_REQUIRED", "Connector requires reauthorization for the active TikTok environment.");
   return { ref, stored: decryptCredential<StoredTikTokCredential>(ref.secretRef) };
+}
+
+export async function getAuthorizedTikTokCredential(input: {
+  workspaceId: string;
+  connectorId: string;
+  requiredScope: "video.publish" | "video.upload" | "user.info.basic";
+  actorId?: string;
+  correlationId: string;
+}) {
+  const connector = await db.connector.findFirst({
+    where: {
+      id: input.connectorId,
+      workspaceId: input.workspaceId,
+      provider: "TIKTOK_CONTENT_POSTING_API",
+      state: "CONNECTED",
+      disabledAt: null,
+    },
+  });
+  if (!connector) throw new TokMetricError(409, "CONNECTOR_NOT_READY", "A connected TikTok Content Posting connector is required.");
+
+  const config = getTikTokOAuthConfig();
+  let loaded = await loadEnvironmentCredential(connector.id, config.environment);
+  const expiresAt = loaded.stored.expiresAt ? new Date(loaded.stored.expiresAt).getTime() : null;
+  const expiresSoon = expiresAt !== null && expiresAt <= Date.now() + 60_000;
+
+  if (expiresSoon) {
+    if (!loaded.stored.refreshToken) {
+      await db.connector.update({ where: { id: connector.id }, data: { state: "TOKEN_EXPIRED", lastHealthAt: new Date() } });
+      throw new TokMetricError(409, "REAUTHORIZATION_REQUIRED", "TikTok authorization has expired and must be renewed.");
+    }
+    const token = await refreshTikTokToken(loaded.stored.refreshToken);
+    await persistAuthorizedConnector({
+      workspaceId: input.workspaceId,
+      actorId: input.actorId,
+      provider: connector.provider,
+      token,
+      correlationId: input.correlationId,
+      existingCredential: loaded.stored,
+    });
+    loaded = await loadEnvironmentCredential(connector.id, config.environment);
+  }
+
+  const granted = new Set([...connector.grantedScopes, ...loaded.stored.grantedScopes]);
+  if (!granted.has(input.requiredScope)) {
+    throw new TokMetricError(403, "TIKTOK_SCOPE_NOT_AUTHORIZED", `TikTok scope ${input.requiredScope} is required.`);
+  }
+
+  return {
+    connector,
+    accessToken: loaded.stored.accessToken,
+    environment: loaded.stored.environment,
+    externalAccountId: loaded.stored.externalAccountId ?? connector.externalAccountId,
+    grantedScopes: [...granted],
+  };
 }
 
 export async function refreshConnector(input: { workspaceId: string; connectorId: string; actorId?: string; correlationId: string }) {
