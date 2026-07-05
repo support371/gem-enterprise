@@ -15,15 +15,21 @@ const schema = z.object({
   jobId: z.string().min(1),
 });
 
+type PublishStatusPayload = {
+  workspaceId: string;
+  jobId: string;
+};
+
 export async function POST(request: NextRequest) {
   const cid = correlationId(request);
   try {
     const session = await requireTokMetricSession(request);
-    const input = await parseJson(request, schema);
+    const input = await parseJson(request, schema) as PublishStatusPayload;
     const membership = await requireWorkspaceAccess(input.workspaceId, session);
     requirePermission(membership, "publish", "content");
     const status = await refreshVideoPublishStatus({
-      ...input,
+      workspaceId: input.workspaceId,
+      jobId: input.jobId,
       actorId: session.userId,
       correlationId: cid,
     });
