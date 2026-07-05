@@ -2,14 +2,11 @@ import Link from "next/link";
 import { Shield, ExternalLink } from "lucide-react";
 import { getFooterRoutes, navigationMenu } from "@/lib/siteRoutes";
 
-// Pull footer-eligible routes once at module level (server component, no runtime cost)
 const footerRoutes = getFooterRoutes();
 
-// ── Column definitions ──────────────────────────────────────────────────────
-
 const platformGroups = ["intel", "services", "community", "hub"] as const;
-const platformSections = navigationMenu.filter((s) =>
-  (platformGroups as readonly string[]).includes(s.group)
+const platformSections = navigationMenu.filter((section) =>
+  (platformGroups as readonly string[]).includes(section.group),
 );
 
 const companyLinks = [
@@ -23,7 +20,8 @@ const legalLinks = [
   { label: "Privacy Policy", path: "/privacy" },
   { label: "Terms of Service", path: "/terms" },
   { label: "Compliance Notice", path: "/compliance-notice" },
-  { label: "Cookie Policy", path: "/privacy#cookies" },
+  { label: "Cookie Policy", path: "/cookie-policy" },
+  { label: "Trust Center", path: "/trust-center" },
 ];
 
 const clientAccessLinks = [
@@ -33,7 +31,6 @@ const clientAccessLinks = [
   { label: "Contact", path: "/contact" },
 ];
 
-// Ensure footer routes exist for all static links (used for type safety reference only)
 void footerRoutes;
 
 function FooterColumnHeading({ children }: { children: React.ReactNode }) {
@@ -44,7 +41,15 @@ function FooterColumnHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
-function FooterLink({ href, children, external = false }: { href: string; children: React.ReactNode; external?: boolean }) {
+function FooterLink({
+  href,
+  children,
+  external = false,
+}: {
+  href: string;
+  children: React.ReactNode;
+  external?: boolean;
+}) {
   const inner = (
     <span className="inline-flex items-center gap-1 text-sm text-white/50 transition-colors hover:text-[hsl(185,100%,45%)]">
       {children}
