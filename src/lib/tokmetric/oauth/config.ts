@@ -36,9 +36,9 @@ export function getTikTokOAuthConfig() {
     clientSecret,
     redirectUri,
     oauthEnabled,
-    authorizationUrl: environment === "production" ? "https://www.tiktok.com/v2/auth/authorize/" : "https://www.tiktok.com/v2/auth/authorize/",
-    tokenUrl: environment === "production" ? "https://open.tiktokapis.com/v2/oauth/token/" : "https://open.tiktokapis.com/v2/oauth/token/",
-    revokeUrl: environment === "production" ? "https://open.tiktokapis.com/v2/oauth/revoke/" : "https://open.tiktokapis.com/v2/oauth/revoke/",
+    authorizationUrl: "https://www.tiktok.com/v2/auth/authorize/",
+    tokenUrl: "https://open.tiktokapis.com/v2/oauth/token/",
+    revokeUrl: "https://open.tiktokapis.com/v2/oauth/revoke/",
   };
 }
 
@@ -56,7 +56,7 @@ export function validateTikTokOAuthConfig() {
 export const providerScopes: Record<TokMetricConnectorProvider, string[]> = {
   TIKTOK_LOGIN_KIT: ["user.info.basic"],
   TIKTOK_DISPLAY_API: ["user.info.basic", "video.list"],
-  TIKTOK_CONTENT_POSTING_API: ["user.info.basic", "video.upload", "video.publish"],
+  TIKTOK_CONTENT_POSTING_API: ["user.info.basic", "video.publish"],
   TIKTOK_BUSINESS_API: ["business.basic"],
   TIKTOK_SHOP_SELLER: ["seller.authorization.info"],
   TIKTOK_SHOP_CREATOR: ["affiliate_creator.info"],
