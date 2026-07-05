@@ -17,7 +17,7 @@ TokMetric supports a governed end-to-end TikTok video publishing workflow:
 11. TokMetric polls the official post-status endpoint and records the internal and external state of the publishing job.
 12. Operators can refresh the status until TikTok reports a final success or failure state.
 
-TikTok does not document a general cancellation operation after a Direct Post request has been initialized, so TokMetric does not present a misleading cancel control.
+TikTok cancellation is restricted to an ongoing `PULL_FROM_URL` download and is best-effort. Local file uploads and posts that have already entered processing are not presented as cancellable.
 
 Access tokens, refresh tokens, client secrets, and TikTok upload URLs are never persisted in browser storage or returned through logs and audit metadata.
 
@@ -65,7 +65,7 @@ Use this mode only when the video already exists on server-side storage. Configu
 TOKMETRIC_VERIFIED_MEDIA_HOSTS=gemcybersecurityassist.com,www.gemcybersecurityassist.com
 ```
 
-Every configured domain or URL prefix must also be verified in the TikTok Developer Portal. URLs must be HTTPS, must not contain credentials or fragments, and must not redirect.
+Every configured domain or URL prefix must also be verified in the TikTok Developer Portal. URLs must be HTTPS, must not contain credentials or fragments, and must not redirect. An ongoing URL download may be cancelled through the restricted cancellation route until TikTok reports that it is no longer cancellable.
 
 ## Operational routes
 
@@ -74,6 +74,7 @@ Every configured domain or URL prefix must also be verified in the TikTok Develo
 - `POST /api/tokmetric/publishing/init`
 - `POST /api/tokmetric/publishing/upload-complete`
 - `POST /api/tokmetric/publishing/status`
+- `POST /api/tokmetric/publishing/cancel` — `PULL_FROM_URL` only
 
 All routes require an authenticated TokMetric session, workspace access, and the `publish:content` permission where a workspace role is present.
 
