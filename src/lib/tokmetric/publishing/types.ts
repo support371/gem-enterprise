@@ -55,14 +55,23 @@ export function calculateTikTokChunkPlan(videoSize: number): TikTokChunkPlan {
     throw new Error("TikTok video uploads cannot exceed 4 GB.");
   }
 
-  if (videoSize < FIVE_MIB) {
+  if (videoSize <= SIXTY_FOUR_MIB) {
     return { videoSize, chunkSize: videoSize, totalChunkCount: 1 };
   }
 
-  const chunkSize = Math.min(videoSize, SIXTY_FOUR_MIB);
-  const totalChunkCount = Math.max(1, Math.floor(videoSize / chunkSize));
-  if (totalChunkCount > 1000) {
-    throw new Error("TikTok upload would exceed the maximum chunk count.");
+  const chunkSize = Math.min(SIXTY_FOUR_MIB, Math.floor(videoSize / 2));
+  if (chunkSize < FIVE_MIB) {
+    throw new Error("TikTok upload chunks must be at least 5 MiB.");
+  }
+
+  const totalChunkCount = Math.floor(videoSize / chunkSize);
+  if (totalChunkCount < 2 || totalChunkCount > 1000) {
+    throw new Error("TikTok upload requires between 2 and 1000 chunks for videos above 64 MiB.");
+  }
+
+  const finalChunkSize = videoSize - chunkSize * (totalChunkCount - 1);
+  if (finalChunkSize > 128 * 1024 * 1024) {
+    throw new Error("TikTok final upload chunk cannot exceed 128 MiB.");
   }
 
   return { videoSize, chunkSize, totalChunkCount };
