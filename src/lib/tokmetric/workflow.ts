@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
   contentHash,
@@ -18,14 +19,28 @@ export type DraftInput = {
   mediaAssetIds?: string[];
 };
 
-export async function createContentDraft(input: DraftInput, actorId: string, correlationId: string) {
-  const payload = {
+type ReviewFinding = {
+  code: string;
+  severity: "info" | "warning" | "block";
+  message: string;
+};
+
+function toInputJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value ?? {})) as Prisma.InputJsonValue;
+}
+
+function normalizeDraftPayload(input: Omit<DraftInput, "workspaceId" | "title" | "campaignId">) {
+  return {
     script: input.script?.trim() || null,
     caption: input.caption?.trim() || null,
     hashtags: [...new Set((input.hashtags ?? []).map((tag) => tag.trim()).filter(Boolean))],
     settings: input.settings ?? {},
     mediaAssetIds: [...new Set(input.mediaAssetIds ?? [])],
   };
+}
+
+export async function createContentDraft(input: DraftInput, actorId: string, correlationId: string) {
+  const payload = normalizeDraftPayload(input);
   const objectHash = contentHash(payload);
 
   const result = await db.$transaction(async (tx) => {
@@ -46,7 +61,7 @@ export async function createContentDraft(input: DraftInput, actorId: string, cor
         script: payload.script,
         caption: payload.caption,
         hashtags: payload.hashtags,
-        settings: payload.settings,
+        settings: toInputJson(payload.settings),
         mediaAssetIds: payload.mediaAssetIds,
         createdById: actorId,
       },
@@ -95,13 +110,7 @@ export async function createContentVersion(
     throw new TokMetricError(409, "CONTENT_IMMUTABLE", "Approved or archived content cannot be edited directly.");
   }
 
-  const normalized = {
-    script: payload.script?.trim() || null,
-    caption: payload.caption?.trim() || null,
-    hashtags: [...new Set((payload.hashtags ?? []).map((tag) => tag.trim()).filter(Boolean))],
-    settings: payload.settings ?? {},
-    mediaAssetIds: [...new Set(payload.mediaAssetIds ?? [])],
-  };
+  const normalized = normalizeDraftPayload(payload);
   const objectHash = contentHash(normalized);
 
   const existing = await db.contentVersion.findFirst({ where: { contentId, objectHash } });
@@ -116,7 +125,7 @@ export async function createContentVersion(
       script: normalized.script,
       caption: normalized.caption,
       hashtags: normalized.hashtags,
-      settings: normalized.settings,
+      settings: toInputJson(normalized.settings),
       mediaAssetIds: normalized.mediaAssetIds,
       createdById: actorId,
     },
@@ -152,7 +161,7 @@ export async function runComplianceReview(input: {
   const version = content.versions[0];
   if (!version) throw new TokMetricError(409, "CONTENT_VERSION_MISSING", "Content has no reviewable version.");
 
-  const findings: Array<{ code: string; severity: "info" | "warning" | "block"; message: string }> = [];
+  const findings: ReviewFinding[] = [];
   const combined = `${version.script ?? ""}\n${version.caption ?? ""}`.toLowerCase();
   if (!combined.trim()) findings.push({ code: "EMPTY_CONTENT", severity: "block", message: "Content script and caption are empty." });
   if (combined.includes("guaranteed profit") || combined.includes("risk-free return")) {
@@ -176,7 +185,7 @@ export async function runComplianceReview(input: {
       contentVersionId: version.id,
       policyVersionId: input.policyVersionId,
       result,
-      findings,
+      findings: toInputJson(findings),
       reviewerId: input.actorId,
     },
   });
@@ -303,7 +312,7 @@ export async function registerMediaAsset(input: {
       fileSize: input.fileSize,
       checksum: input.checksum,
       storageRef: input.storageRef,
-      metadata: input.metadata ?? {},
+      metadata: toInputJson(input.metadata ?? {}),
     },
   });
 }
