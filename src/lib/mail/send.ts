@@ -13,7 +13,7 @@ function hasMailConfig() {
 }
 
 function fromAddress() {
-  return process.env.SMTP_FROM || process.env.MAIL_FROM || "GEM Enterprise <no-reply@gemcybersecurityassist.com>";
+  return process.env.SMTP_FROM || process.env.EMAIL_FROM || process.env.MAIL_FROM || "GEM Enterprise <no-reply@gemcybersecurityassist.com>";
 }
 
 export async function sendMail(message: MailMessage) {
