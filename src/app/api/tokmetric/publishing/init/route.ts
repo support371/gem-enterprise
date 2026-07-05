@@ -6,6 +6,7 @@ import {
   requirePermission,
   requireTokMetricSession,
   requireWorkspaceAccess,
+  TokMetricError,
   tokMetricErrorResponse,
 } from "@/lib/tokmetric/security";
 import {
@@ -54,6 +55,15 @@ export async function POST(request: NextRequest) {
     const body = await parseJson(request, schema) as VideoInitPayload;
     const membership = await requireWorkspaceAccess(body.workspaceId, session);
     requirePermission(membership, "publish", "content");
+
+    if (body.brandContentToggle && body.privacyLevel === "SELF_ONLY") {
+      throw new TokMetricError(
+        400,
+        "BRANDED_CONTENT_REQUIRES_VISIBLE_PRIVACY",
+        "Branded content cannot be posted with SELF ONLY visibility.",
+      );
+    }
+
     const idempotencyKey = request.headers.get("idempotency-key");
     if (!idempotencyKey || idempotencyKey.length > 200) {
       return NextResponse.json(
