@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { correlationId, parseJson, requireTokMetricSession, requireWorkspaceAccess, tokMetricErrorResponse } from "@/lib/tokmetric/security";
+import { correlationId, parseJson, requirePermission, requireTokMetricSession, requireWorkspaceAccess, tokMetricErrorResponse } from "@/lib/tokmetric/security";
 import { disconnectConnector, listWorkspaceConnectors } from "@/lib/tokmetric/oauth/connectors";
 
 const disconnectSchema = z.object({ workspaceId: z.string().min(1), connectorId: z.string().min(1), revoke: z.boolean().default(false) });
@@ -24,7 +24,8 @@ export async function DELETE(request: NextRequest) {
   try {
     const session = await requireTokMetricSession(request);
     const body = await parseJson(request, disconnectSchema);
-    await requireWorkspaceAccess(body.workspaceId, session);
+    const membership = await requireWorkspaceAccess(body.workspaceId, session);
+    requirePermission(membership, "manage", "connectors");
     await disconnectConnector({ workspaceId: body.workspaceId, connectorId: body.connectorId, actorId: session.userId, correlationId: cid, revoke: body.revoke });
     return NextResponse.json({ ok: true, correlationId: cid });
   } catch (error) {

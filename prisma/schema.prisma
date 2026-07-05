@@ -153,28 +153,29 @@ model User {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
-  profile                 Profile?
-  kycApplications         KYCApplication[]
-  notifications           Notification[]
-  auditLogs               AuditLog[]
-  portfolioMemberships    PortfolioMembership[]
-  entitlements            Entitlement[]
-  tickets                 SupportTicket[]
-  requests                ServiceRequest[]
-  apiKeys                 ApiKey[]
-  meetingRequests         MeetingRequest[]          @relation("MeetingRequests")
-  WorkspaceMember         WorkspaceMember[]
-  Campaign                Campaign[]
-  CampaignVersion         CampaignVersion[]
-  Content                 Content[]
-  ContentVersion          ContentVersion[]
-  MediaAsset              MediaAsset[]
-  CompliancePolicyVersion CompliancePolicyVersion[]
-  ComplianceReview        ComplianceReview[]
-  ApprovalRequest         ApprovalRequest[]
-  ApprovalDecision        ApprovalDecision[]
-  PublishJob              PublishJob[]
-  AuditEvent              AuditEvent[]
+  profile                   Profile?
+  kycApplications           KYCApplication[]
+  notifications             Notification[]
+  auditLogs                 AuditLog[]
+  portfolioMemberships      PortfolioMembership[]
+  entitlements              Entitlement[]
+  tickets                   SupportTicket[]
+  requests                  ServiceRequest[]
+  apiKeys                   ApiKey[]
+  meetingRequests           MeetingRequest[]            @relation("MeetingRequests")
+  WorkspaceMember           WorkspaceMember[]
+  Campaign                  Campaign[]
+  CampaignVersion           CampaignVersion[]
+  Content                   Content[]
+  ContentVersion            ContentVersion[]
+  MediaAsset                MediaAsset[]
+  CompliancePolicyVersion   CompliancePolicyVersion[]
+  ComplianceReview          ComplianceReview[]
+  ApprovalRequest           ApprovalRequest[]
+  ApprovalDecision          ApprovalDecision[]
+  PublishJob                PublishJob[]
+  AuditEvent                AuditEvent[]
+  OAuthAuthorizationAttempt OAuthAuthorizationAttempt[]
 
   @@map("users")
 }
@@ -705,22 +706,23 @@ model Workspace {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  members            WorkspaceMember[]
-  connectors         Connector[]
-  campaigns          Campaign[]
-  contents           Content[]
-  mediaAssets        MediaAsset[]
-  compliancePolicies CompliancePolicy[]
-  complianceReviews  ComplianceReview[]
-  approvalRequests   ApprovalRequest[]
-  publishJobs        PublishJob[]
-  analyticsSnapshots AnalyticsSnapshot[]
-  webhookEvents      WebhookEvent[]
-  domainEvents       DomainEvent[]
-  auditEvents        AuditEvent[]
-  notifications      Notification[]
-  idempotencyRecords IdempotencyRecord[]
+  organization               Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members                    WorkspaceMember[]
+  connectors                 Connector[]
+  campaigns                  Campaign[]
+  contents                   Content[]
+  mediaAssets                MediaAsset[]
+  compliancePolicies         CompliancePolicy[]
+  complianceReviews          ComplianceReview[]
+  approvalRequests           ApprovalRequest[]
+  publishJobs                PublishJob[]
+  analyticsSnapshots         AnalyticsSnapshot[]
+  webhookEvents              WebhookEvent[]
+  domainEvents               DomainEvent[]
+  auditEvents                AuditEvent[]
+  notifications              Notification[]
+  idempotencyRecords         IdempotencyRecord[]
+  oauthAuthorizationAttempts OAuthAuthorizationAttempt[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -1151,5 +1153,27 @@ model IdempotencyRecord {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@unique([workspaceId, key])
+  @@index([expiresAt])
   @@map("tokmetric_idempotency_records")
+}
+
+model OAuthAuthorizationAttempt {
+  id                    String                     @id @default(cuid())
+  nonce                 String                     @unique
+  workspaceId           String
+  actorId               String
+  provider              TokMetricConnectorProvider
+  environment           String
+  encryptedCodeVerifier String
+  createdAt             DateTime                   @default(now())
+  expiresAt             DateTime
+  consumedAt            DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actor     User      @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([workspaceId, actorId])
+  @@index([consumedAt])
+  @@map("tokmetric_oauth_authorization_attempts")
 }

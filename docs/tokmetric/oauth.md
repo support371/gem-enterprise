@@ -12,7 +12,7 @@ Phase 2 implements the TikTok OAuth connector foundation without enabling live p
 
 ## Security posture
 
-TokMetric uses signed OAuth state with PKCE, server-only TikTok token exchange, AES-256-GCM encrypted credential blobs, audit events, workspace membership checks, and truthful states. Missing configuration fails closed as `NOT_CONFIGURED`; TikTok Business and Shop connectors remain `PLATFORM_APPROVAL_REQUIRED` until product approval exists.
+TokMetric uses signed OAuth state containing only non-secret identifiers, server-side one-time OAuth authorization-attempt records for encrypted PKCE verifier storage, server-only TikTok token exchange, AES-256-GCM encrypted credential blobs, audit events, workspace membership plus `manage/connectors` permission checks, and truthful states. Missing configuration fails closed as `NOT_CONFIGURED`; TikTok Business and Shop connectors remain `PLATFORM_APPROVAL_REQUIRED` until product approval exists.
 
 ## Required environment variables
 

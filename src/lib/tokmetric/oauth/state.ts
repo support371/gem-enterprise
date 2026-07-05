@@ -1,13 +1,12 @@
 import crypto from "node:crypto";
 import { TokMetricError } from "@/lib/tokmetric/security";
-import { type TokMetricConnectorProvider } from "./config";
+import { type TikTokEnvironment, type TokMetricConnectorProvider } from "./config";
 
 export interface OAuthStatePayload {
+  nonce: string;
   workspaceId: string;
   provider: TokMetricConnectorProvider;
-  environment: "sandbox" | "production";
-  codeVerifier: string;
-  nonce: string;
+  environment: TikTokEnvironment;
   createdAt: number;
   actorId: string;
 }

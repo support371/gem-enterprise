@@ -19,14 +19,16 @@ afterEach(() => {
 describe("TokMetric TikTok OAuth", () => {
   it("detects OAuth state mismatch", () => {
     const pkce = createPkcePair();
-    const state = encodeOAuthState({ workspaceId: "w1", provider: "TIKTOK_LOGIN_KIT", environment: "sandbox", codeVerifier: pkce.verifier, nonce: "n", createdAt: Date.now(), actorId: "u1" });
+    const state = encodeOAuthState({ nonce: "nonce", workspaceId: "w1", provider: "TIKTOK_LOGIN_KIT", environment: "sandbox", createdAt: Date.now(), actorId: "u1" });
     expect(() => decodeOAuthState(`${state}tampered`)).toThrow(TokMetricError);
   });
 
   it("round-trips OAuth state and PKCE data", () => {
     const pkce = createPkcePair();
-    const decoded = decodeOAuthState(encodeOAuthState({ workspaceId: "w1", provider: "TIKTOK_DISPLAY_API", environment: "sandbox", codeVerifier: pkce.verifier, nonce: "n", createdAt: Date.now(), actorId: "u1" }));
-    expect(decoded.codeVerifier).toBe(pkce.verifier);
+    const encoded = encodeOAuthState({ nonce: "nonce", workspaceId: "w1", provider: "TIKTOK_DISPLAY_API", environment: "sandbox", createdAt: Date.now(), actorId: "u1" });
+    expect(encoded).not.toContain(pkce.verifier);
+    const decoded = decodeOAuthState(encoded);
+    expect(decoded).not.toHaveProperty("codeVerifier");
     expect(decoded.provider).toBe("TIKTOK_DISPLAY_API");
   });
 

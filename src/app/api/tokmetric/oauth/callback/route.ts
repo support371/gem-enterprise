@@ -3,6 +3,7 @@ import { correlationId, emitTokMetricAudit, requireWorkspaceAccess, tokMetricErr
 import { exchangeAuthorizationCode } from "@/lib/tokmetric/oauth/client";
 import { decodeOAuthState } from "@/lib/tokmetric/oauth/state";
 import { persistAuthorizedConnector } from "@/lib/tokmetric/oauth/connectors";
+import { consumeOAuthAuthorizationAttempt } from "@/lib/tokmetric/oauth/attempts";
 import { verifySession, type SessionPayload } from "@/lib/auth";
 
 async function sessionFromStateActor(request: NextRequest, actorId: string): Promise<SessionPayload> {
@@ -28,7 +29,8 @@ export async function GET(request: NextRequest) {
     actorId = state.actorId;
     const session = await sessionFromStateActor(request, state.actorId);
     await requireWorkspaceAccess(state.workspaceId, session);
-    const token = await exchangeAuthorizationCode({ code, codeVerifier: state.codeVerifier });
+    const consumed = await consumeOAuthAuthorizationAttempt(state);
+    const token = await exchangeAuthorizationCode({ code, codeVerifier: consumed.codeVerifier });
     const connector = await persistAuthorizedConnector({ workspaceId: state.workspaceId, actorId: session.userId, provider: state.provider, token, correlationId: cid });
     return NextResponse.redirect(new URL(`/tokmetric/accounts?connector=${connector.id}&state=connected`, request.url));
   } catch (error) {

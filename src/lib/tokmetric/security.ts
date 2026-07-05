@@ -4,7 +4,29 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getSessionFromRequest, type SessionPayload } from "@/lib/auth";
 
-const SECRET_KEYS = /token|secret|password|cookie|authorization|credential|clientSecret|refresh/i;
+const SECRET_KEY_NAMES = new Set([
+  "token",
+  "accesstoken",
+  "access_token",
+  "refreshtoken",
+  "refresh_token",
+  "clientsecret",
+  "client_secret",
+  "password",
+  "authorization",
+  "cookie",
+  "credential",
+  "credentials",
+  "secret",
+  "secretref",
+  "secret_ref",
+]);
+
+function isSecretKey(key: string) {
+  const normalized = key.replace(/[-\s.]/g, "_").replace(/_/g, "").toLowerCase();
+  const separatorAware = key.toLowerCase().split(/[-_\s.]+/);
+  return SECRET_KEY_NAMES.has(normalized) || separatorAware.some((part) => SECRET_KEY_NAMES.has(part));
+}
 
 export class TokMetricError extends Error {
   constructor(public status: number, public code: string, message: string) {
@@ -19,7 +41,7 @@ export function correlationId(request?: NextRequest) {
 export function redactSecrets(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(redactSecrets);
   if (value && typeof value === "object") {
-    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, SECRET_KEYS.test(key) ? "[REDACTED]" : redactSecrets(entry)]));
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, isSecretKey(key) ? "[REDACTED]" : redactSecrets(entry)]));
   }
   return value;
 }
@@ -75,16 +97,29 @@ export async function emitDomainEvent(input: { workspaceId: string; aggregateTyp
   await db.domainEvent.create({ data: { ...input, safeMetadata: redactSecrets(input.metadata ?? {}) as object } });
 }
 
-export async function withIdempotency<T>(workspaceId: string, key: string | undefined, requestBody: unknown, work: () => Promise<{ statusCode: number; response: T }>) {
+export function getTokMetricIdempotencyTtlSeconds() {
+  const raw = process.env.TOKMETRIC_IDEMPOTENCY_TTL_SECONDS;
+  const parsed = raw ? Number.parseInt(raw, 10) : 86400;
+  if (!Number.isFinite(parsed) || parsed < 60 || parsed > 60 * 60 * 24 * 30) return 86400;
+  return parsed;
+}
+
+export async function withIdempotency<T>(
+  workspaceId: string,
+  key: string | undefined,
+  requestBody: unknown,
+  work: () => Promise<{ statusCode: number; response: T }>,
+  idempotencyPayload?: unknown,
+) {
   if (!key) return work();
-  const requestHash = contentHash(requestBody);
+  const requestHash = contentHash(idempotencyPayload ?? requestBody);
   const existing = await db.idempotencyRecord.findUnique({ where: { workspaceId_key: { workspaceId, key } } });
   if (existing) {
     if (existing.requestHash !== requestHash) throw new TokMetricError(409, "IDEMPOTENCY_CONFLICT", "Idempotency key was reused with a different request.");
     return { statusCode: existing.statusCode, response: existing.response as T };
   }
   const result = await work();
-  await db.idempotencyRecord.create({ data: { workspaceId, key, requestHash, response: result.response as object, statusCode: result.statusCode, expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) } });
+  await db.idempotencyRecord.create({ data: { workspaceId, key, requestHash, response: result.response as object, statusCode: result.statusCode, expiresAt: new Date(Date.now() + getTokMetricIdempotencyTtlSeconds() * 1000) } });
   return result;
 }
 
