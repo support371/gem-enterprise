@@ -27,6 +27,23 @@ describe("TikTok video upload planning", () => {
     });
   });
 
+  it("keeps a 64 MiB video as one valid chunk", () => {
+    const size = 64 * 1024 * 1024;
+    expect(calculateTikTokChunkPlan(size)).toEqual({
+      videoSize: size,
+      chunkSize: size,
+      totalChunkCount: 1,
+    });
+  });
+
+  it("uses at least two chunks immediately above 64 MiB", () => {
+    const size = 65 * 1024 * 1024;
+    const plan = calculateTikTokChunkPlan(size);
+    expect(plan.totalChunkCount).toBe(2);
+    expect(chunkByteRange(plan, 0).length).toBeLessThanOrEqual(64 * 1024 * 1024);
+    expect(chunkByteRange(plan, 1).end).toBe(size - 1);
+  });
+
   it("uses sequential chunks and merges the trailing bytes into the final request", () => {
     const videoSize = 150 * 1024 * 1024;
     const plan = calculateTikTokChunkPlan(videoSize);
