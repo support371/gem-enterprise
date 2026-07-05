@@ -45,6 +45,19 @@ describe("production compliance and account recovery", () => {
     expect(footer).toContain('path: "/trust-center"');
   });
 
+  it("keeps reset tokens out of server-visible query strings", () => {
+    const requestRoute = fs.readFileSync(
+      "src/app/api/auth/forgot-password/route.ts",
+      "utf8",
+    );
+    const resetPage = fs.readFileSync("src/app/reset-password/page.tsx", "utf8");
+
+    expect(requestRoute).toContain("resetUrl.hash =");
+    expect(requestRoute).not.toContain('searchParams.set("token"');
+    expect(resetPage).toContain("window.location.hash");
+    expect(resetPage).toContain("window.history.replaceState");
+  });
+
   it("creates a verifiable, purpose-bound password reset token", async () => {
     const passwordHash = "$2a$12$example-current-password-hash";
     const token = await createPasswordResetToken({
