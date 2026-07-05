@@ -95,7 +95,11 @@ export async function POST(request: NextRequest) {
         text: `A password reset was requested for your GEM Enterprise account. Open this link within 15 minutes: ${resetUrl.toString()}\n\nIf you did not request this, ignore this message.`,
         html: `<p>A password reset was requested for your GEM Enterprise account.</p><p><a href="${resetUrl.toString()}">Reset your password</a>. This link expires in 15 minutes.</p><p>If you did not request this, ignore this message.</p>`,
       });
-      delivery = result.sent ? "sent" : result.reason ?? "skipped";
+      delivery = result.sent
+        ? "sent"
+        : "reason" in result
+          ? result.reason
+          : "skipped";
     } catch (error) {
       delivery = "failed";
       console.error("[auth] password reset email delivery failed", {
