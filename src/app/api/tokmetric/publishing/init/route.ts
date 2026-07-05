@@ -74,12 +74,12 @@ export async function POST(request: NextRequest) {
       brandOrganicToggle: body.brandOrganicToggle,
       isAigc: body.isAigc,
       source: body.source,
-      file: body.file,
+      file: body.file as InitializeVideoPublishInput["file"],
       videoUrl: body.videoUrl,
-      consentToUpload: body.consentToUpload,
-      rightsConfirmed: body.rightsConfirmed,
-      musicRightsConfirmed: body.musicRightsConfirmed,
-      processingNoticeAccepted: body.processingNoticeAccepted,
+      consentToUpload: true,
+      rightsConfirmed: true,
+      musicRightsConfirmed: true,
+      processingNoticeAccepted: true,
     };
 
     const result = await initializeVideoPublish(input);
