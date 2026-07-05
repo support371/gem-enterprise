@@ -9,17 +9,27 @@ export type MailMessage = {
 };
 
 function hasMailConfig() {
-  return Boolean(process.env.SMTP_HOST && process.env.SMTP_PORT && process.env.SMTP_USER && process.env.SMTP_PASS);
+  return Boolean(
+    process.env.SMTP_HOST &&
+      process.env.SMTP_PORT &&
+      process.env.SMTP_USER &&
+      process.env.SMTP_PASS,
+  );
 }
 
 function fromAddress() {
-  return process.env.SMTP_FROM || process.env.EMAIL_FROM || process.env.MAIL_FROM || "GEM Enterprise <no-reply@gemcybersecurityassist.com>";
+  return (
+    process.env.SMTP_FROM ||
+    process.env.EMAIL_FROM ||
+    process.env.MAIL_FROM ||
+    "GEM Enterprise <no-reply@gemcybersecurityassist.com>"
+  );
 }
 
 export async function sendMail(message: MailMessage) {
   if (!hasMailConfig()) {
     console.warn("[mail] SMTP is not configured; message skipped", {
-      to: message.to,
+      recipientCount: Array.isArray(message.to) ? message.to.length : 1,
       subject: message.subject,
     });
     return { sent: false, skipped: true, reason: "smtp_not_configured" };
