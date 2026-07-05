@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
         passwordHash: user.passwordHash,
       });
       const resetUrl = new URL("/reset-password", appBaseUrl());
-      resetUrl.searchParams.set("token", token);
+      resetUrl.hash = new URLSearchParams({ token }).toString();
       const result = await sendMail({
         to: user.email,
         subject: "Reset your GEM Enterprise password",
