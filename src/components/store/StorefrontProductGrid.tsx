@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   CheckCircle2,
@@ -132,11 +133,12 @@ export function StorefrontProductGrid({ products, storefront, categories }: Stor
               >
                 <div className={`relative h-52 border-b bg-gradient-to-br ${accent}`}>
                   {product.image ? (
-                    <img
+                    <Image
                       src={product.image}
                       alt={product.name}
-                      className="absolute inset-0 h-full w-full object-cover"
-                      loading="lazy"
+                      fill
+                      sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+                      className="object-cover"
                     />
                   ) : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />

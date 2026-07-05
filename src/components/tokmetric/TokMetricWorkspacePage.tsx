@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TokMetricConnectorPanel } from "./TokMetricConnectorPanel";
 import {
   Activity,
   AlertTriangle,
@@ -264,6 +265,8 @@ export function TokMetricWorkspacePage({ kind }: { kind: TokMetricPageKind }) {
         </aside>
 
         <section className="min-w-0 space-y-8">
+          {(kind === "accounts" || kind === "developer" || kind === "dashboard") && <TokMetricConnectorPanel />}
+
           <PageBody kind={kind} />
 
           <div className="grid gap-6 lg:grid-cols-2">

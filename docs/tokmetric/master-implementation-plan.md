@@ -33,11 +33,12 @@
 - [ ] Add exhaustive Phase 1 tests.
 
 ### Phase 2 — TikTok OAuth and Connector System
-- [ ] Provider abstraction.
-- [ ] OAuth start/callback/state/PKCE/token lifecycle.
-- [ ] Encrypted token reference persistence.
-- [ ] Revocation/disconnect/health checks.
-- [ ] Sandbox fixtures and external blocker reporting.
+- [x] Provider abstraction.
+- [x] OAuth start/callback/state/PKCE/token lifecycle.
+- [x] Encrypted token reference persistence.
+- [x] Revocation/disconnect/health checks.
+- [x] Sandbox fixtures and external blocker reporting.
+- [ ] Real TikTok credential verification and product approval.
 
 ### Phase 3 — Content, Compliance, Approvals, and Policy Engine
 - [ ] Draft/version APIs.
@@ -76,7 +77,7 @@
 
 | Risk | Impact | Mitigation |
 | --- | --- | --- |
-| TikTok credentials/scopes unavailable | Blocks real OAuth and publishing | Implement code paths and truthful `NOT_CONFIGURED`/`PLATFORM_APPROVAL_REQUIRED` states. |
+| TikTok credentials/scopes unavailable | Blocks real OAuth and publishing | Phase 2 code paths are implemented; missing config returns `NOT_CONFIGURED` and Business/Shop remain `PLATFORM_APPROVAL_REQUIRED`. |
 | Production secrets unavailable | Blocks token encryption and production callbacks | Use placeholders only; document required env vars. |
 | Existing lint warning | Blocks zero-warning lint | Track as unrelated baseline unless changed in scope. |
 | No local PostgreSQL | Blocks migration apply verification | Commit Prisma migration SQL and validate schema with supplied env; document limitation. |
