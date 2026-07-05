@@ -16,6 +16,7 @@ import {
   registerMediaAsset,
   requestContentApproval,
   runComplianceReview,
+  type DraftInput,
 } from "@/lib/tokmetric/workflow";
 
 const requestSchema = z.object({
@@ -47,6 +48,12 @@ const approvalDecisionSchema = z.object({ approvalId: z.string().min(1), decisio
 const mediaSchema = z.object({ fileName: z.string().min(1).max(255), mimeType: z.string().min(1).max(100), fileSize: z.number().int().positive(), checksum: z.string().min(16).max(256), storageRef: z.string().min(1).max(2000), metadata: z.record(z.unknown()).optional() });
 
 type ActionResult = { statusCode: number; response: unknown };
+type DraftPayload = Omit<DraftInput, "workspaceId">;
+type VersionPayload = Omit<DraftInput, "workspaceId" | "title" | "campaignId"> & { contentId: string };
+type ReviewPayload = { contentId: string; policyVersionId?: string };
+type ApprovalRequestPayload = { contentId: string; requiredRole?: string; expiresAt?: string };
+type ApprovalDecisionPayload = { approvalId: string; decision: "approve" | "reject" | "revoke"; reason?: string };
+type MediaPayload = { fileName: string; mimeType: string; fileSize: number; checksum: string; storageRef: string; metadata?: Record<string, unknown> };
 
 export async function POST(request: NextRequest) {
   const cid = correlationId(request);
@@ -60,32 +67,32 @@ export async function POST(request: NextRequest) {
       switch (input.action) {
         case "create_draft": {
           requirePermission(membership, "create", "content");
-          const payload = draftSchema.parse(input.payload);
+          const payload = draftSchema.parse(input.payload) as DraftPayload;
           return { statusCode: 201, response: await createContentDraft({ workspaceId: input.workspaceId, ...payload }, session.userId, cid) };
         }
         case "create_version": {
           requirePermission(membership, "edit", "content");
-          const payload = versionSchema.parse(input.payload);
+          const payload = versionSchema.parse(input.payload) as VersionPayload;
           return { statusCode: 200, response: await createContentVersion(payload.contentId, input.workspaceId, session.userId, cid, payload) };
         }
         case "run_review": {
           requirePermission(membership, "review", "content");
-          const payload = reviewSchema.parse(input.payload);
+          const payload = reviewSchema.parse(input.payload) as ReviewPayload;
           return { statusCode: 200, response: await runComplianceReview({ workspaceId: input.workspaceId, contentId: payload.contentId, policyVersionId: payload.policyVersionId, actorId: session.userId, correlationId: cid }) };
         }
         case "request_approval": {
           requirePermission(membership, "request", "approvals");
-          const payload = approvalRequestSchema.parse(input.payload);
+          const payload = approvalRequestSchema.parse(input.payload) as ApprovalRequestPayload;
           return { statusCode: 201, response: await requestContentApproval({ workspaceId: input.workspaceId, contentId: payload.contentId, actorId: session.userId, requiredRole: payload.requiredRole, expiresAt: payload.expiresAt ? new Date(payload.expiresAt) : undefined, correlationId: cid }) };
         }
         case "decide_approval": {
           requirePermission(membership, "decide", "approvals");
-          const payload = approvalDecisionSchema.parse(input.payload);
+          const payload = approvalDecisionSchema.parse(input.payload) as ApprovalDecisionPayload;
           return { statusCode: 200, response: await decideApproval({ workspaceId: input.workspaceId, approvalId: payload.approvalId, actorId: session.userId, decision: payload.decision, reason: payload.reason, correlationId: cid }) };
         }
         case "register_media": {
           requirePermission(membership, "create", "media");
-          const payload = mediaSchema.parse(input.payload);
+          const payload = mediaSchema.parse(input.payload) as MediaPayload;
           return { statusCode: 201, response: await registerMediaAsset({ workspaceId: input.workspaceId, actorId: session.userId, ...payload }) };
         }
       }
