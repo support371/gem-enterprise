@@ -15,15 +15,21 @@ const schema = z.object({
   connectorId: z.string().min(1),
 });
 
+type CreatorInfoPayload = {
+  workspaceId: string;
+  connectorId: string;
+};
+
 export async function POST(request: NextRequest) {
   const cid = correlationId(request);
   try {
     const session = await requireTokMetricSession(request);
-    const input = await parseJson(request, schema);
+    const input = await parseJson(request, schema) as CreatorInfoPayload;
     const membership = await requireWorkspaceAccess(input.workspaceId, session);
     requirePermission(membership, "publish", "content");
     const creator = await getCreatorInfoForPublishing({
-      ...input,
+      workspaceId: input.workspaceId,
+      connectorId: input.connectorId,
       actorId: session.userId,
       correlationId: cid,
     });
