@@ -172,7 +172,7 @@ export async function fetchTikTokPublishStatus(accessToken: string, publishId: s
   };
 }
 
-export async function cancelTikTokPublish(): Promise<never> {
+export async function cancelTikTokPublish(_accessToken?: string, _publishId?: string): Promise<never> {
   throw new TokMetricError(
     405,
     "TIKTOK_CANCELLATION_NOT_SUPPORTED",
