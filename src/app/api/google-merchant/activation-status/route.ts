@@ -23,7 +23,7 @@ export async function GET() {
       ok: activationReady,
       phase: 4,
       phaseName: "Hosted feed activation and health verification",
-      checkedAt: new Date().toISOString(),
+      checkedAt: feedHealth.checkedAt,
       integrationMode: "hosted_xml_feed",
       merchantCenterAccountId:
         process.env.GOOGLE_MERCHANT_ACCOUNT_ID || GOOGLE_MERCHANT_ACCOUNT_ID,
