@@ -42,11 +42,16 @@ const schema = z.object({
   processingNoticeAccepted: z.literal(true),
 });
 
+type VideoInitPayload = Omit<
+  InitializeVideoPublishInput,
+  "actorId" | "correlationId" | "idempotencyKey"
+>;
+
 export async function POST(request: NextRequest) {
   const cid = correlationId(request);
   try {
     const session = await requireTokMetricSession(request);
-    const body = await parseJson(request, schema);
+    const body = await parseJson(request, schema) as VideoInitPayload;
     const membership = await requireWorkspaceAccess(body.workspaceId, session);
     requirePermission(membership, "publish", "content");
     const idempotencyKey = request.headers.get("idempotency-key");
@@ -58,32 +63,17 @@ export async function POST(request: NextRequest) {
     }
 
     const input: InitializeVideoPublishInput = {
-      workspaceId: body.workspaceId,
-      contentId: body.contentId,
-      connectorId: body.connectorId,
+      ...body,
       actorId: session.userId,
       correlationId: cid,
       idempotencyKey,
-      title: body.title,
-      privacyLevel: body.privacyLevel,
-      disableComment: body.disableComment,
-      disableDuet: body.disableDuet,
-      disableStitch: body.disableStitch,
-      videoCoverTimestampMs: body.videoCoverTimestampMs,
-      brandContentToggle: body.brandContentToggle,
-      brandOrganicToggle: body.brandOrganicToggle,
-      isAigc: body.isAigc,
-      source: body.source,
-      file: body.file as InitializeVideoPublishInput["file"],
-      videoUrl: body.videoUrl,
-      consentToUpload: true,
-      rightsConfirmed: true,
-      musicRightsConfirmed: true,
-      processingNoticeAccepted: true,
     };
 
     const result = await initializeVideoPublish(input);
-    return NextResponse.json({ ok: true, correlationId: cid, data: result }, { status: 201, headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json(
+      { ok: true, correlationId: cid, data: result },
+      { status: 201, headers: { "Cache-Control": "no-store" } },
+    );
   } catch (error) {
     return tokMetricErrorResponse(error, cid);
   }
