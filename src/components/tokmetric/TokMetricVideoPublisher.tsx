@@ -1,1 +1,1 @@
-export { TokMetricVideoPublisherV2 as TokMetricVideoPublisher } from "./TokMetricVideoPublisherV2";
+export { TokMetricVideoPublisherV3 as TokMetricVideoPublisher } from "./TokMetricVideoPublisherV3";
