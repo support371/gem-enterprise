@@ -1,20 +1,42 @@
 // @ts-ignore
-import { PrismaClient, UserRole, EntityType, KYCStatus } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 // @ts-ignore
 const db = new PrismaClient();
 
-async function main() {
-  console.log("🌱 Seeding GEM Enterprise database...");
+function requiredEnv(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(`${name} is required to seed the production database.`);
+  }
+  return value;
+}
 
-  // Admin user
-  const adminHash = await bcrypt.hash("admin@gemEnterprise2026!", 12);
+function assertStrongPassword(name: string, value: string) {
+  if (value.length < 16) {
+    throw new Error(`${name} must be at least 16 characters.`);
+  }
+  if (!/[a-z]/.test(value) || !/[A-Z]/.test(value) || !/[0-9]/.test(value) || !/[^A-Za-z0-9]/.test(value)) {
+    throw new Error(`${name} must include upper-case, lower-case, numeric, and special characters.`);
+  }
+}
+
+async function seedAdmin() {
+  const adminEmail = requiredEnv("ADMIN_EMAIL").toLowerCase();
+  const adminPassword = requiredEnv("ADMIN_INITIAL_PASSWORD");
+  assertStrongPassword("ADMIN_INITIAL_PASSWORD", adminPassword);
+
+  const adminHash = await bcrypt.hash(adminPassword, 12);
   const admin = await db.user.upsert({
-    where: { email: "admin@gemcybersecurityassist.com" },
-    update: {},
+    where: { email: adminEmail },
+    update: {
+      isActive: true,
+      isEmailVerified: true,
+      role: "admin",
+    },
     create: {
-      email: "admin@gemcybersecurityassist.com",
+      email: adminEmail,
       passwordHash: adminHash,
       role: "admin",
       isActive: true,
@@ -23,161 +45,119 @@ async function main() {
         create: {
           firstName: "GEM",
           lastName: "Administrator",
-          displayName: "Admin",
+          displayName: "GEM Administrator",
           entityType: "individual",
         },
       },
     },
   });
-  console.log(`✅ Admin user: ${admin.email}`);
 
-  // Demo approved client
-  const clientHash = await bcrypt.hash("client@demo2026!", 12);
+  console.log(`✅ Admin user ready: ${admin.email}`);
+  return admin;
+}
+
+async function seedProducts() {
+  const products = [
+    {
+      slug: "cyber-shield",
+      name: "CyberShield Pro",
+      category: "cyber",
+      description: "Enterprise threat detection and response platform",
+    },
+    {
+      slug: "cyber-intel",
+      name: "Intelligence Feed",
+      category: "cyber",
+      description: "Real-time threat intelligence and IOC feeds",
+    },
+    {
+      slug: "financial-guard",
+      name: "FinancialGuard",
+      category: "financial",
+      description: "Secure financial transaction monitoring",
+    },
+    {
+      slug: "real-estate-protect",
+      name: "PropertyShield",
+      category: "real-estate",
+      description: "Real estate asset protection and title security",
+    },
+  ];
+
+  for (const product of products) {
+    await db.product.upsert({
+      where: { slug: product.slug },
+      update: {
+        name: product.name,
+        category: product.category,
+        description: product.description,
+      },
+      create: product,
+    });
+  }
+
+  console.log("✅ Products ready");
+}
+
+async function seedOptionalDemo(adminId: string) {
+  if (process.env.SEED_DEMO_DATA !== "true") return;
+
+  const clientEmail = requiredEnv("DEMO_CLIENT_EMAIL").toLowerCase();
+  const clientPassword = requiredEnv("DEMO_CLIENT_INITIAL_PASSWORD");
+  assertStrongPassword("DEMO_CLIENT_INITIAL_PASSWORD", clientPassword);
+
+  const clientHash = await bcrypt.hash(clientPassword, 12);
   const client = await db.user.upsert({
-    where: { email: "demo@gemcybersecurityassist.com" },
-    update: {},
+    where: { email: clientEmail },
+    update: {
+      isActive: true,
+      isEmailVerified: true,
+      role: "client",
+    },
     create: {
-      email: "demo@gemcybersecurityassist.com",
+      email: clientEmail,
       passwordHash: clientHash,
       role: "client",
       isActive: true,
       isEmailVerified: true,
       profile: {
         create: {
-          firstName: "Alexandra",
-          lastName: "Chen",
-          displayName: "Alexandra C.",
+          firstName: "Demo",
+          lastName: "Client",
+          displayName: "Demo Client",
           entityType: "individual",
           country: "US",
-          accreditedStatus: true,
         },
       },
     },
   });
-  console.log(`✅ Demo client: ${client.email}`);
 
-  // Approved KYC for demo client
-  const existingKyc = await db.kYCApplication.findFirst({
-    where: { userId: client.id },
-  });
-
-  if (!existingKyc) {
-    const kyc = await db.kYCApplication.create({
-      data: {
-        userId: client.id,
-        entityType: "individual",
-        status: "approved",
-        submittedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-        completedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-        formData: JSON.stringify({
-          firstName: "Alexandra",
-          lastName: "Chen",
-          country: "US",
-          sourceOfFunds: "Employment income and investment returns",
-          investmentObjective: "Capital preservation and growth",
-        }),
-        decision: {
-          create: {
-            decision: "approved",
-            decisionBy: admin.id,
-            reason: "All documents verified. Accredited investor status confirmed.",
-          },
-        },
-      },
-    });
-    console.log(`✅ KYC application created: ${kyc.id}`);
-  }
-
-  // Entitlements for demo client
   await db.entitlement.upsert({
     where: { userId_slug: { userId: client.id, slug: "cyber" } },
     update: {},
     create: {
       userId: client.id,
       slug: "cyber",
-      grantedBy: admin.id,
+      grantedBy: adminId,
     },
   });
 
-  await db.entitlement.upsert({
-    where: { userId_slug: { userId: client.id, slug: "financial" } },
-    update: {},
-    create: {
-      userId: client.id,
-      slug: "financial",
-      grantedBy: admin.id,
-    },
-  });
-  console.log(`✅ Entitlements granted`);
+  console.log(`✅ Optional demo client ready: ${client.email}`);
+}
 
-  // Products
-  const products = [
-    { slug: "cyber-shield", name: "CyberShield Pro", category: "cyber", description: "Enterprise threat detection and response platform" },
-    { slug: "cyber-intel", name: "Intelligence Feed", category: "cyber", description: "Real-time threat intelligence and IOC feeds" },
-    { slug: "financial-guard", name: "FinancialGuard", category: "financial", description: "Secure financial transaction monitoring" },
-    { slug: "real-estate-protect", name: "PropertyShield", category: "real-estate", description: "Real estate asset protection and title security" },
-  ];
+async function main() {
+  console.log("🌱 Seeding GEM Enterprise database...");
 
-  for (const p of products) {
-    await db.product.upsert({
-      where: { slug: p.slug },
-      update: {},
-      create: p,
-    });
-  }
-  console.log(`✅ Products seeded`);
+  const admin = await seedAdmin();
+  await seedProducts();
+  await seedOptionalDemo(admin.id);
 
-  // Demo portfolio
-  const portfolio = await db.portfolio.upsert({
-    where: { id: "portfolio_demo_001" },
-    update: {},
-    create: {
-      id: "portfolio_demo_001",
-      name: "GEM Cyber-Financial Portfolio",
-      description: "Diversified cybersecurity and financial asset portfolio",
-      category: "cyber",
-      totalValue: 2500000,
-      currency: "USD",
-    },
-  });
-
-  await db.portfolioMembership.upsert({
-    where: {
-      portfolioId_userId: {
-        portfolioId: portfolio.id,
-        userId: client.id,
-      },
-    },
-    update: {},
-    create: {
-      portfolioId: portfolio.id,
-      userId: client.id,
-      role: "owner",
-      assignedBy: admin.id,
-    },
-  });
-  console.log(`✅ Portfolio assigned`);
-
-  // Welcome notification
-  await db.notification.create({
-    data: {
-      userId: client.id,
-      title: "Welcome to GEM Enterprise",
-      body: "Your account has been approved. You now have full access to your client portal.",
-      channel: "in_app",
-    },
-  });
-  console.log(`✅ Welcome notification created`);
-
-  console.log("\n🎉 Seed complete!\n");
-  console.log("Demo credentials:");
-  console.log("  Admin:  admin@gemcybersecurityassist.com / admin@gemEnterprise2026!");
-  console.log("  Client: demo@gemcybersecurityassist.com  / client@demo2026!");
+  console.log("🎉 Seed complete. No passwords were printed or stored in source code.");
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
+  .catch((error) => {
+    console.error(error);
     process.exit(1);
   })
   .finally(async () => {
