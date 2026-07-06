@@ -4,16 +4,26 @@ import { Activity, ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StorefrontPage } from "@/components/store/StorefrontPage";
 
+const GOOGLE_STORE_URL = "https://crystal-kinetic-cart-flow.base44.app/";
+
 export const metadata: Metadata = {
-  title: "Google Merchant Store | GEM Enterprise",
+  title: "Live Google Store | GEM Enterprise",
   description:
-    "Browse GEM products prepared for Google Merchant Center and product-feed distribution.",
+    "Browse GEM products prepared for Google Merchant Center and continue to the connected live storefront for shopping and checkout.",
 };
 
 export default function GoogleStorePage() {
   return (
     <>
-      <StorefrontPage storefront="google" />
+      <StorefrontPage
+        storefront="google"
+        eyebrow="Connected Google commerce storefront"
+        title="Shop GEM products through the connected Google Store"
+        description="Browse GEM's Merchant-ready catalog, then continue to the connected live storefront for product selection, cart management, and checkout."
+        status="Connected"
+        externalUrl={GOOGLE_STORE_URL}
+        externalLabel="Open Live Google Store"
+      />
       <section className="border-t border-white/10 bg-[#07101c] py-14">
         <div className="container mx-auto grid max-w-7xl gap-6 px-6 lg:grid-cols-2">
           <article className="rounded-3xl border border-white/10 bg-white/[0.025] p-7">
