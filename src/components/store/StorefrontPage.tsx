@@ -3,18 +3,45 @@ import { ArrowLeft, ArrowRight, BadgeCheck, ExternalLink, ShoppingBag, TriangleA
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StorefrontProductGrid } from "@/components/store/StorefrontProductGrid";
-import { getProductsForStorefront, getStorefrontDefinition, type StorefrontSlug } from "@/lib/storefrontCatalog";
+import {
+  getProductsForStorefront,
+  getStorefrontDefinition,
+  type StorefrontDefinition,
+  type StorefrontSlug,
+} from "@/lib/storefrontCatalog";
 import { tiktokPlanningCategories, tiktokPlanningProducts } from "@/lib/tiktokPlanningCatalog";
 
-type Props = { storefront: StorefrontSlug };
+type Props = {
+  storefront: StorefrontSlug;
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  status?: StorefrontDefinition["status"];
+  externalUrl?: string;
+  externalLabel?: string;
+};
 
-export function StorefrontPage({ storefront }: Props) {
+export function StorefrontPage({
+  storefront,
+  eyebrow,
+  title,
+  description,
+  status,
+  externalUrl,
+  externalLabel,
+}: Props) {
   const definition = getStorefrontDefinition(storefront);
   const products = storefront === "tiktok" ? tiktokPlanningProducts : getProductsForStorefront(storefront);
   const categories = storefront === "tiktok" ? tiktokPlanningCategories : definition?.categories ?? ["All"];
   if (!definition) return null;
 
-  const hasExternal = definition.externalUrl && definition.externalLabel;
+  const activeEyebrow = eyebrow ?? definition.eyebrow;
+  const activeTitle = title ?? definition.title;
+  const activeDescription = description ?? definition.description;
+  const activeStatus = status ?? (storefront === "tiktok" ? "Prepared" : definition.status);
+  const activeExternalUrl = externalUrl ?? definition.externalUrl;
+  const activeExternalLabel = externalLabel ?? definition.externalLabel;
+  const hasExternal = Boolean(activeExternalUrl && activeExternalLabel);
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -32,17 +59,17 @@ export function StorefrontPage({ storefront }: Props) {
         <div className="container relative z-10 mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div>
             <Badge className="mb-5 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-cyan-300">
-              <ShoppingBag className="mr-2 h-4 w-4" /> {definition.eyebrow}
+              <ShoppingBag className="mr-2 h-4 w-4" /> {activeEyebrow}
             </Badge>
-            <h1 className="text-5xl font-black leading-tight text-white md:text-6xl">{definition.title}</h1>
-            <p className="mt-6 max-w-3xl text-lg leading-relaxed text-slate-300 md:text-xl">{definition.description}</p>
+            <h1 className="text-5xl font-black leading-tight text-white md:text-6xl">{activeTitle}</h1>
+            <p className="mt-6 max-w-3xl text-lg leading-relaxed text-slate-300 md:text-xl">{activeDescription}</p>
             <div className="mt-9 flex flex-col gap-4 sm:flex-row">
               <Button asChild size="lg" className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-300">
                 <Link href="#products">Browse Products <ArrowRight className="ml-2 h-5 w-5" /></Link>
               </Button>
               {hasExternal && (
                 <Button asChild size="lg" variant="outline" className="rounded-full border-cyan-400/40 px-8 text-cyan-300 hover:bg-cyan-400/10">
-                  <a href={definition.externalUrl} target="_blank" rel="noreferrer">{definition.externalLabel} <ExternalLink className="ml-2 h-5 w-5" /></a>
+                  <a href={activeExternalUrl} target="_blank" rel="noopener noreferrer">{activeExternalLabel} <ExternalLink className="ml-2 h-5 w-5" /></a>
                 </Button>
               )}
             </div>
@@ -50,7 +77,7 @@ export function StorefrontPage({ storefront }: Props) {
 
           <aside className="rounded-3xl border border-cyan-500/20 bg-white/[0.035] p-7">
             <div className="flex items-start justify-between gap-4">
-              <div><div className="text-xs uppercase tracking-[0.2em] text-slate-500">Store status</div><div className="mt-2 text-2xl font-black text-white">{storefront === "tiktok" ? "Catalog imported — validation pending" : definition.status}</div></div>
+              <div><div className="text-xs uppercase tracking-[0.2em] text-slate-500">Store status</div><div className="mt-2 text-2xl font-black text-white">{storefront === "tiktok" ? "Catalog imported — validation pending" : activeStatus}</div></div>
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10 text-cyan-300"><BadgeCheck className="h-6 w-6" /></div>
             </div>
             <div className="mt-6 grid grid-cols-2 gap-4">
@@ -59,15 +86,15 @@ export function StorefrontPage({ storefront }: Props) {
             </div>
             {hasExternal && (
               <div className="mt-6 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4">
-                <div className="text-xs uppercase tracking-widest text-cyan-400">External destination</div>
-                <div className="mt-2 break-all text-sm font-semibold text-white">{definition.externalUrl}</div>
+                <div className="text-xs uppercase tracking-widest text-cyan-400">Connected destination</div>
+                <div className="mt-2 break-all text-sm font-semibold text-white">{activeExternalUrl}</div>
                 <a
-                  href={definition.externalUrl}
+                  href={activeExternalUrl}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="mt-3 inline-flex items-center gap-2 rounded-full bg-cyan-400 px-5 py-2 text-sm font-bold text-black transition-colors hover:bg-cyan-300"
                 >
-                  {definition.externalLabel} <ExternalLink className="h-4 w-4" />
+                  {activeExternalLabel} <ExternalLink className="h-4 w-4" />
                 </a>
               </div>
             )}
