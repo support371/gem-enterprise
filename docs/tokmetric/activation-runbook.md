@@ -8,16 +8,50 @@
 - Publishing route: `/tokmetric/publishing`
 - Health route: `/api/health`
 
-## Required database variables
+## Canonical database provider
 
-Configure both variables in Vercel for Production, Preview, and Development as appropriate:
+GEM Enterprise uses **Supabase PostgreSQL**. Do not create or migrate to another database provider during recovery unless a separate migration is explicitly approved.
+
+The current Next.js/Prisma application accepts the canonical Prisma names and the standard names commonly injected by Vercel integrations:
 
 ```text
-POSTGRES_PRISMA_URL=<pooled PostgreSQL connection string>
-POSTGRES_URL_NON_POOLING=<direct PostgreSQL connection string>
+POSTGRES_PRISMA_URL
+POSTGRES_URL_NON_POOLING
+DATABASE_URL
+DATABASE_URL_UNPOOLED
+POSTGRES_URL
+NEON_DATABASE_URL
 ```
 
-The pooled URL is used by serverless runtime requests. The direct URL is used by Prisma migration and direct database workflows. Both must point to the same production database and must use TLS where required by the provider.
+For Supabase, configure the pooled transaction connection for serverless runtime traffic and the direct/session connection for schema administration:
+
+```text
+POSTGRES_PRISMA_URL=<Supabase pooled PostgreSQL URL>
+POSTGRES_URL_NON_POOLING=<Supabase direct or session PostgreSQL URL>
+```
+
+Both URLs must belong to the same Supabase project. Never commit either value to GitHub or documentation.
+
+## Controlled first-time schema bootstrap
+
+For a new or empty Supabase database only, temporarily configure:
+
+```text
+AUTO_DB_PUSH=true
+AUTO_DB_SEED=true
+ADMIN_EMAIL=<authorized admin email>
+ADMIN_INITIAL_PASSWORD=<strong private password>
+SEED_DEMO_DATA=false
+```
+
+The Vercel build script will generate Prisma, synchronize the schema, create the secure admin record, seed the initial products, and build Next.js. After a successful bootstrap, immediately change:
+
+```text
+AUTO_DB_PUSH=false
+AUTO_DB_SEED=false
+```
+
+Then redeploy once more. Existing production databases must be backed up before schema synchronization.
 
 ## TikTok sandbox variables
 
