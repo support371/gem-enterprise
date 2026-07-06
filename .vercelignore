@@ -17,6 +17,12 @@ DEPLOYMENT.md
 eslint.config.mjs
 vitest.config.ts
 
+# Cloudflare Worker backend (separate deployment)
+cloudflare-worker/
+
+# Documentation
+docs/
+
 # Misc
 .idea/
 .vscode/
