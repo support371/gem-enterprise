@@ -1,12 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "pnpm run db:generate && pnpm run build",
+  "ignoreCommand": "node scripts/vercel-ignore.mjs",
+  "buildCommand": "pnpm run build",
   "devCommand": "pnpm dev",
   "installCommand": "pnpm install --frozen-lockfile",
-  "regions": [
-    "sfo1"
-  ],
+  "regions": ["sfo1"],
   "git": {
     "deploymentEnabled": {
       "main": true
