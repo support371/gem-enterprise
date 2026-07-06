@@ -8,7 +8,7 @@ import {
 
 const DEFAULT_APP_ORIGIN = "https://www.gemcybersecurityassist.com";
 const DEFAULT_AGENT_API_ORIGIN =
-  "https://support371-gem-enterprise-git-main-admin-25521151s-projects.vercel.app";
+  "https://support371-gem-enterprise.vercel.app";
 
 function cleanOrigin(value: string | undefined, fallback: string) {
   return (value?.trim() || fallback).replace(/\/+$/, "");
