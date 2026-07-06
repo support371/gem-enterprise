@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StorefrontProductGrid } from "@/components/store/StorefrontProductGrid";
 import { storefrontDefinitions, storefrontProducts } from "@/lib/storefrontCatalog";
+import { TIKTOK_MAIN_STORE_URL } from "@/lib/storefrontDestinations";
 
 export const metadata: Metadata = {
   title: "GEM Store | All Products and Store Channels",
@@ -89,6 +90,12 @@ export default function StorePage() {
             const count = storefrontProducts.filter((product) =>
               product.storefronts.includes(storefront.slug),
             ).length;
+            const externalUrl = storefront.slug === "tiktok"
+              ? TIKTOK_MAIN_STORE_URL
+              : storefront.externalUrl;
+            const externalLabel = storefront.slug === "tiktok"
+              ? "Open Main TikTok Shop"
+              : storefront.externalLabel;
 
             return (
               <article key={storefront.slug} className="rounded-3xl border border-white/10 bg-white/[0.025] p-6 transition-all hover:border-cyan-400/40 hover:bg-white/[0.045]">
@@ -109,10 +116,10 @@ export default function StorePage() {
                   <Button asChild className="bg-cyan-400 font-semibold text-black hover:bg-cyan-300">
                     <Link href={`/store/${storefront.slug}`}>Open {storefront.shortName} <ArrowRight className="ml-2 h-4 w-4" /></Link>
                   </Button>
-                  {storefront.externalUrl && storefront.externalLabel && (
+                  {externalUrl && externalLabel && (
                     <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                      <a href={storefront.externalUrl} target="_blank" rel="noreferrer">
-                        {storefront.externalLabel} <ExternalLink className="ml-2 h-4 w-4" />
+                      <a href={externalUrl} target="_blank" rel="noreferrer">
+                        {externalLabel} <ExternalLink className="ml-2 h-4 w-4" />
                       </a>
                     </Button>
                   )}
