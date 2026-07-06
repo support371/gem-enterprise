@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { operationsRegistry } from "@/lib/saasOperationsRegistry";
 
 const defaultAgentServer =
-  "https://support371-gem-enterprise-git-main-admin-25521151s-projects.vercel.app";
+  "https://support371-gem-enterprise.vercel.app";
 
 function toOperation(operation: (typeof operationsRegistry)[number]) {
   return {
