@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { commerceChannels, storeProducts } from "@/lib/storeCatalog";
 import { storefrontDefinitions, storefrontProducts } from "@/lib/storefrontCatalog";
+import { TIKTOK_MAIN_STORE_URL } from "@/lib/storefrontDestinations";
 import { tiktokPlanningProducts } from "@/lib/tiktokPlanningCatalog";
 
 const origin = "https://www.gemcybersecurityassist.com";
@@ -14,7 +15,14 @@ export async function GET() {
     storefronts: storefrontDefinitions.map((storefront) => ({
       ...storefront,
       page_url: `${origin}/store/${storefront.slug}`,
-      external_url: storefront.externalUrl ?? null,
+      external_url:
+        storefront.slug === "tiktok"
+          ? TIKTOK_MAIN_STORE_URL
+          : storefront.externalUrl ?? null,
+      external_label:
+        storefront.slug === "tiktok"
+          ? "Open Main TikTok Shop"
+          : storefront.externalLabel ?? null,
       product_count:
         storefront.slug === "tiktok"
           ? tiktokPlanningProducts.length
@@ -30,6 +38,7 @@ export async function GET() {
       status: "draft-validation-required",
       source_rows: tiktokPlanningProducts.length,
       store_url: `${origin}/store/tiktok`,
+      external_store_url: TIKTOK_MAIN_STORE_URL,
       required_before_upload: [
         "real product images",
         "GTIN/UPC or approved exemption",
