@@ -6,8 +6,8 @@ info:
     Authenticated read-only operations bridge for the GEM Enterprise website,
     shared database health, and approved commerce destinations.
 servers:
-  - url: https://support371-gem-enterprise-git-main-admin-25521151s-projects.vercel.app
-    description: GEM Enterprise production branch API
+  - url: https://support371-gem-enterprise.vercel.app
+    description: GEM Enterprise production API
 security:
   - GemAgentKey: []
 paths:
