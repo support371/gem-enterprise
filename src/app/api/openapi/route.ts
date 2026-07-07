@@ -82,6 +82,31 @@ function getAgentSchema() {
           },
         },
       },
+      "/api/agent/commerce": {
+        get: {
+          operationId: "getGemCommerceStatus",
+          summary: "Get approved GEM storefront destinations",
+          description:
+            "Return all approved storefront destinations or a focused TikTok or Google response.",
+          parameters: [
+            {
+              name: "channel",
+              in: "query",
+              required: false,
+              description: "Optional commerce channel.",
+              schema: {
+                type: "string",
+                enum: ["tiktok", "google"],
+              },
+            },
+          ],
+          responses: {
+            "200": { description: "Approved store routing and connection status." },
+            "401": { description: "Invalid or missing agent key." },
+            "503": { description: "Agent API authentication is not configured." },
+          },
+        },
+      },
     },
     components: {
       securitySchemes: {
@@ -89,7 +114,8 @@ function getAgentSchema() {
           type: "apiKey",
           in: "header",
           name: "X-GEM-Agent-Key",
-          description: "Private API key configured in Vercel and the GPT Action.",
+          description:
+            "Private credential configured in Vercel and the Platform Operations Agent Action. The backend may reuse the existing GPT_AUTH_TOKEN.",
         },
       },
     },
