@@ -93,16 +93,19 @@ export function Footer() {
             </Link>
 
             <p className="mt-4 text-sm leading-relaxed text-white/45">
-              Institutional-grade cybersecurity, financial security, and real estate protection.
+              Cybersecurity, financial security, and real estate protection services for individuals,
+              organizations, and eligible institutional clients.
             </p>
           </div>
 
           <div className="max-w-xs rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
             <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[hsl(280,40%,60%)]">
-              Qualified Clients Only
+              Service Eligibility
             </p>
             <p className="text-xs leading-relaxed text-white/35">
-              GEM Enterprise services are available exclusively to accredited investors and qualified institutional clients.
+              Public cybersecurity products and general information are broadly available. Certain
+              institutional, financial, or jurisdiction-restricted services require eligibility and
+              compliance review before activation.
             </p>
           </div>
         </div>
