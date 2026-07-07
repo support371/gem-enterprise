@@ -1,0 +1,40 @@
+openapi: 3.1.0
+info:
+  title: GEM Platform Operations API
+  version: 1.0.0
+servers:
+  - url: https://support371-gem-enterprise.vercel.app
+paths:
+  /api/agent/health:
+    get:
+      operationId: checkGemPlatformHealth
+      responses:
+        '200':
+          description: Platform health
+  /api/agent/context:
+    get:
+      operationId: getGemPlatformContext
+      responses:
+        '200':
+          description: Platform context
+  /api/agent/storefront:
+    get:
+      operationId: getGemStorefront
+      parameters:
+        - name: channel
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [tiktok, google]
+      responses:
+        '200':
+          description: Storefront information
+components:
+  securitySchemes:
+    GemAgentKey:
+      type: apiKey
+      in: header
+      name: X-GEM-Agent-Key
+security:
+  - GemAgentKey: []
