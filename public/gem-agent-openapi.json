@@ -1,0 +1,240 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "GEM Platform Operations API",
+    "version": "1.0.0",
+    "description": "Authenticated read-only bridge between the Platform Operations Agent and the GEM Enterprise backend."
+  },
+  "servers": [
+    {
+      "url": "https://support371-gem-enterprise-git-main-admin-25521151s-projects.vercel.app",
+      "description": "Canonical GEM Vercel production branch"
+    }
+  ],
+  "security": [
+    {
+      "GemAgentKey": []
+    }
+  ],
+  "paths": {
+    "/api/agent/health": {
+      "get": {
+        "operationId": "checkGemPlatformHealth",
+        "summary": "Check GEM backend and database health",
+        "responses": {
+          "200": {
+            "description": "Current platform and database health",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/api/agent/context": {
+      "get": {
+        "operationId": "getGemPlatformContext",
+        "summary": "Get the connected GEM platform context",
+        "responses": {
+          "200": {
+            "description": "Platform, database, store, and capability context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    },
+    "/api/agent/catalog": {
+      "get": {
+        "operationId": "getGemStoreCatalog",
+        "summary": "Get approved Google and TikTok storefront destinations",
+        "responses": {
+          "200": {
+            "description": "Approved store routing and account-connection state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "503": {
+            "$ref": "#/components/responses/Unavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "GemAgentKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-GEM-Agent-Key",
+        "description": "Private server-side key configured in Vercel and in the Platform Operations Agent Action."
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing or invalid GEM agent API key",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "Unavailable": {
+        "description": "The GEM agent bridge or database runtime is unavailable",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "DatabaseStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok", "error", "unavailable"]
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "diagnostic": {
+            "type": "string"
+          }
+        },
+        "required": ["status", "configured", "diagnostic"]
+      },
+      "StoreDestination": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "internal_page": {
+            "type": "string",
+            "format": "uri"
+          },
+          "external_storefront": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "required": ["name", "status", "internal_page", "external_storefront"]
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "platform": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "database": {
+            "$ref": "#/components/schemas/DatabaseStatus"
+          }
+        },
+        "required": ["ok", "status", "timestamp", "platform", "database"]
+      },
+      "ContextResponse": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "database": {
+            "$ref": "#/components/schemas/DatabaseStatus"
+          },
+          "stores": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/StoreDestination"
+            }
+          }
+        },
+        "required": ["ok", "status", "database", "stores"]
+      },
+      "CatalogResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "catalog": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/StoreDestination"
+            }
+          }
+        },
+        "required": ["ok", "catalog"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "const": false
+          },
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": ["ok", "error", "message"]
+      }
+    }
+  }
+}
