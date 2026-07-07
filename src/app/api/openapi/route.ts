@@ -24,11 +24,59 @@ function toOperation(operation: (typeof operationsRegistry)[number]) {
   };
 }
 
-function getAgentSchema() {
-  const server =
+function getServer() {
+  return (
     process.env.GEM_AGENT_API_BASE_URL?.trim().replace(/\/+$/, "") ||
-    defaultAgentServer;
+    defaultAgentServer
+  );
+}
 
+function getPublicStorefrontSchema() {
+  return {
+    openapi: "3.1.0",
+    info: {
+      title: "GEM Storefront Access API",
+      version: "1.0.0",
+      description:
+        "Public read-only bridge that lets the Platform Operations Agent retrieve approved GEM Google Store and TikTok Shop destinations. It exposes no database credentials, customer records, or write operations.",
+    },
+    servers: [
+      {
+        url: getServer(),
+        description: "GEM Enterprise public storefront API",
+      },
+    ],
+    paths: {
+      "/api/agent/public/commerce": {
+        get: {
+          operationId: "getGemPublicStorefront",
+          summary: "Get the approved GEM Google or TikTok storefront",
+          description:
+            "Return all approved storefront destinations or one focused TikTok or Google response.",
+          parameters: [
+            {
+              name: "channel",
+              in: "query",
+              required: false,
+              description: "Optional storefront channel.",
+              schema: {
+                type: "string",
+                enum: ["tiktok", "google"],
+              },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Approved public storefront routing information.",
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
+function getAgentSchema() {
   return {
     openapi: "3.1.0",
     info: {
@@ -39,7 +87,7 @@ function getAgentSchema() {
     },
     servers: [
       {
-        url: server,
+        url: getServer(),
         description: "GEM Enterprise agent API",
       },
     ],
@@ -124,6 +172,12 @@ function getAgentSchema() {
 
 export async function GET(request: Request) {
   const profile = new URL(request.url).searchParams.get("profile");
+  if (profile === "storefront") {
+    return NextResponse.json(getPublicStorefrontSchema(), {
+      headers: { "Cache-Control": "public, max-age=300" },
+    });
+  }
+
   if (profile === "agent") {
     return NextResponse.json(getAgentSchema(), {
       headers: { "Cache-Control": "public, max-age=300" },
