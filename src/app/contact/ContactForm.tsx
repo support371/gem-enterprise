@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, AlertCircle, Loader2, Send } from "lucide-react";
@@ -11,25 +12,27 @@ import { CheckCircle2, AlertCircle, Loader2, Send } from "lucide-react";
 const contactSchema = z.object({
   fullName: z
     .string()
+    .trim()
     .min(2, "Full name must be at least 2 characters")
     .max(100, "Full name must be under 100 characters"),
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().trim().email("Please enter a valid email address"),
   organization: z
     .string()
+    .trim()
     .min(2, "Organization name must be at least 2 characters")
     .max(200, "Organization name must be under 200 characters"),
-  subject: z.enum(
-    ["general", "security-incident", "partnership", "other"],
-    { required_error: "Please select a subject" }
-  ),
+  subject: z.enum(["general", "security-incident", "partnership", "other"], {
+    required_error: "Please select a subject",
+  }),
   message: z
     .string()
+    .trim()
     .min(20, "Message must be at least 20 characters")
     .max(5000, "Message must be under 5000 characters"),
+  website: z.string().optional(),
 });
 
 type ContactFormData = z.infer<typeof contactSchema>;
-
 type FormStatus = "idle" | "loading" | "success" | "error";
 
 const subjectOptions = [
@@ -37,11 +40,14 @@ const subjectOptions = [
   { value: "security-incident", label: "Security Incident" },
   { value: "partnership", label: "Partnership" },
   { value: "other", label: "Other" },
-];
+] as const;
+
+const inputClass =
+  "w-full rounded-lg border border-border/60 bg-input px-4 py-2.5 text-sm transition-colors placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring";
 
 export default function ContactForm() {
   const [status, setStatus] = useState<FormStatus>("idle");
-  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const {
     register,
@@ -50,6 +56,7 @@ export default function ContactForm() {
     formState: { errors },
   } = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
+    defaultValues: { website: "" },
   });
 
   const onSubmit = async (data: ContactFormData) => {
@@ -57,20 +64,37 @@ export default function ContactForm() {
     setErrorMessage("");
 
     try {
-      // Simulate POST to /api/contact
-      await new Promise<void>((resolve, reject) => {
-        setTimeout(() => {
-          // Stub: always resolve for now
-          resolve();
-        }, 1500);
+      const subjectLabel =
+        subjectOptions.find((option) => option.value === data.subject)?.label ??
+        "Website inquiry";
+
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.fullName,
+          email: data.email,
+          subject: `${subjectLabel} — ${data.organization}`,
+          message: `Organization: ${data.organization}\n\n${data.message}`,
+          website: data.website,
+        }),
       });
+
+      const result = (await response.json().catch(() => null)) as
+        | { ok?: boolean; error?: string }
+        | null;
+
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error || "Message submission failed");
+      }
 
       setStatus("success");
       reset();
-    } catch {
+    } catch (error) {
+      console.error("[contact-form] submission failed", error);
       setStatus("error");
       setErrorMessage(
-        "An error occurred while submitting your message. Please try again or contact us directly."
+        "We could not submit your message. Please try again or use the published support contact.",
       );
     }
   };
@@ -78,19 +102,15 @@ export default function ContactForm() {
   if (status === "success") {
     return (
       <Card className="glass-panel border-primary/20">
-        <CardContent className="pt-8 pb-8 text-center">
-          <div className="p-4 rounded-full bg-primary/10 border border-primary/30 w-fit mx-auto mb-6">
-            <CheckCircle2 className="h-10 w-10 text-primary" />
+        <CardContent className="pb-8 pt-8 text-center">
+          <div className="mx-auto mb-6 w-fit rounded-full border border-primary/30 bg-primary/10 p-4">
+            <CheckCircle2 className="h-10 w-10 text-primary" aria-hidden="true" />
           </div>
-          <h3 className="text-xl font-bold mb-3">Message Received</h3>
-          <p className="text-muted-foreground leading-relaxed mb-6 max-w-md mx-auto">
-            Your message has been received. Our team will respond within 1 business day.
-            For urgent security incidents, please use the emergency escalation contact provided.
+          <h3 className="mb-3 text-xl font-bold">Message Submitted</h3>
+          <p className="mx-auto mb-6 max-w-md leading-relaxed text-muted-foreground">
+            Your message was accepted by our contact system. Response times vary by inquiry type and service coverage.
           </p>
-          <Button
-            variant="outline"
-            onClick={() => setStatus("idle")}
-          >
+          <Button variant="outline" onClick={() => setStatus("idle")}>
             Send Another Message
           </Button>
         </CardContent>
@@ -102,40 +122,29 @@ export default function ContactForm() {
     <Card className="glass-panel border-border/50">
       <CardContent className="pt-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
-          {/* Full Name */}
           <div className="space-y-1.5">
-            <label
-              htmlFor="fullName"
-              className="text-sm font-medium text-foreground"
-            >
+            <label htmlFor="fullName" className="text-sm font-medium text-foreground">
               Full Name <span className="text-destructive">*</span>
             </label>
             <input
               id="fullName"
               type="text"
               autoComplete="name"
-              placeholder="Your full legal name"
+              placeholder="Your full name"
               {...register("fullName")}
-              className={`w-full px-4 py-2.5 rounded-lg bg-input border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors ${
-                errors.fullName
-                  ? "border-destructive focus:ring-destructive/50"
-                  : "border-border/60 focus:border-primary/50"
-              }`}
+              className={inputClass}
+              aria-invalid={Boolean(errors.fullName)}
             />
             {errors.fullName && (
-              <p className="text-xs text-destructive flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
+              <p className="flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3" aria-hidden="true" />
                 {errors.fullName.message}
               </p>
             )}
           </div>
 
-          {/* Email */}
           <div className="space-y-1.5">
-            <label
-              htmlFor="email"
-              className="text-sm font-medium text-foreground"
-            >
+            <label htmlFor="email" className="text-sm font-medium text-foreground">
               Email Address <span className="text-destructive">*</span>
             </label>
             <input
@@ -144,26 +153,19 @@ export default function ContactForm() {
               autoComplete="email"
               placeholder="you@organization.com"
               {...register("email")}
-              className={`w-full px-4 py-2.5 rounded-lg bg-input border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors ${
-                errors.email
-                  ? "border-destructive focus:ring-destructive/50"
-                  : "border-border/60 focus:border-primary/50"
-              }`}
+              className={inputClass}
+              aria-invalid={Boolean(errors.email)}
             />
             {errors.email && (
-              <p className="text-xs text-destructive flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
+              <p className="flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3" aria-hidden="true" />
                 {errors.email.message}
               </p>
             )}
           </div>
 
-          {/* Organization */}
           <div className="space-y-1.5">
-            <label
-              htmlFor="organization"
-              className="text-sm font-medium text-foreground"
-            >
+            <label htmlFor="organization" className="text-sm font-medium text-foreground">
               Organization <span className="text-destructive">*</span>
             </label>
             <input
@@ -172,36 +174,27 @@ export default function ContactForm() {
               autoComplete="organization"
               placeholder="Your company or institution"
               {...register("organization")}
-              className={`w-full px-4 py-2.5 rounded-lg bg-input border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors ${
-                errors.organization
-                  ? "border-destructive focus:ring-destructive/50"
-                  : "border-border/60 focus:border-primary/50"
-              }`}
+              className={inputClass}
+              aria-invalid={Boolean(errors.organization)}
             />
             {errors.organization && (
-              <p className="text-xs text-destructive flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
+              <p className="flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3" aria-hidden="true" />
                 {errors.organization.message}
               </p>
             )}
           </div>
 
-          {/* Subject */}
           <div className="space-y-1.5">
-            <label
-              htmlFor="subject"
-              className="text-sm font-medium text-foreground"
-            >
+            <label htmlFor="subject" className="text-sm font-medium text-foreground">
               Subject <span className="text-destructive">*</span>
             </label>
             <select
               id="subject"
+              defaultValue=""
               {...register("subject")}
-              className={`w-full px-4 py-2.5 rounded-lg bg-input border text-sm focus:outline-none focus:ring-2 focus:ring-ring transition-colors appearance-none cursor-pointer ${
-                errors.subject
-                  ? "border-destructive focus:ring-destructive/50"
-                  : "border-border/60 focus:border-primary/50"
-              }`}
+              className={`${inputClass} cursor-pointer appearance-none`}
+              aria-invalid={Boolean(errors.subject)}
             >
               <option value="" disabled>
                 Select a subject
@@ -213,70 +206,71 @@ export default function ContactForm() {
               ))}
             </select>
             {errors.subject && (
-              <p className="text-xs text-destructive flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
+              <p className="flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3" aria-hidden="true" />
                 {errors.subject.message}
               </p>
             )}
           </div>
 
-          {/* Message */}
+          <div className="hidden" aria-hidden="true">
+            <label htmlFor="website">Website</label>
+            <input
+              id="website"
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+              {...register("website")}
+            />
+          </div>
+
           <div className="space-y-1.5">
-            <label
-              htmlFor="message"
-              className="text-sm font-medium text-foreground"
-            >
+            <label htmlFor="message" className="text-sm font-medium text-foreground">
               Message <span className="text-destructive">*</span>
             </label>
             <textarea
               id="message"
               rows={6}
-              placeholder="Describe your inquiry, organization context, and any relevant details..."
+              placeholder="Describe your inquiry and relevant context..."
               {...register("message")}
-              className={`w-full px-4 py-2.5 rounded-lg bg-input border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors resize-none ${
-                errors.message
-                  ? "border-destructive focus:ring-destructive/50"
-                  : "border-border/60 focus:border-primary/50"
-              }`}
+              className={`${inputClass} resize-none`}
+              aria-invalid={Boolean(errors.message)}
             />
             {errors.message && (
-              <p className="text-xs text-destructive flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
+              <p className="flex items-center gap-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3" aria-hidden="true" />
                 {errors.message.message}
               </p>
             )}
           </div>
 
-          {/* Error state */}
           {status === "error" && (
-            <div className="flex items-start gap-3 p-4 rounded-lg bg-destructive/10 border border-destructive/30">
-              <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0 mt-0.5" />
+            <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-4">
+              <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-destructive" aria-hidden="true" />
               <p className="text-sm text-destructive">{errorMessage}</p>
             </div>
           )}
 
-          {/* Submit */}
-          <Button
-            type="submit"
-            disabled={status === "loading"}
-            className="w-full gap-2"
-            size="lg"
-          >
+          <Button type="submit" disabled={status === "loading"} className="w-full gap-2" size="lg">
             {status === "loading" ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 Sending Message...
               </>
             ) : (
               <>
-                <Send className="h-4 w-4" />
+                <Send className="h-4 w-4" aria-hidden="true" />
                 Send Message
               </>
             )}
           </Button>
 
-          <p className="text-xs text-muted-foreground text-center">
-            All communications are handled with strict confidentiality. We do not share your information with third parties.
+          <p className="text-center text-xs text-muted-foreground">
+            We do not sell personal information. Information may be processed or disclosed only as described in our{" "}
+            <Link href="/privacy" className="underline underline-offset-2 hover:text-foreground">
+              Privacy Policy
+            </Link>
+            , where needed to provide services, protect the platform, or comply with law.
           </p>
         </form>
       </CardContent>
