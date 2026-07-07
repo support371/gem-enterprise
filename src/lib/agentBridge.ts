@@ -54,15 +54,24 @@ function jsonNoStore(body: unknown, status = 200) {
   });
 }
 
+function configuredAgentKey() {
+  return (
+    process.env.GEM_AGENT_API_KEY?.trim() ||
+    process.env.GPT_AUTH_TOKEN?.trim() ||
+    ""
+  );
+}
+
 export function requireGemAgent(request: Request) {
-  const expected = process.env.GEM_AGENT_API_KEY?.trim() || "";
+  const expected = configuredAgentKey();
 
   if (expected.length < 32) {
     return jsonNoStore(
       {
         ok: false,
         error: "agent_api_not_configured",
-        message: "GEM_AGENT_API_KEY must be configured in the server environment.",
+        message:
+          "Configure GEM_AGENT_API_KEY or the existing GPT_AUTH_TOKEN in the server environment.",
       },
       503,
     );
@@ -74,7 +83,7 @@ export function requireGemAgent(request: Request) {
       {
         ok: false,
         error: "unauthorized",
-        message: "A valid GEM agent API key is required.",
+        message: "A valid GEM agent credential is required.",
       },
       401,
     );
