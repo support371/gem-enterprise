@@ -1,3 +1,4 @@
+// Defense-in-depth: only the canonical GEM Vercel project may consume a build.
 const canonicalProjectId = "prj_VDGqnA7wZt2E65LLvT94ZOpnYc2Z";
 const canonicalMarkers = [
   "support371-gem-enterprise",
