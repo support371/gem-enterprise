@@ -10,7 +10,7 @@ This flow lets GEM Enterprise keep building with limited personnel time and mini
 
 - **Canonical automatic gate:** Vercel preview deployment for project `support371-gem-enterprise` (`prj_VDGqnA7wZt2E65LLvT94ZOpnYc2Z`).
 - **Duplicate protection:** `scripts/vercel-ignore.mjs` allows only the canonical project to build. Any non-canonical project ID or recognized duplicate URL is ignored before the build begins. Unknown Vercel projects fail closed.
-- **Confirmed duplicates awaiting dashboard disconnection:** `gem-enterprise` (`prj_iT8bNqbTiePiM2SZiWTkOUJXy3o0`) and `project-dtrl6` (`prj_TUZk9mqccnIGSsSpsti7jwg9D3W2`).
+- **Disconnected duplicates:** `gem-enterprise` (`prj_iT8bNqbTiePiM2SZiWTkOUJXy3o0`) and `project-dtrl6` (`prj_TUZk9mqccnIGSsSpsti7jwg9D3W2`) were disconnected from the repository on 2026-07-09. A fresh commit created no deployments in either project.
 - **What the canonical preview runs:** Prisma generation, ESLint, TypeScript checking, Vitest, and the Next.js production build.
 - **GitHub Actions:** build verification and CodeQL workflows remain available through manual dispatch. They are not automatic while hosted-runner access is constrained.
 - **Production deployment:** Vercel Git integration deploys `main`. No second production deployment workflow is permitted.
