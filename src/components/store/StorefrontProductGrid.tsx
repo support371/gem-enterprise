@@ -6,7 +6,6 @@ import Image from "next/image";
 import {
   ArrowRight,
   CheckCircle2,
-  ExternalLink,
   Package,
   Search,
   ShieldCheck,
@@ -15,6 +14,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { StorefrontProduct, StorefrontSlug } from "@/lib/storefrontCatalog";
+import {
+  catalogueRelianceNotice,
+  formatCataloguePrice,
+  publicAvailabilityLabel,
+  publicProductDescription,
+} from "@/lib/storefrontPresentation";
 
 type StorefrontProductGridProps = {
   products: StorefrontProduct[];
@@ -30,13 +35,6 @@ const accentClasses: Record<StorefrontProduct["accent"], string> = {
   pink: "from-pink-500/20 via-pink-500/5 to-transparent text-pink-300 border-pink-500/20",
 };
 
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(value);
-}
-
 export function StorefrontProductGrid({ products, storefront, categories }: StorefrontProductGridProps) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
@@ -45,9 +43,7 @@ export function StorefrontProductGrid({ products, storefront, categories }: Stor
   const filteredProducts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return products.filter((product) => {
-      const categoryMatches =
-        category === "All" || product.category === category;
-
+      const categoryMatches = category === "All" || product.category === category;
       const queryMatches =
         !normalizedQuery ||
         product.name.toLowerCase().includes(normalizedQuery) ||
@@ -59,7 +55,7 @@ export function StorefrontProductGrid({ products, storefront, categories }: Stor
     });
   }, [category, products, query]);
 
-  const toggleCart = (productId: string) => {
+  const toggleRequest = (productId: string) => {
     setCart((current) =>
       current.includes(productId)
         ? current.filter((id) => id !== productId)
@@ -67,32 +63,36 @@ export function StorefrontProductGrid({ products, storefront, categories }: Stor
     );
   };
 
-  const cartNames = products
+  const requestNames = products
     .filter((product) => cart.includes(product.id))
     .map((product) => product.name)
     .join(", ");
 
   return (
     <div>
+      <div className="mb-5 rounded-2xl border border-amber-400/25 bg-amber-400/10 p-5 text-sm leading-6 text-amber-50/90">
+        {catalogueRelianceNotice}
+      </div>
+
       <div className="grid gap-4 rounded-3xl border border-white/10 bg-white/[0.025] p-5 lg:grid-cols-[1fr_auto] lg:items-center">
         <label className="relative block">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search products, SKU, category..."
+            placeholder="Search proposed products, SKU, category..."
             className="h-12 w-full rounded-2xl border border-white/10 bg-black/20 pl-12 pr-4 text-white outline-none transition-colors placeholder:text-slate-600 focus:border-cyan-400/60"
           />
         </label>
 
         <div className="flex items-center justify-between gap-3 lg:justify-end">
           <div className="rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-slate-300">
-            {filteredProducts.length} products
+            {filteredProducts.length} catalogue items
           </div>
           {cart.length > 0 && (
             <Button asChild className="bg-cyan-400 font-semibold text-black hover:bg-cyan-300">
-              <Link href={`/contact?store=${storefront}&products=${encodeURIComponent(cartNames)}`}>
-                Request {cart.length} item{cart.length === 1 ? "" : "s"}
+              <Link href={`/contact?store=${storefront}&products=${encodeURIComponent(requestNames)}`}>
+                Request review for {cart.length}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -135,7 +135,7 @@ export function StorefrontProductGrid({ products, storefront, categories }: Stor
                   {product.image ? (
                     <Image
                       src={product.image}
-                      alt={product.name}
+                      alt={`Illustrative catalogue image for ${product.name}`}
                       fill
                       sizes="(min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
                       className="object-cover"
@@ -143,14 +143,12 @@ export function StorefrontProductGrid({ products, storefront, categories }: Stor
                   ) : null}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-                    <Badge className="rounded-full border border-emerald-500/30 bg-black/40 text-emerald-300 backdrop-blur-sm">
-                      {product.stockLabel}
+                    <Badge className="rounded-full border border-amber-400/30 bg-black/60 text-amber-200 backdrop-blur-sm">
+                      {publicAvailabilityLabel(product)}
                     </Badge>
-                    {product.originalPrice && product.originalPrice > product.price && (
-                      <Badge className="rounded-full border border-cyan-500/30 bg-black/40 text-cyan-300 backdrop-blur-sm">
-                        Save {Math.round((1 - product.price / product.originalPrice) * 100)}%
-                      </Badge>
-                    )}
+                    <Badge className="rounded-full border border-white/15 bg-black/60 text-white/70 backdrop-blur-sm">
+                      Illustrative
+                    </Badge>
                   </div>
                   {!product.image && (
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -175,48 +173,40 @@ export function StorefrontProductGrid({ products, storefront, categories }: Stor
                     <Badge className="rounded-full border border-white/10 bg-white/5 text-slate-300">
                       {product.category}
                     </Badge>
-                    <span className="text-xs text-slate-500">{product.deliveryType}</span>
+                    <span className="text-xs text-slate-500">Proposed {product.deliveryType.toLowerCase()}</span>
                   </div>
 
                   <h3 className="mt-4 text-xl font-bold text-white">{product.name}</h3>
-                  <p className="mt-3 min-h-20 text-sm leading-relaxed text-slate-400">
-                    {product.shortDescription}
+                  <p className="mt-3 min-h-32 text-sm leading-relaxed text-slate-400">
+                    {publicProductDescription(product)}
                   </p>
 
-                  <div className="mt-5 flex items-end justify-between gap-4">
-                    <div>
-                      <div className="text-2xl font-black text-cyan-300">{formatMoney(product.price)}</div>
-                      {product.originalPrice && (
-                        <div className="text-sm text-slate-600 line-through">{formatMoney(product.originalPrice)}</div>
-                      )}
+                  <div className="mt-5">
+                    <div className="text-xs uppercase tracking-widest text-slate-500">
+                      Indicative catalogue price
                     </div>
-                    <div className="text-right text-xs uppercase tracking-widest text-slate-600">{product.stockLabel}</div>
+                    <div className="mt-1 text-2xl font-black text-cyan-300">
+                      {formatCataloguePrice(product.price)}
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">Final price and terms require written confirmation.</p>
                   </div>
 
                   <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                    {product.checkoutUrl ? (
-                      <Button asChild className="bg-cyan-400 font-semibold text-black hover:bg-cyan-300">
-                        <a href={product.checkoutUrl} target="_blank" rel="noreferrer">
-                          Buy now <ExternalLink className="ml-2 h-4 w-4" />
-                        </a>
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        onClick={() => toggleCart(product.id)}
-                        className={
-                          selected
-                            ? "bg-emerald-400 font-semibold text-black hover:bg-emerald-300"
-                            : "bg-cyan-400 font-semibold text-black hover:bg-cyan-300"
-                        }
-                      >
-                        <ShoppingCart className="mr-2 h-4 w-4" />
-                        {selected ? "Added" : "Add to request"}
-                      </Button>
-                    )}
+                    <Button
+                      type="button"
+                      onClick={() => toggleRequest(product.id)}
+                      className={
+                        selected
+                          ? "bg-emerald-400 font-semibold text-black hover:bg-emerald-300"
+                          : "bg-cyan-400 font-semibold text-black hover:bg-cyan-300"
+                      }
+                    >
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      {selected ? "Added to enquiry" : "Add to enquiry"}
+                    </Button>
                     <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10">
                       <Link href={`/contact?product=${encodeURIComponent(product.name)}&store=${storefront}`}>
-                        Product details
+                        Request details
                       </Link>
                     </Button>
                   </div>
@@ -227,7 +217,7 @@ export function StorefrontProductGrid({ products, storefront, categories }: Stor
         </div>
       ) : (
         <div className="mt-8 rounded-3xl border border-dashed border-white/15 bg-white/[0.02] p-12 text-center">
-          <h3 className="text-2xl font-bold text-white">No matching products</h3>
+          <h3 className="text-2xl font-bold text-white">No matching catalogue items</h3>
           <p className="mt-3 text-slate-400">Try another search term or select a different category.</p>
         </div>
       )}
