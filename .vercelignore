@@ -1,23 +1,14 @@
-# Development and testing artifacts
-src/test/
-*.test.ts
-*.test.tsx
-*.spec.ts
-*.spec.tsx
-
-# Supabase local tooling is not needed at runtime
+# Supabase local tooling is not needed during application builds
 supabase/
 
-# Documentation
+# Documentation is excluded from deployment bundles
 *.md
 DEPLOYMENT.md
 
-# Config files not needed at runtime
+# Local environment templates are not deployed
 .env.example
-eslint.config.mjs
-vitest.config.ts
 
-# Misc
+# Editor and workstation artifacts
 .idea/
 .vscode/
 .DS_Store
