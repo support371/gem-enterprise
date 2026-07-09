@@ -68,7 +68,7 @@ const services = [
     title: "Asset & Property Risk Coordination",
     slug: "asset-recovery",
     desc: "GEM can coordinate risk review, documentation, specialist referrals, and authorized recovery support where appropriate. Legal authority, ownership, jurisdiction, provider capability, and engagement limits are verified before action.",
-    img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/1f7e5fb1b7b1794c3dc01661/1f7e5fb1b_generated_image.png",
+    img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/1f7e5fb1b_generated_image.png",
     imgAlt: "Illustrative property and asset-risk management image",
     tags: ["Risk Review", "Referrals", "Documentation"],
     tier: "Eligibility review",
