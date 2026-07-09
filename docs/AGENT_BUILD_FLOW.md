@@ -2,11 +2,17 @@
 
 ## Purpose
 
-This flow allows GEM Enterprise to keep building with limited personnel time and minimal billing exposure while preserving a trustworthy production system.
+This flow lets GEM Enterprise keep building with limited personnel time and minimal billing exposure while preserving a trustworthy production system.
 
-The operating principle is:
+> Humans define intent and approve high-impact decisions. Agents implement, test, document, and prepare pull requests. Hosted gates verify the work. Sensitive capabilities remain disabled until their infrastructure and owner approvals exist.
 
-> Humans define intent and approve high-impact decisions. Agents implement, test, document, and prepare pull requests. Automated gates verify the work. Production-sensitive capabilities remain disabled until their infrastructure and owner approvals exist.
+## Current hosted-gate arrangement
+
+- **Canonical automatic gate:** Vercel preview deployment for the canonical `support371-gem-enterprise` project.
+- **What the preview runs:** Prisma generation, ESLint, TypeScript checking, Vitest, and the Next.js production build.
+- **GitHub Actions:** build verification and CodeQL workflows remain available through manual dispatch. They are not automatic while hosted-runner access is constrained.
+- **Production deployment:** Vercel Git integration deploys `main`. No second production deployment workflow is permitted.
+- **Important:** a GitHub workflow that never starts is not a passing check. The Vercel preview and the agent's own `pnpm run verify` evidence are required.
 
 ## Roles
 
@@ -28,7 +34,8 @@ Responsible for:
 - Focused implementation
 - Tests and documentation
 - Pull-request creation
-- Build and preview verification
+- Local or agent-environment verification
+- Vercel preview verification
 - Reporting exact blockers and manual actions
 
 ### Review agent
@@ -40,8 +47,6 @@ Responsible for an independent pass over:
 - False or unsupported public claims
 - Database and migration safety
 - Test coverage and rollback readiness
-
-The lead agent and review agent may use different products, but every change still passes the same repository gate.
 
 ## Canonical workflow
 
@@ -56,15 +61,17 @@ Inspect current code and related PRs
     ↓
 Small vertical implementation
     ↓
-Unit/security/fail-closed tests
+Unit, authorization, validation, and fail-closed tests
     ↓
-pnpm run verify
+pnpm run verify in the agent environment
     ↓
 Pull request
     ↓
-Independent review + CodeQL + Vercel preview
+Canonical Vercel preview runs lint + typecheck + tests + build
     ↓
-Owner-only approval when billing/legal/provider action exists
+Independent review; manual CodeQL when runner access is available
+    ↓
+Owner-only approval when billing, legal, or provider action exists
     ↓
 Merge to main
     ↓
@@ -74,8 +81,6 @@ Production smoke check and rollback watch
 ```
 
 ## Work queue
-
-Use four priority lanes.
 
 ### P0 — Production safety
 
@@ -129,9 +134,7 @@ Examples:
 - Biometrics
 - Marketplace transactions
 
-Rules:
-
-- Keep disabled until P0–P2 requirements and owner approvals are complete.
+Rule: keep these disabled until P0–P2 requirements and owner approvals are complete.
 
 ## Definition of ready
 
@@ -153,15 +156,14 @@ A task is complete only when:
 - The implementation matches the issue scope.
 - Validation and authorization failures are tested.
 - Provider failure or missing configuration fails closed.
-- `pnpm run verify` passes.
-- Vercel preview routes work.
+- `pnpm run verify` passes in the development-agent environment.
+- The canonical Vercel preview passes its full preview verification and build.
+- Affected preview routes work.
 - No secret or real sensitive document was used in testing.
 - The PR states what remains manual.
 - Production smoke checks pass after merge.
 
 ## Standard agent prompt
-
-Use this prompt when delegating a repository task:
 
 ```text
 Repository: support371/gem-enterprise
@@ -180,16 +182,18 @@ Explicit exclusions:
 - No paid service activation
 - No production secrets
 - No direct commit to main
-- No enabling sensitive uploads or payments unless this issue explicitly includes every required control and owner approval
+- No enabling sensitive uploads or payments unless every required control and owner approval is included
 
 Required process:
-1. Inspect affected code, schema, tests, and recent related PRs.
+1. Inspect affected code, schema, tests, configuration, and recent related PRs.
 2. Post a short plan.
 3. Implement the smallest complete vertical slice.
 4. Add tests for success, validation failure, authorization failure, and fail-closed behavior.
-5. Run pnpm run verify.
-6. Open a PR with risks, manual dependencies, and rollback steps.
-7. Do not claim completion if any gate fails.
+5. Run pnpm run verify in your environment.
+6. Batch related changes before pushing to reduce preview builds.
+7. Open a PR with risks, manual dependencies, and rollback steps.
+8. Require the canonical Vercel preview to pass.
+9. Do not claim completion if any available gate fails.
 ```
 
 ## Recommended agent allocation
@@ -203,25 +207,25 @@ Use for:
 - Refactors and migrations
 - Test creation
 - Pull-request preparation
-- Parallel tasks that can be isolated by branch
+- Parallel tasks isolated by branch
 
-Codex should follow `AGENTS.md`, use one issue per task, and operate only through pull requests.
+Codex must follow `AGENTS.md`, use one issue per task, run repository verification in its environment, and operate through pull requests.
 
 ### Independent review: GitHub Copilot coding agent or a second Codex task
 
 Use for:
 
 - Reviewing the PR without sharing the implementation conversation
-- Looking for authorization, data-handling, and regression issues
-- Suggesting missing tests
+- Checking authorization, data handling, and regressions
+- Finding missing tests
 
 ### Replit Agent
 
-Use when a visual prototype or isolated experimental application is needed. Do not make it the canonical production repository or deployment path for GEM Enterprise.
+Use for a visual prototype or isolated experiment. Do not make it the canonical production repository or deployment path.
 
 ### Devin
 
-Use only for a clearly bounded backlog with sufficient paid capacity. It is not required for the current free-first flow.
+Use only for a clearly bounded backlog when paid capacity is approved. It is not required for the current free-first flow.
 
 ## First implementation program: GEM Verify Core
 
@@ -235,17 +239,18 @@ Build in this order:
 6. Storage-provider interface with a fake test implementation
 7. Retention and deletion scheduling model
 8. Private upload adapter only after owner-selected storage and scanning are available
-9. Optional Veriff or other provider adapter after sandbox approval
+9. Optional Veriff or another provider adapter after sandbox approval
 
 Until step 8 is verified, `/api/kyc/documents` must remain fail closed.
 
 ## Free-tier safeguards
 
-- Cancel superseded CI runs.
-- Use one canonical verification job.
+- Batch related edits before pushing so one preview validates one coherent change set.
+- Cancel superseded preview and CI runs where supported.
+- Use the canonical Vercel project only.
 - Let Vercel Git integration perform the only production deployment.
 - Use local fakes for external providers in tests.
-- Do not run scheduled jobs more frequently than the business requires.
+- Do not run scheduled jobs more frequently than required.
 - Keep optional integrations disabled by default.
 - Record usage and define a hard stop before enabling metered services.
 - Never rely on a free plan whose terms prohibit the intended business use.
@@ -263,5 +268,6 @@ The agent must stop and request owner action for:
 - Naming authorized identity reviewers
 - Activating payment collection
 - Moving the production domain or database
+- Disconnecting duplicate Vercel projects or changing organization-level GitHub billing and Actions settings
 
-These gates are not development failures. They are separation-of-duty controls.
+These gates are separation-of-duty controls, not development failures.
