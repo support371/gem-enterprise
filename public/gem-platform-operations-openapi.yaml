@@ -1,0 +1,119 @@
+openapi: 3.1.0
+info:
+  title: GEM Platform Operations API
+  version: 1.0.0
+  description: |
+    Read-only operational bridge between the Platform Operations Agent and the
+    GEM Enterprise backend. The API returns platform, database, Google Store,
+    and TikTok Shop status without exposing database credentials or provider secrets.
+servers:
+  - url: https://support371-gem-enterprise.vercel.app
+    description: GEM Enterprise production API
+security:
+  - GemAgentKey: []
+paths:
+  /api/agent/health:
+    get:
+      operationId: checkGemPlatformHealth
+      summary: Check the GEM backend and shared database
+      responses:
+        "200":
+          description: Current platform and database health
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /api/agent/context:
+    get:
+      operationId: getGemPlatformContext
+      summary: Get the connected GEM platform context
+      responses:
+        "200":
+          description: Platform, database, commerce, and capability context
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /api/agent/commerce:
+    get:
+      operationId: getGemCommerceStatus
+      summary: Get Google Store and TikTok Shop routing information
+      parameters:
+        - name: channel
+          in: query
+          required: false
+          description: Return only one commerce channel when supplied.
+          schema:
+            type: string
+            enum: [tiktok, google]
+      responses:
+        "200":
+          description: Approved internal and external store destinations
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+components:
+  securitySchemes:
+    GemAgentKey:
+      type: apiKey
+      in: header
+      name: X-GEM-Agent-Key
+      description: Private server-side key stored in Vercel and the GPT Action configuration.
+  responses:
+    Unauthorized:
+      description: Missing or invalid agent API key
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unavailable:
+      description: The agent bridge or shared database is not configured
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    HealthResponse:
+      type: object
+      required: [ok, status, timestamp, platform, database]
+      properties:
+        ok:
+          type: boolean
+        status:
+          type: string
+          enum: [operational, degraded]
+        timestamp:
+          type: string
+          format: date-time
+        platform:
+          type: object
+          additionalProperties: true
+        database:
+          type: object
+          additionalProperties: true
+    ErrorResponse:
+      type: object
+      required: [ok, error, message]
+      properties:
+        ok:
+          type: boolean
+          const: false
+        error:
+          type: string
+        message:
+          type: string
