@@ -1,10 +1,6 @@
-name: CodeQL Advanced
+name: Manual CodeQL Analysis
 
 on:
-  pull_request:
-    branches: [main]
-  schedule:
-    - cron: "15 6 * * 4"
   workflow_dispatch:
 
 permissions:
@@ -14,7 +10,7 @@ permissions:
   security-events: write
 
 concurrency:
-  group: codeql-${{ github.ref }}
+  group: manual-codeql-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
