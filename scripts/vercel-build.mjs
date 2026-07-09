@@ -39,6 +39,27 @@ if (directUrl) env.POSTGRES_URL_NON_POOLING = directUrl;
 console.log("Generating Prisma client...");
 run("pnpm", ["exec", "prisma", "generate"], env);
 
+const shouldVerifyPreview =
+  env.VERCEL_ENV === "preview" || env.RUN_PREVIEW_VERIFICATION === "true";
+
+if (shouldVerifyPreview) {
+  console.log("Running preview verification: lint, typecheck, and unit tests...");
+  const verificationEnv = {
+    ...env,
+    NODE_ENV: "test",
+    JWT_SECRET: "preview-verification-secret-min-32-characters",
+    POSTGRES_PRISMA_URL: "postgresql://ci:ci@localhost:5432/gem_ci",
+    POSTGRES_URL_NON_POOLING: "postgresql://ci:ci@localhost:5432/gem_ci",
+    SMTP_HOST: "",
+    SMTP_PORT: "587",
+    SMTP_USER: "",
+    SMTP_PASS: "",
+    CRON_SECRET: "preview-verification-cron-secret",
+    AUDIT_ENABLED: "true",
+  };
+  run("pnpm", ["run", "verify:preview"], verificationEnv);
+}
+
 if (env.AUTO_DB_PUSH === "true") {
   if (!pooledUrl) {
     throw new Error(

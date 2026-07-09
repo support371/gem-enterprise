@@ -1,25 +1,45 @@
-name: CI (Tests & Validation Only - Vercel Handles Deployment)
+name: Manual Build Verification
 
 on:
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: manual-build-verification-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
-    name: Unit Tests
+  verify:
+    name: Lint, Typecheck, Test, Build
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
+
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci-test-secret-min-32-characters-long-placeholder
+      POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost:5432/gem_ci
+      POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost:5432/gem_ci
+      NEXT_PUBLIC_APP_URL: https://www.gemcybersecurityassist.com
+      NEXT_PUBLIC_APP_NAME: GEM Enterprise
+      NEXT_PUBLIC_AI_DISCLOSURE_TEXT: GEM Concierge is an AI assistant. Responses are informational and require human review for sensitive decisions.
+      AUDIT_ENABLED: "true"
+      SMTP_HOST: ""
+      SMTP_PORT: "587"
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      CRON_SECRET: ci-cron-secret
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
+        uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           cache: pnpm
@@ -27,65 +47,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma client
-        run: pnpm run db:generate
-        env:
-          POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost:5432/gem_ci
-          POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost:5432/gem_ci
-
-      - name: Run unit tests
-        run: pnpm test
-        env:
-          NODE_ENV: test
-          JWT_SECRET: ci-test-secret-min-32-characters-long-placeholder
-          POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost:5432/gem_ci
-          POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost:5432/gem_ci
-
-  lint-and-build:
-    name: Lint & Build
-    runs-on: ubuntu-22.04
-    needs: test
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Generate Prisma client
-        run: pnpm run db:generate
-        env:
-          POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost:5432/gem_ci
-          POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost:5432/gem_ci
-
-      - name: Lint
-        run: pnpm run lint
-
-      - name: Build
-        run: pnpm run build
-        env:
-          POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost:5432/gem_ci
-          POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost:5432/gem_ci
-          JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-build-secret-min-32-characters-long' }}
-          NEXT_PUBLIC_APP_URL: https://gem-enterprise.vercel.app
-          NEXT_PUBLIC_APP_NAME: GEM Enterprise
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          NEXT_PUBLIC_AI_DISCLOSURE_TEXT: ${{ secrets.NEXT_PUBLIC_AI_DISCLOSURE_TEXT || 'GEM Concierge is an AI assistant. Responses are for informational purposes only.' }}
-          AUDIT_ENABLED: 'true'
-          SMTP_HOST: ''
-          SMTP_PORT: '587'
-          SMTP_USER: ''
-          SMTP_PASS: ''
-          CRON_SECRET: ci-cron-secret
+      - name: Verify repository
+        run: pnpm run verify
