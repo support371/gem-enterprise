@@ -11,7 +11,9 @@ import {
   VerificationServiceError,
 } from "@/lib/kyc/service";
 
-const schema = z.object({ applicationId: z.string().min(1).optional() }).strict();
+const submitSchema = z
+  .object({ applicationId: z.string().min(1) })
+  .strict();
 
 function json(body: unknown, status = 200) {
   return NextResponse.json(body, {
@@ -24,15 +26,17 @@ export async function POST(request: NextRequest) {
   const gate = await requireSession();
   if (!gate.ok) return gate.response;
 
-  let body: unknown = {};
+  let body: unknown;
   try {
-    if (request.headers.get("content-length") !== "0") body = await request.json();
+    body = await request.json();
   } catch {
-    body = {};
+    return json({ error: "Request body must be valid JSON." }, 400);
   }
 
-  const parsed = schema.safeParse(body ?? {});
-  if (!parsed.success) return json({ error: "Validation failed" }, 400);
+  const parsed = submitSchema.safeParse(body);
+  if (!parsed.success) {
+    return json({ error: "Application ID is required." }, 400);
+  }
 
   try {
     const result = await submitVerificationApplication(
@@ -40,12 +44,16 @@ export async function POST(request: NextRequest) {
       parsed.data.applicationId,
     );
     const { ipAddress, userAgent } = getRequestContext(request);
+
     await emitAuditLog({
       userId: gate.session.userId,
       action: "kyc_submit",
       resource: "verification_application",
-      resourceId: result.application.id,
-      metadata: { endpoint: "legacy_compatibility" },
+      resourceId: parsed.data.applicationId,
+      metadata: {
+        stage: "submitted_for_manual_review",
+        alreadySubmitted: result.alreadySubmitted,
+      },
       ipAddress,
       userAgent,
     });
@@ -54,13 +62,15 @@ export async function POST(request: NextRequest) {
       ok: true,
       alreadySubmitted: result.alreadySubmitted,
       application: toVerificationApplicationView(result.application),
-      replacementEndpoint: "/api/verify/applications/submit",
     });
   } catch (error) {
     if (error instanceof VerificationServiceError) {
-      return json({ error: error.message, code: error.code }, error.statusCode);
+      return json(
+        { error: error.message, code: error.code, details: error.details },
+        error.statusCode,
+      );
     }
-    console.error("[legacy kyc submit]", error);
+    console.error("[verify/submit]", error);
     return json({ error: "Internal server error" }, 500);
   }
 }

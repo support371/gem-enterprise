@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFromRequest, resolveAccessDestination } from "@/lib/auth";
 
-const ADMIN_PREFIXES = ["/app/admin", "/admin", "/review", "/compliance/admin"];
+const ADMIN_PREFIXES = ["/app/admin", "/admin", "/compliance/admin"];
+const REVIEW_PREFIXES = ["/review"];
 const PROTECTED_PREFIXES = [
   "/app",
   "/kyc",
@@ -20,6 +21,7 @@ const PROTECTED_PREFIXES = [
   "/community-hub/settings",
   "/community-hub/opportunities",
   ...ADMIN_PREFIXES,
+  ...REVIEW_PREFIXES,
 ];
 
 const ALWAYS_PUBLIC = [
@@ -61,6 +63,10 @@ function isAdminRoute(pathname: string): boolean {
   return matchesPrefix(pathname, ADMIN_PREFIXES);
 }
 
+function isReviewRoute(pathname: string): boolean {
+  return matchesPrefix(pathname, REVIEW_PREFIXES);
+}
+
 function isAuthRoute(pathname: string): boolean {
   return pathname === "/client-login";
 }
@@ -76,9 +82,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (ALWAYS_PUBLIC.includes(pathname)) {
-    return NextResponse.next();
-  }
+  if (ALWAYS_PUBLIC.includes(pathname)) return NextResponse.next();
 
   let session = null;
   try {
@@ -101,6 +105,13 @@ export async function proxy(request: NextRequest) {
     if (
       isAdminRoute(pathname) &&
       !["admin", "super_admin", "internal"].includes(session.role)
+    ) {
+      return NextResponse.redirect(new URL("/app/dashboard", request.url));
+    }
+
+    if (
+      isReviewRoute(pathname) &&
+      !["analyst", "admin", "super_admin", "internal"].includes(session.role)
     ) {
       return NextResponse.redirect(new URL("/app/dashboard", request.url));
     }

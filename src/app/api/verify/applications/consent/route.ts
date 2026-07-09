@@ -6,12 +6,17 @@ import {
   requireSession,
 } from "@/lib/api/auth-helpers";
 import {
-  submitVerificationApplication,
+  recordVerificationConsent,
   toVerificationApplicationView,
   VerificationServiceError,
 } from "@/lib/kyc/service";
 
-const schema = z.object({ applicationId: z.string().min(1).optional() }).strict();
+const consentSchema = z
+  .object({
+    applicationId: z.string().min(1),
+    accepted: z.literal(true),
+  })
+  .strict();
 
 function json(body: unknown, status = 200) {
   return NextResponse.json(body, {
@@ -24,43 +29,54 @@ export async function POST(request: NextRequest) {
   const gate = await requireSession();
   if (!gate.ok) return gate.response;
 
-  let body: unknown = {};
+  let body: unknown;
   try {
-    if (request.headers.get("content-length") !== "0") body = await request.json();
+    body = await request.json();
   } catch {
-    body = {};
+    return json({ error: "Request body must be valid JSON." }, 400);
   }
 
-  const parsed = schema.safeParse(body ?? {});
-  if (!parsed.success) return json({ error: "Validation failed" }, 400);
+  const parsed = consentSchema.safeParse(body);
+  if (!parsed.success) {
+    return json(
+      { error: "Consent is required before submission." },
+      400,
+    );
+  }
 
   try {
-    const result = await submitVerificationApplication(
+    const result = await recordVerificationConsent(
       gate.session.userId,
       parsed.data.applicationId,
     );
     const { ipAddress, userAgent } = getRequestContext(request);
+
     await emitAuditLog({
       userId: gate.session.userId,
       action: "kyc_submit",
       resource: "verification_application",
-      resourceId: result.application.id,
-      metadata: { endpoint: "legacy_compatibility" },
+      resourceId: parsed.data.applicationId,
+      metadata: {
+        stage: "consent_recorded",
+        alreadyRecorded: result.alreadyRecorded,
+      },
       ipAddress,
       userAgent,
     });
 
     return json({
       ok: true,
-      alreadySubmitted: result.alreadySubmitted,
+      alreadyRecorded: result.alreadyRecorded,
       application: toVerificationApplicationView(result.application),
-      replacementEndpoint: "/api/verify/applications/submit",
     });
   } catch (error) {
     if (error instanceof VerificationServiceError) {
-      return json({ error: error.message, code: error.code }, error.statusCode);
+      return json(
+        { error: error.message, code: error.code, details: error.details },
+        error.statusCode,
+      );
     }
-    console.error("[legacy kyc submit]", error);
+    console.error("[verify/consent]", error);
     return json({ error: "Internal server error" }, 500);
   }
 }
