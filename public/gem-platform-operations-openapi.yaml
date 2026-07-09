@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: GEM Platform Operations API
-  version: 1.0.0
+  version: 1.1.0
   description: |
     Read-only operational bridge between the Platform Operations Agent and the
     GEM Enterprise backend. The API returns platform, database, Google Store,
@@ -57,12 +57,40 @@ paths:
             enum: [tiktok, google]
       responses:
         "200":
-          description: Approved internal and external store destinations
-          content:
-            application/json:
-              schema:
-                type: object
-                additionalProperties: true
+          $ref: "#/components/responses/CommerceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /api/agent/tiktok-shop:
+    get:
+      operationId: getGemTikTokShop
+      summary: Get the approved GEM TikTok Shop destination and connection state
+      responses:
+        "200":
+          $ref: "#/components/responses/CommerceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /api/agent/google-store:
+    get:
+      operationId: getGemGoogleStore
+      summary: Get the approved GEM Google Store destination and connection state
+      responses:
+        "200":
+          $ref: "#/components/responses/CommerceResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/Unavailable"
+  /api/agent/catalog:
+    get:
+      operationId: getGemStoreCatalogContext
+      summary: Get the current connected commerce catalogue summary
+      responses:
+        "200":
+          $ref: "#/components/responses/CommerceResponse"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "503":
@@ -75,6 +103,13 @@ components:
       name: X-GEM-Agent-Key
       description: Private server-side key stored in Vercel and the GPT Action configuration.
   responses:
+    CommerceResponse:
+      description: Approved commerce routing and connection information
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
     Unauthorized:
       description: Missing or invalid agent API key
       content:
