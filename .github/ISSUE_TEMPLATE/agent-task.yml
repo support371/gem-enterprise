@@ -1,0 +1,117 @@
+name: Agent implementation task
+description: Define a bounded development task for an AI coding agent
+title: "[Agent Task]: "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Read `AGENTS.md` and `docs/AGENT_BUILD_FLOW.md` before implementation. Do not include secrets or real identity documents.
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objective
+      description: State one measurable user or business outcome.
+      placeholder: A public contact enquiry is stored before the visitor sees a success message.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List observable conditions that prove the task is complete.
+      placeholder: |
+        - Valid submissions are persisted.
+        - Invalid input returns 400.
+        - Storage failure returns 503.
+        - Tests cover success and failure paths.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: In-scope routes, roles, and files
+      description: Identify affected user roles, routes, models, or integrations.
+    validations:
+      required: true
+
+  - type: textarea
+    id: exclusions
+    attributes:
+      label: Explicit exclusions
+      description: State what the agent must not change or activate.
+      placeholder: |
+        - No paid service activation.
+        - No production credentials.
+        - No direct commits to main.
+        - No sensitive document upload.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: data
+    attributes:
+      label: Sensitive-data level
+      options:
+        - None or public content
+        - Account or contact information
+        - Authentication or authorization
+        - Identity, financial, legal, or regulated information
+    validations:
+      required: true
+
+  - type: dropdown
+    id: billing
+    attributes:
+      label: Billing impact
+      options:
+        - None
+        - Uses an existing free or already-approved service
+        - May create metered usage
+        - Requires owner approval before implementation can finish
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Manual and provider dependencies
+      description: List accounts, approvals, provider decisions, or credentials the owner must supply.
+      placeholder: None, or describe the exact owner-only action.
+    validations:
+      required: true
+
+  - type: textarea
+    id: tests
+    attributes:
+      label: Required verification
+      description: Include unit, authorization, fail-closed, preview, and production checks as applicable.
+      placeholder: |
+        - pnpm run verify
+        - Vercel preview route check
+        - No external billable calls in tests
+    validations:
+      required: true
+
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Rollback expectation
+      description: Explain how the change can be disabled or reverted safely.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: guardrails
+    attributes:
+      label: Guardrails
+      options:
+        - label: I have not placed secrets, passwords, API keys, or real sensitive documents in this issue.
+          required: true
+        - label: The task does not authorize billing, legal claims, certifications, or regulated-service activation.
+          required: true
+        - label: The agent must use a branch and pull request.
+          required: true
