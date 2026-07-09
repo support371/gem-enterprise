@@ -29,7 +29,7 @@ Canonical preview deployment `dpl_7zyuXQAuMaVE1ywj6eo4HRoyS2C6` reached `READY` 
 - 14 Vitest files and 164 passing tests
 - Next.js 16 production compilation and deployment
 
-Subsequent changes to this document are documentation-only and are excluded from the deployment bundle by `.vercelignore`.
+This file is documentation-only and excluded from the deployment bundle by `.vercelignore`, so later documentation commits do not change the verified application build.
 
 ## Verification rule
 
