@@ -1,79 +1,88 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Shield, Zap, Lock, Eye, Building2, ArrowRight, Globe, Users } from "lucide-react";
+import {
+  Shield,
+  Zap,
+  Lock,
+  Eye,
+  Building2,
+  ArrowRight,
+  Globe,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Services | GEM Enterprise",
-  description: "Institutional-grade cybersecurity, financial security, and real estate protection services for qualified clients.",
+  title: "Services",
+  description:
+    "Cybersecurity, compliance, financial-security coordination, and property-risk services, subject to scope, eligibility, provider availability, and signed agreements.",
 };
 
 const services = [
   {
     icon: Shield,
-    title: "24/7 Threat Monitoring & SOC",
+    title: "Managed Threat Monitoring",
     slug: "threat-monitoring",
-    desc: "Continuous AI-powered surveillance with certified analysts operating on a follow-the-sun model. Sub-6-minute mean time to acknowledge (MTTA) with zero coverage gaps across North America, EMEA, and APAC.",
+    desc: "Monitoring, triage, and escalation services can be arranged for eligible clients through an approved service scope. Coverage hours, tooling, staffing, response targets, and data sources are defined in the signed agreement.",
     img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/5c6e6baaf_generated_image.png",
-    imgAlt: "GEM Enterprise Security Operations Center — analysts at curved 6-monitor workstations monitoring live SIEM dashboards, global attack maps, and threat feeds around the clock",
-    tags: ["SIEM", "Log Correlation", "Real-Time Alerts"],
-    tier: "Enterprise",
+    imgAlt: "Illustrative managed security monitoring interface",
+    tags: ["Monitoring", "Triage", "Escalation"],
+    tier: "Contracted service",
     color: "cyan",
   },
   {
     icon: Zap,
-    title: "Incident Response",
+    title: "Incident Response Coordination",
     slug: "incident-response",
-    desc: "Guaranteed 4-hour activation SLA. Rapid containment, eradication, and recovery. Full digital forensics, chain-of-custody evidence management, and post-incident executive briefing.",
+    desc: "Incident triage, containment planning, evidence-preservation guidance, and recovery coordination are available according to contracted coverage. Activation windows are service-specific and are not guaranteed by this public page.",
     img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/c974a8817_generated_image.png",
-    imgAlt: "GEM incident response war room — 8 cybersecurity analysts at circular workstation formation with large wall screens showing attack timeline, affected systems heatmap, and live network anomaly graphs",
-    tags: ["4hr SLA", "Digital Forensics", "Evidence Preservation"],
-    tier: "All Tiers",
+    imgAlt: "Illustrative incident response coordination room",
+    tags: ["Triage", "Evidence", "Recovery"],
+    tier: "Scope required",
     color: "red",
   },
   {
     icon: Eye,
-    title: "Dark Web Monitoring",
+    title: "Exposure & Dark-Web Monitoring",
     slug: "dark-web",
-    desc: "Continuous surveillance of dark web forums, paste sites, credential markets, and breach databases. Instant alerts on exposed credentials, IP ranges, and organizational data.",
+    desc: "Authorized exposure monitoring may include approved breach-data, credential, domain, and public-risk sources. Data coverage, provider limitations, alert timing, and escalation routes are defined before activation.",
     img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/86e283cd8_generated_image.png",
-    imgAlt: "GEM dark web monitoring analyst in a dark room illuminated only by monitor glow, reviewing credential leak databases and dark web forum activity on behalf of enterprise clients",
-    tags: ["Credential Leaks", "IP Monitoring", "Breach Alerts"],
-    tier: "Enterprise",
+    imgAlt: "Illustrative exposure-monitoring interface",
+    tags: ["Exposure", "Credentials", "Alerts"],
+    tier: "Provider dependent",
     color: "purple",
   },
   {
     icon: Lock,
-    title: "Red Team & Penetration Testing",
+    title: "Security Assessment & Testing",
     slug: "red-team",
-    desc: "Full-scope adversarial simulations covering network penetration, web application security, social engineering, and physical security. Board-level debrief and remediation roadmap included.",
+    desc: "Authorized security assessments may cover applications, infrastructure, configuration, and selected human-process controls. Testing requires written scope, ownership verification, rules of engagement, and approved timing.",
     img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/ca12688fe_generated_image.png",
-    imgAlt: "GEM red team penetration tester at dual-monitor workstation running vulnerability scanner with color-coded risk ratings and terminal commands — professional offensive security setup",
-    tags: ["Pentest", "Social Engineering", "Kill Chain Simulation"],
-    tier: "Enterprise",
+    imgAlt: "Illustrative authorized security testing workstation",
+    tags: ["Assessment", "Validation", "Remediation"],
+    tier: "Written authorization",
     color: "orange",
   },
   {
     icon: Building2,
-    title: "Asset Recovery & Physical Security",
+    title: "Asset & Property Risk Coordination",
     slug: "asset-recovery",
-    desc: "High-value physical and digital asset protection and global recovery operations. Coordinated with Alliance Trust Realty for cross-jurisdiction property and financial asset recovery.",
-    img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/1f7e5fb1b_generated_image.png",
-    imgAlt: "Alliance Trust Realty institutional real estate and asset recovery — luxury commercial property tower at dusk representing the physical asset management and recovery operations division of GEM Enterprise",
-    tags: ["Physical Security", "Cross-Jurisdiction", "Asset Recovery"],
-    tier: "Elite",
+    desc: "GEM can coordinate risk review, documentation, specialist referrals, and authorized recovery support where appropriate. Legal authority, ownership, jurisdiction, provider capability, and engagement limits are verified before action.",
+    img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/1f7e5fb1b7b1794c3dc01661/1f7e5fb1b_generated_image.png",
+    imgAlt: "Illustrative property and asset-risk management image",
+    tags: ["Risk Review", "Referrals", "Documentation"],
+    tier: "Eligibility review",
     color: "amber",
   },
   {
     icon: Globe,
-    title: "Federal Compliance & Regulatory",
+    title: "Compliance Readiness Support",
     slug: "federal-compliance",
-    desc: "Specialized regulatory navigation for NIST SP 800-171, CMMC 2.0, SOC 2, ISO 27001, HIPAA, GDPR, and sector-specific mandates. Gap analysis, policy development, and audit readiness.",
+    desc: "Readiness support may include gap assessment, control mapping, policy development, evidence planning, and remediation tracking. Framework alignment is not certification and does not replace legal or accredited audit advice.",
     img: "https://media.base44.com/images/public/69d42975b7b1794c3dc01661/2e5c40e81_generated_image.png",
-    imgAlt: "GEM compliance officer at executive desk reviewing multi-screen compliance dashboard showing SOC 2 Type II, ISO 27001, NIST CSF, and HIPAA compliance scorecards with green and amber indicators",
-    tags: ["NIST 800-171", "CMMC 2.0", "ISO 27001"],
-    tier: "Enterprise",
+    imgAlt: "Illustrative compliance readiness dashboard",
+    tags: ["NIST", "SOC 2", "ISO 27001"],
+    tier: "Readiness support",
     color: "blue",
   },
 ];
@@ -81,72 +90,114 @@ const services = [
 export default function ServicesPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
-
-      {/* HERO */}
-      <section className="relative pt-32 pb-24 overflow-hidden">
+      <section className="relative overflow-hidden pb-24 pt-32">
         <div className="absolute inset-0">
-          <Image src="https://media.base44.com/images/public/69d42975b7b1794c3dc01661/5c6e6baaf_generated_image.png" alt="GEM Enterprise Security Operations Center running 24/7 global threat monitoring" fill className="object-cover opacity-15" />
+          <Image
+            src="https://media.base44.com/images/public/69d42975b7b1794c3dc01661/5c6e6baaf_generated_image.png"
+            alt="Illustrative enterprise security operations interface"
+            fill
+            className="object-cover opacity-15"
+          />
           <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/70 to-background" />
         </div>
-        <div className="relative z-10 container mx-auto px-6 max-w-5xl text-center">
-          <Badge className="mb-6 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 text-xs tracking-widest uppercase px-4 py-1.5">Our Services</Badge>
-          <h1 className="text-5xl md:text-7xl font-black text-white mb-6">Enterprise Service Suite</h1>
-          <p className="text-slate-400 text-xl max-w-3xl mx-auto leading-relaxed">
-            Six interconnected disciplines forming a complete institutional security framework — from proactive threat hunting and dark web surveillance to regulatory compliance and physical asset recovery.
+        <div className="container relative z-10 mx-auto max-w-5xl px-6 text-center">
+          <Badge className="mb-6 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-xs uppercase tracking-widest text-cyan-400">
+            Service capabilities
+          </Badge>
+          <h1 className="mb-6 text-5xl font-black text-white md:text-7xl">
+            Enterprise Service Suite
+          </h1>
+          <p className="mx-auto max-w-3xl text-xl leading-relaxed text-slate-400">
+            Services are activated only after scope, eligibility, staffing, provider,
+            jurisdiction, security, and contractual requirements have been confirmed.
+            Public descriptions do not create an SLA or guarantee availability.
           </p>
         </div>
       </section>
 
-      {/* SERVICES GRID — alternating image layout */}
-      <section className="container mx-auto px-6 max-w-7xl pb-24">
+      <section className="container mx-auto max-w-7xl px-6 pb-24">
         <div className="space-y-6">
-          {services.map((svc, i) => {
-            const Icon = svc.icon;
-            const isEven = i % 2 === 0;
-            const accentColor = svc.color === "cyan" ? "text-cyan-400 border-cyan-500/30 bg-cyan-500/10" : svc.color === "red" ? "text-red-400 border-red-500/30 bg-red-500/10" : svc.color === "purple" ? "text-purple-400 border-purple-500/30 bg-purple-500/10" : svc.color === "orange" ? "text-orange-400 border-orange-500/30 bg-orange-500/10" : svc.color === "amber" ? "text-amber-400 border-amber-500/30 bg-amber-500/10" : "text-blue-400 border-blue-500/30 bg-blue-500/10";
+          {services.map((service, index) => {
+            const Icon = service.icon;
+            const isEven = index % 2 === 0;
+            const accentColor =
+              service.color === "cyan"
+                ? "text-cyan-400 border-cyan-500/30 bg-cyan-500/10"
+                : service.color === "red"
+                  ? "text-red-400 border-red-500/30 bg-red-500/10"
+                  : service.color === "purple"
+                    ? "text-purple-400 border-purple-500/30 bg-purple-500/10"
+                    : service.color === "orange"
+                      ? "text-orange-400 border-orange-500/30 bg-orange-500/10"
+                      : service.color === "amber"
+                        ? "text-amber-400 border-amber-500/30 bg-amber-500/10"
+                        : "text-blue-400 border-blue-500/30 bg-blue-500/10";
+
             return (
-              <div key={i} className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden hover:border-white/20 transition-all">
+              <article
+                key={service.slug}
+                className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] transition-all hover:border-white/20"
+              >
                 <div className={`grid lg:grid-cols-2 ${isEven ? "" : "lg:grid-flow-dense"}`}>
-                  {/* Image */}
                   <div className={`relative h-72 lg:h-auto ${isEven ? "" : "lg:col-start-2"}`}>
-                    <Image src={svc.img} alt={svc.imgAlt} fill className="object-cover" />
-                    <div className={`absolute inset-0 bg-gradient-to-${isEven ? "r" : "l"} from-transparent to-background/60`} />
+                    <Image src={service.img} alt={service.imgAlt} fill className="object-cover" />
+                    <div
+                      className={`absolute inset-0 ${isEven ? "bg-gradient-to-r" : "bg-gradient-to-l"} from-transparent to-background/60`}
+                    />
+                    <span className="absolute bottom-3 left-3 rounded-full border border-white/15 bg-black/60 px-3 py-1 text-xs text-white/70 backdrop-blur-sm">
+                      Illustrative image
+                    </span>
                   </div>
-                  {/* Content */}
-                  <div className="p-8 lg:p-12 flex flex-col justify-center">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className={`w-10 h-10 rounded-lg border flex items-center justify-center ${accentColor}`}>
-                        <Icon className="w-5 h-5" />
+                  <div className="flex flex-col justify-center p-8 lg:p-12">
+                    <div className="mb-4 flex items-center gap-3">
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-lg border ${accentColor}`}>
+                        <Icon className="h-5 w-5" aria-hidden="true" />
                       </div>
-                      <Badge className={`rounded-full border text-xs ${accentColor}`}>{svc.tier}</Badge>
+                      <Badge className={`rounded-full border text-xs ${accentColor}`}>
+                        {service.tier}
+                      </Badge>
                     </div>
-                    <h2 className="text-2xl md:text-3xl font-black text-white mb-4">{svc.title}</h2>
-                    <p className="text-slate-400 leading-relaxed mb-6">{svc.desc}</p>
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {svc.tags.map(t => <span key={t} className={`text-xs border rounded-full px-3 py-1 ${accentColor}`}>{t}</span>)}
+                    <h2 className="mb-4 text-2xl font-black text-white md:text-3xl">
+                      {service.title}
+                    </h2>
+                    <p className="mb-6 leading-relaxed text-slate-400">{service.desc}</p>
+                    <div className="mb-6 flex flex-wrap gap-2">
+                      {service.tags.map((tag) => (
+                        <span key={tag} className={`rounded-full border px-3 py-1 text-xs ${accentColor}`}>
+                          {tag}
+                        </span>
+                      ))}
                     </div>
-                    <Link href={`/services/${svc.slug}`} className={`inline-flex items-center gap-2 font-semibold hover:gap-3 transition-all ${accentColor.split(" ")[0]}`}>
-                      Learn More <ArrowRight className="w-4 h-4" />
+                    <Link
+                      href={`/services/${service.slug}`}
+                      className={`inline-flex items-center gap-2 font-semibold transition-all hover:gap-3 ${accentColor.split(" ")[0]}`}
+                    >
+                      Review scope and limitations <ArrowRight className="h-4 w-4" />
                     </Link>
                   </div>
                 </div>
-              </div>
+              </article>
             );
           })}
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="py-24 text-center bg-white/[0.02] border-t border-white/10">
-        <div className="container mx-auto px-6 max-w-3xl">
-          <h2 className="text-4xl font-black text-white mb-6">Qualified Clients Only</h2>
-          <p className="text-slate-400 text-lg mb-10 leading-relaxed">All GEM services are delivered under a KYC-gated, compliance-reviewed engagement model. Begin your application to access the full service suite.</p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-cyan-400 text-black hover:bg-cyan-500 font-semibold rounded-full px-10">
-              <Link href="/get-started">Request Access <ArrowRight className="ml-2 h-5 w-5" /></Link>
+      <section className="border-t border-white/10 bg-white/[0.02] py-24 text-center">
+        <div className="container mx-auto max-w-3xl px-6">
+          <h2 className="mb-6 text-4xl font-black text-white">Start with a documented scope</h2>
+          <p className="mb-10 text-lg leading-relaxed text-slate-400">
+            Public information is available broadly. Services involving sensitive data,
+            regulated activities, high-value assets, monitoring, or incident response require
+            eligibility review and a signed statement of work before activation.
+          </p>
+          <div className="flex flex-col justify-center gap-4 sm:flex-row">
+            <Button asChild size="lg" className="rounded-full bg-cyan-400 px-10 font-semibold text-black hover:bg-cyan-500">
+              <Link href="/get-started">
+                Request an assessment <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-white/20 text-white hover:bg-white/10 font-semibold rounded-full px-10">
-              <Link href="/contact">Talk to a Specialist</Link>
+            <Button asChild size="lg" variant="outline" className="rounded-full border-white/20 px-10 font-semibold text-white hover:bg-white/10">
+              <Link href="/contact">Talk to a specialist</Link>
             </Button>
           </div>
         </div>
