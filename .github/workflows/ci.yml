@@ -1,17 +1,13 @@
-name: Build Verification
+name: Manual Build Verification
 
 on:
-  pull_request:
-    branches: [main]
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: build-verification-${{ github.ref }}
+  group: manual-build-verification-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -51,17 +47,5 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generate Prisma client
-        run: pnpm run db:generate
-
-      - name: Lint
-        run: pnpm run lint
-
-      - name: Typecheck
-        run: pnpm run typecheck
-
-      - name: Unit tests
-        run: pnpm run test
-
-      - name: Production build
-        run: pnpm run build
+      - name: Verify repository
+        run: pnpm run verify
