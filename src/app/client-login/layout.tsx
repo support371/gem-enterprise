@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Client Portal Access | GEM Enterprise",
-  description: "Sign in to your GEM Enterprise client portal.",
-  robots: { index: false, follow: false },
+  title: { absolute: "Client Portal Access | GEM Enterprise" },
+  description: "Sign in to an authorized GEM Enterprise client or administrator account.",
+  robots: { index: false, follow: false, nocache: true },
 };
 
 export default function ClientLoginLayout({

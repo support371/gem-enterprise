@@ -65,7 +65,7 @@ export default function ClientLoginPage() {
 
       if (!res.ok) {
         setServerError(
-          body?.error || "Invalid credentials. Please check your email and password."
+          body?.error || "Invalid credentials. Please check your email and password.",
         );
         return;
       }
@@ -81,15 +81,15 @@ export default function ClientLoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center cyber-grid bg-background overflow-hidden">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background cyber-grid">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[500px] w-[500px] rounded-full bg-[hsl(var(--electric-cyan)/0.06)] blur-3xl" />
+        <div className="absolute -top-40 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-[hsl(var(--electric-cyan)/0.06)] blur-3xl" />
         <div className="absolute bottom-0 right-0 h-[300px] w-[300px] rounded-full bg-[hsl(var(--night-plum)/0.08)] blur-3xl" />
       </div>
 
       <div className="relative z-10 w-full max-w-md px-4">
-        <div className="flex flex-col items-center mb-8">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl glass-panel glow-cyan">
+        <div className="mb-8 flex flex-col items-center">
+          <div className="glass-panel glow-cyan mb-4 flex h-16 w-16 items-center justify-center rounded-2xl">
             <svg
               viewBox="0 0 40 40"
               fill="none"
@@ -112,14 +112,14 @@ export default function ClientLoginPage() {
               />
             </svg>
           </div>
-          <span className="font-mono text-xs tracking-widest text-[hsl(var(--electric-cyan))] uppercase mb-1">
+          <span className="mb-1 font-mono text-xs uppercase tracking-widest text-[hsl(var(--electric-cyan))]">
             GEM Enterprise
           </span>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Client Portal Access
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground text-center">
-            Sign in to your secure client or admin account
+          <p className="mt-1 text-center text-sm text-muted-foreground">
+            Sign in to an authorized client or administrator account
           </p>
         </div>
 
@@ -142,10 +142,10 @@ export default function ClientLoginPage() {
                 placeholder="you@example.com"
                 {...register("email")}
                 aria-invalid={!!errors.email}
-                className="bg-[hsl(var(--input))] border-border focus:ring-[hsl(var(--electric-cyan))]"
+                className="border-border bg-[hsl(var(--input))] focus:ring-[hsl(var(--electric-cyan))]"
               />
               {errors.email && (
-                <p className="text-xs text-destructive mt-1">{errors.email.message}</p>
+                <p className="mt-1 text-xs text-destructive">{errors.email.message}</p>
               )}
             </div>
 
@@ -168,17 +168,17 @@ export default function ClientLoginPage() {
                 placeholder="••••••••"
                 {...register("password")}
                 aria-invalid={!!errors.password}
-                className="bg-[hsl(var(--input))] border-border focus:ring-[hsl(var(--electric-cyan))]"
+                className="border-border bg-[hsl(var(--input))] focus:ring-[hsl(var(--electric-cyan))]"
               />
               {errors.password && (
-                <p className="text-xs text-destructive mt-1">{errors.password.message}</p>
+                <p className="mt-1 text-xs text-destructive">{errors.password.message}</p>
               )}
             </div>
 
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-[hsl(var(--electric-cyan))] text-[hsl(var(--primary-foreground))] font-semibold hover:opacity-90 transition-opacity mt-2"
+              className="mt-2 w-full bg-[hsl(var(--electric-cyan))] font-semibold text-[hsl(var(--primary-foreground))] transition-opacity hover:opacity-90"
             >
               {isSubmitting ? "Signing In…" : "Sign In"}
             </Button>
@@ -189,7 +189,7 @@ export default function ClientLoginPage() {
               New client?{" "}
               <Link
                 href="/get-started"
-                className="text-[hsl(var(--electric-cyan))] font-medium hover:underline"
+                className="font-medium text-[hsl(var(--electric-cyan))] hover:underline"
               >
                 Begin application
               </Link>
@@ -198,7 +198,7 @@ export default function ClientLoginPage() {
               Checking access first?{" "}
               <Link
                 href="/eligibility/status"
-                className="text-[hsl(var(--electric-cyan))] font-medium hover:underline"
+                className="font-medium text-[hsl(var(--electric-cyan))] hover:underline"
               >
                 View eligibility status
               </Link>
@@ -206,14 +206,10 @@ export default function ClientLoginPage() {
           </div>
         </div>
 
-        <div className="mt-6 flex items-center justify-center gap-6 text-xs text-muted-foreground">
-          {["Secure", "Encrypted", "Monitored"].map((label) => (
-            <span key={label} className="flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--electric-cyan))]" />
-              {label}
-            </span>
-          ))}
-        </div>
+        <p className="mt-6 text-center text-xs leading-5 text-muted-foreground">
+          Use only an account assigned to you. Do not share credentials or submit identity
+          documents through email or public forms.
+        </p>
         <p className="mt-3 text-center text-xs text-muted-foreground/60">
           &copy; {new Date().getFullYear()} GEM Enterprise. All rights reserved.
         </p>
