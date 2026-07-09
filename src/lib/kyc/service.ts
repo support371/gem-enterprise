@@ -29,6 +29,14 @@ export interface VerificationDraftInput {
   serviceInterest: string;
 }
 
+type NormalizedApplicantData = {
+  legalName: string;
+  country: string;
+  serviceInterest: string;
+  phone?: string;
+  organizationName?: string;
+};
+
 export class VerificationServiceError extends Error {
   constructor(
     public readonly code: string,
@@ -215,14 +223,21 @@ export async function getLatestVerificationApplication(userId: string) {
   });
 }
 
-function normalizedApplicantData(input: VerificationDraftInput) {
-  return {
+function normalizedApplicantData(
+  input: VerificationDraftInput,
+): NormalizedApplicantData {
+  const data: NormalizedApplicantData = {
     legalName: input.legalName.trim(),
     country: input.country.trim(),
-    phone: input.phone?.trim() || undefined,
-    organizationName: input.organizationName?.trim() || undefined,
     serviceInterest: input.serviceInterest.trim(),
   };
+  const phone = input.phone?.trim();
+  const organizationName = input.organizationName?.trim();
+
+  if (phone) data.phone = phone;
+  if (organizationName) data.organizationName = organizationName;
+
+  return data;
 }
 
 export async function saveVerificationApplication(
@@ -269,14 +284,14 @@ export async function saveVerificationApplication(
           update: {
             displayName: applicantData.legalName,
             country: applicantData.country,
-            phone: applicantData.phone,
+            phone: applicantData.phone ?? null,
             entityType: input.entityType,
           },
           create: {
             userId,
             displayName: applicantData.legalName,
             country: applicantData.country,
-            phone: applicantData.phone,
+            phone: applicantData.phone ?? null,
             entityType: input.entityType,
           },
         });
@@ -323,14 +338,14 @@ export async function saveVerificationApplication(
       update: {
         displayName: applicantData.legalName,
         country: applicantData.country,
-        phone: applicantData.phone,
+        phone: applicantData.phone ?? null,
         entityType: input.entityType,
       },
       create: {
         userId,
         displayName: applicantData.legalName,
         country: applicantData.country,
-        phone: applicantData.phone,
+        phone: applicantData.phone ?? null,
         entityType: input.entityType,
       },
     });
