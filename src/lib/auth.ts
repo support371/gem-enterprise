@@ -2,33 +2,23 @@ import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-// ── JWT secret validation ──────────────────────────────────────────────────────
-// In production, JWT_SECRET must be set explicitly. A hardcoded fallback would
-// allow session forgery if the variable is accidentally unset.
-// Validation is deferred to first use so Next.js build-time imports don't fail
-// when environment variables are not available during static analysis.
 const DEFAULT_DEV_SECRET = "gem-enterprise-dev-secret-change-in-production";
-
 let _jwtSecret: Uint8Array | null = null;
 
 function getJwtSecret(): Uint8Array {
   if (_jwtSecret) return _jwtSecret;
-
   const secret = process.env.JWT_SECRET;
   if (!secret) {
     if (process.env.NODE_ENV === "production") {
       throw new Error(
-        "JWT_SECRET environment variable is required in production. " +
-          "Generate one with: openssl rand -hex 32"
+        "JWT_SECRET environment variable is required in production. Generate one with: openssl rand -hex 32",
       );
     }
     _jwtSecret = new TextEncoder().encode(DEFAULT_DEV_SECRET);
     return _jwtSecret;
   }
   if (secret === DEFAULT_DEV_SECRET && process.env.NODE_ENV === "production") {
-    throw new Error(
-      "JWT_SECRET must not use the default development value in production."
-    );
+    throw new Error("JWT_SECRET must not use the default development value in production.");
   }
   if (secret.length < 32 && process.env.NODE_ENV === "production") {
     throw new Error("JWT_SECRET must be at least 32 characters in production.");
@@ -38,7 +28,7 @@ function getJwtSecret(): Uint8Array {
 }
 
 const COOKIE_NAME = "gem_session";
-const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days in seconds
+const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 
 export type AuthRole = "client" | "analyst" | "admin" | "super_admin" | "internal";
 
@@ -74,8 +64,6 @@ export interface AuthState {
   kycStatus: KYCStatus;
 }
 
-// ─── JWT Operations ───────────────────────────────────────────────────────────
-
 export async function signSession(payload: SessionPayload): Promise<string> {
   return new SignJWT({ ...payload })
     .setProtectedHeader({ alg: "HS256" })
@@ -92,8 +80,6 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
     return null;
   }
 }
-
-// ─── Cookie Operations ────────────────────────────────────────────────────────
 
 export async function getSession(): Promise<SessionPayload | null> {
   const cookieStore = await cookies();
@@ -128,17 +114,13 @@ export function clearSessionCookie(response: NextResponse): NextResponse {
   return response;
 }
 
-// ─── Middleware Session Read ───────────────────────────────────────────────────
-
 export async function getSessionFromRequest(
-  request: NextRequest
+  request: NextRequest,
 ): Promise<SessionPayload | null> {
   const token = request.cookies.get(COOKIE_NAME)?.value;
   if (!token) return null;
   return verifySession(token);
 }
-
-// ─── Auth State Helper ────────────────────────────────────────────────────────
 
 export function resolveAuthState(session: SessionPayload | null): AuthState {
   if (!session) {
@@ -161,17 +143,14 @@ export function resolveAuthState(session: SessionPayload | null): AuthState {
   };
 }
 
-// ─── Access Bridge Logic ──────────────────────────────────────────────────────
-
 export function resolveAccessDestination(session: SessionPayload): string {
   const { kycStatus, role, entitlements, portfolioId } = session;
 
-  // Admin/staff go directly to admin
+  if (role === "analyst") return "/review/verification";
   if (role === "admin" || role === "super_admin" || role === "internal") {
     return "/app/admin";
   }
 
-  // KYC state routing
   switch (kycStatus) {
     case "not_started":
       return "/kyc/start";
@@ -182,29 +161,19 @@ export function resolveAccessDestination(session: SessionPayload): string {
     case "under_review":
       return "/decision/pending";
     case "manual_review":
-      return "/decision/manual-review";
+      return "/kyc/status";
     case "rejected":
     case "expired":
-      return "/decision/rejected";
+      return "/kyc/status";
     case "approved":
       break;
     default:
       return "/kyc/start";
   }
 
-  // Approved — route by entitlement
-  if (portfolioId) {
-    return `/app/portfolios/${portfolioId}`;
-  }
-  if (entitlements.includes("cyber")) {
-    return "/app/products/cyber";
-  }
-  if (entitlements.includes("financial")) {
-    return "/app/products/financial";
-  }
-  if (entitlements.includes("real-estate")) {
-    return "/app/products/real-estate";
-  }
-
+  if (portfolioId) return `/app/portfolios/${portfolioId}`;
+  if (entitlements.includes("cyber")) return "/app/products/cyber";
+  if (entitlements.includes("financial")) return "/app/products/financial";
+  if (entitlements.includes("real-estate")) return "/app/products/real-estate";
   return "/app/dashboard";
 }
