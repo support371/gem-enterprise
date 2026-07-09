@@ -5,21 +5,19 @@ import { getSession } from "@/lib/auth";
 import { emitAuditLog } from "@/lib/audit";
 import { getRequestContext, badRequest } from "@/lib/api/auth-helpers";
 import { rateLimit, rateLimitedResponse } from "@/lib/api/rate-limit";
+import { sendMail } from "@/lib/mail/send";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
   email: z.string().trim().toLowerCase().email("Invalid email address").max(254),
   message: z.string().trim().min(10, "Message must be at least 10 characters").max(5_000),
   subject: z.string().trim().max(200).optional(),
-  // Optional honeypot field — bots tend to fill every input. If populated we
-  // accept (200 OK) but silently drop the submission.
   website: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
   const { ipAddress, userAgent } = getRequestContext(req);
 
-  // Hard rate-limit per IP: 5 contact submissions / hour.
   const limit = rateLimit(ipAddress, {
     key: "contact:submit",
     windowMs: 60 * 60_000,
@@ -41,75 +39,124 @@ export async function POST(req: NextRequest) {
 
   const { name, email, message, subject, website } = parsed.data;
 
-  // Honeypot — return 200 OK to avoid signaling rejection to the bot.
+  // Honeypot submissions receive a generic success response but are not stored.
   if (website && website.trim().length > 0) {
     return NextResponse.json({ ok: true });
   }
 
-  // Capture the inbound contact as a SupportTicket only when the sender is
-  // already authenticated. Otherwise we never write to the database — the
-  // ticket model requires a real userId FK and we will not synthesize one
-  // (which previously caused FK violations and lost messages).
   const session = await getSession();
-  let ticketId: string | null = null;
+  const normalizedSubject = subject?.trim() || `Contact from ${name}`;
+  const baseNotes = [
+    `Website contact enquiry`,
+    `From: ${name} <${email}>`,
+    `Authenticated: ${session ? `yes (${session.email})` : "no"}`,
+    "",
+    message,
+  ].join("\n");
 
-  if (session) {
+  try {
+    // Persist every genuine public enquiry before reporting success. SupportBooking
+    // is intentionally used here because it accepts unauthenticated contacts and is
+    // already part of the production schema. Email is only a notification channel;
+    // it is not the system of record.
+    const submission = await db.supportBooking.create({
+      data: {
+        userId: session?.userId,
+        name,
+        email,
+        subject: normalizedSubject,
+        status: "pending",
+        notes: `${baseNotes}\n\nNotification delivery: pending`,
+      },
+      select: { id: true },
+    });
+
+    let ticketId: string | null = null;
+    if (session) {
+      try {
+        const ticket = await db.supportTicket.create({
+          data: {
+            userId: session.userId,
+            subject: normalizedSubject,
+            description: `From: ${name} <${email}>\n\n${message}`,
+            status: "open",
+            priority: "medium",
+          },
+          select: { id: true },
+        });
+        ticketId = ticket.id;
+      } catch (error) {
+        console.error("[contact] failed to create authenticated support ticket", error);
+      }
+    }
+
+    let delivery = "not_configured";
+    const recipient =
+      process.env.ADMIN_EMAIL ||
+      process.env.SUPPORT_EMAIL ||
+      process.env.GEM_OWNER_EMAIL;
+
+    if (recipient) {
+      try {
+        const result = await sendMail({
+          to: recipient,
+          replyTo: email,
+          subject: `[GEM Contact] ${normalizedSubject}`,
+          text: `Submission ID: ${submission.id}\nName: ${name}\nEmail: ${email}\nAuth: ${session ? `yes (${session.email})` : "no"}\nIP: ${ipAddress}\n\n${message}`,
+        });
+        delivery = result.sent
+          ? "sent"
+          : "reason" in result
+            ? result.reason
+            : "skipped";
+      } catch (error) {
+        delivery = "failed";
+        console.error("[contact] failed to send notification email", error);
+      }
+    }
+
     try {
-      const ticket = await db.supportTicket.create({
+      await db.supportBooking.update({
+        where: { id: submission.id },
         data: {
-          userId: session.userId,
-          subject: subject?.trim() || `Contact from ${name}`,
-          description: `From: ${name} <${email}>\n\n${message}`,
-          status: "open",
-          priority: "medium",
+          notes: `${baseNotes}\n\nNotification delivery: ${delivery}`,
         },
-        select: { id: true },
       });
-      ticketId = ticket.id;
     } catch (error) {
-      console.error("[contact] failed to persist ticket", error);
-      // non-fatal — fall through and still email + audit
+      console.error("[contact] failed to record notification status", error);
     }
-  }
 
-  await emitAuditLog({
-    userId: session?.userId,
-    action: "admin_action",
-    resource: "contact_message",
-    resourceId: ticketId ?? undefined,
-    metadata: {
-      authenticated: Boolean(session),
-      email,
-      name,
-      subject: subject ?? null,
+    await emitAuditLog({
+      userId: session?.userId,
+      action: "admin_action",
+      resource: "contact_message",
+      resourceId: submission.id,
+      metadata: {
+        authenticated: Boolean(session),
+        email,
+        name,
+        subject: normalizedSubject,
+        submissionId: submission.id,
+        ticketId,
+        notificationDelivery: delivery,
+      },
+      ipAddress,
+      userAgent,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      submissionId: submission.id,
       ticketId,
-    },
-    ipAddress,
-    userAgent,
-  });
-
-  // Send notification email if SMTP is configured. We isolate the import in
-  // the conditional so deployments without nodemailer wired don't pay the
-  // bundle cost on the cold path.
-  if (process.env.SMTP_HOST && process.env.ADMIN_EMAIL) {
-    try {
-      const nodemailer = await import("nodemailer");
-      const transporter = nodemailer.default.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT ?? 587),
-        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-      });
-      await transporter.sendMail({
-        from: process.env.EMAIL_FROM ?? process.env.SMTP_USER,
-        to: process.env.ADMIN_EMAIL,
-        replyTo: email,
-        subject: `[GEM Contact] ${subject?.trim() || `Message from ${name}`}`,
-        text: `Name: ${name}\nEmail: ${email}\nAuth: ${session ? `yes (${session.email})` : "no"}\nIP: ${ipAddress}\n\n${message}`,
-      });
-    } catch (error) {
-      console.error("[contact] failed to send notification email", error);
-    }
+    });
+  } catch (error) {
+    console.error("[contact] failed to persist public enquiry", error);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Your message could not be stored. Please use the published support email.",
+      },
+      { status: 503 },
+    );
   }
-
-  return NextResponse.json({ ok: true, ticketId });
 }
