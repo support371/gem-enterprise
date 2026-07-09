@@ -4,17 +4,20 @@ import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Navigation } from "@/components/Navigation";
 import { Footer } from "@/components/Footer";
+import { ProductionDisclosure } from "@/components/ProductionDisclosure";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://gemcybersecurityassist.com"),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || "https://www.gemcybersecurityassist.com",
+  ),
   title: {
     default: "GEM Enterprise | Defend. Protect. Prevail.",
     template: "%s | GEM Enterprise",
   },
   description:
-    "Institutional-grade cybersecurity, financial security, and real estate protection for qualified enterprise clients.",
+    "Access-controlled cybersecurity, compliance, financial-security coordination, and property-risk services subject to eligibility, scope, and signed agreements.",
   keywords: [
     "GEM Enterprise",
     "cybersecurity",
@@ -61,6 +64,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </a>
           )}
           {!isPortal && <Navigation />}
+          {!isPortal && <ProductionDisclosure />}
           <main id="main-content" className={isPortal ? undefined : "min-h-screen"}>
             {children}
           </main>
