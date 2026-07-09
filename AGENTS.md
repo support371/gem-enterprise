@@ -9,6 +9,8 @@ GEM Enterprise is a controlled-access platform for cybersecurity, compliance, fi
 - **Default branch:** `main`
 - **Canonical host:** Vercel project `support371-gem-enterprise`
 - **Deployment method:** Vercel Git integration deploys `main`; agents must not run a second `vercel --prod` deployment from CI.
+- **Automatic pull-request gate:** canonical Vercel preview builds run lint, type checking, unit tests, and the Next.js production build.
+- **GitHub Actions status:** workflows remain available for manual execution; while hosted-runner access is constrained, their absence is not a passing result and Vercel preview verification is required.
 - **Current operating mode:** controlled production launch. Sensitive or provider-dependent features fail closed until verified.
 
 ## Tech Stack
@@ -56,9 +58,9 @@ Every implementation task follows this sequence:
 2. **Create a focused branch** using `feat/`, `fix/`, `chore/`, `docs/`, `security/`, or `test/`.
 3. **Inspect before editing.** Read the affected routes, schema, tests, configuration, and recent related pull requests.
 4. **Write a brief implementation plan** in the issue or pull request before broad changes.
-5. **Implement the smallest complete vertical slice.** Avoid unrelated refactors.
+5. **Implement the smallest complete vertical slice.** Avoid unrelated refactors and batch related edits before pushing to reduce unnecessary preview builds.
 6. **Add or update tests** for success, authorization failure, validation failure, provider failure, and fail-closed behavior.
-7. **Run the repository gate:**
+7. **Run the repository gate locally or in the development agent environment:**
 
 ```bash
 corepack enable
@@ -67,13 +69,14 @@ pnpm run verify
 ```
 
 8. **Open a pull request** with risks, manual dependencies, test evidence, and rollback notes.
-9. **Verify the Vercel preview** for affected public routes and inspect runtime/build logs.
-10. **Merge only after required checks pass.** Vercel Git integration deploys `main` to production.
-11. **Run production smoke checks** without submitting sensitive data or causing billable external actions.
+9. **Require the canonical Vercel preview to pass.** Preview builds automatically run lint, type checking, unit tests, Prisma generation, and the Next.js production build. Inspect its build logs and affected routes.
+10. **Use the manual GitHub verification and CodeQL workflows when hosted-runner access is available.** Do not describe a workflow that never started as passing.
+11. **Merge only after the available required gates pass.** Vercel Git integration deploys `main` to production.
+12. **Run production smoke checks** without submitting sensitive data or causing billable external actions.
 
 ## Build Gate
 
-`pnpm run verify` must complete successfully. It runs:
+`pnpm run verify` must complete successfully in the agent environment before the pull request is presented as ready. It runs:
 
 - Prisma client generation
 - ESLint
@@ -81,7 +84,9 @@ pnpm run verify
 - Unit tests
 - Next.js production build
 
-If the full command cannot run because a required external dependency is unavailable, the agent must document the exact blocker and must not claim the feature is complete.
+The canonical Vercel preview independently runs `pnpm run verify:preview` before building the application. This is the automatic hosted gate while GitHub Actions runner access is constrained.
+
+If verification cannot run because a required dependency or account service is unavailable, the agent must document the exact blocker and must not claim the feature is complete.
 
 ## Free-Tier Development Policy
 
@@ -91,6 +96,7 @@ Development should preserve useful free operation:
 - Do not add a paid provider merely to complete a demo.
 - Build provider-independent interfaces and use local fakes in tests.
 - Keep optional integrations disabled by default.
+- Batch related commits before pushing so one preview validates one coherent change set.
 - Add usage limits, queue boundaries, retention limits, and clear error states before enabling a metered service.
 - Treat billing approval, identity-provider contracts, production email credentials, regulated data sources, and external seller verification as owner-only actions.
 
@@ -116,7 +122,9 @@ These remain disabled or request-only until their activation requirements pass:
 - `src/lib/storefrontPresentation.ts` — truthful request-only commerce presentation
 - `prisma/schema.prisma` — database schema
 - `next.config.js` — browser security headers and routing
-- `.github/workflows/ci.yml` — canonical build verification gate
+- `scripts/vercel-build.mjs` — Prisma, preview verification, and application build orchestration
+- `.github/workflows/ci.yml` — manual full verification fallback
+- `.github/workflows/codeql.yml` — manual CodeQL fallback
 - `docs/AGENT_BUILD_FLOW.md` — task and release operating procedure
 
 ## Commit and Pull Request Standards
