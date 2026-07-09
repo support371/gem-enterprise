@@ -83,8 +83,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await saveVerificationApplication(gate.session.userId, {
-      ...parsed.data,
       entityType: parsed.data.entityType as EntityType,
+      legalName: parsed.data.legalName,
+      country: parsed.data.country,
+      phone: parsed.data.phone,
+      organizationName: parsed.data.organizationName,
+      serviceInterest: parsed.data.serviceInterest,
     });
     const { ipAddress, userAgent } = getRequestContext(request);
 
