@@ -1,23 +1,21 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/api/auth-helpers";
 import { db } from "@/lib/db";
 
+function json(body: unknown, status = 200) {
+  return NextResponse.json(body, {
+    status,
+    headers: { "Cache-Control": "no-store" },
+  });
+}
+
 export async function GET() {
-  const session = await getSession();
-
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized", logs: [] }, { status: 401 });
-  }
-
-  if (session.role !== "admin" && session.role !== "super_admin") {
-    return NextResponse.json({ error: "Forbidden", logs: [] }, { status: 403 });
-  }
+  const gate = await requireAdmin();
+  if (!gate.ok) return gate.response;
 
   try {
     const logs = await db.auditLog.findMany({
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
       take: 100,
       include: {
         user: {
@@ -37,16 +35,9 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ logs });
+    return json({ logs });
   } catch (error) {
     console.error("[ADMIN_AUDIT_GET]", error);
-
-    return NextResponse.json(
-      {
-        logs: [],
-        error: "Unable to load audit logs",
-      },
-      { status: 500 },
-    );
+    return json({ logs: [], error: "Unable to load audit logs" }, 500);
   }
 }
