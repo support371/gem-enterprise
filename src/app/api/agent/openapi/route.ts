@@ -17,12 +17,34 @@ export async function GET() {
       openapi: "3.1.0",
       info: {
         title: "GEM Platform Operations Agent API",
-        version: "1.0.0",
+        version: "1.1.0",
         description:
-          "Read-only bridge from the Platform Operations Agent to the GEM Enterprise backend, shared database status, and approved Google and TikTok storefronts.",
+          "Read-only bridge from the Platform Operations Agent to the GEM Enterprise backend, shared database status, and approved Google and TikTok storefronts. Public read-only operations expose no credentials or customer data. Protected operations remain available for later authenticated activation.",
       },
       servers: [{ url: serverUrl() }],
       paths: {
+        "/api/agent/public/health": {
+          get: {
+            operationId: "checkGemPublicHealth",
+            summary: "Check sanitized GEM platform and database health",
+            description:
+              "Returns operational or degraded status without credentials, customer records, or write access.",
+            responses: {
+              "200": { description: "Sanitized GEM platform health." },
+            },
+          },
+        },
+        "/api/agent/public/context": {
+          get: {
+            operationId: "getGemPublicContext",
+            summary: "Get sanitized GEM platform, capability, and store context",
+            description:
+              "Returns read-only platform context and approved storefront routing without credentials or customer data.",
+            responses: {
+              "200": { description: "Sanitized GEM platform context." },
+            },
+          },
+        },
         "/api/agent/public/commerce": {
           get: {
             operationId: "getGemPublicStorefront",
@@ -48,7 +70,7 @@ export async function GET() {
         "/api/agent/health": {
           get: {
             operationId: "checkGemPlatformHealth",
-            summary: "Check the GEM backend and shared database",
+            summary: "Check the authenticated GEM backend and shared database",
             security: [{ GemAgentKey: [] }],
             responses: {
               "200": { description: "Current platform and database health." },
@@ -60,7 +82,7 @@ export async function GET() {
         "/api/agent/context": {
           get: {
             operationId: "getGemPlatformContext",
-            summary: "Get platform, database, capability, and storefront context",
+            summary: "Get authenticated platform, database, capability, and storefront context",
             security: [{ GemAgentKey: [] }],
             parameters: [
               {
@@ -107,7 +129,7 @@ export async function GET() {
         "/api/agent/storefront": {
           get: {
             operationId: "getGemStorefront",
-            summary: "Get one approved storefront destination",
+            summary: "Get one approved authenticated storefront destination",
             security: [{ GemAgentKey: [] }],
             parameters: [
               {
@@ -136,7 +158,7 @@ export async function GET() {
             in: "header",
             name: "X-GEM-Agent-Key",
             description:
-              "Private server-to-server credential stored in Vercel and the Platform Operations Agent Action settings.",
+              "Private server-to-server credential stored in Vercel and the Platform Operations Agent Action settings. Required only for protected operations.",
           },
         },
       },
