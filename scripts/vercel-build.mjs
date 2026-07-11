@@ -39,9 +39,6 @@ if (directUrl) env.POSTGRES_URL_NON_POOLING = directUrl;
 console.log("Generating Prisma client...");
 run("pnpm", ["exec", "prisma", "generate"], env);
 
-console.log("Generating temporary recovery schema snapshot...");
-run("node", ["scripts/generate-prisma-schema-sql.mjs"], env);
-
 const shouldVerifyPreview =
   env.VERCEL_ENV === "preview" || env.RUN_PREVIEW_VERIFICATION === "true";
 
@@ -66,17 +63,17 @@ if (shouldVerifyPreview) {
 const shouldDeployMigrations =
   env.VERCEL_ENV === "production" &&
   pooledUrl &&
-  env.SKIP_DB_MIGRATIONS !== "true";
+  env.RUN_DB_MIGRATIONS === "true";
 
 if (shouldDeployMigrations) {
-  console.log("Production database detected: deploying committed Prisma migrations...");
+  console.log("RUN_DB_MIGRATIONS enabled: deploying committed Prisma migrations...");
   run("pnpm", ["exec", "prisma", "migrate", "deploy"], env);
 }
 
 if (env.AUTO_DB_PUSH === "true") {
   if (!pooledUrl) {
     throw new Error(
-      "AUTO_DB_PUSH is enabled, but no supported database URL is configured. Connect Supabase/Neon or add POSTGRES_PRISMA_URL/DATABASE_URL first.",
+      "AUTO_DB_PUSH is enabled, but no supported database URL is configured. Connect Supabase or add POSTGRES_PRISMA_URL/DATABASE_URL first.",
     );
   }
 
