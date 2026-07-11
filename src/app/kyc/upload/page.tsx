@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft, LockKeyhole } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowLeft, LockKeyhole } from "lucide-react";
+import EvidenceUploadClient from "@/components/kyc/EvidenceUploadClient";
 
 export const metadata = {
-  title: "Secure Document Upload",
+  title: "Secure Evidence Upload | GEM Verify",
+  description:
+    "Authenticated, private and fail-closed evidence submission for GEM Verify applications.",
   robots: {
     index: false,
     follow: false,
@@ -12,7 +14,7 @@ export const metadata = {
 
 export default function KYCUploadPage() {
   return (
-    <main className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
+    <main className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:py-16">
       <Link
         href="/kyc/start"
         className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -21,46 +23,30 @@ export default function KYCUploadPage() {
         Back to verification overview
       </Link>
 
-      <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-7 text-amber-50">
+      <header className="mb-8">
         <div className="flex items-start gap-4">
-          <div className="rounded-xl border border-amber-300/30 bg-amber-300/10 p-3">
-            <LockKeyhole className="h-6 w-6 text-amber-200" aria-hidden="true" />
+          <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-3">
+            <LockKeyhole className="h-7 w-7 text-cyan-300" aria-hidden="true" />
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-200">
-              Secure upload not yet activated
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+              GEM Verify
             </p>
-            <h1 className="mt-3 text-3xl font-bold text-white">
-              Do not send identity or financial documents through this website yet
+            <h1 className="mt-2 text-3xl font-bold text-white sm:text-4xl">
+              Secure evidence submission
             </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
+              Evidence is submitted through a one-time authorization into a private quarantine area. The system validates the real file signature, records a SHA-256 checksum and requires a clean security scan before authorized reviewer access.
+            </p>
           </div>
         </div>
+      </header>
 
-        <div className="mt-6 flex items-start gap-3 rounded-xl border border-amber-300/20 bg-black/15 p-4 text-sm leading-6">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-200" aria-hidden="true" />
-          <p>
-            The production private-storage, malware-scanning, access-audit, retention, and
-            authorized-review pipeline has not been fully activated. To protect applicants,
-            this page is intentionally fail-closed and does not accept files.
-          </p>
-        </div>
+      <EvidenceUploadClient />
 
-        <p className="mt-6 text-sm leading-6 text-amber-50/85">
-          GEM will enable document submission only after the storage provider, encryption,
-          short-lived upload authorization, file-signature validation, malware scanning,
-          reviewer permissions, deletion controls, and retention policy have been tested
-          end to end.
-        </p>
-
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Button asChild className="bg-amber-300 font-semibold text-black hover:bg-amber-200">
-            <Link href="/contact?subject=verification">Contact verification support</Link>
-          </Button>
-          <Button asChild variant="outline" className="border-amber-200/30 text-white hover:bg-white/10">
-            <Link href="/eligibility/status">Check eligibility status</Link>
-          </Button>
-        </div>
-      </div>
+      <p className="mt-8 text-center text-xs leading-5 text-white/45">
+        Never upload passwords, one-time security codes, private keys, banking credentials or account recovery secrets as verification evidence.
+      </p>
     </main>
   );
 }
