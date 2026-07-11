@@ -1,0 +1,220 @@
+openapi: 3.1.0
+info:
+  title: GEM Platform Operations API
+  version: 1.0.0
+  description: |
+    Read-only operations API for the GEM Platform Operations Agent.
+    It exposes platform health, shared database readiness, and approved Google
+    and TikTok storefront routing. It never returns database credentials,
+    private API keys, access tokens, or customer records.
+servers:
+  - url: https://support371-gem-enterprise-git-main-admin-25521151s-projects.vercel.app
+    description: GEM Enterprise canonical Vercel branch endpoint
+security:
+  - GemAgentApiKey: []
+paths:
+  /api/agent/health:
+    get:
+      operationId: checkGemPlatformHealth
+      summary: Check GEM platform and database health
+      description: Returns safe deployment metadata and database readiness.
+      responses:
+        "200":
+          description: Health response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "401":
+          description: Invalid or missing agent API key
+        "503":
+          description: Agent API key or database runtime is not configured
+  /api/agent/context:
+    get:
+      operationId: getGemPlatformContext
+      summary: Get the shared GEM platform context
+      description: Returns platform, database, store, and safe capability status.
+      responses:
+        "200":
+          description: Platform context response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContextResponse"
+        "401":
+          description: Invalid or missing agent API key
+        "503":
+          description: Agent API key is not configured
+  /api/agent/tiktok-store:
+    get:
+      operationId: getGemTikTokStore
+      summary: Get the approved GEM TikTok storefront
+      description: Returns the internal GEM page, connected Base44 storefront, and verified seller-account connection state.
+      responses:
+        "200":
+          description: TikTok storefront response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TikTokStoreResponse"
+        "401":
+          description: Invalid or missing agent API key
+        "503":
+          description: Agent API key is not configured
+  /api/agent/google-store:
+    get:
+      operationId: getGemGoogleStore
+      summary: Get the approved GEM Google storefront
+      description: Returns the internal GEM page, connected Base44 storefront, and Merchant account connection state.
+      responses:
+        "200":
+          description: Google storefront response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GoogleStoreResponse"
+        "401":
+          description: Invalid or missing agent API key
+        "503":
+          description: Agent API key is not configured
+components:
+  securitySchemes:
+    GemAgentApiKey:
+      type: apiKey
+      in: header
+      name: X-GEM-Agent-Key
+  schemas:
+    DatabaseStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, unavailable, error]
+        configured:
+          type: boolean
+        diagnostic:
+          type: string
+      required: [status, configured, diagnostic]
+    PlatformMetadata:
+      type: object
+      properties:
+        name:
+          type: string
+        website:
+          type: string
+          format: uri
+        agent_api:
+          type: string
+          format: uri
+        environment:
+          type: string
+        branch:
+          type: [string, "null"]
+        commit_sha:
+          type: [string, "null"]
+      required: [name, website, agent_api, environment, branch, commit_sha]
+    TikTokStore:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+        internal_page:
+          type: string
+          format: uri
+        external_storefront:
+          type: string
+          format: uri
+        seller_account_connected:
+          type: boolean
+        account_forwarding_enabled:
+          type: boolean
+      required:
+        - name
+        - status
+        - internal_page
+        - external_storefront
+        - seller_account_connected
+        - account_forwarding_enabled
+    GoogleStore:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+        internal_page:
+          type: string
+          format: uri
+        external_storefront:
+          type: string
+          format: uri
+        merchant_account_connected:
+          type: boolean
+      required:
+        - name
+        - status
+        - internal_page
+        - external_storefront
+        - merchant_account_connected
+    HealthResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        status:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        platform:
+          $ref: "#/components/schemas/PlatformMetadata"
+        database:
+          $ref: "#/components/schemas/DatabaseStatus"
+      required: [ok, status, timestamp, platform, database]
+    ContextResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        status:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        platform:
+          $ref: "#/components/schemas/PlatformMetadata"
+        database:
+          $ref: "#/components/schemas/DatabaseStatus"
+        stores:
+          type: object
+          properties:
+            tiktok:
+              $ref: "#/components/schemas/TikTokStore"
+            google:
+              $ref: "#/components/schemas/GoogleStore"
+          required: [tiktok, google]
+        capabilities:
+          type: object
+          additionalProperties: true
+      required: [ok, status, timestamp, platform, database, stores, capabilities]
+    TikTokStoreResponse:
+      allOf:
+        - type: object
+          properties:
+            ok:
+              type: boolean
+            store:
+              type: string
+              const: tiktok
+          required: [ok, store]
+        - $ref: "#/components/schemas/TikTokStore"
+    GoogleStoreResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        store:
+          $ref: "#/components/schemas/GoogleStore"
+      required: [ok, store]
