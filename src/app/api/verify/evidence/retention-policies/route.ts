@@ -177,8 +177,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const policy = await db.$transaction(async (tx) => {
-      await tx.$executeRaw`
-        SELECT pg_advisory_xact_lock(hashtext(${`gem-verify-retention:${documentType}`}))
+      await tx.$queryRaw<Array<{ locked: null }>>`
+        SELECT pg_advisory_xact_lock(
+          hashtext(${`gem-verify-retention:${documentType}`})
+        ) AS locked
       `;
       const versions = await tx.$queryRaw<Array<{ next_version: number }>>`
         SELECT COALESCE(max(version), 0)::integer + 1 AS next_version
