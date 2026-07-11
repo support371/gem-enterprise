@@ -1,0 +1,62 @@
+name: TokMetric Custom GPT Read-Only Smoke Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Production origin to test
+        required: true
+        default: https://gemcybersecurityassist.com
+        type: string
+      workspace_id:
+        description: Authorized TokMetric workspace ID
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tokmetric-gpt-readonly-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke-test:
+    name: Verify Custom GPT read-only flow
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verify required secret exists
+        shell: bash
+        env:
+          TOKMETRIC_GPT_AUTH_TOKEN: ${{ secrets.TOKMETRIC_GPT_AUTH_TOKEN }}
+        run: |
+          if [ -z "$TOKMETRIC_GPT_AUTH_TOKEN" ]; then
+            echo "Repository secret TOKMETRIC_GPT_AUTH_TOKEN is not configured."
+            exit 2
+          fi
+
+      - name: Run read-only production smoke test
+        env:
+          TOKMETRIC_BASE_URL: ${{ inputs.base_url }}
+          TOKMETRIC_TEST_WORKSPACE_ID: ${{ inputs.workspace_id }}
+          TOKMETRIC_GPT_AUTH_TOKEN: ${{ secrets.TOKMETRIC_GPT_AUTH_TOKEN }}
+          TOKMETRIC_REPORT_PATH: tokmetric-gpt-smoke-report.json
+        run: node scripts/tokmetric-gpt-readonly-smoke.mjs
+
+      - name: Upload sanitized verification report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tokmetric-gpt-readonly-smoke-report
+          path: tokmetric-gpt-smoke-report.json
+          if-no-files-found: warn
+          retention-days: 14
