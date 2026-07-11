@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/api/auth-helpers";
+import { evaluateEvidenceDeletionEligibility } from "@/lib/kyc/evidence-retention";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,35 +36,6 @@ function json(body: unknown, status = 200) {
   });
 }
 
-function classify(row: CandidateRow, now: number) {
-  const retentionTime = row.retention_until
-    ? new Date(row.retention_until).getTime()
-    : null;
-  const reasons: string[] = [];
-
-  if (row.deleted_at || row.status === "deleted") reasons.push("already_deleted");
-  if (!retentionTime) reasons.push("retention_date_missing");
-  if (retentionTime !== null && retentionTime > now) reasons.push("retention_not_expired");
-  if (row.legal_hold) reasons.push("legal_hold");
-  if (["pending", "scanning", "manual_hold"].includes(row.quarantine_status)) {
-    reasons.push("quarantine_incomplete");
-  }
-  if (["pending", "in_progress", "needs_information"].includes(row.validation_status)) {
-    reasons.push("validation_incomplete");
-  }
-  if (["pending", "assigned", "under_review"].includes(row.reviewer_status)) {
-    reasons.push("review_incomplete");
-  }
-  if (!["released", "rejected"].includes(row.status)) {
-    reasons.push("evidence_state_not_terminal");
-  }
-
-  return {
-    eligible: reasons.length === 0,
-    blockers: reasons,
-  };
-}
-
 export async function GET(request: NextRequest) {
   const gate = await requireAdmin();
   if (!gate.ok) return gate.response;
@@ -94,9 +66,21 @@ export async function GET(request: NextRequest) {
       LIMIT ${limit}
     `;
 
-    const now = Date.now();
+    const now = new Date();
     const evaluated = rows.map((row) => {
-      const result = classify(row, now);
+      const result = evaluateEvidenceDeletionEligibility(
+        {
+          status: row.status,
+          quarantineStatus: row.quarantine_status,
+          validationStatus: row.validation_status,
+          reviewerStatus: row.reviewer_status,
+          legalHold: row.legal_hold,
+          retentionUntil: row.retention_until,
+          deletionRequestedAt: row.deletion_requested_at,
+          deletedAt: row.deleted_at,
+        },
+        now,
+      );
       return {
         id: row.id,
         applicationId: row.application_id,
@@ -109,6 +93,7 @@ export async function GET(request: NextRequest) {
         retentionUntil: iso(row.retention_until),
         deletionRequestedAt: iso(row.deletion_requested_at),
         createdAt: iso(row.created_at),
+        retentionExpired: result.retentionExpired,
         eligible: result.eligible,
         blockers: result.blockers,
       };
@@ -123,7 +108,7 @@ export async function GET(request: NextRequest) {
 
     return json({
       ok: true,
-      evaluatedAt: new Date(now).toISOString(),
+      evaluatedAt: now.toISOString(),
       dryRun: true,
       deletionPerformed: false,
       summary: {
@@ -136,6 +121,7 @@ export async function GET(request: NextRequest) {
       safeguards: {
         storagePathsExposed: false,
         legalHoldsRespected: true,
+        existingRequestsBlocked: true,
         incompleteReviewsBlocked: true,
         incompleteScansBlocked: true,
         executionEndpointAvailable: false,
