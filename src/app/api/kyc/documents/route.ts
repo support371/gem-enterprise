@@ -1,15 +1,21 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/api/auth-helpers";
+import { SECURE_DOCUMENT_UPLOAD_ACTIVE } from "@/lib/kyc/capabilities";
 
-/**
- * Production document intake is intentionally disabled until a complete private
- * object-storage flow is available. The previous implementation created only a
- * database metadata row and did not store, scan, or verify the actual file. That
- * could make an application appear to contain documents when no document existed.
- */
 export async function POST() {
   const gate = await requireSession();
-  if (!gate.ok) return (gate as { ok: false; response: NextResponse }).response;
+  if (!gate.ok) return gate.response;
+
+  if (SECURE_DOCUMENT_UPLOAD_ACTIVE) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "DOCUMENT_UPLOAD_HANDLER_NOT_IMPLEMENTED",
+        error: "Document upload cannot be accepted without the production handler.",
+      },
+      { status: 503, headers: { "Cache-Control": "no-store" } },
+    );
+  }
 
   return NextResponse.json(
     {

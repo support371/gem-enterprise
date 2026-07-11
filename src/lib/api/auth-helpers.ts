@@ -1,18 +1,15 @@
 /**
  * Shared API auth helpers.
  *
- * Centralizes role checks, request-context extraction, and standard error
- * responses so route handlers don't drift on security semantics.
+ * Signed cookie claims are treated as a cache of identity context, not the
+ * source of truth for current role or account status. Every protected API gate
+ * reconciles the cookie with the current database record before authorizing.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, type AuthRole, type SessionPayload } from "@/lib/auth";
-
-// ─── Role gates ───────────────────────────────────────────────────────────────
-//
-// The Prisma schema defines five roles (client, analyst, admin, super_admin,
-// internal). Per AGENTS.md rule 7, super_admin and internal must never be
-// granted via the API, but they retain admin-level read/write access.
+import { db } from "@/lib/db";
+import { reconcileSessionAuthority } from "@/lib/auth-authority";
 
 const ADMIN_ROLES: ReadonlyArray<string> = ["admin", "super_admin", "internal"];
 const STAFF_ROLES: ReadonlyArray<string> = ["analyst", "admin", "super_admin", "internal"];
@@ -30,8 +27,6 @@ export function isAssignableRole(role: string): role is "client" | "analyst" | "
   return ASSIGNABLE_ROLES.includes(role);
 }
 
-// ─── Request context ──────────────────────────────────────────────────────────
-
 export interface RequestContext {
   ipAddress: string;
   userAgent: string;
@@ -46,72 +41,111 @@ export function getRequestContext(request: Request | NextRequest): RequestContex
   return { ipAddress, userAgent };
 }
 
-// ─── Standard responses ───────────────────────────────────────────────────────
-
-export function unauthorized(message = "Unauthorized") {
-  return NextResponse.json({ error: message }, { status: 401 });
+function response(body: unknown, status: number) {
+  return NextResponse.json(body, {
+    status,
+    headers: { "Cache-Control": "no-store" },
+  });
 }
 
-export function forbidden(message = "Forbidden") {
-  return NextResponse.json({ error: message }, { status: 403 });
+export function unauthorized(message = "Unauthorized") {
+  return response({ error: message }, 401);
+}
+
+export function forbidden(message = "Forbidden", code?: string) {
+  return response(code ? { error: message, code } : { error: message }, 403);
 }
 
 export function badRequest(message: string, details?: unknown) {
-  return NextResponse.json(
-    details ? { error: message, details } : { error: message },
-    { status: 400 },
-  );
+  return response(details ? { error: message, details } : { error: message }, 400);
 }
 
 export function serverError(message = "Internal server error") {
-  return NextResponse.json({ error: message }, { status: 500 });
+  return response({ error: message }, 500);
 }
 
-// ─── Composite gates ──────────────────────────────────────────────────────────
+export function serviceUnavailable(message = "Authorization service unavailable") {
+  return response({ error: message }, 503);
+}
 
-export type GateOk = { ok: true; session: SessionPayload; response?: never };
+export type GateOk = {
+  ok: true;
+  session: SessionPayload;
+  accountStatus: "active" | "suspended" | "pending_approval";
+  claimsChanged: boolean;
+  response?: never;
+};
 export type GateErr = { ok: false; response: NextResponse; session?: never };
 export type GateResult = GateOk | GateErr;
 
-/**
- * Resolve the current session and return either the session or a 401 response.
- * Always prefer this over reading getSession() directly so routes share the
- * same error semantics.
- */
-function ok(session: SessionPayload): GateOk {
-  return { ok: true, session };
+function ok(input: Omit<GateOk, "ok">): GateOk {
+  return { ok: true, ...input };
 }
 
-function err(response: NextResponse): GateErr {
-  return { ok: false, response };
+function err(responseValue: NextResponse): GateErr {
+  return { ok: false, response: responseValue };
+}
+
+async function resolveAuthoritativeGate(): Promise<GateResult> {
+  const claims = await getSession();
+  if (!claims) return err(unauthorized());
+
+  try {
+    const account = await db.user.findUnique({
+      where: { id: claims.userId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        isActive: true,
+        organizationId: true,
+      },
+    });
+
+    const authority = reconcileSessionAuthority(claims, account);
+    if (!authority.ok) {
+      return err(
+        response(
+          { error: authority.message, code: authority.code },
+          authority.statusCode,
+        ),
+      );
+    }
+
+    return ok({
+      session: authority.session,
+      accountStatus: authority.accountStatus,
+      claimsChanged: authority.claimsChanged,
+    });
+  } catch (error) {
+    console.error("[auth-authority] account reconciliation failed", error);
+    return err(serviceUnavailable());
+  }
 }
 
 export async function requireSession(): Promise<GateResult> {
-  const session = await getSession();
-  if (!session) return err(unauthorized());
-  return ok(session);
+  return resolveAuthoritativeGate();
 }
 
-/**
- * Require a session AND admin-level role.
- * Returns 401 when unauthenticated, 403 when authenticated but not authorized.
- */
 export async function requireAdmin(): Promise<GateResult> {
-  const session = await getSession();
-  if (!session) return err(unauthorized());
-  if (!isAdminRole(session.role)) return err(forbidden());
-  return ok(session);
+  const gate = await resolveAuthoritativeGate();
+  if (!gate.ok) return gate;
+  if (gate.accountStatus !== "active") {
+    return err(forbidden("An active account is required for administrator access."));
+  }
+  if (!isAdminRole(gate.session.role)) return err(forbidden());
+  return gate;
 }
 
-/**
- * Require a session AND staff-level role (analyst, admin, super_admin, internal).
- */
 export async function requireStaff(): Promise<GateResult> {
-  const session = await getSession();
-  if (!session) return err(unauthorized());
-  if (!isStaffRole(session.role)) return err(forbidden());
-  return ok(session);
+  const gate = await resolveAuthoritativeGate();
+  if (!gate.ok) return gate;
+  if (gate.accountStatus !== "active") {
+    return err(forbidden("An active account is required for reviewer access."));
+  }
+  if (!isStaffRole(gate.session.role)) return err(forbidden());
+  return gate;
 }
 
-// Re-export for convenience so route handlers don't need two imports.
 export type { AuthRole, SessionPayload };

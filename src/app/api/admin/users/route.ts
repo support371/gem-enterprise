@@ -9,12 +9,21 @@ import {
   serverError,
   forbidden,
 } from "@/lib/api/auth-helpers";
+import {
+  getAssignableRolesForActor,
+  validateReviewerRoleChange,
+} from "@/lib/reviewer-role-policy";
 
-// ─── GET /api/admin/users ─────────────────────────────────────────────────────
+function json(body: unknown, status = 200) {
+  return NextResponse.json(body, {
+    status,
+    headers: { "Cache-Control": "no-store" },
+  });
+}
 
 export async function GET() {
   const gate = await requireAdmin();
-  if (!gate.ok) return (gate as { ok: false; response: any }).response;
+  if (!gate.ok) return gate.response;
 
   try {
     const users = await db.user.findMany({
@@ -41,36 +50,42 @@ export async function GET() {
         },
       },
     });
-    return NextResponse.json({ users });
+    return json({
+      users,
+      viewerRole: gate.session.role,
+      rolePolicy: {
+        assignableRoles: getAssignableRolesForActor(gate.session.role),
+        requiresReason: true,
+        requiresTargetEmailConfirmation: true,
+        requiresReauthentication: true,
+      },
+    });
   } catch (error) {
     console.error("[GET /api/admin/users]", error);
     return serverError();
   }
 }
 
-// ─── PATCH /api/admin/users ───────────────────────────────────────────────────
-//
-// Per AGENTS.md rule 7: super_admin and internal roles are NEVER assignable
-// via API. They can only be set in DB by an out-of-band operator. The schema
-// keeps them read-only here so a compromised admin cannot self-escalate.
-
-const ASSIGNABLE_ROLES = ["client", "analyst", "admin"] as const;
-
 const patchSchema = z
   .object({
     id: z.string().min(1, "User ID is required"),
-    role: z.enum(ASSIGNABLE_ROLES).optional(),
+    role: z.enum(["client", "analyst", "admin"]).optional(),
     isActive: z.boolean().optional(),
     status: z.enum(["active", "suspended", "pending_approval"]).optional(),
+    reason: z.string().trim().min(10).max(500),
+    confirmEmail: z.string().email().max(254).optional(),
   })
   .refine(
-    (v) => v.role !== undefined || v.isActive !== undefined || v.status !== undefined,
-    { message: "At least one field (role, isActive, status) must be provided" },
+    (value) =>
+      value.role !== undefined ||
+      value.isActive !== undefined ||
+      value.status !== undefined,
+    { message: "At least one account field must be provided" },
   );
 
 export async function PATCH(req: NextRequest) {
   const gate = await requireAdmin();
-  if (!gate.ok) return (gate as { ok: false; response: any }).response;
+  if (!gate.ok) return gate.response;
   const session = gate.session;
 
   let body: unknown;
@@ -85,38 +100,69 @@ export async function PATCH(req: NextRequest) {
     return badRequest("Validation failed", parsed.error.flatten().fieldErrors);
   }
 
-  const { id, role, isActive, status } = parsed.data;
+  const { id, role, isActive, status, reason, confirmEmail } = parsed.data;
   const { ipAddress, userAgent } = getRequestContext(req);
 
   try {
     const target = await db.user.findUnique({
       where: { id },
-      select: { id: true, email: true, role: true, isActive: true, status: true },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isActive: true,
+        status: true,
+        isEmailVerified: true,
+      },
     });
     if (!target) return badRequest("User not found");
 
-    // Guardrails:
-    //   • An admin cannot demote a super_admin/internal user (only those roles
-    //     can manage their peers).
-    //   • An admin cannot suspend or modify themselves through this endpoint.
+    if (role !== undefined) {
+      const policy = validateReviewerRoleChange({
+        actorId: session.userId,
+        actorRole: session.role,
+        target,
+        requestedRole: role,
+        confirmEmail,
+        reason,
+      });
+      if (!policy.ok) {
+        return json(
+          { error: policy.message, code: policy.code },
+          policy.statusCode,
+        );
+      }
+    }
+
     if (
-      (target.role === "super_admin" || target.role === "internal") &&
-      session.role === "admin"
+      ["super_admin", "internal"].includes(target.role) &&
+      session.role === "admin" &&
+      (isActive !== undefined || status !== undefined)
     ) {
       return forbidden("Insufficient permissions to modify this account");
     }
-    if (target.id === session.userId && (isActive === false || status === "suspended")) {
+
+    if (
+      target.id === session.userId &&
+      (isActive === false || status === "suspended")
+    ) {
       return forbidden("You cannot suspend your own account");
     }
 
     const data: {
-      role?: (typeof ASSIGNABLE_ROLES)[number];
+      role?: "client" | "analyst" | "admin";
       isActive?: boolean;
       status?: "active" | "suspended" | "pending_approval";
     } = {};
-    if (role !== undefined) data.role = role;
-    if (isActive !== undefined) data.isActive = isActive;
-    if (status !== undefined) data.status = status;
+    if (role !== undefined && role !== target.role) data.role = role;
+    if (isActive !== undefined && isActive !== target.isActive) {
+      data.isActive = isActive;
+    }
+    if (status !== undefined && status !== target.status) data.status = status;
+
+    if (Object.keys(data).length === 0) {
+      return badRequest("The requested update does not change the account.");
+    }
 
     const updated = await db.user.update({
       where: { id },
@@ -127,11 +173,12 @@ export async function PATCH(req: NextRequest) {
         role: true,
         status: true,
         isActive: true,
+        isEmailVerified: true,
         updatedAt: true,
       },
     });
 
-    if (role !== undefined && role !== target.role) {
+    if (data.role !== undefined) {
       await emitAuditLog({
         userId: session.userId,
         action: "role_change",
@@ -140,17 +187,16 @@ export async function PATCH(req: NextRequest) {
         metadata: {
           targetEmail: target.email,
           previousRole: target.role,
-          newRole: role,
+          newRole: data.role,
+          reason,
+          targetMustReauthenticate: true,
         },
         ipAddress,
         userAgent,
       });
     }
 
-    if (
-      (isActive !== undefined && isActive !== target.isActive) ||
-      (status !== undefined && status !== target.status)
-    ) {
+    if (data.isActive !== undefined || data.status !== undefined) {
       await emitAuditLog({
         userId: session.userId,
         action: "admin_action",
@@ -159,16 +205,21 @@ export async function PATCH(req: NextRequest) {
         metadata: {
           targetEmail: target.email,
           previousIsActive: target.isActive,
-          newIsActive: isActive,
+          newIsActive: data.isActive,
           previousStatus: target.status,
-          newStatus: status,
+          newStatus: data.status,
+          reason,
         },
         ipAddress,
         userAgent,
       });
     }
 
-    return NextResponse.json({ ok: true, user: updated });
+    return json({
+      ok: true,
+      user: updated,
+      reauthenticationRequired: data.role !== undefined,
+    });
   } catch (error) {
     console.error("[PATCH /api/admin/users]", error);
     return serverError();
