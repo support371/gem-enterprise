@@ -126,7 +126,7 @@ export async function PATCH(req: NextRequest) {
         confirmEmail,
         reason,
       });
-      if (!policy.ok) {
+      if (policy.ok === false) {
         return json(
           { error: policy.message, code: policy.code },
           policy.statusCode,
