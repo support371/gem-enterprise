@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getTokMetricAgent, validateAgentOutput } from "@/lib/tokmetric/agents";
+import { TOKMETRIC_GPT_ACTIONS } from "@/lib/tokmetric/gptActionsV2";
 import { requireTokMetricGptAuth } from "@/lib/tokmetric/gptAuth";
 import { contentHash, TokMetricError } from "@/lib/tokmetric/security";
 
@@ -22,6 +23,24 @@ describe("TokMetric phases 3-6 foundation", () => {
 
   it("rejects unsupported agent output types", () => {
     expect(() => validateAgentOutput("script_writer", "external_submit")).toThrow(TokMetricError);
+  });
+
+  it("registers the complete controlled GPT action surface", () => {
+    expect(TOKMETRIC_GPT_ACTIONS).toEqual(expect.arrayContaining([
+      "gptSystemReadiness",
+      "gptListAccounts",
+      "gptCreateContentDraft",
+      "gptRunComplianceReview",
+      "gptRequestApproval",
+      "gptCreatePublishJob",
+      "gptGetPublishJobStatus",
+      "gptGetAuditHistory",
+    ]));
+    expect(new Set(TOKMETRIC_GPT_ACTIONS).size).toBe(TOKMETRIC_GPT_ACTIONS.length);
+  });
+
+  it("does not expose a direct external-success action", () => {
+    expect(TOKMETRIC_GPT_ACTIONS.some((action) => /publishsuccess|forcepublish|withdraw/i.test(action))).toBe(false);
   });
 
   it("requires GPT auth to be configured", () => {
