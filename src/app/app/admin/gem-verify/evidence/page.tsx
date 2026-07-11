@@ -10,6 +10,7 @@ import {
   Loader2,
   LockKeyhole,
   RefreshCw,
+  Scale,
   ScanSearch,
   ShieldCheck,
 } from "lucide-react";
@@ -132,6 +133,12 @@ export default function EvidenceVaultPage() {
               className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
             />
             Refresh
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/app/admin/gem-verify/evidence/governance">
+              <Scale className="mr-2 h-4 w-4" aria-hidden="true" />
+              Governance
+            </Link>
           </Button>
           <Button asChild variant="outline">
             <Link href="/app/admin/gem-verify">Back to GEM Verify</Link>
