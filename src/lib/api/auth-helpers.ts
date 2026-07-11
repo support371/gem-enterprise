@@ -104,7 +104,7 @@ async function resolveAuthoritativeGate(): Promise<GateResult> {
     });
 
     const authority = reconcileSessionAuthority(claims, account);
-    if (!authority.ok) {
+    if (authority.ok === false) {
       return err(
         response(
           { error: authority.message, code: authority.code },
