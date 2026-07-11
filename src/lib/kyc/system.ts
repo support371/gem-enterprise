@@ -177,9 +177,9 @@ export const GEM_VERIFY_MODULES = [
     status: GEM_VERIFY_CAPABILITIES.documentUpload
       ? ("controlled_pilot" as const)
       : ("blocked" as const),
-    route: null,
+    route: "/app/admin/gem-verify/evidence",
     description:
-      "Encrypted document intake, integrity checks, scanning, access logging, retention, and deletion.",
+      "Private evidence metadata, quarantine readiness, access logging, validation records, retention controls, and upload safeguards.",
   },
   {
     id: "biometrics",
