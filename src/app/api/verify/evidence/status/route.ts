@@ -20,6 +20,7 @@ type BucketRow = {
   allowed_mime_types: string[] | null;
 };
 type RlsRow = { table_name: string; rls_enabled: boolean };
+type ScanStatusRow = { status: string; count: bigint | number | string };
 
 function count(rows: CountRow[]) {
   return Number(rows[0]?.count ?? 0);
@@ -46,6 +47,8 @@ export async function GET() {
       evidenceRows,
       eventRows,
       validationRows,
+      scanJobRows,
+      scanStatusRows,
       policyRows,
       activePolicyRows,
       objectRows,
@@ -63,6 +66,16 @@ export async function GET() {
       db.$queryRaw<CountRow[]>`
         SELECT count(*)::bigint AS count
         FROM public.gem_verify_evidence_validations
+      `,
+      db.$queryRaw<CountRow[]>`
+        SELECT count(*)::bigint AS count
+        FROM public.gem_verify_evidence_scan_jobs
+      `,
+      db.$queryRaw<ScanStatusRow[]>`
+        SELECT status, count(*)::bigint AS count
+        FROM public.gem_verify_evidence_scan_jobs
+        GROUP BY status
+        ORDER BY status
       `,
       db.$queryRaw<CountRow[]>`
         SELECT count(*)::bigint AS count
@@ -93,6 +106,7 @@ export async function GET() {
             'gem_verify_evidence_items',
             'gem_verify_evidence_access_events',
             'gem_verify_evidence_validations',
+            'gem_verify_evidence_scan_jobs',
             'gem_verify_retention_policies'
           )
         ORDER BY c.relname
@@ -100,12 +114,14 @@ export async function GET() {
     ]);
 
     const bucket = bucketRows[0] ?? null;
-    const schemaReady = rlsRows.length === 4;
+    const schemaReady = rlsRows.length === 5;
     const rlsReady = schemaReady && rlsRows.every((row) => row.rls_enabled);
+    const bucketMimeTypes = new Set(bucket?.allowed_mime_types ?? []);
     const bucketReady = Boolean(
       bucket &&
         bucket.public === false &&
-        Number(bucket.file_size_limit ?? 0) === GEM_VERIFY_MAX_FILE_BYTES,
+        Number(bucket.file_size_limit ?? 0) === GEM_VERIFY_MAX_FILE_BYTES &&
+        GEM_VERIFY_ALLOWED_MIME_TYPES.every((value) => bucketMimeTypes.has(value)),
     );
     const activeRetentionPolicies = count(activePolicyRows);
     const retentionReady =
@@ -120,6 +136,9 @@ export async function GET() {
       retentionReady &&
       runtimeReadiness.operationallyApproved &&
       runtimeReadiness.uploadActivationRequested;
+    const scanJobsByStatus = Object.fromEntries(
+      scanStatusRows.map((row) => [row.status, Number(row.count)]),
+    );
 
     return json({
       ok: true,
@@ -140,10 +159,19 @@ export async function GET() {
         bucketReady,
         appendOnlyAccessHistory: true,
         publicStoragePoliciesCreated: false,
+        quarantinePathRequired: true,
+        checksumValidationRequired: true,
+        cleanScanRequiredForReviewerAccess: true,
       },
       runtime: {
         supabaseUrlConfigured: runtimeReadiness.supabaseUrlConfigured,
         serviceRoleConfigured: runtimeReadiness.serviceRoleConfigured,
+        scannerEndpointConfigured:
+          runtimeReadiness.scannerEndpointConfigured,
+        scannerCallbackConfigured:
+          runtimeReadiness.scannerCallbackConfigured,
+        publicBaseUrlConfigured:
+          runtimeReadiness.publicBaseUrlConfigured,
         scannerConfigured: runtimeReadiness.scannerConfigured,
         retentionApproved: runtimeReadiness.retentionApproved,
         operationallyApproved: runtimeReadiness.operationallyApproved,
@@ -154,6 +182,8 @@ export async function GET() {
         evidenceItems: count(evidenceRows),
         accessEvents: count(eventRows),
         validations: count(validationRows),
+        scanJobs: count(scanJobRows),
+        scanJobsByStatus,
         retentionPolicies: count(policyRows),
         activeRetentionPolicies,
         storedObjects: count(objectRows),
@@ -163,14 +193,14 @@ export async function GET() {
           id: "private-bucket",
           passed: bucketReady,
           detail: bucketReady
-            ? "The evidence bucket is private and constrained to the approved file limit."
+            ? "The evidence bucket is private and constrained to approved file types and size."
             : "The private evidence bucket is missing or misconfigured.",
         },
         {
           id: "row-level-security",
           passed: rlsReady,
           detail: rlsReady
-            ? "RLS is enabled on all evidence-control tables with no public policies."
+            ? "RLS is enabled on all five evidence-control tables with no public policies."
             : "One or more evidence-control tables do not have RLS enabled.",
         },
         {
@@ -185,11 +215,22 @@ export async function GET() {
               : "Server-side Supabase storage credentials are not configured in Vercel.",
         },
         {
-          id: "malware-scanning",
-          passed: runtimeReadiness.scannerConfigured,
-          detail: runtimeReadiness.scannerConfigured
-            ? "A scanning worker is configured."
-            : "A malware-scanning worker has not been configured.",
+          id: "malware-scanner-endpoint",
+          passed: runtimeReadiness.scannerEndpointConfigured,
+          detail: runtimeReadiness.scannerEndpointConfigured
+            ? "A scanning worker endpoint and credential are configured."
+            : "A malware-scanning worker endpoint or credential is missing.",
+        },
+        {
+          id: "scanner-callback-authentication",
+          passed:
+            runtimeReadiness.scannerCallbackConfigured &&
+            runtimeReadiness.publicBaseUrlConfigured,
+          detail:
+            runtimeReadiness.scannerCallbackConfigured &&
+            runtimeReadiness.publicBaseUrlConfigured
+              ? "Scanner callbacks use signed, time-limited authorization."
+              : "Scanner callback authentication or the public callback base URL is missing.",
         },
         {
           id: "retention-policy",
@@ -204,6 +245,13 @@ export async function GET() {
           detail: runtimeReadiness.operationallyApproved
             ? "Evidence intake has received explicit operational approval."
             : "Evidence intake has not received explicit operational approval.",
+        },
+        {
+          id: "explicit-activation",
+          passed: runtimeReadiness.uploadActivationRequested,
+          detail: runtimeReadiness.uploadActivationRequested
+            ? "The document upload activation flag is enabled."
+            : "The document upload activation flag remains disabled.",
         },
       ],
     });
@@ -226,6 +274,12 @@ export async function GET() {
         runtime: {
           supabaseUrlConfigured: runtimeReadiness.supabaseUrlConfigured,
           serviceRoleConfigured: runtimeReadiness.serviceRoleConfigured,
+          scannerEndpointConfigured:
+            runtimeReadiness.scannerEndpointConfigured,
+          scannerCallbackConfigured:
+            runtimeReadiness.scannerCallbackConfigured,
+          publicBaseUrlConfigured:
+            runtimeReadiness.publicBaseUrlConfigured,
           scannerConfigured: runtimeReadiness.scannerConfigured,
           retentionApproved: runtimeReadiness.retentionApproved,
           operationallyApproved: runtimeReadiness.operationallyApproved,
