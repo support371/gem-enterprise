@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/api/auth-helpers";
 
 const roles = [
   {
     id: "client",
     name: "Client",
-    permissions: ["portal:read", "requests:create", "documents:read", "support:create", "meetings:create"],
+    permissions: [
+      "portal:read",
+      "requests:create",
+      "documents:read",
+      "support:create",
+      "meetings:create",
+    ],
   },
   {
     id: "analyst",
@@ -15,7 +21,13 @@ const roles = [
   {
     id: "admin",
     name: "Admin",
-    permissions: ["admin:read", "admin:write", "kyc:decision", "users:review", "audit:read"],
+    permissions: [
+      "admin:read",
+      "admin:write",
+      "kyc:decision",
+      "users:review",
+      "audit:read",
+    ],
   },
   {
     id: "super_admin",
@@ -29,39 +41,29 @@ const roles = [
   },
 ];
 
-function isAdminRole(role: string) {
-  return role === "admin" || role === "super_admin";
+function json(body: unknown, status = 200) {
+  return NextResponse.json(body, {
+    status,
+    headers: { "Cache-Control": "no-store" },
+  });
 }
 
 export async function GET() {
-  const session = await getSession();
+  const gate = await requireAdmin();
+  if (!gate.ok) return gate.response;
 
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized", roles: [] }, { status: 401 });
-  }
-
-  if (!isAdminRole(session.role)) {
-    return NextResponse.json({ error: "Forbidden", roles: [] }, { status: 403 });
-  }
-
-  return NextResponse.json({ roles });
+  return json({ roles });
 }
 
 export async function POST() {
-  const session = await getSession();
+  const gate = await requireAdmin();
+  if (!gate.ok) return gate.response;
 
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  if (!isAdminRole(session.role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  return NextResponse.json(
+  return json(
     {
-      error: "Custom role creation requires persisted role and permission tables before activation.",
+      error:
+        "Custom role creation requires persisted role and permission tables before activation.",
     },
-    { status: 501 },
+    501,
   );
 }
