@@ -1,0 +1,127 @@
+openapi: 3.1.0
+info:
+  title: TokMetric Specialized Agents API
+  version: 1.0.0
+  description: |
+    Controlled TokMetric agent planning endpoint. It creates structured internal
+    drafts and review artifacts only. It cannot publish, approve, spend funds,
+    change account settings, or claim external TikTok success.
+servers:
+  - url: https://gemcybersecurityassist.com
+security:
+  - bearerAuth: []
+paths:
+  /functions/tokmetric/agent-plan:
+    post:
+      operationId: createTokMetricSpecializedAgentPlan
+      summary: Run a controlled TokMetric specialized agent
+      description: |
+        Runs one registered agent against an authorized workspace, evaluates
+        safety, validates the output schema, and records audit/domain events.
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [agent, outputType, workspaceId, brief]
+              properties:
+                agent:
+                  type: string
+                  enum:
+                    - content_strategist
+                    - script_writer
+                    - quality_reviewer
+                    - publishing_coordinator
+                outputType:
+                  type: string
+                  enum:
+                    - campaign_brief
+                    - content_outline
+                    - audience_notes
+                    - script
+                    - caption
+                    - hashtags
+                    - findings
+                    - recommended_changes
+                    - review_result
+                    - publish_plan
+                    - job_request
+                    - preflight_report
+                workspaceId:
+                  type: string
+                brief:
+                  type: string
+                  minLength: 1
+                  maxLength: 5000
+      responses:
+        '200':
+          description: Controlled internal agent result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  correlationId:
+                    type: string
+                  workspaceId:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      runId:
+                        type: string
+                      status:
+                        type: string
+                        enum: [COMPLETED]
+                      outputType:
+                        type: string
+                      safety:
+                        type: object
+                        properties:
+                          state:
+                            type: string
+                            enum: [PASS, HUMAN_REVIEW_REQUIRED]
+                          findings:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                code:
+                                  type: string
+                                severity:
+                                  type: string
+                                message:
+                                  type: string
+                      output:
+                        type: object
+                        additionalProperties: true
+                      provider:
+                        type: string
+                      modelVersion:
+                        type: string
+                      promptVersion:
+                        type: string
+                      estimatedCostMicros:
+                        type: integer
+                      durationMs:
+                        type: integer
+                      externalActionTaken:
+                        type: boolean
+                        enum: [false]
+        '401':
+          description: Invalid bearer token
+        '403':
+          description: Configured GPT actor cannot access the workspace
+        '422':
+          description: Request blocked by agent safety controls
+        '503':
+          description: GPT actor is not configured or active
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer

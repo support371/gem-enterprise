@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { runTokMetricAgent, resolveConfiguredTokMetricGptActor } from "@/lib/tokmetric/agentRuntime";
 import { requireTokMetricGptAuth } from "@/lib/tokmetric/gptAuth";
-import { getTokMetricAgent, validateAgentOutput, type TokMetricAgentName } from "@/lib/tokmetric/agents";
-import { correlationId, parseJson, tokMetricErrorResponse } from "@/lib/tokmetric/security";
+import { correlationId, parseJson, redactSecrets, tokMetricErrorResponse } from "@/lib/tokmetric/security";
+
+export const dynamic = "force-dynamic";
 
 const schema = z.object({
   agent: z.enum(["content_strategist", "script_writer", "quality_reviewer", "publishing_coordinator"]),
-  outputType: z.string().min(1),
+  outputType: z.string().min(1).max(100),
   workspaceId: z.string().min(1),
   brief: z.string().min(1).max(5000),
 });
@@ -16,21 +18,22 @@ export async function POST(request: NextRequest) {
   try {
     requireTokMetricGptAuth(request);
     const body = await parseJson(request, schema);
-    const agent = validateAgentOutput(body.agent as TokMetricAgentName, body.outputType);
-    getTokMetricAgent(body.agent);
+    const actor = await resolveConfiguredTokMetricGptActor(body.workspaceId);
+    const result = await runTokMetricAgent({
+      workspaceId: body.workspaceId,
+      actorId: actor.id,
+      agent: body.agent,
+      outputType: body.outputType,
+      brief: body.brief,
+      sourceChannel: "custom_gpt",
+      correlationId: cid,
+    });
 
     return NextResponse.json({
       ok: true,
       correlationId: cid,
       workspaceId: body.workspaceId,
-      agent,
-      result: {
-        status: "draft_only",
-        outputType: body.outputType,
-        brief: body.brief,
-        nextStep: agent.requiresHumanApproval ? "Send to human review." : "Create or update a draft.",
-        externalActionTaken: false,
-      },
+      data: redactSecrets(result),
     });
   } catch (error) {
     return tokMetricErrorResponse(error, cid);

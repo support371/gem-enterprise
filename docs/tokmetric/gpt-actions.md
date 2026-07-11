@@ -1,6 +1,6 @@
 # TokMetric GPT Actions
 
-TokMetric exposes a bearer-protected server-to-server action surface from the GEM Enterprise application. The contract is stored at `openapi/tokmetric-actions.openapi.yaml` and uses the production origin `https://gemcybersecurityassist.com`.
+TokMetric exposes bearer-protected server-to-server action surfaces from the GEM Enterprise application. The core operations contract is stored at `openapi/tokmetric-actions.openapi.yaml`; the specialized-agent contract is stored at `openapi/tokmetric-specialized-agents.openapi.yaml`. Both use the production origin `https://gemcybersecurityassist.com`.
 
 ## Required environment variables
 
@@ -22,9 +22,9 @@ Authorization: Bearer <GPT_AUTH_TOKEN>
 
 Authentication uses timing-safe comparison. Workspace-specific operations additionally resolve the configured GPT actor and require either an active workspace membership or an internal/admin role.
 
-## Available operations
+## Core operations
 
-All actions are `POST` requests under `/functions/<operation>`:
+All core actions are `POST` requests under `/functions/<operation>`:
 
 - `gptSystemReadiness`
 - `gptConnectorReadiness`
@@ -43,10 +43,21 @@ All actions are `POST` requests under `/functions/<operation>`:
 - `gptGetAnalyticsSummary`
 - `gptGetAuditHistory`
 
+## Specialized-agent operation
+
+The controlled agent endpoint is:
+
+```text
+POST /functions/tokmetric/agent-plan
+```
+
+It supports the registered Content Strategist, Script Writer, Quality Reviewer, and Publishing Coordinator agents. The endpoint performs workspace retrieval, safety evaluation, schema validation, prompt/model version tracking, audit logging, and domain-event recording. It always reports `externalActionTaken=false`.
+
 ## Safety and truthfulness controls
 
 - Campaign and content creation produces internal, immutable drafts only.
 - Approval requests cannot approve themselves.
+- Agent runs cannot publish, approve, spend funds, or modify account settings.
 - Publishing requires an approved object hash bound to the exact content version.
 - Publishing also requires a connected connector, an idempotency key, open emergency controls, and the live-publishing environment gate.
 - Internal queue completion is not treated as TikTok confirmation.
@@ -59,19 +70,24 @@ All actions are `POST` requests under `/functions/<operation>`:
 1. Open the Custom GPT editor and create an Action.
 2. Set authentication to **API Key → Bearer**.
 3. Paste the same value stored as `GPT_AUTH_TOKEN` in Vercel.
-4. Paste the contents of `openapi/tokmetric-actions.openapi.yaml` into the schema field.
-5. Add the public privacy-policy URL:
+4. Paste `openapi/tokmetric-actions.openapi.yaml` into the primary schema field.
+5. Add a second Action using `openapi/tokmetric-specialized-agents.openapi.yaml` for controlled agent plans.
+6. Use the same bearer credential for both Actions.
+7. Add the public privacy-policy URL:
    `https://gemcybersecurityassist.com/tokmetric/privacy-policy`
-6. Test `getTokMetricSystemReadiness` first.
-7. Test workspace reads before enabling any draft write action.
-8. Keep publishing blocked until TikTok approval and production activation are complete.
+8. Test `getTokMetricSystemReadiness` first.
+9. Test workspace reads and a safe agent draft before enabling any other write action.
+10. Keep publishing blocked until TikTok approval and production activation are complete.
 
 ## Expected blocked states
 
 A healthy pre-launch system may return:
 
 - `GPT_ACTOR_NOT_CONFIGURED`
+- `GPT_ACTOR_INVALID`
 - `WORKSPACE_FORBIDDEN`
+- `PERMISSION_DENIED`
+- `AGENT_SAFETY_BLOCKED`
 - `CONNECTOR_NOT_READY`
 - `APPROVAL_REQUIRED`
 - `LIVE_PUBLISHING_DISABLED`

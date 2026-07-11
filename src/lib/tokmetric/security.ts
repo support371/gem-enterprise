@@ -39,6 +39,7 @@ export function correlationId(request?: NextRequest) {
 }
 
 export function redactSecrets(value: unknown): unknown {
+  if (value === undefined) return null;
   if (Array.isArray(value)) return value.map(redactSecrets);
   if (value && typeof value === "object") {
     return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, isSecretKey(key) ? "[REDACTED]" : redactSecrets(entry)]));

@@ -1,15 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Info, LockKeyhole, ShieldCheck } from "lucide-react";
-
-const TOKMETRIC_APP_URL =
-  process.env.NEXT_PUBLIC_TOKMETRIC_APP_URL ||
-  "https://venomous-tok-metric-pulse.base44.app";
+import { ArrowLeft, ArrowRight, Bot, LockKeyhole, ShieldCheck } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Launch TokMetric Application",
-  description:
-    "Launch the existing TokMetric Base44 application from the verified GEM Enterprise website.",
+  description: "Open the native TokMetric operations workspace inside GEM Enterprise.",
   alternates: { canonical: "/tokmetric/app" },
 };
 
@@ -17,10 +12,7 @@ export default function TokMetricAppGatewayPage() {
   return (
     <div className="min-h-screen bg-[#091019] text-white">
       <main className="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
-        <Link
-          href="/tokmetric"
-          className="inline-flex items-center gap-2 text-sm text-white/50 hover:text-cyan-300"
-        >
+        <Link href="/tokmetric" className="inline-flex items-center gap-2 text-sm text-white/50 hover:text-cyan-300">
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Back to TokMetric
         </Link>
@@ -32,24 +24,25 @@ export default function TokMetricAppGatewayPage() {
             </div>
 
             <p className="mt-6 text-sm font-semibold uppercase tracking-[0.22em] text-cyan-300">
-              GEM Enterprise Application Gateway
+              Native GEM Enterprise Application
             </p>
             <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">
-              Open the TokMetric operations application
+              Open the TokMetric operations workspace
             </h1>
             <p className="mt-5 max-w-3xl text-base leading-8 text-white/60">
-              TokMetric is listed and governed through the verified GEM Enterprise website. Its current operational interface remains hosted in the existing Base44 deployment while the product, Privacy Policy, and Terms of Service are maintained under gemcybersecurityassist.com.
+              TokMetric now operates inside the verified GEM Enterprise website. The workspace provides controlled account connections, content drafting, compliance review, approvals, publishing preparation, analytics, developer controls, and specialized agents without redirecting users to the earlier Base44 application.
             </p>
 
-            <a
-              href={TOKMETRIC_APP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-8 inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-300 px-6 py-3.5 font-semibold text-[#071019] transition hover:bg-cyan-200"
-            >
-              Launch TokMetric
-              <ExternalLink className="h-4 w-4" aria-hidden="true" />
-            </a>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/tokmetric/dashboard" className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-300 px-6 py-3.5 font-semibold text-[#071019] transition hover:bg-cyan-200">
+                Open TokMetric Dashboard
+                <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+              <Link href="/tokmetric/agents" className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 px-6 py-3.5 font-semibold text-white/80 transition hover:bg-white/[0.06]">
+                Open Specialized Agents
+                <Bot className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
           </div>
 
           <div className="grid gap-4 p-6 sm:grid-cols-2 sm:p-8">
@@ -59,33 +52,27 @@ export default function TokMetricAppGatewayPage() {
                 Current application location
               </div>
               <p className="mt-3 break-all font-mono text-xs leading-6 text-white/50">
-                https://venomous-tok-metric-pulse.base44.app
+                https://gemcybersecurityassist.com/tokmetric/dashboard
               </p>
             </div>
 
             <div className="rounded-2xl border border-white/[0.08] bg-[#0b121c] p-5">
               <div className="flex items-center gap-2 font-semibold">
-                <Info className="h-4 w-4 text-cyan-300" aria-hidden="true" />
-                Authorization notice
+                <ShieldCheck className="h-4 w-4 text-cyan-300" aria-hidden="true" />
+                Authorization control
               </div>
               <p className="mt-3 text-sm leading-6 text-white/50">
-                TikTok sign-in, OAuth consent, account permissions, uploads, and publishing actions occur in the operational application and remain subject to TikTok approval and user authorization.
+                TikTok OAuth, scopes, compliance review, exact-version approval, emergency controls, and platform confirmation remain required before external operations can succeed.
               </p>
             </div>
           </div>
         </section>
 
         <section className="mt-6 grid gap-4 sm:grid-cols-2">
-          <Link
-            href="/tokmetric/privacy-policy"
-            className="rounded-2xl border border-white/[0.1] bg-white/[0.03] p-5 font-semibold transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.05]"
-          >
+          <Link href="/tokmetric/privacy-policy" className="rounded-2xl border border-white/[0.1] bg-white/[0.03] p-5 font-semibold transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.05]">
             TokMetric Privacy Policy
           </Link>
-          <Link
-            href="/tokmetric/terms-of-service"
-            className="rounded-2xl border border-white/[0.1] bg-white/[0.03] p-5 font-semibold transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.05]"
-          >
+          <Link href="/tokmetric/terms-of-service" className="rounded-2xl border border-white/[0.1] bg-white/[0.03] p-5 font-semibold transition hover:border-cyan-300/30 hover:bg-cyan-300/[0.05]">
             TokMetric Terms of Service
           </Link>
         </section>

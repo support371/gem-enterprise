@@ -6,12 +6,17 @@ export type TokMetricAgentName =
   | "quality_reviewer"
   | "publishing_coordinator";
 
+export type TokMetricAgentRisk = "low" | "medium" | "high";
+
 export type TokMetricAgentDefinition = {
   name: TokMetricAgentName;
   description: string;
-  allowedOutputs: string[];
+  allowedOutputs: readonly string[];
   canPublish: false;
   requiresHumanApproval: boolean;
+  promptVersion: string;
+  modelVersion: string;
+  risk: TokMetricAgentRisk;
 };
 
 export const tokMetricAgents: Record<TokMetricAgentName, TokMetricAgentDefinition> = {
@@ -21,6 +26,9 @@ export const tokMetricAgents: Record<TokMetricAgentName, TokMetricAgentDefinitio
     allowedOutputs: ["campaign_brief", "content_outline", "audience_notes"],
     canPublish: false,
     requiresHumanApproval: false,
+    promptVersion: "content-strategist-v1",
+    modelVersion: "tokmetric-controlled-rules-v1",
+    risk: "low",
   },
   script_writer: {
     name: "script_writer",
@@ -28,6 +36,9 @@ export const tokMetricAgents: Record<TokMetricAgentName, TokMetricAgentDefinitio
     allowedOutputs: ["script", "caption", "hashtags"],
     canPublish: false,
     requiresHumanApproval: false,
+    promptVersion: "script-writer-v1",
+    modelVersion: "tokmetric-controlled-rules-v1",
+    risk: "medium",
   },
   quality_reviewer: {
     name: "quality_reviewer",
@@ -35,6 +46,9 @@ export const tokMetricAgents: Record<TokMetricAgentName, TokMetricAgentDefinitio
     allowedOutputs: ["findings", "recommended_changes", "review_result"],
     canPublish: false,
     requiresHumanApproval: true,
+    promptVersion: "quality-reviewer-v1",
+    modelVersion: "tokmetric-controlled-rules-v1",
+    risk: "medium",
   },
   publishing_coordinator: {
     name: "publishing_coordinator",
@@ -42,14 +56,21 @@ export const tokMetricAgents: Record<TokMetricAgentName, TokMetricAgentDefinitio
     allowedOutputs: ["publish_plan", "job_request", "preflight_report"],
     canPublish: false,
     requiresHumanApproval: true,
+    promptVersion: "publishing-coordinator-v1",
+    modelVersion: "tokmetric-controlled-rules-v1",
+    risk: "high",
   },
 };
 
+export function isTokMetricAgentName(name: string): name is TokMetricAgentName {
+  return name in tokMetricAgents;
+}
+
 export function getTokMetricAgent(name: string) {
-  if (!(name in tokMetricAgents)) {
+  if (!isTokMetricAgentName(name)) {
     throw new TokMetricError(404, "AGENT_NOT_FOUND", "TokMetric agent was not found.");
   }
-  return tokMetricAgents[name as TokMetricAgentName];
+  return tokMetricAgents[name];
 }
 
 export function validateAgentOutput(name: TokMetricAgentName, outputType: string) {
