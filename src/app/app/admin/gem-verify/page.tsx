@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -17,11 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-type ControlStatus =
-  | "operational"
-  | "controlled_pilot"
-  | "blocked"
-  | "planned";
+type ControlStatus = "operational" | "controlled_pilot" | "blocked" | "planned";
 
 type Module = {
   id: string;
@@ -50,18 +47,10 @@ type ReadinessCheck = {
 
 type SystemResponse = {
   ok: boolean;
-  evaluatedAt?: string;
-  viewerRole?: string;
   error?: string;
   diagnostic?: string;
   system: {
-    name: string;
-    owner: string;
-    model: string;
     policyVersion: string;
-    externalIdentityProviderRequired: boolean;
-    automaticApprovalAllowed: boolean;
-    biometricDecisioningAllowed: boolean;
     principles: string[];
   };
   modules: Module[];
@@ -69,11 +58,6 @@ type SystemResponse = {
   readiness?: {
     ready: boolean;
     checks: ReadinessCheck[];
-    counts: {
-      totalAccounts: number;
-      activeVerifiedAnalysts: number;
-      activeVerifiedDecisionMakers: number;
-    };
   };
   operations?: {
     totalApplications: number;
@@ -82,14 +66,12 @@ type SystemResponse = {
     finalDecisions: number;
     storedDocuments: number;
   };
-  safeguards?: {
-    externalIdentityProviderRequired: boolean;
-    automaticApprovalEnabled: boolean;
-    biometricDecisioningEnabled: boolean;
-    secureDocumentUploadEnabled: boolean;
-    separationOfDutiesRequired: boolean;
-    auditTrailRequired: boolean;
-  };
+};
+
+type MetricCard = {
+  label: string;
+  value: number;
+  icon: LucideIcon;
 };
 
 const statusStyle: Record<ControlStatus, string> = {
@@ -122,15 +104,9 @@ export default function GemVerifyControlCenterPage() {
       const response = await fetch("/api/verify/system", { cache: "no-store" });
       const body = (await response.json().catch(() => ({}))) as SystemResponse;
       setData(body);
-      if (!response.ok) {
-        setError(body.error ?? "GEM Verify system status could not be loaded.");
-      }
+      if (!response.ok) setError(body.error ?? "GEM Verify status could not be loaded.");
     } catch (loadError) {
-      setError(
-        loadError instanceof Error
-          ? loadError.message
-          : "GEM Verify system status could not be loaded.",
-      );
+      setError(loadError instanceof Error ? loadError.message : "GEM Verify status could not be loaded.");
     } finally {
       setLoading(false);
     }
@@ -142,17 +118,17 @@ export default function GemVerifyControlCenterPage() {
 
   const activeCases = data?.operations
     ? Object.entries(data.operations.applicationsByStatus)
-        .filter(([status]) =>
-          [
-            "started",
-            "in_progress",
-            "documents_uploaded",
-            "under_review",
-            "manual_review",
-          ].includes(status),
-        )
+        .filter(([status]) => ["started", "in_progress", "documents_uploaded", "under_review", "manual_review"].includes(status))
         .reduce((total, [, count]) => total + count, 0)
     : 0;
+
+  const metrics: MetricCard[] = [
+    { label: "Applications", value: data?.operations?.totalApplications ?? 0, icon: ClipboardCheck },
+    { label: "Active cases", value: activeCases, icon: UserCheck },
+    { label: "Review events", value: data?.operations?.reviewEvents ?? 0, icon: Users },
+    { label: "Final decisions", value: data?.operations?.finalDecisions ?? 0, icon: CheckCircle2 },
+    { label: "Stored documents", value: data?.operations?.storedDocuments ?? 0, icon: FileLock2 },
+  ];
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -163,15 +139,12 @@ export default function GemVerifyControlCenterPage() {
           </div>
           <h1 className="mt-3 text-3xl font-black text-white">GEM Verify Control Center</h1>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
-            Operate GEM&apos;s own consent, identity-assurance, manual-review, decision,
-            and audit workflow. Persona, Veriff, or another identity provider is not
-            required for the controlled first-party workflow.
+            Operate GEM&apos;s own consent, identity-assurance, manual-review, decision, and audit workflow. Persona, Veriff, or another identity provider is not required for this controlled first-party flow.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => void load()} disabled={loading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh status
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh status
           </Button>
           <Button asChild className="bg-cyan-400 font-semibold text-black hover:bg-cyan-300">
             <Link href="/review/verification">Open review queue</Link>
@@ -192,28 +165,21 @@ export default function GemVerifyControlCenterPage() {
               </div>
             </div>
             <p className="mt-4 max-w-3xl text-sm leading-6 text-slate-300">
-              This system separates applicant intake, evidence review, final decision,
-              and service activation. It does not make automatic identity decisions and
-              does not represent itself as a biometric-liveness or external certification service.
+              Applicant intake, evidence review, final decision, and service activation remain separate. The system makes no automatic identity decision and does not claim biometric liveness or external certification.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-xl border border-white/10 bg-black/15 p-4">
-              <p className="text-xs text-slate-500">External ID vendor</p>
-              <p className="mt-1 font-semibold text-green-300">Not required</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/15 p-4">
-              <p className="text-xs text-slate-500">Automatic approval</p>
-              <p className="mt-1 font-semibold text-amber-300">Disabled</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/15 p-4">
-              <p className="text-xs text-slate-500">Biometric decisioning</p>
-              <p className="mt-1 font-semibold text-amber-300">Disabled</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/15 p-4">
-              <p className="text-xs text-slate-500">Human decision</p>
-              <p className="mt-1 font-semibold text-green-300">Required</p>
-            </div>
+            {[
+              ["External ID vendor", "Not required", "text-green-300"],
+              ["Automatic approval", "Disabled", "text-amber-300"],
+              ["Biometric decisioning", "Disabled", "text-amber-300"],
+              ["Human decision", "Required", "text-green-300"],
+            ].map(([label, value, className]) => (
+              <div key={label} className="rounded-xl border border-white/10 bg-black/15 p-4">
+                <p className="text-xs text-slate-500">{label}</p>
+                <p className={`mt-1 font-semibold ${className}`}>{value}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -225,11 +191,7 @@ export default function GemVerifyControlCenterPage() {
             <div>
               <p className="font-semibold">Live operational totals are unavailable</p>
               <p className="mt-1 text-amber-100/70">{error}</p>
-              {data?.diagnostic && (
-                <p className="mt-1 font-mono text-xs text-amber-100/50">
-                  Diagnostic: {data.diagnostic}
-                </p>
-              )}
+              {data?.diagnostic && <p className="mt-1 font-mono text-xs text-amber-100/50">Diagnostic: {data.diagnostic}</p>}
             </div>
           </div>
         </div>
@@ -242,17 +204,11 @@ export default function GemVerifyControlCenterPage() {
       ) : (
         <>
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-            {[
-              ["Applications", data?.operations?.totalApplications ?? 0, ClipboardCheck],
-              ["Active cases", activeCases, UserCheck],
-              ["Review events", data?.operations?.reviewEvents ?? 0, Users],
-              ["Final decisions", data?.operations?.finalDecisions ?? 0, CheckCircle2],
-              ["Stored documents", data?.operations?.storedDocuments ?? 0, FileLock2],
-            ].map(([label, value, Icon]) => (
-              <article key={String(label)} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+            {metrics.map(({ label, value, icon: Icon }) => (
+              <article key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
                 <Icon className="h-5 w-5 text-cyan-300" />
-                <p className="mt-4 text-3xl font-black text-white">{String(value)}</p>
-                <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">{String(label)}</p>
+                <p className="mt-4 text-3xl font-black text-white">{value}</p>
+                <p className="mt-1 text-xs uppercase tracking-widest text-slate-500">{label}</p>
               </article>
             ))}
           </section>
@@ -261,9 +217,7 @@ export default function GemVerifyControlCenterPage() {
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h2 className="text-xl font-bold text-white">Operational modules</h2>
-                <p className="mt-1 text-sm text-slate-400">
-                  Direct routes into GEM-owned verification operations.
-                </p>
+                <p className="mt-1 text-sm text-slate-400">Direct routes into GEM-owned verification operations.</p>
               </div>
               <Button asChild variant="outline" size="sm">
                 <Link href="/app/admin/verification-pilot">Reviewer governance</Link>
@@ -279,9 +233,7 @@ export default function GemVerifyControlCenterPage() {
                   <p className="mt-3 text-sm leading-6 text-slate-400">{module.description}</p>
                   <div className="mt-auto pt-5">
                     {module.route ? (
-                      <Button asChild variant="outline" size="sm" className="w-full">
-                        <Link href={module.route}>Open module</Link>
-                      </Button>
+                      <Button asChild variant="outline" size="sm" className="w-full"><Link href={module.route}>Open module</Link></Button>
                     ) : (
                       <div className="rounded-lg border border-amber-500/15 bg-amber-500/5 p-3 text-xs leading-5 text-amber-200/70">
                         Activation remains fail closed until all stated safeguards are verified.
@@ -294,14 +246,11 @@ export default function GemVerifyControlCenterPage() {
           </section>
 
           <section>
-            <div className="mb-4">
-              <h2 className="text-xl font-bold text-white">GEM internal assurance levels</h2>
-              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-400">
-                These are GEM operating levels, not a claim of government certification or
-                equivalence to Persona, Veriff, NIST, or another external assurance scheme.
-              </p>
-            </div>
-            <div className="space-y-4">
+            <h2 className="text-xl font-bold text-white">GEM internal assurance levels</h2>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-400">
+              These are GEM operating levels, not a claim of government certification or equivalence to Persona, Veriff, NIST, or another external assurance scheme.
+            </p>
+            <div className="mt-4 space-y-4">
               {data?.assuranceLevels.map((level) => (
                 <article key={level.id} className="rounded-2xl border border-white/10 bg-white/[0.025] p-5">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -313,24 +262,18 @@ export default function GemVerifyControlCenterPage() {
                     <Badge className={statusStyle[level.status]}>{statusLabel[level.status]}</Badge>
                   </div>
                   <div className="mt-5 grid gap-4 lg:grid-cols-3">
-                    <div className="rounded-xl border border-white/10 bg-black/10 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Evidence</p>
-                      <ul className="mt-3 space-y-2 text-sm text-slate-300">
-                        {level.requiredEvidence.map((item) => <li key={item}>• {item}</li>)}
-                      </ul>
-                    </div>
-                    <div className="rounded-xl border border-white/10 bg-black/10 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Controls</p>
-                      <ul className="mt-3 space-y-2 text-sm text-slate-300">
-                        {level.requiredControls.map((item) => <li key={item}>• {item}</li>)}
-                      </ul>
-                    </div>
-                    <div className="rounded-xl border border-amber-500/15 bg-amber-500/5 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-amber-300/70">Limits</p>
-                      <ul className="mt-3 space-y-2 text-sm text-amber-100/70">
-                        {level.limitations.map((item) => <li key={item}>• {item}</li>)}
-                      </ul>
-                    </div>
+                    {[
+                      ["Evidence", level.requiredEvidence, "border-white/10 bg-black/10 text-slate-300"],
+                      ["Controls", level.requiredControls, "border-white/10 bg-black/10 text-slate-300"],
+                      ["Limits", level.limitations, "border-amber-500/15 bg-amber-500/5 text-amber-100/70"],
+                    ].map(([heading, items, className]) => (
+                      <div key={String(heading)} className={`rounded-xl border p-4 ${String(className)}`}>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{String(heading)}</p>
+                        <ul className="mt-3 space-y-2 text-sm">
+                          {(items as string[]).map((item) => <li key={item}>• {item}</li>)}
+                        </ul>
+                      </div>
+                    ))}
                   </div>
                 </article>
               ))}
@@ -340,28 +283,15 @@ export default function GemVerifyControlCenterPage() {
           <section className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
             <article className="rounded-2xl border border-white/10 bg-white/[0.025] p-6">
               <h2 className="text-lg font-bold text-white">Readiness controls</h2>
-              <p className="mt-1 text-sm text-slate-400">
-                Read-only verification of staffing, workflow, and safety guards.
-              </p>
+              <p className="mt-1 text-sm text-slate-400">Read-only verification of staffing, workflow, and safety guards.</p>
               <div className="mt-5 space-y-3">
                 {data?.readiness?.checks.map((check) => (
                   <div key={check.id} className="flex items-start gap-3 rounded-xl border border-white/10 bg-black/10 p-4">
-                    {check.passed ? (
-                      <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-400" />
-                    ) : (
-                      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
-                    )}
-                    <div>
-                      <p className="text-sm font-semibold text-white">{check.label}</p>
-                      <p className="mt-1 text-xs leading-5 text-slate-400">{check.detail}</p>
-                    </div>
+                    {check.passed ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-400" /> : <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />}
+                    <div><p className="text-sm font-semibold text-white">{check.label}</p><p className="mt-1 text-xs leading-5 text-slate-400">{check.detail}</p></div>
                   </div>
                 ))}
-                {!data?.readiness && (
-                  <p className="rounded-xl border border-white/10 bg-black/10 p-4 text-sm text-slate-500">
-                    Readiness totals become available when the production database connection is healthy.
-                  </p>
-                )}
+                {!data?.readiness && <p className="rounded-xl border border-white/10 bg-black/10 p-4 text-sm text-slate-500">Readiness totals become available when the production database connection is healthy.</p>}
               </div>
             </article>
 
@@ -374,11 +304,7 @@ export default function GemVerifyControlCenterPage() {
                     <span className="font-mono text-sm font-semibold text-cyan-300">{count}</span>
                   </div>
                 ))}
-                {Object.keys(data?.operations?.applicationsByStatus ?? {}).length === 0 && (
-                  <p className="rounded-xl border border-white/10 bg-black/10 p-4 text-sm text-slate-500">
-                    No live case totals are available yet.
-                  </p>
-                )}
+                {Object.keys(data?.operations?.applicationsByStatus ?? {}).length === 0 && <p className="rounded-xl border border-white/10 bg-black/10 p-4 text-sm text-slate-500">No live case totals are available yet.</p>}
               </div>
             </article>
           </section>
