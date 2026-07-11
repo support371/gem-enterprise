@@ -99,10 +99,10 @@ export async function POST(
       const policy = rows[0];
       if (!policy) return { kind: "not_found" as const };
 
-      await tx.$executeRaw`
+      await tx.$queryRaw<Array<{ locked: null }>>`
         SELECT pg_advisory_xact_lock(
           hashtext(${`gem-verify-retention:${policy.document_type.toLowerCase()}`})
-        )
+        ) AS locked
       `;
 
       if (
