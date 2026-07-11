@@ -17,6 +17,14 @@ import { toVerificationState } from "@/lib/kyc/workflow";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+type UploadIntent = {
+  applicationId: string;
+  documentType: string;
+  fileName: string;
+  mimeType: (typeof GEM_VERIFY_ALLOWED_MIME_TYPES)[number];
+  fileSizeBytes: number;
+};
+
 const uploadIntentSchema = z
   .object({
     applicationId: z.string().min(1).max(128),
@@ -63,7 +71,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const metadataValidation = validateEvidenceUploadMetadata(parsed.data);
+  const data = parsed.data as UploadIntent;
+  const metadataValidation = validateEvidenceUploadMetadata({
+    fileName: data.fileName,
+    mimeType: data.mimeType,
+    fileSizeBytes: data.fileSizeBytes,
+  });
   if (!metadataValidation.valid) {
     return json(
       {
@@ -76,7 +89,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const application = await db.kYCApplication.findUnique({
-      where: { id: parsed.data.applicationId },
+      where: { id: data.applicationId },
       select: { id: true, userId: true, status: true },
     });
 
