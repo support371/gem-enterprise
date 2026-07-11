@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
             e.legal_hold,
             e.retention_until,
             r.requested_by_user_id,
-            r.apved_by_user_id,
+            r.approved_by_user_id,
             r.rejected_by_user_id,
             r.status,
             r.reason,
