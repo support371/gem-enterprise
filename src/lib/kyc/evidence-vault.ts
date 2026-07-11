@@ -17,10 +17,22 @@ export function getEvidenceVaultRuntimeReadiness() {
   const serviceRoleConfigured = Boolean(
     process.env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
   );
-  const scannerConfigured = Boolean(
+  const scannerEndpointConfigured = Boolean(
     process.env.GEM_VERIFY_SCANNER_URL?.trim() &&
       process.env.GEM_VERIFY_SCANNER_TOKEN?.trim(),
   );
+  const scannerCallbackConfigured = Boolean(
+    process.env.GEM_VERIFY_SCANNER_CALLBACK_SECRET?.trim(),
+  );
+  const publicBaseUrlConfigured = Boolean(
+    process.env.GEM_VERIFY_PUBLIC_BASE_URL?.trim() ||
+      process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+      process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim(),
+  );
+  const scannerConfigured =
+    scannerEndpointConfigured &&
+    scannerCallbackConfigured &&
+    publicBaseUrlConfigured;
   const retentionApproved =
     process.env.GEM_VERIFY_RETENTION_APPROVED === "true";
   const operationallyApproved =
@@ -31,6 +43,9 @@ export function getEvidenceVaultRuntimeReadiness() {
   return {
     supabaseUrlConfigured,
     serviceRoleConfigured,
+    scannerEndpointConfigured,
+    scannerCallbackConfigured,
+    publicBaseUrlConfigured,
     scannerConfigured,
     retentionApproved,
     operationallyApproved,
