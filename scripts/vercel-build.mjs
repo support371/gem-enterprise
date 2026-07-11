@@ -39,6 +39,9 @@ if (directUrl) env.POSTGRES_URL_NON_POOLING = directUrl;
 console.log("Generating Prisma client...");
 run("pnpm", ["exec", "prisma", "generate"], env);
 
+console.log("Generating temporary recovery schema snapshot...");
+run("node", ["scripts/generate-prisma-schema-sql.mjs"], env);
+
 const shouldVerifyPreview =
   env.VERCEL_ENV === "preview" || env.RUN_PREVIEW_VERIFICATION === "true";
 
