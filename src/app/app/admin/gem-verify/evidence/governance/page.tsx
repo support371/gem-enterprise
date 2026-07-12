@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, ScanSearch, Scale, ShieldCheck } from "lucide-react";
 import GemVerifyEvidenceGovernanceClient from "@/components/admin/GemVerifyEvidenceGovernanceClient";
 import GemVerifyEvidenceOperationsClient from "@/components/admin/GemVerifyEvidenceOperationsClient";
+import GemVerifyOperatorCoverageClient from "@/components/admin/GemVerifyOperatorCoverageClient";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
@@ -51,6 +52,7 @@ export default function EvidenceGovernancePage() {
       </header>
 
       <GemVerifyEvidenceOperationsClient />
+      <GemVerifyOperatorCoverageClient />
       <GemVerifyEvidenceGovernanceClient />
     </div>
   );
