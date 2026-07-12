@@ -74,7 +74,7 @@ function classifyDatabaseFailure(error: unknown): DatabaseDiagnostic {
 export async function GET(_request: NextRequest) {
   const gatewaySelected = shouldUseSupabaseGateway();
   let database: DatabaseDiagnostic = "ok";
-  let backend: "prisma" | "supabase_gateway" = gatewaySelected
+  const backend: "prisma" | "supabase_gateway" = gatewaySelected
     ? "supabase_gateway"
     : "prisma";
   let administratorConfigured: boolean | null = null;
