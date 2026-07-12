@@ -181,3 +181,7 @@ export async function e2eProvisionGateway<T>(
     ...payload,
   });
 }
+
+export async function runPendingAdminLoginSmoke<T>(): Promise<T> {
+  return invokeGateway<T>("gem-admin-login-smoke", {});
+}
