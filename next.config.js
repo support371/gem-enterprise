@@ -85,7 +85,19 @@ const nextConfig = {
   },
 
   async redirects() {
-    return [{ source: '/blog', destination: '/resources', permanent: true }];
+    return [
+      { source: '/blog', destination: '/resources', permanent: true },
+      {
+        source: '/command-center',
+        destination: 'https://admin.gemcybersecurityassist.com',
+        permanent: false,
+      },
+      {
+        source: '/admin-command',
+        destination: 'https://admin.gemcybersecurityassist.com',
+        permanent: false,
+      },
+    ];
   },
 
   async rewrites() {
