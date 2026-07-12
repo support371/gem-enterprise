@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Scale, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ScanSearch, Scale, ShieldCheck } from "lucide-react";
 import GemVerifyEvidenceGovernanceClient from "@/components/admin/GemVerifyEvidenceGovernanceClient";
 import { Button } from "@/components/ui/button";
 
@@ -33,12 +33,20 @@ export default function EvidenceGovernancePage() {
             intentionally unavailable.
           </p>
         </div>
-        <Button asChild variant="outline">
-          <Link href="/app/admin/gem-verify/evidence">
-            <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-            Back to Evidence Vault
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href="/app/admin/gem-verify/evidence/scanner">
+              <ScanSearch className="mr-2 h-4 w-4" aria-hidden="true" />
+              Scanner Operations
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/app/admin/gem-verify/evidence">
+              <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+              Back to Evidence Vault
+            </Link>
+          </Button>
+        </div>
       </header>
 
       <GemVerifyEvidenceGovernanceClient />
