@@ -17,9 +17,14 @@ export function getEvidenceVaultRuntimeReadiness() {
   const serviceRoleConfigured = Boolean(
     process.env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
   );
+  const scannerMode =
+    process.env.GEM_VERIFY_SCANNER_MODE?.trim().toLowerCase() === "external"
+      ? "external"
+      : "first_party";
+  const scannerUrl = process.env.GEM_VERIFY_SCANNER_URL?.trim() ?? "";
+  const scannerToken = process.env.GEM_VERIFY_SCANNER_TOKEN?.trim() ?? "";
   const scannerEndpointConfigured = Boolean(
-    process.env.GEM_VERIFY_SCANNER_URL?.trim() &&
-      process.env.GEM_VERIFY_SCANNER_TOKEN?.trim(),
+    scannerUrl && scannerToken.length >= 32,
   );
   const scannerCallbackConfigured = Boolean(
     process.env.GEM_VERIFY_SCANNER_CALLBACK_SECRET?.trim(),
@@ -29,10 +34,24 @@ export function getEvidenceVaultRuntimeReadiness() {
       process.env.NEXT_PUBLIC_APP_URL?.trim() ||
       process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim(),
   );
+  const firstPartyScannerSelected = scannerMode === "first_party";
+  const firstPartyScannerUrlExpected =
+    "/api/verify/evidence/internal-scanner";
+  const firstPartyScannerUrlConfigured =
+    firstPartyScannerSelected &&
+    scannerEndpointConfigured &&
+    (() => {
+      try {
+        return new URL(scannerUrl).pathname === firstPartyScannerUrlExpected;
+      } catch {
+        return false;
+      }
+    })();
   const scannerConfigured =
     scannerEndpointConfigured &&
     scannerCallbackConfigured &&
-    publicBaseUrlConfigured;
+    publicBaseUrlConfigured &&
+    (!firstPartyScannerSelected || firstPartyScannerUrlConfigured);
   const retentionApproved =
     process.env.GEM_VERIFY_RETENTION_APPROVED === "true";
   const operationallyApproved =
@@ -43,10 +62,16 @@ export function getEvidenceVaultRuntimeReadiness() {
   return {
     supabaseUrlConfigured,
     serviceRoleConfigured,
+    scannerMode,
+    firstPartyScannerSelected,
+    firstPartyScannerUrlExpected,
+    firstPartyScannerUrlConfigured,
     scannerEndpointConfigured,
     scannerCallbackConfigured,
     publicBaseUrlConfigured,
     scannerConfigured,
+    scannerAssurance: "structural_file_safety_only" as const,
+    antivirusEquivalent: false as const,
     retentionApproved,
     operationallyApproved,
     uploadActivationRequested,
