@@ -112,6 +112,51 @@ async function invokeGateway<T>(
   }
 }
 
+export async function evidenceGatewayHealth<T = {
+  ok: boolean;
+  service: string;
+  version: string;
+  failClosed: boolean;
+}>(): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+
+  try {
+    const key = gatewayAnonKey();
+    const response = await fetch(
+      `${gatewayBaseUrl()}/gem-verify-evidence-gateway`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          apikey: key,
+        },
+        cache: "no-store",
+        signal: controller.signal,
+      },
+    );
+    const body = (await response.json().catch(() => ({}))) as T | GatewayErrorBody;
+    if (!response.ok) {
+      const errorBody = body as GatewayErrorBody;
+      throw new GatewayRequestError(
+        response.status,
+        errorBody.code || "EVIDENCE_GATEWAY_UNAVAILABLE",
+        errorBody.error || "Evidence gateway is unavailable.",
+      );
+    }
+    return body as T;
+  } catch (error) {
+    if (error instanceof GatewayRequestError) throw error;
+    throw new GatewayRequestError(
+      503,
+      "EVIDENCE_GATEWAY_UNAVAILABLE",
+      "Evidence gateway is unavailable.",
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export function wrapGatewayToken(token: string): string {
   return `${GATEWAY_COOKIE_PREFIX}${token}`;
 }
