@@ -31,7 +31,7 @@ export default async function TokMetricWorkspaceIdPage() {
             <p className="mt-4 max-w-2xl leading-8 text-white/55">
               Sign in to an authorized GEM Enterprise account to view TokMetric workspace identifiers.
             </p>
-            <Link href="/login?returnTo=%2Ftokmetric%2Fworkspace-id" className="mt-7 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-semibold text-[#071019] hover:bg-cyan-200">
+            <Link href="/client-login?next=%2Ftokmetric%2Fworkspace-id" className="mt-7 inline-flex rounded-xl bg-cyan-300 px-5 py-3 font-semibold text-[#071019] hover:bg-cyan-200">
               Sign in
             </Link>
           </section>
