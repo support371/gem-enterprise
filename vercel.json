@@ -31,12 +31,6 @@
     "TOKMETRIC_LIVE_PUBLISHING_ENABLED": "false",
     "TOKMETRIC_SANDBOX_PUBLISHING_ENABLED": "false"
   },
-  "crons": [
-    {
-      "path": "/api/internal/gem-verify/scan-timeouts",
-      "schedule": "15 3 * * *"
-    }
-  ],
   "headers": [
     {
       "source": "/static/(.*)",
