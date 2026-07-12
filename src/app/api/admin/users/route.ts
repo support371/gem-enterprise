@@ -9,10 +9,16 @@ import {
   serverError,
   forbidden,
 } from "@/lib/api/auth-helpers";
+import { getGatewaySessionToken } from "@/lib/auth";
 import {
   getAssignableRolesForActor,
   validateReviewerRoleChange,
 } from "@/lib/reviewer-role-policy";
+import {
+  adminReadGateway,
+  adminWriteGateway,
+  GatewayRequestError,
+} from "@/lib/supabase-gateway";
 
 function json(body: unknown, status = 200) {
   return NextResponse.json(body, {
@@ -21,9 +27,23 @@ function json(body: unknown, status = 200) {
   });
 }
 
+function gatewayError(error: GatewayRequestError) {
+  return json({ error: error.message, code: error.code }, error.statusCode);
+}
+
 export async function GET() {
   const gate = await requireAdmin();
   if (!gate.ok) return gate.response;
+
+  const gatewayToken = await getGatewaySessionToken();
+  if (gatewayToken) {
+    try {
+      return json(await adminReadGateway("users", gatewayToken));
+    } catch (error) {
+      if (error instanceof GatewayRequestError) return gatewayError(error);
+      return serverError();
+    }
+  }
 
   try {
     const users = await db.user.findMany({
@@ -86,7 +106,6 @@ const patchSchema = z
 export async function PATCH(req: NextRequest) {
   const gate = await requireAdmin();
   if (!gate.ok) return gate.response;
-  const session = gate.session;
 
   let body: unknown;
   try {
@@ -100,6 +119,19 @@ export async function PATCH(req: NextRequest) {
     return badRequest("Validation failed", parsed.error.flatten().fieldErrors);
   }
 
+  const gatewayToken = await getGatewaySessionToken();
+  if (gatewayToken) {
+    try {
+      return json(
+        await adminWriteGateway("update_user", gatewayToken, parsed.data),
+      );
+    } catch (error) {
+      if (error instanceof GatewayRequestError) return gatewayError(error);
+      return serverError();
+    }
+  }
+
+  const session = gate.session;
   const { id, role, isActive, status, reason, confirmEmail } = parsed.data;
   const { ipAddress, userAgent } = getRequestContext(req);
 

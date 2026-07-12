@@ -1,6 +1,11 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import {
+  isWrappedGatewayToken,
+  unwrapGatewayToken,
+  verifyGatewaySession,
+} from "@/lib/supabase-gateway";
 
 const DEFAULT_DEV_SECRET = "gem-enterprise-dev-secret-change-in-production";
 let _jwtSecret: Uint8Array | null = null;
@@ -52,6 +57,7 @@ export interface SessionPayload {
   entitlements: string[];
   portfolioId?: string;
   organizationId?: string;
+  authSource?: "supabase_gateway";
   iat?: number;
   exp?: number;
 }
@@ -73,6 +79,16 @@ export async function signSession(payload: SessionPayload): Promise<string> {
 }
 
 export async function verifySession(token: string): Promise<SessionPayload | null> {
+  if (isWrappedGatewayToken(token)) {
+    const gatewayToken = unwrapGatewayToken(token);
+    if (!gatewayToken) return null;
+    try {
+      return await verifyGatewaySession(gatewayToken);
+    } catch {
+      return null;
+    }
+  }
+
   try {
     const { payload } = await jwtVerify(token, getJwtSecret());
     return payload as unknown as SessionPayload;
@@ -81,9 +97,18 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
   }
 }
 
-export async function getSession(): Promise<SessionPayload | null> {
+export async function getSessionCookieValue(): Promise<string | null> {
   const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE_NAME)?.value;
+  return cookieStore.get(COOKIE_NAME)?.value ?? null;
+}
+
+export async function getGatewaySessionToken(): Promise<string | null> {
+  const value = await getSessionCookieValue();
+  return value ? unwrapGatewayToken(value) : null;
+}
+
+export async function getSession(): Promise<SessionPayload | null> {
+  const token = await getSessionCookieValue();
   if (!token) return null;
   return verifySession(token);
 }

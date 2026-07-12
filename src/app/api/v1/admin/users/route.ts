@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
+import { getGatewaySessionToken } from "@/lib/auth";
 import { requireAdmin } from "@/lib/api/auth-helpers";
 import { db } from "@/lib/db";
+import {
+  adminReadGateway,
+  GatewayRequestError,
+} from "@/lib/supabase-gateway";
 
 function json(body: unknown, status = 200) {
   return NextResponse.json(body, {
@@ -12,6 +17,25 @@ function json(body: unknown, status = 200) {
 export async function GET() {
   const gate = await requireAdmin();
   if (!gate.ok) return gate.response;
+
+  const gatewayToken = await getGatewaySessionToken();
+  if (gatewayToken) {
+    try {
+      const result = await adminReadGateway<{ users: unknown[] }>(
+        "users",
+        gatewayToken,
+      );
+      return json({
+        users: result.users,
+        pagination: { page: 1, limit: 100, total: result.users.length },
+      });
+    } catch (error) {
+      if (error instanceof GatewayRequestError) {
+        return json({ error: error.message, code: error.code }, error.statusCode);
+      }
+      return json({ error: "Unable to load users", users: [] }, 500);
+    }
+  }
 
   try {
     const users = await db.user.findMany({
@@ -37,11 +61,7 @@ export async function GET() {
 
     return json({
       users,
-      pagination: {
-        page: 1,
-        limit: 100,
-        total: users.length,
-      },
+      pagination: { page: 1, limit: 100, total: users.length },
     });
   } catch (error) {
     console.error("[GET /api/v1/admin/users]", error);
