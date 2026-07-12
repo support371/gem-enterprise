@@ -162,10 +162,18 @@ export async function GET() {
         quarantinePathRequired: true,
         checksumValidationRequired: true,
         cleanScanRequiredForReviewerAccess: true,
+        staleScanManualHoldEnabled: true,
+        staleScanThresholdMinutes: 20,
       },
       runtime: {
         supabaseUrlConfigured: runtimeReadiness.supabaseUrlConfigured,
         serviceRoleConfigured: runtimeReadiness.serviceRoleConfigured,
+        scannerMode: runtimeReadiness.scannerMode,
+        firstPartyScannerSelected: runtimeReadiness.firstPartyScannerSelected,
+        firstPartyScannerUrlExpected:
+          runtimeReadiness.firstPartyScannerUrlExpected,
+        firstPartyScannerUrlConfigured:
+          runtimeReadiness.firstPartyScannerUrlConfigured,
         scannerEndpointConfigured:
           runtimeReadiness.scannerEndpointConfigured,
         scannerCallbackConfigured:
@@ -173,6 +181,8 @@ export async function GET() {
         publicBaseUrlConfigured:
           runtimeReadiness.publicBaseUrlConfigured,
         scannerConfigured: runtimeReadiness.scannerConfigured,
+        scannerAssurance: runtimeReadiness.scannerAssurance,
+        antivirusEquivalent: runtimeReadiness.antivirusEquivalent,
         retentionApproved: runtimeReadiness.retentionApproved,
         operationallyApproved: runtimeReadiness.operationallyApproved,
         uploadActivationRequested:
@@ -215,11 +225,22 @@ export async function GET() {
               : "Server-side Supabase storage credentials are not configured in Vercel.",
         },
         {
-          id: "malware-scanner-endpoint",
+          id: "first-party-scanner-selection",
+          passed:
+            runtimeReadiness.firstPartyScannerSelected &&
+            runtimeReadiness.firstPartyScannerUrlConfigured,
+          detail:
+            runtimeReadiness.firstPartyScannerSelected &&
+            runtimeReadiness.firstPartyScannerUrlConfigured
+              ? "GEM's first-party scanner is selected at the approved internal route."
+              : `Configure GEM_VERIFY_SCANNER_MODE=first_party and point GEM_VERIFY_SCANNER_URL to ${runtimeReadiness.firstPartyScannerUrlExpected}.`,
+        },
+        {
+          id: "scanner-request-authentication",
           passed: runtimeReadiness.scannerEndpointConfigured,
           detail: runtimeReadiness.scannerEndpointConfigured
-            ? "A scanning worker endpoint and credential are configured."
-            : "A malware-scanning worker endpoint or credential is missing.",
+            ? "The scanning endpoint has a private request credential of the required length."
+            : "The first-party scanner request credential is missing or too short.",
         },
         {
           id: "scanner-callback-authentication",
@@ -229,8 +250,20 @@ export async function GET() {
           detail:
             runtimeReadiness.scannerCallbackConfigured &&
             runtimeReadiness.publicBaseUrlConfigured
-              ? "Scanner callbacks use signed, time-limited authorization."
+              ? "Scanner callbacks use signed, time-limited authorization to the approved GEM origin."
               : "Scanner callback authentication or the public callback base URL is missing.",
+        },
+        {
+          id: "scanner-assurance-disclosure",
+          passed: runtimeReadiness.antivirusEquivalent === false,
+          detail:
+            "The scanner is correctly disclosed as structural file-safety validation, not antivirus-equivalent or identity-document authenticity proof.",
+        },
+        {
+          id: "stale-scan-fail-closed",
+          passed: true,
+          detail:
+            "Scans left incomplete beyond 20 minutes are moved to manual hold and never released automatically.",
         },
         {
           id: "retention-policy",
@@ -274,6 +307,12 @@ export async function GET() {
         runtime: {
           supabaseUrlConfigured: runtimeReadiness.supabaseUrlConfigured,
           serviceRoleConfigured: runtimeReadiness.serviceRoleConfigured,
+          scannerMode: runtimeReadiness.scannerMode,
+          firstPartyScannerSelected: runtimeReadiness.firstPartyScannerSelected,
+          firstPartyScannerUrlExpected:
+            runtimeReadiness.firstPartyScannerUrlExpected,
+          firstPartyScannerUrlConfigured:
+            runtimeReadiness.firstPartyScannerUrlConfigured,
           scannerEndpointConfigured:
             runtimeReadiness.scannerEndpointConfigured,
           scannerCallbackConfigured:
@@ -281,6 +320,8 @@ export async function GET() {
           publicBaseUrlConfigured:
             runtimeReadiness.publicBaseUrlConfigured,
           scannerConfigured: runtimeReadiness.scannerConfigured,
+          scannerAssurance: runtimeReadiness.scannerAssurance,
+          antivirusEquivalent: runtimeReadiness.antivirusEquivalent,
           retentionApproved: runtimeReadiness.retentionApproved,
           operationallyApproved: runtimeReadiness.operationallyApproved,
           uploadActivationRequested:
