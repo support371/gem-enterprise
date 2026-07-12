@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import {
   bootstrapGatewayStatus,
+  evidenceGatewayHealth,
+  hasDirectDatabaseConfiguration,
   shouldUseSupabaseGateway,
 } from "@/lib/supabase-gateway";
 
@@ -15,32 +17,18 @@ function configuredAny(names: string[]) {
   return names.some(configured);
 }
 
-function hasMinLength(name: string, minimum: number) {
-  return (process.env[name]?.trim().length ?? 0) >= minimum;
-}
-
 export async function GET() {
-  const databaseUrlConfigured = configuredAny([
-    "POSTGRES_PRISMA_URL",
-    "DATABASE_URL",
-    "POSTGRES_URL",
-    "NEON_DATABASE_URL",
-  ]);
+  const appUrlConfigured = configured("NEXT_PUBLIC_APP_URL");
+  const databaseUrlConfigured = hasDirectDatabaseConfiguration();
   const directDatabaseUrlExplicitlyConfigured = configuredAny([
     "POSTGRES_URL_NON_POOLING",
     "DATABASE_URL_UNPOOLED",
     "POSTGRES_URL_NO_SSL",
   ]);
-  const directDatabaseUrlEffective =
-    directDatabaseUrlExplicitlyConfigured || databaseUrlConfigured;
-  const jwtSecretConfigured = hasMinLength("JWT_SECRET", 32);
-  const dedicatedPasswordResetSecretConfigured = hasMinLength(
-    "PASSWORD_RESET_SECRET",
-    32,
-  );
+  const jwtSecretConfigured = (process.env.JWT_SECRET?.trim().length ?? 0) >= 32;
   const passwordResetSecretConfigured =
-    dedicatedPasswordResetSecretConfigured || jwtSecretConfigured;
-  const appUrlConfigured = configured("NEXT_PUBLIC_APP_URL");
+    (process.env.PASSWORD_RESET_SECRET?.trim().length ?? 0) >= 32 ||
+    jwtSecretConfigured;
   const smtpConfigured =
     configured("SMTP_HOST") &&
     configured("SMTP_PORT") &&
@@ -50,7 +38,7 @@ export async function GET() {
 
   const gatewaySelected = shouldUseSupabaseGateway();
   let gatewayOperational = false;
-  let gatewayAdministratorConfigured: boolean | null = null;
+  let administratorConfigured: boolean | null = null;
   let gatewayDiagnostic = gatewaySelected ? "not_checked" : "not_selected";
 
   if (gatewaySelected) {
@@ -60,66 +48,36 @@ export async function GET() {
         admin: unknown | null;
       }>();
       gatewayOperational = true;
-      gatewayAdministratorConfigured = gateway.configured;
+      administratorConfigured = gateway.configured;
       gatewayDiagnostic = "ok";
     } catch {
       gatewayDiagnostic = "unavailable";
     }
   }
 
-  const localPrismaOperationalRequirements =
-    databaseUrlConfigured && jwtSecretConfigured;
+  let evidenceGatewayOperational = false;
+  let evidenceGatewayDiagnostic = "not_checked";
+  try {
+    const health = await evidenceGatewayHealth<{
+      ok: boolean;
+      service: string;
+      version: string;
+      failClosed: boolean;
+    }>();
+    evidenceGatewayOperational = health.ok === true;
+    evidenceGatewayDiagnostic = evidenceGatewayOperational ? "ok" : "unhealthy";
+  } catch {
+    evidenceGatewayDiagnostic = "unavailable";
+  }
+
+  const localPrismaReady = databaseUrlConfigured && jwtSecretConfigured;
   const coreReady =
-    appUrlConfigured &&
-    (gatewayOperational || localPrismaOperationalRequirements);
+    appUrlConfigured && (gatewayOperational || localPrismaReady);
   const activeBackend = gatewayOperational
     ? "supabase_gateway"
-    : databaseUrlConfigured
+    : localPrismaReady
       ? "prisma"
       : "none";
-
-  const storageUrlConfigured = configuredAny([
-    "SUPABASE_URL",
-    "NEXT_PUBLIC_SUPABASE_URL",
-  ]);
-  const serviceRoleConfigured = configured("SUPABASE_SERVICE_ROLE_KEY");
-  const storageConfigured = storageUrlConfigured && serviceRoleConfigured;
-
-  const explicitScannerRequestSecret = hasMinLength(
-    "GEM_VERIFY_SCANNER_TOKEN",
-    32,
-  );
-  const explicitScannerCallbackSecret = hasMinLength(
-    "GEM_VERIFY_SCANNER_CALLBACK_SECRET",
-    32,
-  );
-  const scannerRequestCredentialConfigured =
-    explicitScannerRequestSecret || jwtSecretConfigured;
-  const scannerCallbackCredentialConfigured =
-    explicitScannerCallbackSecret || jwtSecretConfigured;
-  const scannerConfigured =
-    process.env.GEM_VERIFY_SCANNER_MODE === "first_party" &&
-    configured("GEM_VERIFY_SCANNER_URL") &&
-    scannerRequestCredentialConfigured &&
-    scannerCallbackCredentialConfigured &&
-    configuredAny([
-      "GEM_VERIFY_PUBLIC_BASE_URL",
-      "NEXT_PUBLIC_APP_URL",
-      "VERCEL_PROJECT_PRODUCTION_URL",
-    ]);
-  const scannerCredentialSource =
-    explicitScannerRequestSecret && explicitScannerCallbackSecret
-      ? "explicit_overrides"
-      : jwtSecretConfigured
-        ? "jwt_derived_domain_separated"
-        : "missing";
-
-  const retentionApproved =
-    process.env.GEM_VERIFY_RETENTION_APPROVED === "true";
-  const operationallyApproved =
-    process.env.GEM_VERIFY_EVIDENCE_APPROVED === "true";
-  const uploadActivationRequested =
-    process.env.GEM_VERIFY_DOCUMENT_UPLOAD_ACTIVE === "true";
 
   const missingCore: string[] = [];
   if (!appUrlConfigured) missingCore.push("NEXT_PUBLIC_APP_URL");
@@ -129,35 +87,6 @@ export async function GET() {
   if (!gatewayOperational && databaseUrlConfigured && !jwtSecretConfigured) {
     missingCore.push("JWT_SECRET");
   }
-
-  const requiredForEvidence = [
-    { name: "SUPABASE_URL", configured: storageUrlConfigured },
-    { name: "SUPABASE_SERVICE_ROLE_KEY", configured: serviceRoleConfigured },
-    {
-      name: "GEM_VERIFY_SCANNER_MODE",
-      configured: process.env.GEM_VERIFY_SCANNER_MODE === "first_party",
-    },
-    {
-      name: "GEM_VERIFY_SCANNER_URL",
-      configured: configured("GEM_VERIFY_SCANNER_URL"),
-    },
-    {
-      name: "JWT_SECRET_OR_SCANNER_OVERRIDES",
-      configured:
-        scannerRequestCredentialConfigured &&
-        scannerCallbackCredentialConfigured,
-    },
-  ];
-
-  const evidenceInfrastructureReady = storageConfigured && scannerConfigured;
-  const evidenceActivationReady =
-    evidenceInfrastructureReady &&
-    retentionApproved &&
-    operationallyApproved &&
-    uploadActivationRequested;
-  const missingEvidence = requiredForEvidence
-    .filter((item) => !item.configured)
-    .map((item) => item.name);
 
   return NextResponse.json(
     {
@@ -169,7 +98,8 @@ export async function GET() {
         environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? null,
         projectIdMatchesCanonical:
           !process.env.VERCEL_PROJECT_ID ||
-          process.env.VERCEL_PROJECT_ID === "prj_VDGqnA7wZt2E65LLvT94ZOpnYc2Z",
+          process.env.VERCEL_PROJECT_ID ===
+            "prj_VDGqnA7wZt2E65LLvT94ZOpnYc2Z",
       },
       core: {
         ready: coreReady,
@@ -178,54 +108,59 @@ export async function GET() {
           selected: gatewaySelected,
           operational: gatewayOperational,
           diagnostic: gatewayDiagnostic,
-          administratorConfigured: gatewayAdministratorConfigured,
+          administratorConfigured,
         },
         prisma: {
           databaseUrlConfigured,
-          runtimeReady: localPrismaOperationalRequirements,
-          directDatabaseUrlEffective,
+          runtimeReady: localPrismaReady,
           directDatabaseUrlExplicitlyConfigured,
           databaseAdministrationReady:
             databaseUrlConfigured && directDatabaseUrlExplicitlyConfigured,
         },
-        authenticationConfigured:
-          gatewayOperational || jwtSecretConfigured,
+        authenticationConfigured: gatewayOperational || jwtSecretConfigured,
         authenticationSource: gatewayOperational
           ? "supabase_gateway"
           : jwtSecretConfigured
             ? "local_jwt"
             : "missing",
         passwordResetSigningConfigured: passwordResetSecretConfigured,
-        dedicatedPasswordResetSecretConfigured,
         appUrlConfigured,
         smtpConfigured,
         missing: missingCore,
       },
       evidenceVault: {
-        infrastructureReady: evidenceInfrastructureReady,
-        activationReady: evidenceActivationReady,
-        storageConfigured,
-        scannerConfigured,
-        scannerCredentialSource,
+        infrastructureReady: evidenceGatewayOperational,
+        backend: "supabase_edge_gateway",
+        gateway: {
+          operational: evidenceGatewayOperational,
+          diagnostic: evidenceGatewayDiagnostic,
+          service: "gem-verify-evidence-gateway",
+          privateServiceRoleHeldInSupabase: true,
+          vercelServiceRoleRequired: false,
+          vercelScannerSecretsRequired: false,
+        },
+        activationReady: false,
+        activationState: "requires_authenticated_governance_check",
+        controls: [
+          "approved_active_retention_policy",
+          "operational_approval",
+          "different_administrator_upload_activation",
+        ],
+        uploadsFailClosed: true,
         staleScanScheduler: {
           provider: "supabase_pg_cron",
           expectedIntervalMinutes: 10,
           requiresVercelSecret: false,
         },
-        retentionApproved,
-        operationallyApproved,
-        uploadActivationRequested,
-        uploadsFailClosed: !evidenceActivationReady,
-        missing: missingEvidence,
       },
       scanner: {
-        mode: process.env.GEM_VERIFY_SCANNER_MODE ?? "not_configured",
-        expectedEndpoint:
-          "https://www.gemcybersecurityassist.com/api/verify/evidence/internal-scanner",
-        selfTestEndpoint:
-          "https://www.gemcybersecurityassist.com/api/verify/evidence/internal-scanner/self-test",
+        backend: "supabase_edge_gateway",
+        engine: "gem-supabase-static-safety-v1",
         assurance: "structural_file_safety_only",
         antivirusEquivalent: false,
+        biometricAnalysis: false,
+        syntheticSelfTestEndpoint:
+          "https://www.gemcybersecurityassist.com/api/verify/evidence/internal-scanner/self-test",
       },
       safety: {
         secretValuesExposed: false,
