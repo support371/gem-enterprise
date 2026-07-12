@@ -2,6 +2,10 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
+  bootstrapGatewayStatus,
+  shouldUseSupabaseGateway,
+} from "@/lib/supabase-gateway";
+import {
   GOOGLE_MAIN_STORE_URL,
   TIKTOK_MAIN_STORE_URL,
 } from "@/lib/storefrontDestinations";
@@ -102,11 +106,37 @@ function hasDatabaseRuntimeUrl() {
 }
 
 export async function getAgentDatabaseStatus() {
+  if (shouldUseSupabaseGateway()) {
+    try {
+      const result = await bootstrapGatewayStatus<{
+        configured: boolean;
+        admin: unknown | null;
+      }>();
+      return {
+        status: "ok" as const,
+        configured: true,
+        diagnostic: "gateway_ok",
+        backend: "supabase_gateway" as const,
+        administrator_configured: result.configured,
+      };
+    } catch {
+      return {
+        status: "error" as const,
+        configured: true,
+        diagnostic: "gateway_unavailable",
+        backend: "supabase_gateway" as const,
+        administrator_configured: null,
+      };
+    }
+  }
+
   if (!hasDatabaseRuntimeUrl()) {
     return {
       status: "unavailable" as const,
       configured: false,
       diagnostic: "missing_runtime_url",
+      backend: "prisma" as const,
+      administrator_configured: null,
     };
   }
 
@@ -116,12 +146,16 @@ export async function getAgentDatabaseStatus() {
       status: "ok" as const,
       configured: true,
       diagnostic: "ok",
+      backend: "prisma" as const,
+      administrator_configured: null,
     };
   } catch {
     return {
       status: "error" as const,
       configured: true,
       diagnostic: "connection_failed",
+      backend: "prisma" as const,
+      administrator_configured: null,
     };
   }
 }
