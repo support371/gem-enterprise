@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  bootstrapGatewayStatus,
+  shouldUseSupabaseGateway,
+} from "@/lib/supabase-gateway";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -43,6 +47,37 @@ export async function GET() {
     configured("SMTP_USER") &&
     configured("SMTP_PASS") &&
     configuredAny(["EMAIL_FROM", "SMTP_FROM", "MAIL_FROM"]);
+
+  const gatewaySelected = shouldUseSupabaseGateway();
+  let gatewayOperational = false;
+  let gatewayAdministratorConfigured: boolean | null = null;
+  let gatewayDiagnostic = gatewaySelected ? "not_checked" : "not_selected";
+
+  if (gatewaySelected) {
+    try {
+      const gateway = await bootstrapGatewayStatus<{
+        configured: boolean;
+        admin: unknown | null;
+      }>();
+      gatewayOperational = true;
+      gatewayAdministratorConfigured = gateway.configured;
+      gatewayDiagnostic = "ok";
+    } catch {
+      gatewayDiagnostic = "unavailable";
+    }
+  }
+
+  const localPrismaOperationalRequirements =
+    databaseUrlConfigured && jwtSecretConfigured;
+  const coreReady =
+    appUrlConfigured &&
+    (gatewayOperational || localPrismaOperationalRequirements);
+  const activeBackend = gatewayOperational
+    ? "supabase_gateway"
+    : databaseUrlConfigured
+      ? "prisma"
+      : "none";
+
   const storageUrlConfigured = configuredAny([
     "SUPABASE_URL",
     "NEXT_PUBLIC_SUPABASE_URL",
@@ -86,15 +121,14 @@ export async function GET() {
   const uploadActivationRequested =
     process.env.GEM_VERIFY_DOCUMENT_UPLOAD_ACTIVE === "true";
 
-  const requiredForCore = [
-    {
-      name: "POSTGRES_PRISMA_URL",
-      configured: databaseUrlConfigured,
-      acceptedAlternatives: ["DATABASE_URL", "POSTGRES_URL", "NEON_DATABASE_URL"],
-    },
-    { name: "JWT_SECRET", configured: jwtSecretConfigured },
-    { name: "NEXT_PUBLIC_APP_URL", configured: appUrlConfigured },
-  ];
+  const missingCore: string[] = [];
+  if (!appUrlConfigured) missingCore.push("NEXT_PUBLIC_APP_URL");
+  if (!gatewayOperational && !databaseUrlConfigured) {
+    missingCore.push("SUPABASE_GATEWAY_OR_POSTGRES_PRISMA_URL");
+  }
+  if (!gatewayOperational && databaseUrlConfigured && !jwtSecretConfigured) {
+    missingCore.push("JWT_SECRET");
+  }
 
   const requiredForEvidence = [
     { name: "SUPABASE_URL", configured: storageUrlConfigured },
@@ -115,17 +149,12 @@ export async function GET() {
     },
   ];
 
-  const coreReady = requiredForCore.every((item) => item.configured);
   const evidenceInfrastructureReady = storageConfigured && scannerConfigured;
   const evidenceActivationReady =
     evidenceInfrastructureReady &&
     retentionApproved &&
     operationallyApproved &&
     uploadActivationRequested;
-
-  const missingCore = requiredForCore
-    .filter((item) => !item.configured)
-    .map((item) => item.name);
   const missingEvidence = requiredForEvidence
     .filter((item) => !item.configured)
     .map((item) => item.name);
@@ -144,15 +173,28 @@ export async function GET() {
       },
       core: {
         ready: coreReady,
-        databaseUrlConfigured,
-        directDatabaseUrlEffective,
-        directDatabaseUrlExplicitlyConfigured,
-        databaseAdministrationReady:
-          databaseUrlConfigured && directDatabaseUrlExplicitlyConfigured,
-        directDatabaseUrlNote: directDatabaseUrlExplicitlyConfigured
-          ? "A dedicated direct connection is configured for migrations and administration."
-          : "Runtime can use the pooled URL fallback; add POSTGRES_URL_NON_POOLING before future database migrations.",
-        authenticationConfigured: jwtSecretConfigured,
+        activeBackend,
+        gateway: {
+          selected: gatewaySelected,
+          operational: gatewayOperational,
+          diagnostic: gatewayDiagnostic,
+          administratorConfigured: gatewayAdministratorConfigured,
+        },
+        prisma: {
+          databaseUrlConfigured,
+          runtimeReady: localPrismaOperationalRequirements,
+          directDatabaseUrlEffective,
+          directDatabaseUrlExplicitlyConfigured,
+          databaseAdministrationReady:
+            databaseUrlConfigured && directDatabaseUrlExplicitlyConfigured,
+        },
+        authenticationConfigured:
+          gatewayOperational || jwtSecretConfigured,
+        authenticationSource: gatewayOperational
+          ? "supabase_gateway"
+          : jwtSecretConfigured
+            ? "local_jwt"
+            : "missing",
         passwordResetSigningConfigured: passwordResetSecretConfigured,
         dedicatedPasswordResetSecretConfigured,
         appUrlConfigured,
