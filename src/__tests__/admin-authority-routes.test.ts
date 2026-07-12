@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextResponse } from "next/server";
 
-const authMocks = vi.hoisted(() => ({ requireAdmin: vi.fn() }));
+const authMocks = vi.hoisted(() => ({
+  requireAdmin: vi.fn(),
+  getGatewaySessionToken: vi.fn(),
+}));
 const dbMocks = vi.hoisted(() => ({
   usersFindMany: vi.fn(),
   auditFindMany: vi.fn(),
@@ -11,11 +14,20 @@ vi.mock("@/lib/api/auth-helpers", () => ({
   requireAdmin: authMocks.requireAdmin,
 }));
 
+vi.mock("@/lib/auth", () => ({
+  getGatewaySessionToken: authMocks.getGatewaySessionToken,
+}));
+
 vi.mock("@/lib/db", () => ({
   db: {
     user: { findMany: dbMocks.usersFindMany },
     auditLog: { findMany: dbMocks.auditFindMany },
   },
+}));
+
+vi.mock("@/lib/supabase-gateway", () => ({
+  adminReadGateway: vi.fn(),
+  GatewayRequestError: class GatewayRequestError extends Error {},
 }));
 
 import {
@@ -41,6 +53,7 @@ function denied(status: 401 | 403) {
 describe("authoritative legacy administrator routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authMocks.getGatewaySessionToken.mockResolvedValue(null);
     dbMocks.usersFindMany.mockResolvedValue([]);
     dbMocks.auditFindMany.mockResolvedValue([]);
   });
