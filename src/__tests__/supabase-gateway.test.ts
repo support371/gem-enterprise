@@ -4,6 +4,7 @@ import {
   GatewayRequestError,
   loginWithGateway,
   runPendingAdminLoginSmoke,
+  setAdminPasswordWithAccessToken,
   unwrapGatewayToken,
   wrapGatewayToken,
 } from "@/lib/supabase-gateway";
@@ -91,6 +92,48 @@ describe("Supabase gateway client", () => {
         body: "{}",
       }),
     );
+  });
+
+  it("sends only token and password hashes to the administrator access RPC", async () => {
+    const accessToken = "setup-capability-" + "a".repeat(48);
+    const password = "Strong-Administrator-Password-2026!";
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify([
+          {
+            ok: true,
+            user_id: "admin-1",
+            email: "admin@gemcybersecurityassist.com",
+          },
+        ]),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await setAdminPasswordWithAccessToken<{
+      ok: boolean;
+      email: string;
+      loginPath: string;
+    }>(accessToken, password);
+
+    expect(result).toEqual({
+      ok: true,
+      email: "admin@gemcybersecurityassist.com",
+      loginPath: "/client-login",
+    });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const body = JSON.parse(String(init.body)) as {
+      p_token_hash: string;
+      p_password_hash: string;
+    };
+    expect(url).toContain("/rest/v1/rpc/gem_consume_admin_access_token");
+    expect(body.p_token_hash).toMatch(/^[a-f0-9]{64}$/);
+    expect(body.p_token_hash).not.toContain(accessToken);
+    expect(body.p_password_hash).toMatch(/^\$2[aby]\$/);
+    expect(body.p_password_hash).not.toContain(password);
+    expect(String(init.body)).not.toContain(accessToken);
+    expect(String(init.body)).not.toContain(password);
   });
 
   it("maps gateway failures to a typed error", async () => {
