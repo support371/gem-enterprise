@@ -92,9 +92,9 @@ end;
 $$;
 
 revoke all on function public.gem_consume_admin_access_token(text, text)
-from public;
+from public, authenticated;
 grant execute on function public.gem_consume_admin_access_token(text, text)
-to anon, authenticated, service_role;
+to anon, service_role;
 
 comment on function public.gem_consume_admin_access_token(text, text) is
 'Atomically consumes an unexpired high-entropy administrator access token and stores a precomputed bcrypt password hash. The function never accepts plaintext credentials and returns no password or token data.';
