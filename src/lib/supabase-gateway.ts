@@ -1,3 +1,4 @@
+import bcrypt from "bcryptjs";
 import type { SessionPayload } from "@/lib/auth";
 
 const DEFAULT_GATEWAY_BASE_URL =
@@ -41,6 +42,15 @@ function gatewayAnonKey(): string {
     process.env.GEM_SUPABASE_GATEWAY_ANON_KEY?.trim() ||
     DEFAULT_GATEWAY_ANON_KEY
   );
+}
+
+function gatewayProjectUrl(): string {
+  const baseUrl = gatewayBaseUrl();
+  const functionsSuffix = "/functions/v1";
+  if (baseUrl.endsWith(functionsSuffix)) {
+    return baseUrl.slice(0, -functionsSuffix.length);
+  }
+  return new URL(baseUrl).origin;
 }
 
 export function hasDirectDatabaseConfiguration(): boolean {
@@ -277,16 +287,85 @@ export async function setAdminPasswordWithAccessToken<T>(
   accessToken: string,
   password: string,
 ): Promise<T> {
-  return invokeGateway<T>("gem-admin-access", {
-    action: "set_password",
-    accessToken,
-    password,
-  });
+  const tokenDigest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(accessToken),
+  );
+  const tokenHash = Array.from(new Uint8Array(tokenDigest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+  const passwordHash = await bcrypt.hash(password, 12);
+  const key = gatewayAnonKey();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const response = await fetch(
+      `${gatewayProjectUrl()}/rest/v1/rpc/gem_consume_admin_access_token`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${key}`,
+          apikey: key,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          p_token_hash: tokenHash,
+          p_password_hash: passwordHash,
+        }),
+        cache: "no-store",
+        signal: controller.signal,
+      },
+    );
+    const body = (await response.json().catch(() => null)) as
+      | Array<{ ok: boolean; user_id: string | null; email: string | null }>
+      | { message?: string }
+      | null;
+
+    if (!response.ok) {
+      throw new GatewayRequestError(
+        response.status >= 500 ? 503 : response.status,
+        "ADMIN_ACCESS_RPC_FAILED",
+        "Administrator setup is unavailable.",
+      );
+    }
+
+    const result = Array.isArray(body) ? body[0] : null;
+    if (!result?.ok || !result.email) {
+      throw new GatewayRequestError(
+        400,
+        "INVALID_TOKEN",
+        "Invalid or expired setup capability.",
+      );
+    }
+
+    return {
+      ok: true,
+      email: result.email,
+      loginPath: "/client-login",
+    } as T;
+  } catch (error) {
+    if (error instanceof GatewayRequestError) throw error;
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new GatewayRequestError(
+        504,
+        "GATEWAY_TIMEOUT",
+        "Administrator setup timed out.",
+      );
+    }
+    throw new GatewayRequestError(
+      503,
+      "GATEWAY_UNAVAILABLE",
+      "Administrator setup is unavailable.",
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 export async function requestPasswordRecoveryGateway<T = {
-  accepted: boolean
-  recovery: string
+  accepted: boolean;
+  recovery: string;
 }>(email: string): Promise<T> {
   return invokeGateway<T>("gem-auth-gateway", {
     action: "password_recovery_request",
