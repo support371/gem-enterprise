@@ -5,7 +5,7 @@ const DEFAULT_GATEWAY_BASE_URL =
 const DEFAULT_GATEWAY_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsemRqb3FwemJrd3p1YWV4bGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyOTk1MTQsImV4cCI6MjA5ODg3NTUxNH0.0wfgX_m6SBn_TtD0ZNjkOZ-bk8Frp2Tq1HL9mYFBm4M";
 const GATEWAY_COOKIE_PREFIX = "sg1.";
-const REQUEST_TIMEOUT_MS = 15_000;
+const REQUEST_TIMEOUT_MS = 60_000;
 
 export class GatewayRequestError extends Error {
   constructor(
@@ -99,13 +99,13 @@ async function invokeGateway<T>(
       throw new GatewayRequestError(
         504,
         "GATEWAY_TIMEOUT",
-        "Authentication gateway timed out.",
+        "Supabase gateway timed out.",
       );
     }
     throw new GatewayRequestError(
       503,
       "GATEWAY_UNAVAILABLE",
-      "Authentication gateway is unavailable.",
+      "Supabase gateway is unavailable.",
     );
   } finally {
     clearTimeout(timeout);
@@ -166,6 +166,29 @@ export async function adminWriteGateway<T>(
   payload: Record<string, unknown>,
 ): Promise<T> {
   return invokeGateway<T>("gem-admin-write", {
+    action,
+    token,
+    ...payload,
+  });
+}
+
+export type EvidenceGatewayAction =
+  | "readiness"
+  | "upload_intent"
+  | "complete"
+  | "items"
+  | "review_url"
+  | "status"
+  | "approve_operations"
+  | "activate_uploads"
+  | "deactivate_uploads";
+
+export async function evidenceGateway<T>(
+  action: EvidenceGatewayAction,
+  token: string,
+  payload: Record<string, unknown> = {},
+): Promise<T> {
+  return invokeGateway<T>("gem-verify-evidence-gateway", {
     action,
     token,
     ...payload,
