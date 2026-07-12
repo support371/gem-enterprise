@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { ArrowLeft, ScanSearch, Scale, ShieldCheck } from "lucide-react";
 import GemVerifyEvidenceGovernanceClient from "@/components/admin/GemVerifyEvidenceGovernanceClient";
+import GemVerifyEvidenceOperationsClient from "@/components/admin/GemVerifyEvidenceOperationsClient";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
   title: "Evidence Governance | GEM Verify",
   description:
-    "Protected retention, legal-hold and deletion-decision governance for the GEM Verify Secure Evidence Vault.",
+    "Protected retention, operational approval, two-person activation, legal-hold and deletion-decision governance for the GEM Verify Secure Evidence Vault.",
   robots: {
     index: false,
     follow: false,
@@ -27,10 +28,10 @@ export default function EvidenceGovernancePage() {
             Evidence Governance
           </h1>
           <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-400">
-            Create versioned retention-policy drafts, enforce independent decisions,
-            evaluate deletion eligibility, manage two-person deletion approvals and
-            preserve evidence under legal hold. Physical deletion execution remains
-            intentionally unavailable.
+            Control retention policies, independent operational approval,
+            two-person upload activation, legal holds and deletion decisions.
+            Evidence intake and physical deletion both remain fail-closed until
+            their separate controls are satisfied.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -49,6 +50,7 @@ export default function EvidenceGovernancePage() {
         </div>
       </header>
 
+      <GemVerifyEvidenceOperationsClient />
       <GemVerifyEvidenceGovernanceClient />
     </div>
   );
