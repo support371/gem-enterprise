@@ -7,6 +7,10 @@ import { getRequestContext } from "@/lib/api/auth-helpers";
 import { rateLimit, rateLimitedResponse } from "@/lib/api/rate-limit";
 import { sendMail } from "@/lib/mail/send";
 import { createPasswordResetToken } from "@/lib/passwordReset";
+import {
+  requestPasswordRecoveryGateway,
+  shouldUseSupabaseGateway,
+} from "@/lib/supabase-gateway";
 
 const DEFAULT_APP_URL = "https://www.gemcybersecurityassist.com";
 
@@ -16,7 +20,7 @@ const forgotPasswordSchema = z.object({
 
 const SAFE_RESPONSE = {
   success: true,
-  message: "If an active GEM Enterprise account exists for that email, password reset instructions will be sent shortly.",
+  message: "If an active GEM Enterprise account exists for that email, its recovery request has been recorded.",
 };
 
 function emailBucket(email: string): string {
@@ -63,6 +67,23 @@ export async function POST(request: NextRequest) {
     max: 3,
   });
   if (!addressLimit.ok) {
+    return NextResponse.json(SAFE_RESPONSE, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
+
+  if (shouldUseSupabaseGateway()) {
+    try {
+      await requestPasswordRecoveryGateway(email);
+    } catch (error) {
+      console.error("[auth] password recovery gateway unavailable", {
+        code: error instanceof Error ? error.name : "unknown_error",
+      });
+      return NextResponse.json(
+        { error: "The recovery service is temporarily unavailable. Please try again." },
+        { status: 503, headers: { "Cache-Control": "no-store" } },
+      );
+    }
     return NextResponse.json(SAFE_RESPONSE, {
       headers: { "Cache-Control": "no-store" },
     });
