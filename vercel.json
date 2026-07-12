@@ -14,6 +14,12 @@
   "env": {
     "NEXT_PUBLIC_APP_NAME": "GEM Enterprise"
   },
+  "crons": [
+    {
+      "path": "/api/internal/gem-verify/scan-timeouts",
+      "schedule": "15 * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/static/(.*)",
