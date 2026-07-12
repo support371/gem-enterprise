@@ -21,6 +21,11 @@ type BucketRow = {
 };
 type RlsRow = { table_name: string; rls_enabled: boolean };
 type ScanStatusRow = { status: string; count: bigint | number | string };
+type SchedulerRow = {
+  jobname: string;
+  schedule: string;
+  active: boolean;
+};
 
 function count(rows: CountRow[]) {
   return Number(rows[0]?.count ?? 0);
@@ -54,6 +59,7 @@ export async function GET() {
       objectRows,
       bucketRows,
       rlsRows,
+      schedulerRows,
     ] = await Promise.all([
       db.$queryRaw<CountRow[]>`
         SELECT count(*)::bigint AS count
@@ -111,9 +117,19 @@ export async function GET() {
           )
         ORDER BY c.relname
       `,
+      db.$queryRaw<SchedulerRow[]>`
+        SELECT jobname, schedule, active
+        FROM cron.job
+        WHERE jobname = 'gem_verify_stale_scan_fail_closed'
+        LIMIT 1
+      `,
     ]);
 
     const bucket = bucketRows[0] ?? null;
+    const scheduler = schedulerRows[0] ?? null;
+    const schedulerReady = Boolean(
+      scheduler && scheduler.active && scheduler.schedule === "*/10 * * * *",
+    );
     const schemaReady = rlsRows.length === 5;
     const rlsReady = schemaReady && rlsRows.every((row) => row.rls_enabled);
     const bucketMimeTypes = new Set(bucket?.allowed_mime_types ?? []);
@@ -130,6 +146,7 @@ export async function GET() {
       schemaReady &&
       rlsReady &&
       bucketReady &&
+      schedulerReady &&
       runtimeReadiness.supabaseUrlConfigured &&
       runtimeReadiness.serviceRoleConfigured &&
       runtimeReadiness.scannerConfigured &&
@@ -162,7 +179,10 @@ export async function GET() {
         quarantinePathRequired: true,
         checksumValidationRequired: true,
         cleanScanRequiredForReviewerAccess: true,
-        staleScanManualHoldEnabled: true,
+        staleScanManualHoldEnabled: schedulerReady,
+        staleScanScheduler: "supabase_pg_cron",
+        staleScanSchedulerReady: schedulerReady,
+        staleScanSchedule: scheduler?.schedule ?? null,
         staleScanThresholdMinutes: 20,
       },
       runtime: {
@@ -261,9 +281,10 @@ export async function GET() {
         },
         {
           id: "stale-scan-fail-closed",
-          passed: true,
-          detail:
-            "Scans left incomplete beyond 20 minutes are moved to manual hold and never released automatically.",
+          passed: schedulerReady,
+          detail: schedulerReady
+            ? "Supabase pg_cron checks every 10 minutes and moves scans incomplete beyond 20 minutes to manual hold without releasing evidence."
+            : "The Supabase stale-scan fail-closed scheduler is missing, inactive, or on the wrong schedule.",
         },
         {
           id: "retention-policy",
@@ -303,6 +324,11 @@ export async function GET() {
           allowedMimeTypes: GEM_VERIFY_ALLOWED_MIME_TYPES,
           failClosed: true,
           readyForUpload: false,
+        },
+        foundation: {
+          staleScanScheduler: "supabase_pg_cron",
+          staleScanSchedulerReady: false,
+          staleScanThresholdMinutes: 20,
         },
         runtime: {
           supabaseUrlConfigured: runtimeReadiness.supabaseUrlConfigured,
