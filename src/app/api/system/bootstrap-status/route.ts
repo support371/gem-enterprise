@@ -50,7 +50,6 @@ export async function GET() {
       "NEXT_PUBLIC_APP_URL",
       "VERCEL_PROJECT_PRODUCTION_URL",
     ]);
-  const cronConfigured = hasMinLength("CRON_SECRET", 32);
   const retentionApproved =
     process.env.GEM_VERIFY_RETENTION_APPROVED === "true";
   const operationallyApproved =
@@ -81,17 +80,34 @@ export async function GET() {
   ];
 
   const requiredForEvidence = [
-    { name: "SUPABASE_URL", configured: configuredAny(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]) },
-    { name: "SUPABASE_SERVICE_ROLE_KEY", configured: configured("SUPABASE_SERVICE_ROLE_KEY") },
-    { name: "GEM_VERIFY_SCANNER_MODE", configured: process.env.GEM_VERIFY_SCANNER_MODE === "first_party" },
-    { name: "GEM_VERIFY_SCANNER_URL", configured: configured("GEM_VERIFY_SCANNER_URL") },
-    { name: "GEM_VERIFY_SCANNER_TOKEN", configured: hasMinLength("GEM_VERIFY_SCANNER_TOKEN", 32) },
-    { name: "GEM_VERIFY_SCANNER_CALLBACK_SECRET", configured: hasMinLength("GEM_VERIFY_SCANNER_CALLBACK_SECRET", 32) },
-    { name: "CRON_SECRET", configured: cronConfigured },
+    {
+      name: "SUPABASE_URL",
+      configured: configuredAny(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]),
+    },
+    {
+      name: "SUPABASE_SERVICE_ROLE_KEY",
+      configured: configured("SUPABASE_SERVICE_ROLE_KEY"),
+    },
+    {
+      name: "GEM_VERIFY_SCANNER_MODE",
+      configured: process.env.GEM_VERIFY_SCANNER_MODE === "first_party",
+    },
+    {
+      name: "GEM_VERIFY_SCANNER_URL",
+      configured: configured("GEM_VERIFY_SCANNER_URL"),
+    },
+    {
+      name: "GEM_VERIFY_SCANNER_TOKEN",
+      configured: hasMinLength("GEM_VERIFY_SCANNER_TOKEN", 32),
+    },
+    {
+      name: "GEM_VERIFY_SCANNER_CALLBACK_SECRET",
+      configured: hasMinLength("GEM_VERIFY_SCANNER_CALLBACK_SECRET", 32),
+    },
   ];
 
   const coreReady = requiredForCore.every((item) => item.configured);
-  const evidenceInfrastructureReady = storageConfigured && scannerConfigured && cronConfigured;
+  const evidenceInfrastructureReady = storageConfigured && scannerConfigured;
   const evidenceActivationReady =
     evidenceInfrastructureReady &&
     retentionApproved &&
@@ -132,7 +148,11 @@ export async function GET() {
         activationReady: evidenceActivationReady,
         storageConfigured,
         scannerConfigured,
-        cronConfigured,
+        staleScanScheduler: {
+          provider: "supabase_pg_cron",
+          expectedIntervalMinutes: 10,
+          requiresVercelSecret: false,
+        },
         retentionApproved,
         operationallyApproved,
         uploadActivationRequested,
