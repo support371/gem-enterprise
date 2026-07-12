@@ -30,7 +30,6 @@ import {
   UserCheck,
   Zap,
   ExternalLink,
-  MonitorCog,
 } from 'lucide-react'
 
 const adminModules = [
@@ -207,7 +206,7 @@ export default function AdminPage() {
               rel="noopener noreferrer"
               aria-label="Open the protected GEM Enterprise Command Center"
             >
-              <MonitorCog className="h-4 w-4" />
+              <Shield className="h-4 w-4" />
               Enterprise Command Center
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
