@@ -185,3 +185,14 @@ export async function e2eProvisionGateway<T>(
 export async function runPendingAdminLoginSmoke<T>(): Promise<T> {
   return invokeGateway<T>("gem-admin-login-smoke", {});
 }
+
+export async function setAdminPasswordWithAccessToken<T>(
+  accessToken: string,
+  password: string,
+): Promise<T> {
+  return invokeGateway<T>("gem-admin-access", {
+    action: "set_password",
+    accessToken,
+    password,
+  });
+}
