@@ -22,14 +22,20 @@ export async function GET() {
     "POSTGRES_URL",
     "NEON_DATABASE_URL",
   ]);
-  const directDatabaseUrlConfigured = configuredAny([
+  const directDatabaseUrlExplicitlyConfigured = configuredAny([
     "POSTGRES_URL_NON_POOLING",
     "DATABASE_URL_UNPOOLED",
     "POSTGRES_URL_NO_SSL",
   ]);
+  const directDatabaseUrlEffective =
+    directDatabaseUrlExplicitlyConfigured || databaseUrlConfigured;
   const jwtSecretConfigured = hasMinLength("JWT_SECRET", 32);
+  const dedicatedPasswordResetSecretConfigured = hasMinLength(
+    "PASSWORD_RESET_SECRET",
+    32,
+  );
   const passwordResetSecretConfigured =
-    hasMinLength("PASSWORD_RESET_SECRET", 32) || jwtSecretConfigured;
+    dedicatedPasswordResetSecretConfigured || jwtSecretConfigured;
   const appUrlConfigured = configured("NEXT_PUBLIC_APP_URL");
   const smtpConfigured =
     configured("SMTP_HOST") &&
@@ -37,19 +43,42 @@ export async function GET() {
     configured("SMTP_USER") &&
     configured("SMTP_PASS") &&
     configuredAny(["EMAIL_FROM", "SMTP_FROM", "MAIL_FROM"]);
-  const storageConfigured =
-    configuredAny(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]) &&
-    configured("SUPABASE_SERVICE_ROLE_KEY");
+  const storageUrlConfigured = configuredAny([
+    "SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_URL",
+  ]);
+  const serviceRoleConfigured = configured("SUPABASE_SERVICE_ROLE_KEY");
+  const storageConfigured = storageUrlConfigured && serviceRoleConfigured;
+
+  const explicitScannerRequestSecret = hasMinLength(
+    "GEM_VERIFY_SCANNER_TOKEN",
+    32,
+  );
+  const explicitScannerCallbackSecret = hasMinLength(
+    "GEM_VERIFY_SCANNER_CALLBACK_SECRET",
+    32,
+  );
+  const scannerRequestCredentialConfigured =
+    explicitScannerRequestSecret || jwtSecretConfigured;
+  const scannerCallbackCredentialConfigured =
+    explicitScannerCallbackSecret || jwtSecretConfigured;
   const scannerConfigured =
     process.env.GEM_VERIFY_SCANNER_MODE === "first_party" &&
     configured("GEM_VERIFY_SCANNER_URL") &&
-    hasMinLength("GEM_VERIFY_SCANNER_TOKEN", 32) &&
-    hasMinLength("GEM_VERIFY_SCANNER_CALLBACK_SECRET", 32) &&
+    scannerRequestCredentialConfigured &&
+    scannerCallbackCredentialConfigured &&
     configuredAny([
       "GEM_VERIFY_PUBLIC_BASE_URL",
       "NEXT_PUBLIC_APP_URL",
       "VERCEL_PROJECT_PRODUCTION_URL",
     ]);
+  const scannerCredentialSource =
+    explicitScannerRequestSecret && explicitScannerCallbackSecret
+      ? "explicit_overrides"
+      : jwtSecretConfigured
+        ? "jwt_derived_domain_separated"
+        : "missing";
+
   const retentionApproved =
     process.env.GEM_VERIFY_RETENTION_APPROVED === "true";
   const operationallyApproved =
@@ -63,31 +92,13 @@ export async function GET() {
       configured: databaseUrlConfigured,
       acceptedAlternatives: ["DATABASE_URL", "POSTGRES_URL", "NEON_DATABASE_URL"],
     },
-    {
-      name: "POSTGRES_URL_NON_POOLING",
-      configured: directDatabaseUrlConfigured,
-      acceptedAlternatives: ["DATABASE_URL_UNPOOLED", "POSTGRES_URL_NO_SSL"],
-    },
     { name: "JWT_SECRET", configured: jwtSecretConfigured },
-    {
-      name: "PASSWORD_RESET_SECRET",
-      configured: passwordResetSecretConfigured,
-      note: jwtSecretConfigured
-        ? "JWT_SECRET fallback is available; a distinct reset secret remains preferred."
-        : undefined,
-    },
     { name: "NEXT_PUBLIC_APP_URL", configured: appUrlConfigured },
   ];
 
   const requiredForEvidence = [
-    {
-      name: "SUPABASE_URL",
-      configured: configuredAny(["SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_URL"]),
-    },
-    {
-      name: "SUPABASE_SERVICE_ROLE_KEY",
-      configured: configured("SUPABASE_SERVICE_ROLE_KEY"),
-    },
+    { name: "SUPABASE_URL", configured: storageUrlConfigured },
+    { name: "SUPABASE_SERVICE_ROLE_KEY", configured: serviceRoleConfigured },
     {
       name: "GEM_VERIFY_SCANNER_MODE",
       configured: process.env.GEM_VERIFY_SCANNER_MODE === "first_party",
@@ -97,12 +108,10 @@ export async function GET() {
       configured: configured("GEM_VERIFY_SCANNER_URL"),
     },
     {
-      name: "GEM_VERIFY_SCANNER_TOKEN",
-      configured: hasMinLength("GEM_VERIFY_SCANNER_TOKEN", 32),
-    },
-    {
-      name: "GEM_VERIFY_SCANNER_CALLBACK_SECRET",
-      configured: hasMinLength("GEM_VERIFY_SCANNER_CALLBACK_SECRET", 32),
+      name: "JWT_SECRET_OR_SCANNER_OVERRIDES",
+      configured:
+        scannerRequestCredentialConfigured &&
+        scannerCallbackCredentialConfigured,
     },
   ];
 
@@ -136,9 +145,16 @@ export async function GET() {
       core: {
         ready: coreReady,
         databaseUrlConfigured,
-        directDatabaseUrlConfigured,
+        directDatabaseUrlEffective,
+        directDatabaseUrlExplicitlyConfigured,
+        databaseAdministrationReady:
+          databaseUrlConfigured && directDatabaseUrlExplicitlyConfigured,
+        directDatabaseUrlNote: directDatabaseUrlExplicitlyConfigured
+          ? "A dedicated direct connection is configured for migrations and administration."
+          : "Runtime can use the pooled URL fallback; add POSTGRES_URL_NON_POOLING before future database migrations.",
         authenticationConfigured: jwtSecretConfigured,
         passwordResetSigningConfigured: passwordResetSecretConfigured,
+        dedicatedPasswordResetSecretConfigured,
         appUrlConfigured,
         smtpConfigured,
         missing: missingCore,
@@ -148,6 +164,7 @@ export async function GET() {
         activationReady: evidenceActivationReady,
         storageConfigured,
         scannerConfigured,
+        scannerCredentialSource,
         staleScanScheduler: {
           provider: "supabase_pg_cron",
           expectedIntervalMinutes: 10,
