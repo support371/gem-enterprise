@@ -198,11 +198,24 @@ export async function bootstrapGatewayStatus<T>(): Promise<T> {
   });
 }
 
+export type AdminReadGatewayAction =
+  | "users"
+  | "stats"
+  | "pilot_readiness"
+  | "audit"
+  | "retention_dry_run"
+  | "deletion_requests";
+
 export async function adminReadGateway<T>(
-  action: "users" | "stats" | "pilot_readiness" | "audit",
+  action: AdminReadGatewayAction,
   token: string,
+  payload: Record<string, unknown> = {},
 ): Promise<T> {
-  return invokeGateway<T>("gem-admin-read", { action, token });
+  return invokeGateway<T>("gem-admin-read", {
+    action,
+    token,
+    ...payload,
+  });
 }
 
 export type AdminWriteGatewayAction =
