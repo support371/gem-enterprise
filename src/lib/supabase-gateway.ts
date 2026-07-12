@@ -283,3 +283,13 @@ export async function setAdminPasswordWithAccessToken<T>(
     password,
   });
 }
+
+export async function requestPasswordRecoveryGateway<T = {
+  accepted: boolean
+  recovery: string
+}>(email: string): Promise<T> {
+  return invokeGateway<T>("gem-auth-gateway", {
+    action: "password_recovery_request",
+    email,
+  });
+}
