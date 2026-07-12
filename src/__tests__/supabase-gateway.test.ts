@@ -3,6 +3,7 @@ import {
   adminReadGateway,
   GatewayRequestError,
   loginWithGateway,
+  runPendingAdminLoginSmoke,
   unwrapGatewayToken,
   wrapGatewayToken,
 } from "@/lib/supabase-gateway";
@@ -72,18 +73,43 @@ describe("Supabase gateway client", () => {
     });
   });
 
+  it("invokes the pending smoke function without a request secret", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ ok: true, checks: {} }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await runPendingAdminLoginSmoke();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/gem-admin-login-smoke"),
+      expect.objectContaining({
+        method: "POST",
+        body: "{}",
+      }),
+    );
+  });
+
   it("maps gateway failures to a typed error", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
         new Response(
-          JSON.stringify({ error: "Invalid credentials", code: "INVALID_CREDENTIALS" }),
+          JSON.stringify({
+            error: "Invalid credentials",
+            code: "INVALID_CREDENTIALS",
+          }),
           { status: 401, headers: { "Content-Type": "application/json" } },
         ),
       ),
     );
 
-    await expect(loginWithGateway("admin@example.com", "wrong")).rejects.toMatchObject({
+    await expect(
+      loginWithGateway("admin@example.com", "wrong"),
+    ).rejects.toMatchObject({
       statusCode: 401,
       code: "INVALID_CREDENTIALS",
     } satisfies Partial<GatewayRequestError>);
