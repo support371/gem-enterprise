@@ -205,8 +205,14 @@ export async function adminReadGateway<T>(
   return invokeGateway<T>("gem-admin-read", { action, token });
 }
 
+export type AdminWriteGatewayAction =
+  | "update_user"
+  | "retention_policy_list"
+  | "retention_policy_create"
+  | "retention_policy_action";
+
 export async function adminWriteGateway<T>(
-  action: "update_user",
+  action: AdminWriteGatewayAction,
   token: string,
   payload: Record<string, unknown>,
 ): Promise<T> {
