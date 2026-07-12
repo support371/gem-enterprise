@@ -3,13 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 const authMocks = vi.hoisted(() => ({
   requireAdmin: vi.fn(),
+  getGatewaySessionToken: vi.fn(),
 }));
-const dbMocks = vi.hoisted(() => ({
-  findUnique: vi.fn(),
-  update: vi.fn(),
-  findMany: vi.fn(),
+const gatewayMocks = vi.hoisted(() => ({
+  read: vi.fn(),
+  write: vi.fn(),
 }));
-const auditMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/api/auth-helpers", () => ({
   requireAdmin: authMocks.requireAdmin,
@@ -19,29 +18,33 @@ vi.mock("@/lib/api/auth-helpers", () => ({
   forbidden: (message: string) => NextResponse.json({ error: message }, { status: 403 }),
   serverError: () => NextResponse.json({ error: "Internal server error" }, { status: 500 }),
 }));
-vi.mock("@/lib/db", () => ({
-  db: {
-    user: {
-      findUnique: dbMocks.findUnique,
-      update: dbMocks.update,
-      findMany: dbMocks.findMany,
-    },
-  },
+vi.mock("@/lib/auth", () => ({
+  getGatewaySessionToken: authMocks.getGatewaySessionToken,
 }));
-vi.mock("@/lib/audit", () => ({ emitAuditLog: auditMock }));
+vi.mock("@/lib/supabase-gateway", () => {
+  class GatewayRequestError extends Error {
+    constructor(
+      public statusCode: number,
+      public code: string,
+      message: string,
+    ) {
+      super(message);
+    }
+  }
+  return {
+    adminReadGateway: gatewayMocks.read,
+    adminWriteGateway: gatewayMocks.write,
+    GatewayRequestError,
+  };
+});
+vi.mock("@/lib/db", () => ({
+  db: { user: { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn() } },
+}));
+vi.mock("@/lib/audit", () => ({ emitAuditLog: vi.fn() }));
 
-import { PATCH } from "@/app/api/admin/users/route";
+import { GET, PATCH } from "@/app/api/admin/users/route";
 
-const target = {
-  id: "user-2",
-  email: "reviewer@example.com",
-  role: "client",
-  isActive: true,
-  status: "active",
-  isEmailVerified: true,
-};
-
-function request(body: unknown) {
+function patchRequest(body: unknown) {
   return new NextRequest("http://localhost/api/admin/users", {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -49,7 +52,7 @@ function request(body: unknown) {
   });
 }
 
-describe("admin user role assignment API", () => {
+describe("gateway-backed admin users API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authMocks.requireAdmin.mockResolvedValue({
@@ -58,72 +61,62 @@ describe("admin user role assignment API", () => {
       accountStatus: "active",
       claimsChanged: false,
     });
-    dbMocks.findUnique.mockResolvedValue(target);
-    dbMocks.update.mockResolvedValue({ ...target, role: "analyst" });
+    authMocks.getGatewaySessionToken.mockResolvedValue("t".repeat(64));
+    gatewayMocks.read.mockResolvedValue({ users: [], viewerRole: "admin" });
+    gatewayMocks.write.mockResolvedValue({ ok: true, user: { id: "user-2" } });
   });
 
-  it("prevents a regular admin from granting administrator", async () => {
+  it("returns the authoritative gate response when unauthenticated", async () => {
+    authMocks.requireAdmin.mockResolvedValue({
+      ok: false,
+      response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }),
+    });
+    const response = await GET();
+    expect(response.status).toBe(401);
+    expect(gatewayMocks.read).not.toHaveBeenCalled();
+  });
+
+  it("loads users through the gateway", async () => {
+    const response = await GET();
+    expect(response.status).toBe(200);
+    expect(gatewayMocks.read).toHaveBeenCalledWith("users", "t".repeat(64));
+  });
+
+  it("rejects malformed role updates before the gateway", async () => {
+    const response = await PATCH(patchRequest({ id: "user-2", role: "analyst" }));
+    expect(response.status).toBe(400);
+    expect(gatewayMocks.write).not.toHaveBeenCalled();
+  });
+
+  it("forwards validated updates to the write gateway", async () => {
+    const payload = {
+      id: "user-2",
+      role: "analyst",
+      confirmEmail: "reviewer@example.com",
+      reason: "Assign to the controlled verification pilot.",
+    };
+    const response = await PATCH(patchRequest(payload));
+    expect(response.status).toBe(200);
+    expect(gatewayMocks.write).toHaveBeenCalledWith(
+      "update_user",
+      "t".repeat(64),
+      payload,
+    );
+  });
+
+  it("preserves gateway authorization errors", async () => {
+    const { GatewayRequestError } = await import("@/lib/supabase-gateway");
+    gatewayMocks.write.mockRejectedValue(
+      new GatewayRequestError(403, "ROLE_ASSIGNMENT_FORBIDDEN", "Forbidden"),
+    );
     const response = await PATCH(
-      request({
-        id: target.id,
+      patchRequest({
+        id: "user-2",
         role: "admin",
-        confirmEmail: target.email,
-        reason: "Administrator access is requested for the pilot.",
+        confirmEmail: "reviewer@example.com",
+        reason: "Attempt elevated assignment through a regular administrator.",
       }),
     );
     expect(response.status).toBe(403);
-    expect(dbMocks.update).not.toHaveBeenCalled();
-  });
-
-  it("rejects an email confirmation mismatch", async () => {
-    const response = await PATCH(
-      request({
-        id: target.id,
-        role: "analyst",
-        confirmEmail: "wrong@example.com",
-        reason: "Assign this account to the pilot review team.",
-      }),
-    );
-    expect(response.status).toBe(400);
-    expect(dbMocks.update).not.toHaveBeenCalled();
-  });
-
-  it("assigns analyst and records the reason in the audit event", async () => {
-    const response = await PATCH(
-      request({
-        id: target.id,
-        role: "analyst",
-        confirmEmail: target.email,
-        reason: "Assign this account to the controlled verification pilot.",
-      }),
-    );
-    expect(response.status).toBe(200);
-    expect(dbMocks.update).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { role: "analyst" } }),
-    );
-    expect(auditMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: "role_change",
-        metadata: expect.objectContaining({
-          previousRole: "client",
-          newRole: "analyst",
-          reason: "Assign this account to the controlled verification pilot.",
-        }),
-      }),
-    );
-  });
-
-  it("rejects promotion of an unverified account", async () => {
-    dbMocks.findUnique.mockResolvedValue({ ...target, isEmailVerified: false });
-    const response = await PATCH(
-      request({
-        id: target.id,
-        role: "analyst",
-        confirmEmail: target.email,
-        reason: "Assign this account to the controlled verification pilot.",
-      }),
-    );
-    expect(response.status).toBe(409);
-    expect(dbMocks.update).not.toHaveBeenCalled();
   });
 });

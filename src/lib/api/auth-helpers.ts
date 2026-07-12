@@ -1,9 +1,8 @@
 /**
  * Shared API auth helpers.
  *
- * Signed cookie claims are treated as a cache of identity context, not the
- * source of truth for current role or account status. Every protected API gate
- * reconciles the cookie with the current database record before authorizing.
+ * Gateway sessions are revalidated by Supabase on every protected request.
+ * Local JWT sessions retain the existing Prisma authority reconciliation.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -89,6 +88,14 @@ function err(responseValue: NextResponse): GateErr {
 async function resolveAuthoritativeGate(): Promise<GateResult> {
   const claims = await getSession();
   if (!claims) return err(unauthorized());
+
+  if (claims.authSource === "supabase_gateway") {
+    return ok({
+      session: claims,
+      accountStatus: "active",
+      claimsChanged: false,
+    });
+  }
 
   try {
     const account = await db.user.findUnique({
