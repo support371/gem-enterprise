@@ -12,7 +12,24 @@
     }
   },
   "env": {
-    "NEXT_PUBLIC_APP_NAME": "GEM Enterprise"
+    "NEXT_PUBLIC_APP_NAME": "GEM Enterprise",
+    "NEXT_PUBLIC_APP_URL": "https://www.gemcybersecurityassist.com",
+    "GEM_PUBLIC_APP_URL": "https://www.gemcybersecurityassist.com",
+    "GEM_AGENT_API_BASE_URL": "https://support371-gem-enterprise.vercel.app",
+    "GEM_VERIFY_SCANNER_MODE": "first_party",
+    "GEM_VERIFY_SCANNER_URL": "https://www.gemcybersecurityassist.com/api/verify/evidence/internal-scanner",
+    "GEM_VERIFY_PUBLIC_BASE_URL": "https://www.gemcybersecurityassist.com",
+    "RUN_DB_MIGRATIONS": "false",
+    "AUTO_DB_PUSH": "false",
+    "AUTO_DB_SEED": "false",
+    "SEED_DEMO_DATA": "false",
+    "GEM_VERIFY_RETENTION_APPROVED": "false",
+    "GEM_VERIFY_EVIDENCE_APPROVED": "false",
+    "GEM_VERIFY_DOCUMENT_UPLOAD_ACTIVE": "false",
+    "TIKTOK_SELLER_ACCOUNT_CONNECTED": "false",
+    "GOOGLE_MERCHANT_ACCOUNT_CONNECTED": "false",
+    "TOKMETRIC_LIVE_PUBLISHING_ENABLED": "false",
+    "TOKMETRIC_SANDBOX_PUBLISHING_ENABLED": "false"
   },
   "crons": [
     {
