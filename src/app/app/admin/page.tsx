@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { platformOrigins } from '@/lib/platform-origins'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -28,6 +29,8 @@ import {
   Network,
   UserCheck,
   Zap,
+  ExternalLink,
+  MonitorCog,
 } from 'lucide-react'
 
 const adminModules = [
@@ -197,6 +200,18 @@ export default function AdminPage() {
             <ShieldCheck className="h-3.5 w-3.5" />
             Audit Ready
           </Badge>
+          <Button asChild className="gap-2 bg-[hsl(var(--svc-cyber))] text-slate-950 hover:bg-[hsl(var(--svc-cyber))]/90">
+            <a
+              href={platformOrigins.adminCommandCenter}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Open the protected GEM Enterprise Command Center"
+            >
+              <MonitorCog className="h-4 w-4" />
+              Enterprise Command Center
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </Button>
         </div>
       </div>
 
