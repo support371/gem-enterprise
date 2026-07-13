@@ -42,6 +42,9 @@ describe("canonical password recovery and session revocation", () => {
     const migration = source(
       "prisma/migrations/20260713213000_password_recovery_session_revocation/migration.sql",
     );
+    const hardening = source(
+      "prisma/migrations/20260713214600_revoke_password_trigger_rpc_execute/migration.sql",
+    );
 
     expect(direct).toContain("sessionVersion: user.sessionVersion");
     expect(direct).toContain("updated.sessionVersion <= user.sessionVersion");
@@ -49,6 +52,11 @@ describe("canonical password recovery and session revocation", () => {
     expect(migration).toContain('NEW."sessionVersion" := OLD."sessionVersion" + 1');
     expect(migration).toContain("gem_audit_session_revocation_on_password_change");
     expect(migration).toContain("'sessionsRevoked', true");
+    expect(hardening).toContain("gem_increment_session_version_on_password_change");
+    expect(hardening).toContain("gem_audit_session_revocation_on_password_change");
+    expect(hardening).toContain("FROM PUBLIC");
+    expect(hardening).toContain("FROM anon");
+    expect(hardening).toContain("FROM authenticated");
   });
 
   it("keeps direct sessions authoritative at cookie, proxy, and API gates", () => {
