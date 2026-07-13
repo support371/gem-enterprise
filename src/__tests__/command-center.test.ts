@@ -10,6 +10,7 @@ import {
   securityIncidents,
   tenantHealth,
 } from "@/lib/commandCenter";
+import { commandCenterSnapshotLabels } from "@/lib/commandCenterSnapshot";
 import { clientPortalNavGroups } from "@/lib/platformNavigation";
 
 describe("GEM enterprise command center", () => {
@@ -33,6 +34,18 @@ describe("GEM enterprise command center", () => {
   it("keeps demo metrics explicitly disclosed", () => {
     expect(demoDisclosure.toLowerCase()).toContain("demo data");
     expect(demoDisclosure.toLowerCase()).toContain("illustrative");
+  });
+
+  it("defines a non-sensitive live aggregate contract", () => {
+    expect(commandCenterSnapshotLabels.map((metric) => metric.key)).toEqual([
+      "activeUsers",
+      "organizations",
+      "activeProducts",
+      "activeEntitlements",
+      "openSupportTickets",
+      "openServiceRequests",
+      "auditEventsLast24Hours",
+    ]);
   });
 
   it("includes the full monetization and operations surface", () => {
