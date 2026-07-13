@@ -1,16 +1,5 @@
-# Supabase local tooling is not needed during application builds. Keep only the two
-# authentication function sources required by release verification.
-supabase/*
-!supabase/functions/
-supabase/functions/*
-!supabase/functions/gem-auth-gateway/
-!supabase/functions/gem-password-recovery/
-supabase/functions/gem-auth-gateway/*
-!supabase/functions/gem-auth-gateway/index.ts
-!supabase/functions/gem-auth-gateway/deno.json
-supabase/functions/gem-password-recovery/*
-!supabase/functions/gem-password-recovery/index.ts
-!supabase/functions/gem-password-recovery/deno.json
+# Supabase local tooling is not needed during application builds
+supabase/
 
 # Documentation is excluded from deployment bundles
 *.md

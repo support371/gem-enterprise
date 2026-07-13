@@ -7,20 +7,13 @@ import { getRequestContext } from "@/lib/api/auth-helpers";
 import { rateLimit, rateLimitedResponse } from "@/lib/api/rate-limit";
 import { isMailDeliveryConfigured, sendMail } from "@/lib/mail/send";
 import { createPasswordResetToken } from "@/lib/passwordReset";
-import {
-  requestPasswordRecoveryGateway,
-  shouldUseSupabaseGateway,
-} from "@/lib/supabase-gateway";
 
-// Production deployment marker: canonical secure recovery route.
 const DEFAULT_APP_URL = "https://www.gemcybersecurityassist.com";
+const COMMAND_CENTER_RECOVERY_URL = "https://admin.gemcybersecurityassist.com";
 
 const forgotPasswordSchema = z.object({
   email: z.string().trim().email("Enter a valid email address.").max(254),
 });
-
-const COMMAND_CENTER_RECOVERY_URL =
-  "https://admin.gemcybersecurityassist.com";
 
 const EMAIL_REQUESTED_RESPONSE = {
   success: true,
@@ -40,7 +33,7 @@ const EMAIL_NOT_CONFIGURED_RESPONSE = {
   success: false,
   delivery: "not_configured",
   error:
-    "No reset email was sent because email delivery is not yet activated. Platform owners can recover access securely through Command Center Settings.",
+    "No reset email was sent because canonical email delivery is not active. Platform owners can recover access securely through Command Center Settings.",
   recoveryUrl: COMMAND_CENTER_RECOVERY_URL,
 };
 
@@ -53,6 +46,9 @@ function appBaseUrl(): string {
   const parsed = new URL(configured);
   if (process.env.NODE_ENV === "production" && parsed.protocol !== "https:") {
     throw new Error("NEXT_PUBLIC_APP_URL must use HTTPS in production.");
+  }
+  if (process.env.NODE_ENV === "production" && parsed.hostname !== "www.gemcybersecurityassist.com") {
+    throw new Error("Password recovery must use the canonical GEM domain in production.");
   }
   return parsed.toString().replace(/\/$/, "");
 }
@@ -93,29 +89,6 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  if (shouldUseSupabaseGateway()) {
-    try {
-      const result = await requestPasswordRecoveryGateway(email);
-      if (!result.emailDeliveryConfigured) {
-        return NextResponse.json(EMAIL_NOT_CONFIGURED_RESPONSE, {
-          status: 503,
-          headers: { "Cache-Control": "no-store" },
-        });
-      }
-    } catch (error) {
-      console.error("[auth] password recovery gateway unavailable", {
-        code: error instanceof Error ? error.name : "unknown_error",
-      });
-      return NextResponse.json(
-        { error: "The recovery service is temporarily unavailable. Please try again." },
-        { status: 503, headers: { "Cache-Control": "no-store" } },
-      );
-    }
-    return NextResponse.json(EMAIL_REQUESTED_RESPONSE, {
-      headers: { "Cache-Control": "no-store" },
-    });
-  }
-
   if (!isMailDeliveryConfigured()) {
     return NextResponse.json(EMAIL_NOT_CONFIGURED_RESPONSE, {
       status: 503,
@@ -147,8 +120,8 @@ export async function POST(request: NextRequest) {
       const result = await sendMail({
         to: user.email,
         subject: "Reset your GEM Enterprise password",
-        text: `A password reset was requested for your GEM Enterprise account. Open this link within 15 minutes: ${resetUrl.toString()}\n\nIf you did not request this, ignore this message.`,
-        html: `<p>A password reset was requested for your GEM Enterprise account.</p><p><a href="${resetUrl.toString()}">Reset your password</a>. This link expires in 15 minutes.</p><p>If you did not request this, ignore this message.</p>`,
+        text: `A password reset was requested for your GEM Enterprise account. Open this canonical GEM link within 15 minutes: ${resetUrl.toString()}\n\nIf you did not request this, ignore this message.`,
+        html: `<p>A password reset was requested for your GEM Enterprise account.</p><p><a href="${resetUrl.toString()}">Reset your password</a>. This canonical GEM link expires in 15 minutes.</p><p>If you did not request this, ignore this message.</p>`,
       });
       delivery = result.sent
         ? "sent"
@@ -157,7 +130,7 @@ export async function POST(request: NextRequest) {
           : "skipped";
     } catch (error) {
       delivery = "failed";
-      console.error("[auth] password reset email delivery failed", {
+      console.error("[auth] canonical password reset email delivery failed", {
         userId: user.id,
         error: error instanceof Error ? error.message : "unknown_error",
       });
@@ -173,6 +146,8 @@ export async function POST(request: NextRequest) {
       flow: "forgot_password_request",
       accountEligible: Boolean(user?.isActive && user.status === "active"),
       delivery,
+      canonicalOrigin: DEFAULT_APP_URL,
+      gatewayRecoveryDisabled: true,
     },
     ipAddress,
     userAgent,

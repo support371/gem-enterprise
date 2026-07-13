@@ -7,51 +7,69 @@ function source(path: string): string {
 }
 
 describe("canonical password recovery and session revocation", () => {
-  it("keeps every emailed reset link on the canonical GEM domain", () => {
-    const recovery = source("supabase/functions/gem-password-recovery/index.ts");
-    expect(recovery).toContain(
-      'const CANONICAL_APP_ORIGIN = "https://www.gemcybersecurityassist.com"',
+  it("keeps recovery entirely on the canonical GEM application", () => {
+    const forgot = source("src/app/api/auth/forgot-password/route.ts");
+    const service = source("src/lib/passwordResetService.ts");
+
+    expect(forgot).toContain(
+      'const DEFAULT_APP_URL = "https://www.gemcybersecurityassist.com"',
     );
-    expect(recovery).toContain('const RESET_PAGE_URL = `${CANONICAL_APP_ORIGIN}/reset-password`');
-    expect(recovery).toContain('`${RESET_PAGE_URL}#token=${encodeURIComponent(token)}`');
-    expect(recovery).not.toContain("chatgpt.site");
-    expect(recovery).not.toContain("searchParams.set");
+    expect(forgot).toContain('new URL("/reset-password", appBaseUrl())');
+    expect(forgot).toContain("resetUrl.hash");
+    expect(forgot).toContain("gatewayRecoveryDisabled: true");
+    expect(forgot).not.toContain("requestPasswordRecoveryGateway");
+    expect(forgot).not.toContain("chatgpt.site");
+    expect(service).not.toContain("completePasswordRecoveryGateway");
   });
 
-  it("versions gateway sessions and rejects a stale account version", () => {
-    const gateway = source("supabase/functions/gem-auth-gateway/index.ts");
-    expect(gateway).toContain("sessionVersion");
-    expect(gateway).toContain('kid: "gem-auth-v2"');
-    expect(gateway).toContain("user.sessionVersion !== expectedSessionVersion");
-    expect(gateway).toContain('"SESSION_REVOKED"');
+  it("uses the old gateway only for credential verification and issues a canonical JWT", () => {
+    const login = source("src/app/api/auth/login/route.ts");
+    expect(login).toContain("loginWithGateway");
+    expect(login).toContain("gateway_credential_verification");
+    expect(login).toContain("signSession");
+    expect(login).not.toContain("wrapGatewayToken");
+  });
+
+  it("rejects legacy wrapped gateway sessions without a database version", () => {
+    const auth = source("src/lib/auth.ts");
+    expect(auth).toContain("Gateway tokens issued before Release 3");
+    expect(auth).toContain("validSessionVersion(gatewaySession.sessionVersion)");
+    expect(auth).toContain("return validateDirectSessionAuthority(gatewaySession)");
   });
 
   it("centralizes revocation in password-change database triggers", () => {
     const direct = source("src/lib/passwordResetService.ts");
-    const recovery = source("supabase/functions/gem-password-recovery/index.ts");
     const migration = source(
       "prisma/migrations/20260713213000_password_recovery_session_revocation/migration.sql",
     );
 
     expect(direct).toContain("sessionVersion: user.sessionVersion");
-    expect(direct).not.toContain("sessionVersion: { increment: 1 }");
-    expect(recovery).toContain('.eq("sessionVersion", user.sessionVersion)');
-    expect(recovery).toContain('select("id,sessionVersion")');
+    expect(direct).toContain("updated.sessionVersion <= user.sessionVersion");
     expect(migration).toContain("gem_increment_session_version_on_password_change");
     expect(migration).toContain('NEW."sessionVersion" := OLD."sessionVersion" + 1');
     expect(migration).toContain("gem_audit_session_revocation_on_password_change");
     expect(migration).toContain("'sessionsRevoked', true");
-    expect(migration).not.toContain("CREATE OR REPLACE FUNCTION public.gem_consume_admin_access_token");
   });
 
-  it("keeps direct sessions authoritative at both cookie and API gates", () => {
+  it("keeps direct sessions authoritative at cookie, proxy, and API gates", () => {
     const auth = source("src/lib/auth.ts");
     const helpers = source("src/lib/api/auth-helpers.ts");
+    const proxy = source("src/proxy.ts");
     expect(auth).toContain("validateDirectSessionAuthority");
     expect(auth).toContain("claims.sessionVersion !== account.sessionVersion");
     expect(auth).toContain("getSessionFromRequest");
     expect(helpers).toContain("sessionVersion: true");
     expect(helpers).toContain("reconcileSessionAuthority");
+    expect(proxy).toContain("getSessionFromRequest");
+  });
+
+  it("publishes a secret-free readiness contract", () => {
+    const readiness = source("src/app/api/auth/recovery-readiness/route.ts");
+    expect(readiness).toContain('resetPageOrigin: "https://www.gemcybersecurityassist.com"');
+    expect(readiness).toContain('tokenTransport: "url_fragment"');
+    expect(readiness).toContain("emailDeliveryConfigured: isMailDeliveryConfigured()");
+    expect(readiness).toContain("gatewayRecoveryDisabled: true");
+    expect(readiness).toContain("legacyGatewaySessionsAccepted: false");
   });
 
   it("promotes the session-version field before Prisma validation and generation", () => {

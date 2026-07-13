@@ -106,6 +106,8 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
 async function validateDirectSessionAuthority(
   claims: SessionPayload,
 ): Promise<SessionPayload | null> {
+  if (!validSessionVersion(claims.sessionVersion)) return null;
+
   try {
     const { db } = await import("@/lib/db");
     const account = await db.user.findUnique({
@@ -125,7 +127,6 @@ async function validateDirectSessionAuthority(
       !account.isActive ||
       account.status === "suspended" ||
       !validRole(account.role) ||
-      !validSessionVersion(claims.sessionVersion) ||
       claims.sessionVersion !== account.sessionVersion
     ) {
       return null;
@@ -148,11 +149,16 @@ async function resolveSessionToken(token: string): Promise<SessionPayload | null
   const gatewayToken = unwrapGatewayToken(token);
   if (gatewayToken) {
     try {
-      return await verifyGatewaySession(gatewayToken);
+      const gatewaySession = await verifyGatewaySession(gatewayToken);
+      // Gateway tokens issued before Release 3 have no account session version and
+      // are deliberately rejected. Users sign in again and receive a canonical GEM JWT.
+      if (!validSessionVersion(gatewaySession.sessionVersion)) return null;
+      return validateDirectSessionAuthority(gatewaySession);
     } catch {
       return null;
     }
   }
+
   const local = await verifySession(token);
   return local ? validateDirectSessionAuthority(local) : null;
 }
