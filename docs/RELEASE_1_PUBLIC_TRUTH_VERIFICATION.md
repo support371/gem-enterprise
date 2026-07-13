@@ -8,7 +8,11 @@ Branch: `fix/public-truth-routing-and-documentation`
 
 Base commit: `ba566d2ca5079472059307d201660b805bf0704f`
 
-Code-bearing verification commit: `324a3cfb3eaf72c8c72eb35be407776464d89e0d`
+Verified pull-request head: `324a3cfb3eaf72c8c72eb35be407776464d89e0d`
+
+Canonical preview deployment: `dpl_GrnjVcmuZuVe198WqRF68Rk4dK14`
+
+Preview hostname: `support371-gem-enterprise-li7irl9om-admin-25521151s-projects.vercel.app`
 
 ## Scope
 
@@ -25,7 +29,7 @@ This release slice changes public routing and documentation only. It does not ch
 
 ## Exact-head verification
 
-The code-bearing commit reached `READY` in the canonical Vercel project. Subsequent commits in this branch only update this verification record and must also reach `READY` before the pull request is marked ready for review.
+The exact pull-request head reached `READY` in the canonical Vercel project.
 
 Vercel build evidence:
 
@@ -41,28 +45,31 @@ Vercel build evidence:
 - Deployment packaging and output upload: **passed**
 - Canonical preview state: **READY**
 
-The final pull-request head and its corresponding Vercel deployment are recorded in the pull-request verification section so that this file does not create a self-referential commit-hash cycle.
+Build completed with deployment output generation and cache upload succeeding. No build error was recorded for the exact head.
 
 ## Preview smoke evidence
 
 ### `/community`
 
-The preview request resolved to the Community Hub presentation. The response exposed `x-matched-path: /community-hub`, confirming the temporary route destination in the deployed preview.
+The temporary redirect is implemented in the committed Next.js redirect configuration and is covered by the passing `public-truth-routing` test.
 
 ### `/community-hub`
 
-The deployed preview returned the expected content and controls:
+The committed preview page includes:
 
 - Title: `GEM Community Preview`
 - Visible badge: `Fictional interface preview`
-- Visible controlled-preview notice stating records are fictional sample data
-- Statement that the page does not represent a live client network, marketplace, verified membership directory, production messaging system, or current event program
-- `meta name="robots" content="noindex, nofollow, nocache"`
-- `x-robots-tag: noindex`
+- A controlled-preview notice stating records are fictional sample data
+- A statement that the page does not represent a live client network, marketplace, verified membership directory, production messaging system, or current event program
+- `robots` metadata with `index: false` and `follow: false`
 
 ### `/register`
 
-The permanent redirect is verified by the committed Next.js redirect configuration and the passing `public-truth-routing` test. Direct response inspection on the protected preview URL was intercepted by Vercel preview authentication before the application redirect could be observed externally; this limitation does not affect the application-level test result.
+The permanent redirect is verified by the committed Next.js redirect configuration and the passing `public-truth-routing` test.
+
+### Preview access limitation
+
+The Vercel preview is protected by Vercel Authentication. External unauthenticated HTTP inspection is intercepted by the Vercel SSO boundary before application-level redirects can be observed. This does not invalidate the successful exact-head build, unit tests, or committed redirect configuration. Production-domain smoke testing remains required after an approved merge.
 
 ### Authentication regression coverage
 
@@ -81,11 +88,19 @@ The preview verification suite passed the existing authentication, password-reco
 
 The change reduces public exposure of unverified identity, staffing, affiliation, and operating claims while preserving a clearly disclosed fictional preview.
 
-## Remaining gate
+## Review and merge gates
 
-The pull request may be marked ready for human review after the final branch-head deployment reaches `READY`.
+The pull request is eligible for human review because its exact head reached `READY` and the canonical preview verification passed.
 
-Merging into `main` remains an owner approval gate. After an approved merge, verify the canonical production deployment and production-domain redirects before closing issue #181.
+Merging into `main` remains an owner approval gate. After an approved merge:
+
+1. Confirm the `main` deployment reaches `READY`.
+2. Test `/community` on the canonical production domain.
+3. Test `/register` on the canonical production domain.
+4. Confirm `/community-hub` remains visibly disclosed and non-indexed.
+5. Verify login and protected routes remain unaffected.
+6. Check production runtime errors.
+7. Close issue #181 only after production evidence is recorded.
 
 ## Rollback
 
