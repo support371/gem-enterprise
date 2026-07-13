@@ -10,6 +10,7 @@ import {
   ClipboardCheck,
   DatabaseZap,
   FileCheck2,
+  Globe2,
   History,
   KeyRound,
   LockKeyhole,
@@ -103,6 +104,7 @@ const demoContent = [
 
 const auditEvents = [
   "Workspace opened for app review demonstration",
+  "Enterprise website walkthrough connected to the review flow",
   "Privacy Policy and Terms routes confirmed as public pages",
   "OAuth connector marked authorization required",
   "Publishing controls blocked until platform confirmation is available",
@@ -133,10 +135,19 @@ export default function TokMetricReviewDemoPage() {
     <div className="min-h-screen bg-[#091019] text-white">
       <header className="border-b border-white/[0.08] bg-[#0b121d]">
         <div className="mx-auto max-w-screen-xl px-4 py-8 sm:px-6 lg:px-8">
-          <Link href="/tokmetric" className="inline-flex items-center gap-2 text-sm text-white/45 hover:text-cyan-300">
-            <ArrowLeft className="h-4 w-4" />
-            Back to TokMetric
-          </Link>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Link href="/tokmetric" className="inline-flex items-center gap-2 text-sm text-white/45 hover:text-cyan-300">
+              <ArrowLeft className="h-4 w-4" />
+              Back to TokMetric
+            </Link>
+            <Link
+              href="/enterprise-demo"
+              className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-300/15"
+            >
+              <Globe2 className="h-4 w-4" />
+              Open full enterprise website walkthrough
+            </Link>
+          </div>
           <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_auto] lg:items-end">
             <div>
               <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">
@@ -162,7 +173,22 @@ export default function TokMetricReviewDemoPage() {
       </header>
 
       <main className="mx-auto max-w-screen-xl px-4 py-10 sm:px-6 lg:px-8">
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.06] p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">Connected recording path</p>
+              <h2 className="mt-2 text-xl font-bold">Show the enterprise website first, then complete the TikTok integration demonstration.</h2>
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-white/55">
+                The enterprise walkthrough explains Home, Intel, Services, Store, Community, Hub, Resources, Company, Contact, onboarding, and TokMetric in one numbered flow. Return here for the product-specific authorization, approval, publishing, status, and audit sequence.
+              </p>
+            </div>
+            <Link href="/enterprise-demo" className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-cyan-300 px-4 py-3 text-sm font-bold text-[#06111b] hover:bg-cyan-200">
+              Start full walkthrough <Globe2 className="h-4 w-4" />
+            </Link>
+          </div>
+        </section>
+
+        <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {readiness.map(([label, status]) => (
             <article key={label} className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-5">
               <p className="text-sm text-white/65">{label}</p>
@@ -254,12 +280,12 @@ export default function TokMetricReviewDemoPage() {
               <h2 className="text-xl font-bold">Recording checklist</h2>
             </div>
             <ul className="space-y-3 text-sm leading-6 text-white/55">
-              <li>1. Open the TokMetric landing page on the verified domain.</li>
-              <li>2. Open this app review demo workspace.</li>
-              <li>3. Show legal pages and explain they are public.</li>
-              <li>4. Show connector state and OAuth requirement.</li>
-              <li>5. Show draft, compliance, approval, and blocked publishing controls.</li>
-              <li>6. State that live posting requires approved scopes and TikTok confirmation.</li>
+              <li>1. Open the full Enterprise Website Walkthrough on the verified domain.</li>
+              <li>2. Tour every numbered public page and explain how TokMetric fits into GEM Enterprise.</li>
+              <li>3. Open the TokMetric landing page and this app review workspace.</li>
+              <li>4. Show the public Privacy Policy and Terms of Service.</li>
+              <li>5. Show the real Sandbox connector state, OAuth consent, and requested scopes.</li>
+              <li>6. Show draft, compliance review, human approval, publishing controls, final status, audit history, and disconnect.</li>
             </ul>
             <div className="mt-6 rounded-2xl border border-cyan-300/20 bg-cyan-300/[0.06] p-4">
               <div className="mb-2 flex items-center gap-2 font-semibold text-cyan-100">
