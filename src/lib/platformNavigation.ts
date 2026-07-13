@@ -20,7 +20,14 @@ export type PlatformNavIcon =
   | "PiggyBank"
   | "Mail"
   | "Rss"
-  | "Activity";
+  | "Activity"
+  | "BarChart3"
+  | "ShieldAlert"
+  | "Scale"
+  | "BadgeDollarSign"
+  | "Bot"
+  | "Plug"
+  | "Building2";
 
 export interface PlatformSurface {
   id: "marketing-mobile" | "enterprise-web-app";
@@ -124,6 +131,59 @@ export const clientPortalNavGroups: PlatformNavGroup[] = [
         icon: "UserCheck",
         label: "Profiles",
         description: "Identity, access, and operating profiles.",
+      },
+    ],
+  },
+  {
+    label: "Command Center",
+    items: [
+      {
+        href: "/app/command-center",
+        icon: "BarChart3",
+        label: "Enterprise Analytics",
+        description: "Unified security, compliance, revenue, client, and AI operating view.",
+      },
+      {
+        href: "/app/command-center/executive",
+        icon: "Activity",
+        label: "Executive",
+        description: "Leadership KPIs, priorities, delivery health, and growth signals.",
+      },
+      {
+        href: "/app/command-center/security",
+        icon: "ShieldAlert",
+        label: "Security Ops",
+        description: "Incident, posture, asset, vulnerability, and response operations.",
+      },
+      {
+        href: "/app/command-center/compliance",
+        icon: "Scale",
+        label: "Compliance",
+        description: "Framework readiness, controls, evidence, policies, risks, and audits.",
+      },
+      {
+        href: "/app/command-center/revenue",
+        icon: "BadgeDollarSign",
+        label: "Revenue Ops",
+        description: "Products, subscriptions, usage metering, pipeline, and expansion.",
+      },
+      {
+        href: "/app/command-center/clients",
+        icon: "Building2",
+        label: "Client Portfolio",
+        description: "Tenant health, renewals, adoption, open actions, and upgrade signals.",
+      },
+      {
+        href: "/app/command-center/agents",
+        icon: "Bot",
+        label: "AI Agents",
+        description: "Agent registry, task quality, approvals, costs, and errors.",
+      },
+      {
+        href: "/app/command-center/integrations",
+        icon: "Plug",
+        label: "Integrations",
+        description: "Connection state, health checks, owners, and remediation.",
       },
     ],
   },
