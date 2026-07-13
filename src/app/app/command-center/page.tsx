@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CommandCenterView } from "@/components/command-center/CommandCenterView";
+import { LiveCommandCenterSnapshot } from "@/components/command-center/LiveCommandCenterSnapshot";
 
 export const metadata: Metadata = {
   title: "Enterprise Command Center | GEM Enterprise",
@@ -7,5 +8,10 @@ export const metadata: Metadata = {
 };
 
 export default function CommandCenterPage() {
-  return <CommandCenterView section="overview" />;
+  return (
+    <div className="space-y-6">
+      <LiveCommandCenterSnapshot />
+      <CommandCenterView section="overview" />
+    </div>
+  );
 }
