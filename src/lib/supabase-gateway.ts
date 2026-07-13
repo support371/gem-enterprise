@@ -363,12 +363,36 @@ export async function setAdminPasswordWithAccessToken<T>(
   }
 }
 
-export async function requestPasswordRecoveryGateway<T = {
+export interface PasswordRecoveryRequestResult {
   accepted: boolean;
-  recovery: string;
-}>(email: string): Promise<T> {
-  return invokeGateway<T>("gem-auth-gateway", {
-    action: "password_recovery_request",
+  recovery: "email_requested" | "email_not_configured";
+  emailDeliveryConfigured: boolean;
+}
+
+export async function requestPasswordRecoveryGateway(
+  email: string,
+): Promise<PasswordRecoveryRequestResult> {
+  return invokeGateway<PasswordRecoveryRequestResult>("gem-password-recovery", {
+    action: "request",
     email,
   });
+}
+
+export interface PasswordRecoveryCompletionResult {
+  ok: true;
+  userId: string;
+}
+
+export async function completePasswordRecoveryGateway(
+  token: string,
+  newPassword: string,
+): Promise<PasswordRecoveryCompletionResult> {
+  return invokeGateway<PasswordRecoveryCompletionResult>(
+    "gem-password-recovery",
+    {
+      action: "complete",
+      token,
+      newPassword,
+    },
+  );
 }

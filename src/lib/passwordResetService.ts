@@ -1,12 +1,41 @@
 import bcryptjs from "bcryptjs";
 import { db } from "@/lib/db";
 import {
+  completePasswordRecoveryGateway,
+  GatewayRequestError,
+  shouldUseSupabaseGateway,
+} from "@/lib/supabase-gateway";
+import {
   fingerprintPasswordHash,
   passwordFingerprintsMatch,
   verifyPasswordResetToken,
 } from "@/lib/passwordReset";
 
 export async function completePasswordReset(token: string, newPassword: string) {
+  if (shouldUseSupabaseGateway()) {
+    try {
+      const result = await completePasswordRecoveryGateway(token, newPassword);
+      return {
+        ok: true as const,
+        userId: result.userId,
+        auditRecorded: true as const,
+      };
+    } catch (error) {
+      if (error instanceof GatewayRequestError) {
+        const code =
+          error.code === "PASSWORD_REUSED"
+            ? "password_reused"
+            : error.code === "PASSWORD_POLICY_FAILED"
+              ? "password_policy_failed"
+              : error.statusCode >= 500
+                ? "service_unavailable"
+                : "invalid_token";
+        return { ok: false as const, code };
+      }
+      return { ok: false as const, code: "service_unavailable" };
+    }
+  }
+
   const claims = await verifyPasswordResetToken(token);
   if (!claims) return { ok: false as const, code: "invalid_token" };
 
@@ -31,5 +60,9 @@ export async function completePasswordReset(token: string, newPassword: string) 
   });
   if (changed.count !== 1) return { ok: false as const, code: "invalid_token" };
 
-  return { ok: true as const, userId: user.id };
+  return {
+    ok: true as const,
+    userId: user.id,
+    auditRecorded: false as const,
+  };
 }

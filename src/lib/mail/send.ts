@@ -8,7 +8,7 @@ export type MailMessage = {
   replyTo?: string;
 };
 
-function hasMailConfig() {
+export function isMailDeliveryConfigured() {
   return Boolean(
     process.env.SMTP_HOST &&
       process.env.SMTP_PORT &&
@@ -27,7 +27,7 @@ function fromAddress() {
 }
 
 export async function sendMail(message: MailMessage) {
-  if (!hasMailConfig()) {
+  if (!isMailDeliveryConfigured()) {
     console.warn("[mail] SMTP is not configured; message skipped", {
       recipientCount: Array.isArray(message.to) ? message.to.length : 1,
       subject: message.subject,
