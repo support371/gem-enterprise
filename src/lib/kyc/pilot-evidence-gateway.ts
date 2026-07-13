@@ -31,7 +31,7 @@ export async function readPilotEvidenceGateway<T>(input: {
   try {
     const key = gatewayAnonKey();
     const response = await fetch(
-      `${gatewayBaseUrl()}/gem-pilot-evidence-read`,
+      `${gatewayBaseUrl()}/gem-pilot-evidence-read-v2`,
       {
         method: "POST",
         headers: {
