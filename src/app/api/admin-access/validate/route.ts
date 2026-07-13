@@ -9,6 +9,7 @@ import {
 
 // This route is intentionally dynamic and no-store because setup capabilities
 // are short-lived and must always be checked against the current database state.
+// Keep this endpoint deployed with the password-setup page as one release unit.
 const schema = z
   .object({
     accessToken: z.string().min(32).max(512),
