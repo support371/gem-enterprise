@@ -30,7 +30,8 @@ export default function AdminAccessAuthorizePage() {
   const [ready, setReady] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [sqlConfirmed, setSqlConfirmed] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [authorizationVerified, setAuthorizationVerified] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,7 +54,7 @@ export default function AdminAccessAuthorizePage() {
   async function generate() {
     setGenerating(true);
     setCopied(false);
-    setSqlConfirmed(false);
+    setAuthorizationVerified(false);
     setError(null);
     try {
       const next = await generateAdminAccessAuthorization();
@@ -78,13 +79,56 @@ export default function AdminAccessAuthorizePage() {
     try {
       await navigator.clipboard.writeText(authorization.sql);
       setCopied(true);
+      setError(null);
     } catch {
       setError("Copy failed. Select the SQL manually and copy it.");
     }
   }
 
+  async function verifyAuthorization() {
+    if (!authorization) return;
+    setVerifying(true);
+    setAuthorizationVerified(false);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/admin-access/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tokenHash: authorization.tokenHash,
+          requestId: authorization.requestId,
+        }),
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        active?: boolean;
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(body.error || "Authorization verification is unavailable.");
+      }
+
+      if (!body.active) {
+        throw new Error(
+          "No active authorization row was found. Run the displayed SQL in the correct Supabase project, confirm that it returned one row, then verify again.",
+        );
+      }
+
+      setAuthorizationVerified(true);
+    } catch (verificationError) {
+      setError(
+        verificationError instanceof Error
+          ? verificationError.message
+          : "Authorization could not be verified.",
+      );
+    } finally {
+      setVerifying(false);
+    }
+  }
+
   function continueToPasswordSetup() {
-    if (!authorization || !sqlConfirmed) return;
+    if (!authorization || !authorizationVerified) return;
     window.location.assign(
       `/admin-access#token=${encodeURIComponent(authorization.token)}`,
     );
@@ -94,7 +138,7 @@ export default function AdminAccessAuthorizePage() {
     window.sessionStorage.removeItem(ADMIN_ACCESS_SESSION_KEY);
     setAuthorization(null);
     setCopied(false);
-    setSqlConfirmed(false);
+    setAuthorizationVerified(false);
     setError(null);
   }
 
@@ -225,24 +269,47 @@ export default function AdminAccessAuthorizePage() {
               </Button>
             </section>
 
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-4 text-sm text-amber-100/80">
-              <input
-                type="checkbox"
-                checked={sqlConfirmed}
-                onChange={(event) => setSqlConfirmed(event.target.checked)}
-                className="mt-1"
-              />
-              <span>
-                I ran the statement in the correct Supabase project and it returned
-                one authorization row.
-              </span>
-            </label>
+            <section className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-5">
+              <h2 className="font-semibold text-amber-100">
+                3. Verify the authorization row
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-amber-100/70">
+                The password page remains locked until the live database confirms
+                that the exact token hash and request ID are active.
+              </p>
+              <Button
+                type="button"
+                onClick={() => void verifyAuthorization()}
+                disabled={verifying || authorizationVerified}
+                variant="outline"
+                className="mt-4 w-full border-amber-300/30 text-amber-100"
+              >
+                {verifying ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying
+                  </>
+                ) : authorizationVerified ? (
+                  <>
+                    <CheckCircle2 className="mr-2 h-4 w-4 text-green-400" /> Authorization verified
+                  </>
+                ) : (
+                  "Verify authorization"
+                )}
+              </Button>
+            </section>
+
+            {authorizationVerified ? (
+              <div className="rounded-xl border border-green-500/25 bg-green-500/[0.07] p-4 text-sm text-green-200">
+                The database confirmed the one-time authorization. Password creation
+                is now unlocked.
+              </div>
+            ) : null}
 
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button
                 type="button"
                 onClick={continueToPasswordSetup}
-                disabled={!sqlConfirmed}
+                disabled={!authorizationVerified}
                 className="flex-1 bg-cyan-400 font-semibold text-black hover:bg-cyan-300"
               >
                 Continue to password setup
@@ -268,7 +335,7 @@ export default function AdminAccessAuthorizePage() {
 
         <p className="mt-6 text-center text-xs leading-5 text-slate-500">
           No password is created on this page. You choose it only after the
-          one-time authorization is registered.
+          one-time authorization is registered and verified.
           <Link href="/client-login" className="ml-1 text-cyan-400 hover:underline">
             Return to sign-in
           </Link>
