@@ -36,10 +36,13 @@ describe("administrator access token validation client", () => {
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     const body = JSON.parse(String(init.body)) as { p_token_hash: string };
+    const headers = init.headers as Record<string, string>;
     expect(url).toContain("/rest/v1/rpc/gem_validate_admin_access_token");
     expect(body.p_token_hash).toMatch(/^[a-f0-9]{64}$/);
     expect(body.p_token_hash).not.toContain(accessToken);
     expect(String(init.body)).not.toContain(accessToken);
+    expect(headers.apikey).toMatch(/^sb_publishable_/);
+    expect(headers.Authorization).toBeUndefined();
   });
 
   it("returns a simple invalid result for missing or expired capabilities", async () => {
