@@ -7,7 +7,7 @@ export const requiredCommandCenterOperatingTables = [
   "enterprise_security_incidents",
   "enterprise_compliance_controls",
   "enterprise_agents",
-  "enterprise_integrations",
+  "enterprise_integration_health",
 ] as const;
 
 export interface CommandCenterOperatingMetrics {
@@ -36,7 +36,7 @@ type ReadinessRow = {
   securityIncidents: string | null;
   complianceControls: string | null;
   agents: string | null;
-  integrations: string | null;
+  integrationHealth: string | null;
 };
 
 type MetricsRow = {
@@ -67,7 +67,7 @@ export async function getCommandCenterOperatingLayerSnapshot(): Promise<CommandC
         to_regclass('public.enterprise_security_incidents')::text AS "securityIncidents",
         to_regclass('public.enterprise_compliance_controls')::text AS "complianceControls",
         to_regclass('public.enterprise_agents')::text AS "agents",
-        to_regclass('public.enterprise_integrations')::text AS "integrations"
+        to_regclass('public.enterprise_integration_health')::text AS "integrationHealth"
     `);
 
     const tableState: Record<(typeof requiredCommandCenterOperatingTables)[number], string | null> = {
@@ -76,7 +76,7 @@ export async function getCommandCenterOperatingLayerSnapshot(): Promise<CommandC
       enterprise_security_incidents: readiness?.securityIncidents ?? null,
       enterprise_compliance_controls: readiness?.complianceControls ?? null,
       enterprise_agents: readiness?.agents ?? null,
-      enterprise_integrations: readiness?.integrations ?? null,
+      enterprise_integration_health: readiness?.integrationHealth ?? null,
     };
 
     const missingTables = requiredCommandCenterOperatingTables.filter((table) => !tableState[table]);
@@ -86,7 +86,7 @@ export async function getCommandCenterOperatingLayerSnapshot(): Promise<CommandC
         metrics: null,
         missingTables: [...missingTables],
         message:
-          "The persistent command-center operating layer has not been installed. The reviewed SQL remains a non-auto-applied proposal until schema and production approval are complete.",
+          "The persistent command-center operating layer has not been installed. The reviewed migration remains non-auto-applied until disposable-database validation and production approval are complete.",
       };
     }
 
@@ -95,41 +95,42 @@ export async function getCommandCenterOperatingLayerSnapshot(): Promise<CommandC
         (
           SELECT COUNT(*)::int
           FROM enterprise_subscriptions
-          WHERE status IN ('trialing', 'active', 'past_due')
+          WHERE status IN ('TRIALING', 'ACTIVE', 'PAST_DUE')
         ) AS "activeSubscriptions",
         COALESCE((
           SELECT SUM(quantity)::double precision
           FROM enterprise_usage_records
-          WHERE period_end > date_trunc('month', NOW())
-            AND period_start < date_trunc('month', NOW()) + INTERVAL '1 month'
+          WHERE status = 'ACCEPTED'
+            AND occurred_at >= date_trunc('month', NOW())
+            AND occurred_at < date_trunc('month', NOW()) + INTERVAL '1 month'
         ), 0::double precision) AS "meteredUsageCurrentPeriod",
         (
           SELECT COUNT(*)::int
           FROM enterprise_security_incidents
-          WHERE status IN ('open', 'investigating', 'contained')
+          WHERE status IN ('OPEN', 'INVESTIGATING', 'CONTAINED')
         ) AS "openSecurityIncidents",
         (
           SELECT COUNT(*)::int
           FROM enterprise_security_incidents
-          WHERE severity = 'critical'
-            AND status IN ('open', 'investigating', 'contained')
+          WHERE severity = 'CRITICAL'
+            AND status IN ('OPEN', 'INVESTIGATING', 'CONTAINED')
         ) AS "criticalSecurityIncidents",
         (
           SELECT COUNT(*)::int
           FROM enterprise_compliance_controls
-          WHERE status = 'ready'
+          WHERE status IN ('READY', 'COMPLETE')
         ) AS "complianceControlsReady",
         (
           SELECT COUNT(*)::int
           FROM enterprise_compliance_controls
           WHERE due_at IS NOT NULL
             AND due_at <= NOW() + INTERVAL '30 days'
-            AND status NOT IN ('ready', 'not_applicable')
+            AND status NOT IN ('READY', 'COMPLETE')
         ) AS "complianceControlsDue",
         (
           SELECT COUNT(*)::int
           FROM enterprise_agents
-          WHERE status IN ('ready', 'running')
+          WHERE status = 'ACTIVE'
         ) AS "activeAgents",
         (
           SELECT COUNT(*)::int
@@ -138,13 +139,13 @@ export async function getCommandCenterOperatingLayerSnapshot(): Promise<CommandC
         ) AS "pendingApprovals",
         (
           SELECT COUNT(*)::int
-          FROM enterprise_integrations
-          WHERE state = 'connected'
+          FROM enterprise_integration_health
+          WHERE status = 'HEALTHY'
         ) AS "connectedIntegrations",
         (
           SELECT COUNT(*)::int
-          FROM enterprise_integrations
-          WHERE state IN ('degraded', 'reauthorization_required', 'blocked')
+          FROM enterprise_integration_health
+          WHERE status IN ('DEGRADED', 'OUTAGE', 'AUTHORIZATION_REQUIRED', 'DISCONNECTED')
         ) AS "degradedIntegrations"
     `);
 
