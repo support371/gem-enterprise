@@ -6,11 +6,14 @@ PR #178 adds a read-only administrator evidence report for one exact GEM Verify 
 
 ## Production gateway
 
-- Supabase function: `gem-pilot-evidence-read-v3`
+- Supabase function: `gem-pilot-evidence-read-v4`
 - Project: `slzdjoqpzbkwzuaexlkj`
 - Deployment status: `ACTIVE`
-- JWT verification: enabled
+- Supabase JWT verification: disabled intentionally
+- Mandatory custom authentication: valid, active GEM administrator session verified through `gem-admin-read`
 - Existing authentication, administration, audit, readiness, and retention functions are unchanged.
+
+The application sends no embedded Supabase JWT or API key to this function. Every request must still carry a valid GEM administrator session token in its JSON body. The function validates that session through the existing administrator gateway before performing any read.
 
 The gateway accepts both production gateway login audits (`resource=auth`) and local login audits (`resource=user`), then normalizes successful login evidence to the evaluator contract.
 
