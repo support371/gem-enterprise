@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   ExternalLink,
@@ -60,7 +61,7 @@ const steps = [
   {
     number: "05",
     title: "Community and Team",
-    href: "/community",
+    href: "/community-hub",
     purpose: "Explain the people, specialist roles, and collaboration context.",
     show:
       "Show leadership, security-operations roles, collaboration areas, membership pathways, and the professional-verification boundary.",
@@ -241,7 +242,7 @@ export default function EnterpriseGuidedDemoPage() {
             </div>
             <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Full website and TikTok review walkthrough</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-white/55">
-              Play the complete page-by-page story, open any live page, and use the narration panel as the recording script.
+              Play the complete page-by-page story, open every real page in a separate tab, and use the narration panel as the recording script.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -261,10 +262,10 @@ export default function EnterpriseGuidedDemoPage() {
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_390px]">
-          <article className="overflow-hidden rounded-3xl border border-white/10 bg-black shadow-2xl">
+          <article className="overflow-hidden rounded-3xl border border-white/10 bg-[#07131d] shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 bg-[#0a1722] px-4 py-3">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="hidden gap-1.5 sm:flex">
+                <div className="hidden gap-1.5 sm:flex" aria-hidden="true">
                   <span className="h-3 w-3 rounded-full bg-rose-400/80" />
                   <span className="h-3 w-3 rounded-full bg-amber-300/80" />
                   <span className="h-3 w-3 rounded-full bg-emerald-400/80" />
@@ -276,19 +277,62 @@ export default function EnterpriseGuidedDemoPage() {
               <Link
                 href={current.href}
                 target="_blank"
-                className="ml-3 inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-white/65 hover:bg-white/10 hover:text-white"
+                rel="noreferrer"
+                className="ml-3 inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-cyan-300/25 bg-cyan-300/10 px-3 py-1.5 text-xs font-semibold text-cyan-100 hover:bg-cyan-300/20"
               >
-                Open live <ExternalLink className="h-3.5 w-3.5" />
+                Open real page <ExternalLink className="h-3.5 w-3.5" />
               </Link>
             </div>
-            <div className="relative aspect-[16/10] min-h-[430px] bg-white">
-              <iframe
-                key={current.href}
-                src={current.href}
-                title={`${current.title} live page preview`}
-                className="absolute inset-0 h-full w-full border-0"
-                loading="eager"
-              />
+
+            <div className="relative flex min-h-[520px] items-center overflow-hidden p-6 sm:p-10">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(34,211,238,0.18),transparent_36%),radial-gradient(circle_at_85%_75%,rgba(52,211,153,0.13),transparent_34%)]" />
+              <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.08)_1px,transparent_1px)] [background-size:36px_36px]" />
+
+              <div className="relative mx-auto w-full max-w-4xl">
+                <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">
+                  <span className="rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1.5">Page {current.number}</span>
+                  <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-white/50">Secure external view</span>
+                </div>
+
+                <h2 className="mt-6 max-w-3xl text-4xl font-black tracking-tight sm:text-6xl">{current.title}</h2>
+                <p className="mt-5 max-w-3xl text-lg leading-8 text-white/65">{current.purpose}</p>
+
+                <div className="mt-8 grid gap-4 md:grid-cols-3">
+                  <div className="rounded-2xl border border-white/10 bg-black/25 p-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">Verified domain</p>
+                    <p className="mt-3 break-all text-sm font-semibold text-white/75">gemcybersecurityassist.com</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/25 p-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">Route</p>
+                    <p className="mt-3 text-sm font-semibold text-white/75">{current.href}</p>
+                  </div>
+                  <div className="rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.07] p-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200">Recording state</p>
+                    <p className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-emerald-100">
+                      <CheckCircle2 className="h-4 w-4" /> Ready to open
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/35">Screen-recording direction</p>
+                  <p className="mt-3 text-sm leading-7 text-white/65">{current.show}</p>
+                </div>
+
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <Link
+                    href={current.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 rounded-xl bg-cyan-300 px-5 py-3 text-sm font-bold text-[#06111b] hover:bg-cyan-200"
+                  >
+                    Open and record this page <ExternalLink className="h-4 w-4" />
+                  </Link>
+                  <span className="text-xs leading-5 text-white/35">
+                    Pages open separately because GEM security headers prohibit embedded framing.
+                  </span>
+                </div>
+              </div>
             </div>
           </article>
 
