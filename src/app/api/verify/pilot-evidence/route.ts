@@ -51,12 +51,19 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const applicationId = parsed.data.applicationId;
+  const analystId = parsed.data.analystId;
+  if (!applicationId || !analystId) {
+    return json({ error: "Application ID and analyst ID are required." }, 400);
+  }
+
   const gatewayToken = await getGatewaySessionToken();
   if (gatewayToken) {
     try {
       const source = await readPilotEvidenceGateway<PilotEvidenceSource>({
         token: gatewayToken,
-        ...parsed.data,
+        applicationId,
+        analystId,
       });
       return reportResponse(source);
     } catch (error) {
@@ -73,7 +80,7 @@ export async function GET(request: NextRequest) {
   try {
     const [application, analyst] = await Promise.all([
       db.kYCApplication.findUnique({
-        where: { id: parsed.data.applicationId },
+        where: { id: applicationId },
         include: {
           user: {
             select: {
@@ -90,7 +97,7 @@ export async function GET(request: NextRequest) {
         },
       }),
       db.user.findUnique({
-        where: { id: parsed.data.analystId },
+        where: { id: analystId },
         select: {
           id: true,
           role: true,
