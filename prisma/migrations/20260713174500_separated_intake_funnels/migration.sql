@@ -75,6 +75,12 @@ CREATE TABLE "intake_status_events" (
     FOREIGN KEY ("actor_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
+-- Supabase exposes public-schema tables through PostgREST. Keep both tables fail-closed:
+-- application access uses the trusted server-side PostgreSQL connection and no public RLS
+-- policies are created by this migration.
+ALTER TABLE "intake_submissions" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "intake_status_events" ENABLE ROW LEVEL SECURITY;
+
 CREATE INDEX "intake_submissions_kind_status_created_at_idx"
   ON "intake_submissions"("kind", "status", "created_at" DESC);
 

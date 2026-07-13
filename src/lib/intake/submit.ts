@@ -11,6 +11,7 @@ import {
   IntakeStoreUnavailableError,
 } from "@/lib/intake/repository";
 import { queueForKind, type IntakeKind } from "@/lib/intake/types";
+import { getStoreProduct } from "@/lib/storeCatalog";
 
 const CONSENT_VERSION = "public-intake-consent-2026-07-13";
 const PRIVACY_VERSION = "privacy-policy-2026-07-13";
@@ -88,6 +89,20 @@ export async function handlePublicIntake(
     return json({ error: "Submission could not be accepted." }, 400);
   }
 
+  const canonicalProduct =
+    options.kind === "PRODUCT_REQUEST" && data.productSlug
+      ? getStoreProduct(data.productSlug)
+      : undefined;
+  if (options.kind === "PRODUCT_REQUEST" && !canonicalProduct) {
+    return json(
+      {
+        error: "The requested catalogue item is not available for qualification.",
+        code: "INVALID_PRODUCT_REFERENCE",
+      },
+      400,
+    );
+  }
+
   const session = await getSession();
   const {
     name,
@@ -102,10 +117,10 @@ export async function handlePublicIntake(
     privacyAccepted: _privacyAccepted,
     honeypot: _honeypot,
     startedAt: _startedAt,
-    productSlug,
-    productName,
-    productSku,
-    productCategory,
+    productSlug: _productSlug,
+    productName: _productName,
+    productSku: _productSku,
+    productCategory: _productCategory,
     ...payload
   } = data;
 
@@ -115,12 +130,11 @@ export async function handlePublicIntake(
       queue: queueForKind(options.kind),
       userId: session?.userId ?? null,
       product:
-        options.kind === "PRODUCT_REQUEST" && productSlug && productName
+        options.kind === "PRODUCT_REQUEST" && canonicalProduct
           ? {
-              slug: productSlug,
-              name: productName,
-              sku: productSku,
-              category: productCategory,
+              slug: canonicalProduct.slug,
+              name: canonicalProduct.name,
+              category: canonicalProduct.category,
             }
           : null,
       name,
@@ -139,39 +153,49 @@ export async function handlePublicIntake(
       userAgentHash: privacyHash(userAgent),
     });
 
-    await emitAuditLog({
-      userId: session?.userId,
-      action: "case_created",
-      resource: "intake_submission",
-      resourceId: submission.id,
-      metadata: {
-        publicId: submission.publicId,
-        kind: submission.kind,
-        queue: submission.queue,
-        status: submission.status,
-        authenticated: Boolean(session),
-        productSlug: submission.productSlug,
-      },
-      ipAddress,
-      userAgent,
-    });
+    const evidenceResults = await Promise.allSettled([
+      emitAuditLog({
+        userId: session?.userId,
+        action: "case_created",
+        resource: "intake_submission",
+        resourceId: submission.id,
+        metadata: {
+          publicId: submission.publicId,
+          kind: submission.kind,
+          queue: submission.queue,
+          status: submission.status,
+          authenticated: Boolean(session),
+          productSlug: submission.productSlug,
+        },
+        ipAddress,
+        userAgent,
+      }),
+      createEvidenceItem({
+        userId: session?.userId,
+        class: "governance",
+        action: "public_intake_consent_receipt",
+        data: {
+          publicId: submission.publicId,
+          kind: submission.kind,
+          consentVersion: CONSENT_VERSION,
+          privacyVersion: PRIVACY_VERSION,
+          consentGiven: true,
+          privacyAccepted: true,
+          jurisdiction,
+          contactEmail: email,
+        },
+        retentionYears: 7,
+      }),
+    ]);
 
-    await createEvidenceItem({
-      userId: session?.userId,
-      class: "governance",
-      action: "public_intake_consent_receipt",
-      data: {
-        publicId: submission.publicId,
-        kind: submission.kind,
-        consentVersion: CONSENT_VERSION,
-        privacyVersion: PRIVACY_VERSION,
-        consentGiven: true,
-        privacyAccepted: true,
-        jurisdiction,
-        contactEmail: email,
-      },
-      retentionYears: 7,
-    });
+    for (const [index, result] of evidenceResults.entries()) {
+      if (result.status === "rejected") {
+        console.error(
+          `[POST public intake ${options.kind}] post-commit evidence ${index} failed`,
+          result.reason,
+        );
+      }
+    }
 
     return json(
       {

@@ -8,6 +8,7 @@ import type {
   IntakeStatusEventRecord,
   IntakeSubmissionRecord,
 } from "@/lib/intake/types";
+import { canTransitionIntake } from "@/lib/intake/workflow";
 
 export class IntakeStoreUnavailableError extends Error {
   constructor() {
@@ -16,11 +17,20 @@ export class IntakeStoreUnavailableError extends Error {
   }
 }
 
+export class IntakeStatusConflictError extends Error {
+  constructor(public readonly currentStatus: IntakeStatus) {
+    super(`The intake status changed to ${currentStatus} before this update was recorded.`);
+    this.name = "IntakeStatusConflictError";
+  }
+}
+
 function isMissingStore(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const value = `${error.name} ${error.message}`.toLowerCase();
+  const mentionsStore =
+    value.includes("intake_submissions") || value.includes("intake_status_events");
   return (
-    value.includes("intake_submissions") &&
+    mentionsStore &&
     (value.includes("does not exist") || value.includes("42p01") || value.includes("p2010"))
   );
 }
@@ -243,6 +253,7 @@ export async function getIntakeSubmission(
 export async function updateIntakeSubmission(input: {
   id: string;
   status: IntakeStatus;
+  expectedStatus: IntakeStatus;
   actorId: string;
   reason: string;
   assignedToId?: string | null;
@@ -259,12 +270,23 @@ export async function updateIntakeSubmission(input: {
         FOR UPDATE
       `);
       if (!current[0]) return null;
+      if (
+        current[0].status !== input.expectedStatus ||
+        !canTransitionIntake(current[0].status, input.status)
+      ) {
+        throw new IntakeStatusConflictError(current[0].status);
+      }
+
+      const assignment =
+        input.assignedToId === undefined
+          ? Prisma.sql`assigned_to_id`
+          : Prisma.sql`${input.assignedToId}`;
 
       await transaction.$executeRaw(Prisma.sql`
         UPDATE intake_submissions
         SET
           status = CAST(${input.status} AS "IntakeSubmissionStatus"),
-          assigned_to_id = COALESCE(${input.assignedToId ?? null}, assigned_to_id),
+          assigned_to_id = ${assignment},
           updated_at = ${now}
         WHERE id = ${input.id}
       `);
@@ -286,7 +308,10 @@ export async function updateIntakeSubmission(input: {
           CAST(${input.status} AS "IntakeSubmissionStatus"),
           ${input.actorId},
           ${input.reason},
-          CAST(${JSON.stringify({ assignedToId: input.assignedToId ?? null })} AS jsonb),
+          CAST(${JSON.stringify({
+            assignmentChanged: input.assignedToId !== undefined,
+            assignedToId: input.assignedToId === undefined ? null : input.assignedToId,
+          })} AS jsonb),
           ${now}
         )
       `);

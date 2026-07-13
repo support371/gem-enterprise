@@ -85,12 +85,14 @@ describe("separated intake funnels", () => {
     expect(nextIntakeStatuses("CLOSED")).toEqual([]);
   });
 
-  it("defines additive durable tables and immutable event history", () => {
+  it("defines additive durable tables, fail-closed RLS, and immutable event history", () => {
     const migration = source(
       "prisma/migrations/20260713174500_separated_intake_funnels/migration.sql",
     );
     expect(migration).toContain('CREATE TABLE "intake_submissions"');
     expect(migration).toContain('CREATE TABLE "intake_status_events"');
+    expect(migration).toContain('ALTER TABLE "intake_submissions" ENABLE ROW LEVEL SECURITY');
+    expect(migration).toContain('ALTER TABLE "intake_status_events" ENABLE ROW LEVEL SECURITY');
     expect(migration).toContain("intake_submissions_queue_status_created_at_idx");
     expect(migration).toContain("ON DELETE CASCADE");
     expect(migration).not.toMatch(/\bDROP\s+(?:TABLE|TYPE|COLUMN)\b/i);
@@ -125,5 +127,19 @@ describe("separated intake funnels", () => {
     expect(legacyRoute).toContain('enterprise: "/enterprise/apply"');
     expect(legacyRoute).toContain('community: "/community/apply"');
     expect(legacyRoute).not.toMatch(/within\s+(?:1|24)\s+hours?/i);
+  });
+
+  it("uses canonical product data, durable post-commit handling, and concurrency guards", () => {
+    const submitSource = source("src/lib/intake/submit.ts");
+    const repositorySource = source("src/lib/intake/repository.ts");
+    const detailRoute = source("src/app/api/admin/intake/[id]/route.ts");
+
+    expect(submitSource).toContain("getStoreProduct");
+    expect(submitSource).toContain("INVALID_PRODUCT_REFERENCE");
+    expect(submitSource).toContain("Promise.allSettled");
+    expect(repositorySource).toContain("expectedStatus");
+    expect(repositorySource).toContain("IntakeStatusConflictError");
+    expect(repositorySource).toContain("input.assignedToId === undefined");
+    expect(detailRoute).toContain("STALE_INTAKE_STATUS");
   });
 });

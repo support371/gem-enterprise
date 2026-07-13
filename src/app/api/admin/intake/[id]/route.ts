@@ -5,6 +5,7 @@ import { emitAuditLog } from "@/lib/audit";
 import { getRequestContext, requireAdmin } from "@/lib/api/auth-helpers";
 import {
   getIntakeSubmission,
+  IntakeStatusConflictError,
   IntakeStoreUnavailableError,
   updateIntakeSubmission,
 } from "@/lib/intake/repository";
@@ -91,6 +92,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const updated = await updateIntakeSubmission({
       id,
       status: parsed.data.status,
+      expectedStatus: current.submission.status,
       actorId: gate.session.userId,
       reason: parsed.data.reason,
       assignedToId: parsed.data.assignedToId,
@@ -109,7 +111,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
         fromStatus: current.submission.status,
         toStatus: updated.status,
         reason: parsed.data.reason,
-        assignedToId: parsed.data.assignedToId ?? current.submission.assignedToId,
+        assignedToId:
+          parsed.data.assignedToId === undefined
+            ? current.submission.assignedToId
+            : parsed.data.assignedToId,
       },
       ipAddress,
       userAgent,
@@ -119,6 +124,16 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   } catch (error) {
     if (error instanceof IntakeStoreUnavailableError) {
       return json({ error: error.message, code: "INTAKE_STORAGE_NOT_READY" }, 503);
+    }
+    if (error instanceof IntakeStatusConflictError) {
+      return json(
+        {
+          error: error.message,
+          code: "STALE_INTAKE_STATUS",
+          currentStatus: error.currentStatus,
+        },
+        409,
+      );
     }
     console.error("[PATCH /api/admin/intake/:id]", error);
     return json({ error: "Unable to update the intake submission" }, 500);
