@@ -17,6 +17,18 @@ describe("GEM Verify pilot evidence contract", () => {
     expect(route).toContain('mutatesProductionData: false');
   });
 
+  it("uses an isolated, timeout-protected production gateway", () => {
+    const route = source("src/app/api/verify/pilot-evidence/route.ts");
+    const gateway = source("src/lib/kyc/pilot-evidence-gateway.ts");
+
+    expect(route).toContain("readPilotEvidenceGateway");
+    expect(route).toContain("getGatewaySessionToken");
+    expect(gateway).toContain("gem-pilot-evidence-read");
+    expect(gateway).toContain("AbortController");
+    expect(gateway).toContain('method: "POST"');
+    expect(gateway).not.toMatch(/\.(create|update|delete|upsert)\(/);
+  });
+
   it("requires an explicit synthetic marker and guarded naming convention", () => {
     const route = source("src/app/api/verify/applications/route.ts");
 
