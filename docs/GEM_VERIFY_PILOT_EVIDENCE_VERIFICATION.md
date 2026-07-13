@@ -9,6 +9,7 @@ PR #178 adds a read-only administrator evidence report for one exact GEM Verify 
 - Supabase function: `gem-pilot-evidence-read-v4`
 - Project: `slzdjoqpzbkwzuaexlkj`
 - Deployment status: `ACTIVE`
+- Deployed source hash: `0994609dfb8250944762deb114acedcbd3417518278d28a2434701d2d3417b66`
 - Supabase JWT verification: disabled intentionally
 - Mandatory custom authentication: valid, active GEM administrator session verified through `gem-admin-read`
 - Existing authentication, administration, audit, readiness, and retention functions are unchanged.
@@ -22,6 +23,7 @@ The gateway accepts both production gateway login audits (`resource=auth`) and l
 A report passes only when all of the following are present:
 
 - explicit `gem-verify-phase-1b` synthetic marker;
+- a genuinely new synthetic case rather than a repurposed active application;
 - active verified applicant, analyst, and administrator-level decision maker;
 - audited analyst role designation;
 - successful login audits for all three controlled identities;
@@ -33,6 +35,12 @@ A report passes only when all of the following are present:
 ## Data boundary
 
 The report returns no applicant names, email addresses, form fields, review notes, document metadata, passwords, tokens, connection strings, or database credentials. The production gateway only returns IDs, role/status flags, timestamps, workflow action names, the explicit synthetic marker, document count, and four allowlisted audit metadata keys.
+
+## Canonical build history
+
+The canonical preview for commit `9c6283a8ca2beff4dbe99bfc9d6d5b9653f2dbb0` completed checkout, dependency installation, Prisma generation, and ESLint with zero warnings. TypeScript then identified one query-object inference error in the evidence route. Commit `049c9468f9470c9a8b0c3e66b40d42525da7c3cb` fixed it by passing explicitly validated application and analyst identifiers to the gateway client.
+
+This documentation-only commit retriggers verification of the corrected branch without changing runtime behavior.
 
 ## Merge gate
 
