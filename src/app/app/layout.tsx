@@ -28,6 +28,13 @@ import {
   Mail,
   Rss,
   Activity,
+  BarChart3,
+  ShieldAlert,
+  Scale,
+  BadgeDollarSign,
+  Bot,
+  Plug,
+  Building2,
 } from "lucide-react";
 import { AIChatWidget } from "@/components/AIChatWidget";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -71,6 +78,13 @@ const iconMap: Record<PlatformNavIcon, React.ComponentType<{ className?: string 
   Mail,
   Rss,
   Activity,
+  BarChart3,
+  ShieldAlert,
+  Scale,
+  BadgeDollarSign,
+  Bot,
+  Plug,
+  Building2,
 };
 
 function isActivePath(pathname: string, href: string) {
