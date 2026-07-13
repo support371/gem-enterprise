@@ -15,9 +15,15 @@ export async function completePasswordReset(token: string, newPassword: string) 
   if (shouldUseSupabaseGateway()) {
     try {
       const result = await completePasswordRecoveryGateway(token, newPassword);
+      const sessionVersionValue = (result as { sessionVersion?: unknown }).sessionVersion;
       return {
         ok: true as const,
         userId: result.userId,
+        sessionVersion:
+          Number.isSafeInteger(sessionVersionValue) && Number(sessionVersionValue) >= 0
+            ? Number(sessionVersionValue)
+            : null,
+        sessionsRevoked: true as const,
         auditRecorded: true as const,
       };
     } catch (error) {
@@ -55,14 +61,23 @@ export async function completePasswordReset(token: string, newPassword: string) 
 
   const nextHash = await bcryptjs.hash(newPassword, 12);
   const changed = await db.user.updateMany({
-    where: { id: user.id, passwordHash: user.passwordHash },
-    data: { passwordHash: nextHash },
+    where: {
+      id: user.id,
+      passwordHash: user.passwordHash,
+      sessionVersion: user.sessionVersion,
+    },
+    data: {
+      passwordHash: nextHash,
+      sessionVersion: { increment: 1 },
+    },
   });
   if (changed.count !== 1) return { ok: false as const, code: "invalid_token" };
 
   return {
     ok: true as const,
     userId: user.id,
+    sessionVersion: user.sessionVersion + 1,
+    sessionsRevoked: true as const,
     auditRecorded: false as const,
   };
 }

@@ -2,7 +2,8 @@
  * Shared API auth helpers.
  *
  * Gateway sessions are revalidated by Supabase on every protected request.
- * Local JWT sessions retain the existing Prisma authority reconciliation.
+ * Local JWT sessions are version-checked in `getSession` and reconciled again
+ * here so role, email, status, and organization changes remain authoritative.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -111,6 +112,7 @@ async function resolveAuthoritativeGate(): Promise<GateResult> {
         status: true,
         isActive: true,
         organizationId: true,
+        sessionVersion: true,
       },
     });
 

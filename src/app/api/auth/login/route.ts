@@ -6,7 +6,7 @@ import {
   signSession,
   setSessionCookie,
   resolveAccessDestination,
-  type SessionPayload,
+  type IssuedSessionPayload,
 } from "@/lib/auth";
 import { emitAuditLog } from "@/lib/audit";
 import { getRequestContext } from "@/lib/api/auth-helpers";
@@ -68,13 +68,14 @@ async function localLogin(
   }
 
   const latestKyc = user.kycApplications[0] ?? null;
-  const sessionPayload: SessionPayload = {
+  const sessionPayload: IssuedSessionPayload = {
     userId: user.id,
     email: user.email,
-    role: user.role as SessionPayload["role"],
-    kycStatus: (latestKyc?.status ?? "not_started") as SessionPayload["kycStatus"],
-    kycApplicationId: latestKyc?.id ?? undefined,
+    role: user.role as IssuedSessionPayload["role"],
+    kycStatus: (latestKyc?.status ?? "not_started") as IssuedSessionPayload["kycStatus"],
     entitlements: user.entitlements.map((entitlement) => entitlement.slug),
+    sessionVersion: user.sessionVersion,
+    kycApplicationId: latestKyc?.id ?? undefined,
     portfolioId: user.portfolioMemberships[0]?.portfolioId ?? undefined,
     organizationId: user.organizationId ?? undefined,
   };
@@ -85,7 +86,7 @@ async function localLogin(
     action: "login",
     resource: "user",
     resourceId: user.id,
-    metadata: { email: user.email },
+    metadata: { email: user.email, sessionVersion: user.sessionVersion },
     ipAddress,
     userAgent,
   });
