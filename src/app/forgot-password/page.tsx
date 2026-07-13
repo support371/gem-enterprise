@@ -3,17 +3,25 @@
 import Link from "next/link";
 import { Suspense, useState } from "react";
 
-type FormState = "idle" | "loading" | "success" | "error" | "rate-limit";
+type FormState =
+  | "idle"
+  | "loading"
+  | "success"
+  | "error"
+  | "rate-limit"
+  | "unavailable";
 
 function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<FormState>("idle");
   const [message, setMessage] = useState("");
+  const [recoveryUrl, setRecoveryUrl] = useState("");
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setState("loading");
     setMessage("");
+    setRecoveryUrl("");
 
     try {
       const response = await fetch("/api/auth/forgot-password", {
@@ -25,6 +33,7 @@ function ForgotPasswordForm() {
         error?: string;
         message?: string;
         retryAfterSeconds?: number;
+        recoveryUrl?: string;
       };
 
       if (response.status === 429) {
@@ -33,13 +42,19 @@ function ForgotPasswordForm() {
         return;
       }
       if (!response.ok) {
-        setState("error");
+        const ownerRecoveryAvailable =
+          response.status === 503 && Boolean(data.recoveryUrl);
+        setState(ownerRecoveryAvailable ? "unavailable" : "error");
         setMessage(data.error ?? "We could not process the request.");
+        setRecoveryUrl(data.recoveryUrl ?? "");
         return;
       }
 
       setState("success");
-      setMessage(data.message ?? "If an active account exists, reset instructions will be sent shortly.");
+      setMessage(
+        data.message ??
+          "If an active account exists, a secure reset link has been requested.",
+      );
     } catch {
       setState("error");
       setMessage("The recovery service is temporarily unavailable. Please try again.");
@@ -71,7 +86,7 @@ function ForgotPasswordForm() {
             disabled={state === "loading"}
             className="w-full rounded-xl bg-cyan-300 px-4 py-3 font-semibold text-slate-950 disabled:opacity-60"
           >
-            {state === "loading" ? "Sending…" : "Send reset instructions"}
+            {state === "loading" ? "Requesting…" : "Request secure reset link"}
           </button>
         </form>
 
@@ -85,6 +100,21 @@ function ForgotPasswordForm() {
             }`}
           >
             {message}
+          </div>
+        ) : null}
+
+        {recoveryUrl ? (
+          <div className="mt-4 rounded-xl border border-cyan-300/30 bg-cyan-300/10 p-4 text-sm text-slate-200">
+            <p>
+              Platform owner access does not require an email reset. Open
+              Command Center and use <strong>Settings → Administrator credential recovery</strong>.
+            </p>
+            <Link
+              className="mt-3 inline-flex rounded-lg bg-cyan-300 px-4 py-2 font-semibold text-slate-950"
+              href={recoveryUrl}
+            >
+              Open Command Center recovery
+            </Link>
           </div>
         ) : null}
 
