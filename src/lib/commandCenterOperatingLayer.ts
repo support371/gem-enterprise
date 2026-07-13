@@ -101,8 +101,8 @@ export async function getCommandCenterOperatingLayerSnapshot(): Promise<CommandC
           SELECT SUM(quantity)::double precision
           FROM enterprise_usage_records
           WHERE status = 'ACCEPTED'
-            AND occurred_at >= date_trunc('month', NOW())
-            AND occurred_at < date_trunc('month', NOW()) + INTERVAL '1 month'
+            AND "occurredAt" >= date_trunc('month', NOW())
+            AND "occurredAt" < date_trunc('month', NOW()) + INTERVAL '1 month'
         ), 0::double precision) AS "meteredUsageCurrentPeriod",
         (
           SELECT COUNT(*)::int
@@ -123,8 +123,8 @@ export async function getCommandCenterOperatingLayerSnapshot(): Promise<CommandC
         (
           SELECT COUNT(*)::int
           FROM enterprise_compliance_controls
-          WHERE due_at IS NOT NULL
-            AND due_at <= NOW() + INTERVAL '30 days'
+          WHERE "dueAt" IS NOT NULL
+            AND "dueAt" <= NOW() + INTERVAL '30 days'
             AND status NOT IN ('READY', 'COMPLETE')
         ) AS "complianceControlsDue",
         (
