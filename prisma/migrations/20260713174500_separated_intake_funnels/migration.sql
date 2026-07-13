@@ -93,6 +93,9 @@ CREATE INDEX "intake_submissions_email_created_at_idx"
 CREATE INDEX "intake_submissions_product_slug_created_at_idx"
   ON "intake_submissions"("product_slug", "created_at" DESC);
 
+CREATE INDEX "intake_submissions_user_id_idx"
+  ON "intake_submissions"("user_id");
+
 CREATE INDEX "intake_submissions_assigned_to_id_status_idx"
   ON "intake_submissions"("assigned_to_id", "status");
 

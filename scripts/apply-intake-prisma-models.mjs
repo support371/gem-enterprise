@@ -26,6 +26,7 @@ function validatePromotedSchema(source) {
     'intakeStatusEvents        IntakeStatusEvent[] @relation("IntakeEventActor")',
     "model IntakeSubmission {",
     "model IntakeStatusEvent {",
+    "@@index([userId])",
     '@@map("intake_submissions")',
     '@@map("intake_status_events")',
   ];
@@ -131,6 +132,7 @@ model IntakeSubmission {
   @@index([queue, status, createdAt])
   @@index([email, createdAt])
   @@index([productSlug, createdAt])
+  @@index([userId])
   @@index([assignedToId, status])
   @@map("intake_submissions")
 }

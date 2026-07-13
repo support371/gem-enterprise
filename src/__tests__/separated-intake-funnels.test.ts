@@ -94,6 +94,7 @@ describe("separated intake funnels", () => {
     expect(migration).toContain('ALTER TABLE "intake_submissions" ENABLE ROW LEVEL SECURITY');
     expect(migration).toContain('ALTER TABLE "intake_status_events" ENABLE ROW LEVEL SECURITY');
     expect(migration).toContain("intake_submissions_queue_status_created_at_idx");
+    expect(migration).toContain("intake_submissions_user_id_idx");
     expect(migration).toContain("ON DELETE CASCADE");
     expect(migration).not.toMatch(/\bDROP\s+(?:TABLE|TYPE|COLUMN)\b/i);
   });
@@ -151,6 +152,7 @@ describe("separated intake funnels", () => {
     expect(promotion).toContain("enum IntakeKind");
     expect(promotion).toContain("model IntakeSubmission");
     expect(promotion).toContain("model IntakeStatusEvent");
+    expect(promotion).toContain("@@index([userId])");
     expect(promotion).toContain("Separated-intake Prisma models already present");
     expect(build).toContain('run("node", ["scripts/apply-intake-prisma-models.mjs"], env)');
     expect(build).toContain('run("pnpm", ["exec", "prisma", "validate"], schemaValidationEnv)');
