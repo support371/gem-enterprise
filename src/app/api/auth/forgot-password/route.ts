@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { emitAuditLog } from "@/lib/audit";
 import { getRequestContext } from "@/lib/api/auth-helpers";
 import { rateLimit, rateLimitedResponse } from "@/lib/api/rate-limit";
-import { sendMail } from "@/lib/mail/send";
+import { isMailDeliveryConfigured, sendMail } from "@/lib/mail/send";
 import { createPasswordResetToken } from "@/lib/passwordReset";
 import {
   requestPasswordRecoveryGateway,
@@ -18,9 +18,29 @@ const forgotPasswordSchema = z.object({
   email: z.string().trim().email("Enter a valid email address.").max(254),
 });
 
-const SAFE_RESPONSE = {
+const COMMAND_CENTER_RECOVERY_URL =
+  "https://admin.gemcybersecurityassist.com";
+
+const EMAIL_REQUESTED_RESPONSE = {
   success: true,
-  message: "If an active GEM Enterprise account exists for that email, its recovery request has been recorded.",
+  delivery: "requested",
+  message:
+    "If an active GEM Enterprise account exists for that email, a secure reset link has been requested. Check the inbox and spam folder.",
+};
+
+const RATE_LIMIT_SAFE_RESPONSE = {
+  success: true,
+  delivery: "rate_limited",
+  message:
+    "If email delivery is active and an account is eligible, a secure reset link will be sent. Please wait before requesting another link.",
+};
+
+const EMAIL_NOT_CONFIGURED_RESPONSE = {
+  success: false,
+  delivery: "not_configured",
+  error:
+    "No reset email was sent because email delivery is not yet activated. Platform owners can recover access securely through Command Center Settings.",
+  recoveryUrl: COMMAND_CENTER_RECOVERY_URL,
 };
 
 function emailBucket(email: string): string {
@@ -67,14 +87,20 @@ export async function POST(request: NextRequest) {
     max: 3,
   });
   if (!addressLimit.ok) {
-    return NextResponse.json(SAFE_RESPONSE, {
+    return NextResponse.json(RATE_LIMIT_SAFE_RESPONSE, {
       headers: { "Cache-Control": "no-store" },
     });
   }
 
   if (shouldUseSupabaseGateway()) {
     try {
-      await requestPasswordRecoveryGateway(email);
+      const result = await requestPasswordRecoveryGateway(email);
+      if (!result.emailDeliveryConfigured) {
+        return NextResponse.json(EMAIL_NOT_CONFIGURED_RESPONSE, {
+          status: 503,
+          headers: { "Cache-Control": "no-store" },
+        });
+      }
     } catch (error) {
       console.error("[auth] password recovery gateway unavailable", {
         code: error instanceof Error ? error.name : "unknown_error",
@@ -84,7 +110,14 @@ export async function POST(request: NextRequest) {
         { status: 503, headers: { "Cache-Control": "no-store" } },
       );
     }
-    return NextResponse.json(SAFE_RESPONSE, {
+    return NextResponse.json(EMAIL_REQUESTED_RESPONSE, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
+
+  if (!isMailDeliveryConfigured()) {
+    return NextResponse.json(EMAIL_NOT_CONFIGURED_RESPONSE, {
+      status: 503,
       headers: { "Cache-Control": "no-store" },
     });
   }
@@ -144,7 +177,7 @@ export async function POST(request: NextRequest) {
     userAgent,
   });
 
-  return NextResponse.json(SAFE_RESPONSE, {
+  return NextResponse.json(EMAIL_REQUESTED_RESPONSE, {
     headers: { "Cache-Control": "no-store" },
   });
 }
