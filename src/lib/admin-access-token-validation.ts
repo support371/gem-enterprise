@@ -34,6 +34,21 @@ function publishableKey(): string {
   );
 }
 
+function requestHeaders(key: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    apikey: key,
+    "Content-Type": "application/json",
+  };
+
+  // Legacy anon keys are JWTs and may be used as a Bearer token. Modern
+  // publishable keys authenticate through the apikey header only.
+  if (!key.startsWith("sb_publishable_")) {
+    headers.Authorization = `Bearer ${key}`;
+  }
+
+  return headers;
+}
+
 async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest(
     "SHA-256",
@@ -56,11 +71,7 @@ export async function validateAdminAccessToken(
       `${projectUrl()}/rest/v1/rpc/gem_validate_admin_access_token`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${key}`,
-          apikey: key,
-          "Content-Type": "application/json",
-        },
+        headers: requestHeaders(key),
         body: JSON.stringify({
           p_token_hash: await sha256Hex(accessToken),
         }),
