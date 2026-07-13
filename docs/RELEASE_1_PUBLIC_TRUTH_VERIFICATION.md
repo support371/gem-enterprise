@@ -8,11 +8,7 @@ Branch: `fix/public-truth-routing-and-documentation`
 
 Base commit: `ba566d2ca5079472059307d201660b805bf0704f`
 
-Verified head commit: `324a3cfb3eaf72c8c72eb35be407776464d89e0d`
-
-Canonical preview deployment: `dpl_GrnjVcmuZuVe198WqRF68Rk4dK14`
-
-Preview URL: `https://support371-gem-enterprise-li7irl9om-admin-25521151s-projects.vercel.app`
+Code-bearing verification commit: `324a3cfb3eaf72c8c72eb35be407776464d89e0d`
 
 ## Scope
 
@@ -29,7 +25,7 @@ This release slice changes public routing and documentation only. It does not ch
 
 ## Exact-head verification
 
-The canonical Vercel preview built from commit `324a3cfb3eaf72c8c72eb35be407776464d89e0d` reached `READY`.
+The code-bearing commit reached `READY` in the canonical Vercel project. Subsequent commits in this branch only update this verification record and must also reach `READY` before the pull request is marked ready for review.
 
 Vercel build evidence:
 
@@ -43,9 +39,9 @@ Vercel build evidence:
 - `src/__tests__/public-truth-routing.test.ts`: **3 passed**
 - Next.js optimized production compilation: **passed**
 - Deployment packaging and output upload: **passed**
-- Vercel final state: **READY**
+- Canonical preview state: **READY**
 
-Build completed on 2026-07-13. Vercel reported successful output deployment and build-cache upload.
+The final pull-request head and its corresponding Vercel deployment are recorded in the pull-request verification section so that this file does not create a self-referential commit-hash cycle.
 
 ## Preview smoke evidence
 
@@ -87,7 +83,7 @@ The change reduces public exposure of unverified identity, staffing, affiliation
 
 ## Remaining gate
 
-The pull request may be marked ready for human review.
+The pull request may be marked ready for human review after the final branch-head deployment reaches `READY`.
 
 Merging into `main` remains an owner approval gate. After an approved merge, verify the canonical production deployment and production-domain redirects before closing issue #181.
 
