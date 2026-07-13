@@ -116,6 +116,11 @@ export async function GET(request: NextRequest) {
           },
         })
       : null;
+    const controlledUserIds = [
+      application.userId,
+      analyst.id,
+      decisionMaker?.id,
+    ].filter((value): value is string => Boolean(value));
 
     const audits = await db.auditLog.findMany({
       where: {
@@ -128,6 +133,11 @@ export async function GET(request: NextRequest) {
             action: "role_change",
             resource: "user",
             resourceId: analyst.id,
+          },
+          {
+            action: "login",
+            resource: "user",
+            resourceId: { in: controlledUserIds },
           },
         ],
       },
