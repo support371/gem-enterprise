@@ -39,7 +39,8 @@ const commonFields = {
 
 function rejectSensitiveContent<T extends z.ZodRawShape>(schema: z.ZodObject<T>) {
   return schema.superRefine((value, context) => {
-    const text = [value.subject, value.message]
+    const candidate = value as { subject?: unknown; message?: unknown };
+    const text = [candidate.subject, candidate.message]
       .filter((item): item is string => typeof item === "string")
       .join("\n");
 
