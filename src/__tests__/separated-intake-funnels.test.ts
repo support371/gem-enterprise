@@ -53,8 +53,8 @@ describe("separated intake funnels", () => {
   it("validates a product request with preserved product context", () => {
     const result = productRequestSchema.safeParse({
       ...common,
-      productSlug: "enterprise-security-assessment",
-      productName: "Enterprise Security Assessment",
+      productSlug: "security-posture-assessment",
+      productName: "Security Posture Assessment",
       productCategory: "Assessments",
       quantity: 1,
       intendedUse:
@@ -63,7 +63,7 @@ describe("separated intake funnels", () => {
     });
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.productSlug).toBe("enterprise-security-assessment");
+      expect(result.data.productSlug).toBe("security-posture-assessment");
     }
   });
 
@@ -141,5 +141,20 @@ describe("separated intake funnels", () => {
     expect(repositorySource).toContain("IntakeStatusConflictError");
     expect(repositorySource).toContain("input.assignedToId === undefined");
     expect(detailRoute).toContain("STALE_INTAKE_STATUS");
+  });
+
+  it("promotes intake models before every Prisma and Vercel schema operation", () => {
+    const promotion = source("scripts/apply-intake-prisma-models.mjs");
+    const build = source("scripts/vercel-build.mjs");
+    const packageJson = source("package.json");
+
+    expect(promotion).toContain("enum IntakeKind");
+    expect(promotion).toContain("model IntakeSubmission");
+    expect(promotion).toContain("model IntakeStatusEvent");
+    expect(promotion).toContain("Separated-intake Prisma models already present");
+    expect(build).toContain('run("node", ["scripts/apply-intake-prisma-models.mjs"], env)');
+    expect(build).toContain('run("pnpm", ["exec", "prisma", "validate"], env)');
+    expect(packageJson).toContain('"db:schema:promote:intake"');
+    expect(packageJson).toContain('"db:schema:check:intake"');
   });
 });

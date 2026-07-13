@@ -36,6 +36,12 @@ const directUrl = firstDefined(
 if (pooledUrl) env.POSTGRES_PRISMA_URL = pooledUrl;
 if (directUrl) env.POSTGRES_URL_NON_POOLING = directUrl;
 
+console.log("Promoting separated-intake Prisma models...");
+run("node", ["scripts/apply-intake-prisma-models.mjs"], env);
+
+console.log("Validating Prisma schema...");
+run("pnpm", ["exec", "prisma", "validate"], env);
+
 console.log("Generating Prisma client...");
 run("pnpm", ["exec", "prisma", "generate"], env);
 
