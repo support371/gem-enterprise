@@ -1,10 +1,12 @@
 # Canonical Vercel Project
 
-Verified on 2026-07-09 after the dashboard cleanup.
+Verified again on 2026-07-13 while consolidating repository deployment ownership.
 
 ## Canonical project
 
 - Name: `support371-gem-enterprise`
+- Team: `admin-25521151s-projects`
+- Team ID: `team_7lMXW95WSLeyK4yAObe8FptW`
 - Project ID: `prj_VDGqnA7wZt2E65LLvT94ZOpnYc2Z`
 - Production domains:
   - `https://www.gemcybersecurityassist.com`
@@ -12,30 +14,51 @@ Verified on 2026-07-09 after the dashboard cleanup.
 
 This is the only Vercel project authorized to build and deploy `support371/gem-enterprise`.
 
-## Disconnected duplicate projects
+## Repository enforcement
+
+`scripts/vercel-ignore.mjs` is a fail-closed deployment guard:
+
+- canonical project ID: build continues;
+- any other explicit project ID: build is ignored;
+- unknown Vercel or CI identity: build is ignored;
+- local non-Vercel execution: normal development continues.
+
+`src/__tests__/vercel-canonical-project.test.ts` protects those rules from regression.
+
+## Legacy and duplicate status contexts
+
+Current GitHub commits may still receive status contexts from projects outside the connected canonical team. Observed contexts include:
+
+- `gem-enterprise`
+- `gem-enterprise-in`
+- `gem-enterprise-jx`
+- `gem-enterprise-xf`
+- `v0-continue-conversation`
+- `v0-continue-conversation-3875`
+- `v0-deployment-alignment-task`
+- `v0-image-analysis`
+- `v0-my-website`
+- `v0-v0-geraldhoeven-4141-ff89f7f-5`
+
+These contexts are not authoritative. Some belong to teams that are not connected to this workspace and therefore cannot be disconnected through the current Vercel integration. Their Git integrations must be removed by an owner of each respective Vercel team.
+
+Previously identified duplicate projects include:
 
 - `gem-enterprise` — `prj_iT8bNqbTiePiM2SZiWTkOUJXy3o0`
 - `project-dtrl6` — `prj_TUZk9mqccnIGSsSpsti7jwg9D3W2`
 
-After their Git connections were removed, neither duplicate created a deployment from subsequent repository activity. The repository-level `scripts/vercel-ignore.mjs` guard remains enabled as defense in depth and fails closed for non-canonical or unknown Vercel projects.
+Do not delete a legacy project until its domains, environment variables, deployment history, and ownership have been reviewed. Disconnect the Git integration first.
 
-## Verified preview gate
+## Authoritative deployment rule
 
-Canonical preview deployment `dpl_7zyuXQAuMaVE1ywj6eo4HRoyS2C6` reached `READY` for code commit `41050e0c08449c6bc282c4ead34c4348ca3330a1` after completing:
+A pull request or `main` release is considered verified only when:
 
-- Prisma client generation
-- ESLint
-- TypeScript checking
-- 14 Vitest files and 164 passing tests
-- Next.js 16 production compilation and deployment
+1. `Vercel – support371-gem-enterprise` reports for the exact commit SHA.
+2. The canonical deployment reaches `READY`.
+3. Canonical build logs show Prisma generation, ESLint, TypeScript, Vitest, and Next.js production compilation passing.
+4. Production domains remain attached to project ID `prj_VDGqnA7wZt2E65LLvT94ZOpnYc2Z`.
+5. Failures from legacy project contexts are not mistaken for canonical application failures.
 
-This file is documentation-only and excluded from the deployment bundle by `.vercelignore`, so later documentation commits do not change the verified application build.
+## Remaining external cleanup
 
-## Verification rule
-
-Before merging a pull request:
-
-1. Confirm the pull-request code head creates a deployment only in the canonical project.
-2. Confirm the canonical preview reaches `READY`.
-3. Inspect the canonical build logs for lint, TypeScript, unit-test, Prisma, and Next.js build results.
-4. Do not treat historical checks from disconnected projects as current deployment evidence.
+Repository-side prevention is complete when the guard test is green. Full Issue #33 completion additionally requires owners of the legacy Vercel teams to disconnect this GitHub repository from their projects so those status contexts stop appearing entirely.
