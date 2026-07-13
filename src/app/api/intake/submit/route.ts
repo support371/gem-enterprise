@@ -1,9 +1,8 @@
 /**
  * POST /api/intake/submit
  *
- * Unified intake endpoint for all service domains. Captures consent, scores
- * risk, and persists a ServiceRequest when the caller is authenticated.
- * Always emits audit + evidence trails (Master Dossier §5, ADR-004, C-011).
+ * Legacy unified service-enquiry endpoint. Enterprise, Community, and product
+ * qualification requests must use their dedicated durable intake APIs.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -14,8 +13,6 @@ import { emitAuditLog } from "@/lib/audit";
 import { createEvidenceItem } from "@/lib/evidence";
 import { getRequestContext, badRequest, serverError } from "@/lib/api/auth-helpers";
 import { rateLimit, rateLimitedResponse } from "@/lib/api/rate-limit";
-
-// ── Schema ─────────────────────────────────────────────────────────────────────
 
 const intakeSchema = z.object({
   domain: z.enum(["cyber", "financial", "realty", "legal", "general"]),
@@ -38,20 +35,24 @@ const intakeSchema = z.object({
 });
 
 type IntakeBody = z.infer<typeof intakeSchema>;
-
-// ── Risk scoring ───────────────────────────────────────────────────────────────
-
 type RiskLevel = "low" | "medium" | "high" | "critical";
+
 interface RiskScore {
   level: RiskLevel;
   score: number;
   factors: string[];
 }
 
+const separatedServiceTypes = new Set([
+  "hub_access_request",
+  "enterprise_application",
+  "community_application",
+  "product_request",
+]);
+
 function scoreRisk(body: IntakeBody): RiskScore {
   let score = 0;
   const factors: string[] = [];
-
   const domainWeights: Record<IntakeBody["domain"], number> = {
     cyber: 20,
     financial: 25,
@@ -59,6 +60,7 @@ function scoreRisk(body: IntakeBody): RiskScore {
     realty: 15,
     general: 5,
   };
+
   score += domainWeights[body.domain];
   if (body.domain !== "general") factors.push(`Regulated domain: ${body.domain}`);
 
@@ -83,29 +85,17 @@ function scoreRisk(body: IntakeBody): RiskScore {
 
   if (body.estimatedValue && body.estimatedValue > 100_000) {
     score += 15;
-    factors.push(
-      `High-value transaction: $${body.estimatedValue.toLocaleString("en-US")}`,
-    );
+    factors.push(`High-value transaction: $${body.estimatedValue.toLocaleString("en-US")}`);
   }
 
   const level: RiskLevel =
     score >= 70 ? "critical" : score >= 45 ? "high" : score >= 20 ? "medium" : "low";
-
   return { level, score: Math.min(score, 100), factors };
 }
 
-// ── Handler ────────────────────────────────────────────────────────────────────
-
 export async function POST(req: NextRequest) {
-  const requestId = `INT-${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2, 7)
-    .toUpperCase()}`;
-
+  const requestId = `INT-${Date.now()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
   const { ipAddress, userAgent } = getRequestContext(req);
-
-  // Per-IP throttle: 12 intakes per hour. The honest signal is intent — anyone
-  // submitting more than that in an hour is almost certainly automation.
   const limit = rateLimit(ipAddress, {
     key: "intake:submit",
     windowMs: 60 * 60_000,
@@ -125,6 +115,22 @@ export async function POST(req: NextRequest) {
     return badRequest("Validation failed", parsed.error.flatten().fieldErrors);
   }
   const data = parsed.data;
+
+  if (data.serviceType && separatedServiceTypes.has(data.serviceType)) {
+    return NextResponse.json(
+      {
+        error: "This mixed intake path has been retired for the requested workflow.",
+        code: "SEPARATED_INTAKE_REQUIRED",
+        routes: {
+          enterprise: "/enterprise/apply",
+          community: "/community/apply",
+          product: "/store",
+        },
+      },
+      { status: 410, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   const session = await getSession();
   const auditUserId = session?.userId;
 
@@ -137,19 +143,15 @@ export async function POST(req: NextRequest) {
     const assignedQueue = requiresEscalation
       ? `escalation:${data.domain}`
       : `standard:${data.domain}`;
-
     const priority: "low" | "medium" | "high" | "critical" =
       riskScore.level === "critical"
         ? "critical"
         : riskScore.level === "high"
-        ? "high"
-        : riskScore.level === "medium"
-        ? "medium"
-        : "low";
+          ? "high"
+          : riskScore.level === "medium"
+            ? "medium"
+            : "low";
 
-    // Persist a ServiceRequest only if the caller is authenticated. Anonymous
-    // intakes still get audit + evidence + a returned case identifier so the
-    // intake team can pick it up via email/queue, even without DB FK.
     let caseId: string;
     let serviceRequestId: string | null = null;
     if (session) {
@@ -169,7 +171,6 @@ export async function POST(req: NextRequest) {
       serviceRequestId = created.id;
       caseId = `GEM-${created.id.slice(-8).toUpperCase()}`;
     } else {
-      // Synthesize a stable-ish display id; persistence is via audit log.
       caseId = `GEM-${requestId.slice(-8)}`;
     }
 
@@ -196,7 +197,6 @@ export async function POST(req: NextRequest) {
       userAgent,
     });
 
-    // Consent receipt as a long-retention evidence item (Control C-011).
     await createEvidenceItem({
       userId: session?.userId,
       class: "governance",
@@ -215,7 +215,6 @@ export async function POST(req: NextRequest) {
       retentionYears: 7,
     });
 
-    // Interaction record (ADR-004 class: interaction).
     await createEvidenceItem({
       userId: session?.userId,
       class: "interaction",
@@ -242,11 +241,10 @@ export async function POST(req: NextRequest) {
         riskLevel: riskScore.level,
         requiresEscalation,
         assignedQueue,
-        message: requiresEscalation
-          ? "Your request has been flagged for priority review. A team member will contact you within 1 hour."
-          : "Your request has been received. A case has been created and you will hear from us within 24 hours.",
+        message:
+          "Your service enquiry has been recorded for human review. This confirmation does not create an approval, price, SLA, or service commitment.",
       },
-      { status: 201 },
+      { status: 201, headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
     console.error("[POST /api/intake/submit]", error);

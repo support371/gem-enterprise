@@ -1,0 +1,10 @@
+import { NextRequest } from "next/server";
+import { communityApplicationSchema } from "@/lib/intake/schemas";
+import { handlePublicIntake } from "@/lib/intake/submit";
+
+export async function POST(request: NextRequest) {
+  return handlePublicIntake(request, {
+    kind: "COMMUNITY",
+    schema: communityApplicationSchema,
+  });
+}
