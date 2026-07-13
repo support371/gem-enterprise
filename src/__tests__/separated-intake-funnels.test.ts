@@ -153,7 +153,8 @@ describe("separated intake funnels", () => {
     expect(promotion).toContain("model IntakeStatusEvent");
     expect(promotion).toContain("Separated-intake Prisma models already present");
     expect(build).toContain('run("node", ["scripts/apply-intake-prisma-models.mjs"], env)');
-    expect(build).toContain('run("pnpm", ["exec", "prisma", "validate"], env)');
+    expect(build).toContain('run("pnpm", ["exec", "prisma", "validate"], schemaValidationEnv)');
+    expect(build).toContain("schemaValidationUrl");
     expect(packageJson).toContain('"db:schema:promote:intake"');
     expect(packageJson).toContain('"db:schema:check:intake"');
   });
