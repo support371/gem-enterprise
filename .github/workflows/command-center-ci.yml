@@ -1,0 +1,65 @@
+name: Command Center Verification
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/command-center-ci.yml"
+      - "docs/GEM_COMMAND_CENTER*.md"
+      - "prisma/proposals/**"
+      - "src/app/api/command-center/**"
+      - "src/app/app/command-center/**"
+      - "src/components/command-center/**"
+      - "src/lib/commandCenter*.ts"
+      - "src/lib/platformNavigation.ts"
+      - "src/app/app/layout.tsx"
+      - "src/__tests__/command-center*.test.ts"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: command-center-verification-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Prisma, Lint, Typecheck, Test, Build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci-test-secret-min-32-characters-long-placeholder
+      POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost:5432/gem_ci
+      POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost:5432/gem_ci
+      NEXT_PUBLIC_APP_URL: https://www.gemcybersecurityassist.com
+      NEXT_PUBLIC_APP_NAME: GEM Enterprise
+      NEXT_PUBLIC_AI_DISCLOSURE_TEXT: GEM Concierge is an AI assistant. Responses are informational and require human review for sensitive decisions.
+      AUDIT_ENABLED: "true"
+      SMTP_HOST: ""
+      SMTP_PORT: "587"
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      CRON_SECRET: ci-cron-secret
+
+    steps:
+      - name: Checkout pull request head
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify repository
+        run: pnpm run verify
