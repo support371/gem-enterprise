@@ -6,6 +6,10 @@ import { emitAuditLog } from "@/lib/audit";
 import { getRequestContext, badRequest } from "@/lib/api/auth-helpers";
 import { rateLimit, rateLimitedResponse } from "@/lib/api/rate-limit";
 import { sendMail } from "@/lib/mail/send";
+import {
+  shouldUseSupabaseGateway,
+  submitContactGateway,
+} from "@/lib/supabase-gateway";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
@@ -44,8 +48,47 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  const session = await getSession();
   const normalizedSubject = subject?.trim() || `Contact from ${name}`;
+
+  // During the controlled launch, the canonical Vercel runtime may operate
+  // without a direct Prisma connection. Persist public enquiries through the
+  // Supabase gateway instead of claiming success without durable storage.
+  if (shouldUseSupabaseGateway()) {
+    try {
+      const submission = await submitContactGateway({
+        name,
+        email,
+        subject: normalizedSubject,
+        message,
+        website,
+        ipAddress,
+        userAgent,
+      });
+
+      return NextResponse.json({
+        ok: true,
+        submissionId: submission.submissionId,
+        ticketId: submission.ticketId,
+        persistence: submission.persistence,
+      });
+    } catch (error) {
+      console.error("[contact] Supabase intake gateway unavailable", {
+        code:
+          error && typeof error === "object" && "code" in error
+            ? String(error.code)
+            : "unknown_error",
+      });
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "Your message could not be stored. Please use the published support email.",
+        },
+        { status: 503 },
+      );
+    }
+  }
+
+  const session = await getSession();
   const baseNotes = [
     `Website contact enquiry`,
     `From: ${name} <${email}>`,
@@ -148,6 +191,7 @@ export async function POST(req: NextRequest) {
       ok: true,
       submissionId: submission.id,
       ticketId,
+      persistence: "prisma",
     });
   } catch (error) {
     console.error("[contact] failed to persist public enquiry", error);
