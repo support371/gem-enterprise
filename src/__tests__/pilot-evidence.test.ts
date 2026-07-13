@@ -130,7 +130,14 @@ describe("evaluatePilotEvidence", () => {
 
   it("rejects an application without the explicit synthetic marker", () => {
     const input = completeInput();
-    input.application.formData = { legalName: "Ordinary Applicant" };
+    input.application.formData = {
+      legalName: "Ordinary Applicant",
+      _verificationPilot: {
+        synthetic: false,
+        scenario: "gem-verify-phase-1b",
+        version: 1,
+      },
+    };
 
     const report = evaluatePilotEvidence(input);
 
