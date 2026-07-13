@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   title: { absolute: "GEM Community Preview" },
   description:
     "Fictional interface preview of planned GEM community capabilities. No live members, opportunities, events, secure messaging, or verified network are represented.",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+  },
 };
 
 const sections = [
