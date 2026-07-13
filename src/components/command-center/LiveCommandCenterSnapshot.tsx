@@ -5,6 +5,8 @@ import {
   Activity,
   AlertTriangle,
   Database,
+  Download,
+  FileJson,
   Layers3,
   Loader2,
   LockKeyhole,
@@ -32,9 +34,7 @@ function OperatingLayerPanel({ layer }: { layer: CommandCenterOperatingLayerSnap
               <p className="font-semibold text-white">Persistent operating layer requires approval</p>
               <Badge className="border-amber-500/25 bg-amber-500/10 text-amber-300">Migration required</Badge>
             </div>
-            <p className="mt-1 text-sm text-slate-400">
-              {layer.message}
-            </p>
+            <p className="mt-1 text-sm text-slate-400">{layer.message}</p>
             <p className="mt-2 text-xs text-slate-500">
               {layer.missingTables?.length ?? 0} operating tables are not installed. The reviewed proposal is stored under
               <code className="ml-1 font-mono text-amber-200">prisma/proposals</code> and is not auto-applied.
@@ -178,9 +178,21 @@ export function LiveCommandCenterSnapshot() {
             Generated {new Date(snapshot.generatedAt).toLocaleString()} · staff-authorized aggregate counts only
           </p>
         </div>
-        <Button size="sm" variant="outline" className="border-white/10" onClick={() => void loadSnapshot()}>
-          <RefreshCw className="mr-2 h-3.5 w-3.5" />Refresh
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm" variant="outline" className="border-white/10">
+            <a href="/api/command-center/export?format=csv">
+              <Download className="mr-2 h-3.5 w-3.5" />CSV
+            </a>
+          </Button>
+          <Button asChild size="sm" variant="outline" className="border-white/10">
+            <a href="/api/command-center/export?format=json">
+              <FileJson className="mr-2 h-3.5 w-3.5" />JSON
+            </a>
+          </Button>
+          <Button size="sm" variant="outline" className="border-white/10" onClick={() => void loadSnapshot()}>
+            <RefreshCw className="mr-2 h-3.5 w-3.5" />Refresh
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
