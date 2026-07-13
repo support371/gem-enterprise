@@ -8,7 +8,14 @@ import { completePasswordReset } from "@/lib/passwordResetService";
 
 const schema = z.object({
   token: z.string().min(20).max(4096),
-  newPassword: z.string().min(12).max(256),
+  newPassword: z
+    .string()
+    .min(14)
+    .max(128)
+    .regex(/[a-z]/)
+    .regex(/[A-Z]/)
+    .regex(/[0-9]/)
+    .regex(/[^A-Za-z0-9]/),
 });
 
 export async function handlePasswordReset(request: NextRequest) {
@@ -23,21 +30,32 @@ export async function handlePasswordReset(request: NextRequest) {
 
   const result = await completePasswordReset(parsed.data.token, parsed.data.newPassword);
   if (!result.ok) {
-    const error = result.code === "password_reused"
-      ? "Choose a password different from your current password."
-      : "This password reset link is invalid or has expired.";
-    return NextResponse.json({ error }, { status: 400 });
+    const error =
+      result.code === "password_reused"
+        ? "Choose a password different from your current password."
+        : result.code === "password_policy_failed"
+          ? "Use 14–128 characters with upper, lower, number, and symbol."
+          : result.code === "service_unavailable"
+            ? "The recovery service is temporarily unavailable. Please try again."
+            : "This password reset link is invalid or has expired.";
+    const status = result.code === "service_unavailable" ? 503 : 400;
+    return NextResponse.json(
+      { error },
+      { status, headers: { "Cache-Control": "no-store" } },
+    );
   }
 
-  await emitAuditLog({
-    userId: result.userId,
-    action: "password_change",
-    resource: "user",
-    resourceId: result.userId,
-    metadata: { flow: "forgot_password_reset" },
-    ipAddress,
-    userAgent,
-  });
+  if (!result.auditRecorded) {
+    await emitAuditLog({
+      userId: result.userId,
+      action: "password_change",
+      resource: "user",
+      resourceId: result.userId,
+      metadata: { flow: "forgot_password_reset" },
+      ipAddress,
+      userAgent,
+    });
+  }
 
   const response = NextResponse.json({ success: true, message: "Your password has been reset." });
   response.headers.set("Cache-Control", "no-store");
