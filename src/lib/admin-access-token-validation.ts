@@ -1,6 +1,6 @@
 const DEFAULT_SUPABASE_URL = "https://slzdjoqpzbkwzuaexlkj.supabase.co";
-const DEFAULT_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsemRqb3FwemJrd3p1YWV4bGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyOTk1MTQsImV4cCI6MjA5ODg3NTUxNH0.0wfgX_m6SBn_TtD0ZNjkOZ-bk8Frp2Tq1HL9mYFBm4M";
+const DEFAULT_PUBLISHABLE_KEY =
+  "sb_publishable_3VgoXwVcWcoxNM2O-89hkw_uLxBNzd1";
 const REQUEST_TIMEOUT_MS = 15_000;
 
 export interface AdminAccessTokenValidation {
@@ -26,8 +26,12 @@ function projectUrl(): string {
   return configured.replace(/\/functions\/v1\/?$/, "").replace(/\/$/, "");
 }
 
-function anonKey(): string {
-  return process.env.GEM_SUPABASE_GATEWAY_ANON_KEY?.trim() || DEFAULT_ANON_KEY;
+function publishableKey(): string {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+    process.env.GEM_SUPABASE_GATEWAY_ANON_KEY?.trim() ||
+    DEFAULT_PUBLISHABLE_KEY
+  );
 }
 
 async function sha256Hex(value: string): Promise<string> {
@@ -47,7 +51,7 @@ export async function validateAdminAccessToken(
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const key = anonKey();
+    const key = publishableKey();
     const response = await fetch(
       `${projectUrl()}/rest/v1/rpc/gem_validate_admin_access_token`,
       {
