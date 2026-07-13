@@ -396,3 +396,32 @@ export async function completePasswordRecoveryGateway(
     },
   );
 }
+
+export interface ContactGatewaySubmission {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  website?: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export interface ContactGatewayResult {
+  ok: true;
+  accepted: true;
+  submissionId?: string;
+  ticketId: null;
+  persistence: "supabase_gateway";
+  notificationDelivery?: "sent" | "failed" | "not_configured";
+  suppressed?: boolean;
+}
+
+export async function submitContactGateway(
+  submission: ContactGatewaySubmission,
+): Promise<ContactGatewayResult> {
+  return invokeGateway<ContactGatewayResult>("gem-contact-gateway", {
+    action: "submit",
+    ...submission,
+  });
+}
