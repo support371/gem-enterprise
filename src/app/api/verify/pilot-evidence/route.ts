@@ -4,11 +4,8 @@ import { db } from "@/lib/db";
 import { getGatewaySessionToken } from "@/lib/auth";
 import { requireAdmin } from "@/lib/api/auth-helpers";
 import { evaluatePilotEvidence } from "@/lib/kyc/pilot-evidence";
-import {
-  adminReadGateway,
-  type AdminReadGatewayAction,
-  GatewayRequestError,
-} from "@/lib/supabase-gateway";
+import { readPilotEvidenceGateway } from "@/lib/kyc/pilot-evidence-gateway";
+import { GatewayRequestError } from "@/lib/supabase-gateway";
 
 const querySchema = z.object({
   applicationId: z.string().trim().min(1),
@@ -57,11 +54,10 @@ export async function GET(request: NextRequest) {
   const gatewayToken = await getGatewaySessionToken();
   if (gatewayToken) {
     try {
-      const source = await adminReadGateway<PilotEvidenceSource>(
-        "pilot_evidence" as AdminReadGatewayAction,
-        gatewayToken,
-        parsed.data,
-      );
+      const source = await readPilotEvidenceGateway<PilotEvidenceSource>({
+        token: gatewayToken,
+        ...parsed.data,
+      });
       return reportResponse(source);
     } catch (error) {
       if (error instanceof GatewayRequestError) {
