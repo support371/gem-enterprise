@@ -36,12 +36,18 @@ A report passes only when all of the following are present:
 
 The report returns no applicant names, email addresses, form fields, review notes, document metadata, passwords, tokens, connection strings, or database credentials. The production gateway only returns IDs, role/status flags, timestamps, workflow action names, the explicit synthetic marker, document count, and four allowlisted audit metadata keys.
 
-## Canonical build history
+## Canonical verification
 
-The canonical preview for commit `9c6283a8ca2beff4dbe99bfc9d6d5b9653f2dbb0` completed checkout, dependency installation, Prisma generation, and ESLint with zero warnings. TypeScript then identified one query-object inference error in the evidence route. Commit `049c9468f9470c9a8b0c3e66b40d42525da7c3cb` fixed it by passing explicitly validated application and analyst identifiers to the gateway client.
+- Verified preview commit: `72134f418dc604484607eedcaaee841481d7c40a`
+- Canonical preview deployment: `dpl_ActjmFcBBF7UwJD5x3G8iscYXwop` — `READY`
+- Production merge commit: `774787397d5abe5316ec0cb6fe0d92cfd9f17b8e`
+- Production deployment: `dpl_75LCB2yeYvA6nFRg36mxRw84tfvz` — `READY`
+- Production aliases: `gemcybersecurityassist.com` and `www.gemcybersecurityassist.com`
 
-This documentation-only commit retriggers verification of the corrected branch without changing runtime behavior.
+The exact preview passed Prisma generation, ESLint with zero warnings, `tsc --noEmit`, 40 Vitest files, 302 tests, Next.js optimized compilation, the framework TypeScript pass, and generation of 269 pages.
 
-## Merge gate
+The production deployment passed Prisma generation, Next.js optimized compilation, the framework TypeScript pass, and generation of 269 pages. The live administrator page redirects unauthenticated users to the client login while preserving its destination. The live evidence API returns `401 Unauthorized` without an administrator session and uses `Cache-Control: no-store`.
 
-Merge only when the canonical `Vercel – support371-gem-enterprise` deployment for the exact synchronized head passes Prisma generation, ESLint, TypeScript, Vitest, and Next.js production compilation.
+## Operational acceptance boundary
+
+The reporting infrastructure is released, but Issue #152 remains open until company-controlled analyst and applicant identities are provisioned and the authenticated synthetic workflow is completed. Production currently contains one active verified administrator-level identity, no eligible analyst or applicant identities, and zero verification applications. No test account or case was created as part of this release.
