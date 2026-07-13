@@ -76,7 +76,7 @@ export default function ResetPasswordPage() {
         <p className="text-xs uppercase tracking-[0.25em] text-cyan-300">Secure recovery</p>
         <h1 className="mt-3 text-4xl font-bold">Set a new password</h1>
         <p className="mt-4 text-slate-300">
-          Reset links expire after 15 minutes and stop working after the password changes.
+          Reset links expire after 15 minutes and stop working after the password changes. Use 14–128 characters with uppercase, lowercase, a number, and a symbol.
         </p>
 
         {state !== "success" ? (
@@ -85,8 +85,8 @@ export default function ResetPasswordPage() {
               New password
               <input
                 required
-                minLength={12}
-                maxLength={256}
+                minLength={14}
+                maxLength={128}
                 type="password"
                 autoComplete="new-password"
                 value={newPassword}
@@ -98,8 +98,8 @@ export default function ResetPasswordPage() {
               Confirm new password
               <input
                 required
-                minLength={12}
-                maxLength={256}
+                minLength={14}
+                maxLength={128}
                 type="password"
                 autoComplete="new-password"
                 value={confirmPassword}
