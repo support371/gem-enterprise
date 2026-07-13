@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { RequestStatus, TicketStatus } from "@prisma/client";
 import { requireStaff } from "@/lib/api/auth-helpers";
 import { db } from "@/lib/db";
+import { getCommandCenterOperatingLayerSnapshot } from "@/lib/commandCenterOperatingLayer";
 import type { CommandCenterSnapshot } from "@/lib/commandCenterSnapshot";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,7 @@ export async function GET() {
 
   const generatedAt = new Date().toISOString();
   const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const operatingLayerPromise = getCommandCenterOperatingLayerSnapshot();
 
   try {
     const [
@@ -31,6 +33,7 @@ export async function GET() {
       openSupportTickets,
       openServiceRequests,
       auditEventsLast24Hours,
+      operatingLayer,
     ] = await Promise.all([
       db.user.count({ where: { isActive: true, status: "active" } }),
       db.user.findMany({
@@ -55,6 +58,7 @@ export async function GET() {
         },
       }),
       db.auditLog.count({ where: { createdAt: { gte: last24Hours } } }),
+      operatingLayerPromise,
     ]);
 
     return json({
@@ -69,13 +73,17 @@ export async function GET() {
         openServiceRequests,
         auditEventsLast24Hours,
       },
+      operatingLayer,
     });
   } catch (error) {
     console.error("[command-center] live snapshot unavailable", error);
+    const operatingLayer = await operatingLayerPromise;
+
     return json({
       source: "unavailable",
       generatedAt,
       metrics: null,
+      operatingLayer,
       message: "Live database aggregates are unavailable. The interface remains in disclosed demo mode.",
     });
   }
