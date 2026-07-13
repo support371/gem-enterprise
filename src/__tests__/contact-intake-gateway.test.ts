@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
 const routeSource = readFileSync("src/app/api/contact/route.ts", "utf8");
-const clientSource = readFileSync("src/lib/contact-gateway.ts", "utf8");
+const gatewaySource = readFileSync("src/lib/supabase-gateway.ts", "utf8");
 const functionSource = readFileSync(
   "supabase/functions/gem-contact-gateway/index.ts",
   "utf8",
@@ -16,6 +16,8 @@ describe("controlled launch contact intake", () => {
     expect(routeSource.indexOf("shouldUseSupabaseGateway()")).toBeLessThan(
       routeSource.indexOf("db.supportBooking.create"),
     );
+    expect(gatewaySource).toContain("submitContactGateway");
+    expect(gatewaySource).toContain('"gem-contact-gateway"');
   });
 
   it("keeps Prisma as the preferred direct-database path", () => {
@@ -24,8 +26,8 @@ describe("controlled launch contact intake", () => {
   });
 
   it("does not report success when the gateway cannot persist the message", () => {
-    expect(clientSource).toContain("if (!response.ok");
-    expect(clientSource).toContain("CONTACT_GATEWAY_UNAVAILABLE");
+    expect(gatewaySource).toContain("if (!response.ok)");
+    expect(gatewaySource).toContain("GATEWAY_UNAVAILABLE");
     expect(routeSource).toContain("Your message could not be stored");
     expect(routeSource).toContain("{ status: 503 }");
   });
@@ -40,7 +42,7 @@ describe("controlled launch contact intake", () => {
 
   it("applies spam controls and records an audit event", () => {
     expect(functionSource).toContain("MAX_SUBMISSIONS_PER_EMAIL_PER_HOUR");
-    expect(functionSource).toContain('code: "RATE_LIMITED"');
+    expect(functionSource).toContain('"RATE_LIMITED"');
     expect(functionSource).toContain('resource: "contact_message"');
     expect(functionSource).toContain('source: "supabase_contact_gateway"');
   });
