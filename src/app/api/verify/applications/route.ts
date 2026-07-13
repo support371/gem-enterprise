@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma, type EntityType } from "@prisma/client";
 import { z } from "zod";
-import type { EntityType } from "@prisma/client";
+import { db } from "@/lib/db";
 import { emitAuditLog } from "@/lib/audit";
 import {
   getRequestContext,
@@ -21,8 +22,14 @@ const draftSchema = z
     phone: z.string().trim().max(30).optional(),
     organizationName: z.string().trim().max(160).optional(),
     serviceInterest: z.string().trim().min(2).max(240),
+    syntheticPilot: z.literal(true).optional(),
   })
   .strict();
+
+function asRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
 
 function json(body: unknown, status = 200) {
   return NextResponse.json(body, {
@@ -81,6 +88,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (
+    parsed.data.syntheticPilot &&
+    !parsed.data.legalName.toLowerCase().startsWith("gem verify synthetic")
+  ) {
+    return json(
+      {
+        error:
+          'Synthetic pilot applications must use a legal name beginning with "GEM Verify Synthetic".',
+      },
+      400,
+    );
+  }
+
   try {
     const result = await saveVerificationApplication(gate.session.userId, {
       entityType: parsed.data.entityType as EntityType,
@@ -90,6 +110,29 @@ export async function POST(request: NextRequest) {
       organizationName: parsed.data.organizationName,
       serviceInterest: parsed.data.serviceInterest,
     });
+    let application = result.application;
+
+    if (parsed.data.syntheticPilot) {
+      const markedAt = new Date().toISOString();
+      const merged = {
+        ...asRecord(result.application.formData),
+        _verificationPilot: {
+          synthetic: true,
+          scenario: "gem-verify-phase-1b",
+          version: 1,
+          markedAt,
+        },
+      } as Prisma.InputJsonValue;
+
+      await db.kYCApplication.update({
+        where: { id: result.application.id },
+        data: { data: merged, formData: merged },
+      });
+      application =
+        (await getLatestVerificationApplication(gate.session.userId)) ??
+        result.application;
+    }
+
     const { ipAddress, userAgent } = getRequestContext(request);
 
     await emitAuditLog({
@@ -100,6 +143,7 @@ export async function POST(request: NextRequest) {
       metadata: {
         stage: result.created ? "draft_created" : "applicant_information_updated",
         entityType: parsed.data.entityType,
+        syntheticPilot: parsed.data.syntheticPilot === true,
       },
       ipAddress,
       userAgent,
@@ -109,7 +153,7 @@ export async function POST(request: NextRequest) {
       {
         ok: true,
         created: result.created,
-        application: toVerificationApplicationView(result.application),
+        application: toVerificationApplicationView(application),
       },
       result.created ? 201 : 200,
     );
