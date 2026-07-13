@@ -1,6 +1,12 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -56,7 +62,7 @@ export default function AdminAccessPage() {
   const [completed, setCompleted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function validateToken(token: string) {
+  const validateToken = useCallback(async (token: string) => {
     setValidationState("checking");
     setError(null);
 
@@ -91,7 +97,7 @@ export default function AdminAccessPage() {
       setError("The authorization service is temporarily unavailable.");
       return false;
     }
-  }
+  }, []);
 
   useEffect(() => {
     const fragment = window.location.hash.replace(/^#/, "");
@@ -113,7 +119,7 @@ export default function AdminAccessPage() {
 
     setAccessToken(token);
     void validateToken(token);
-  }, []);
+  }, [validateToken]);
 
   const requirementResults = useMemo(
     () =>
