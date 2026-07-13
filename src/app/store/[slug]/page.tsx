@@ -51,7 +51,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const product = getStoreProduct(slug);
   if (!product) notFound();
 
-  const contactHref = `/contact?product=${encodeURIComponent(product.name)}&subject=product-enquiry`;
+  const requestHref = `/store/products/${encodeURIComponent(product.slug)}/request`;
 
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -106,7 +106,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
           <div className="mt-9 flex flex-col gap-4 sm:flex-row">
             <Button asChild size="lg" className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-300">
-              <Link href={contactHref}>
+              <Link href={requestHref}>
                 Request Availability Review <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -186,7 +186,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         </p>
         <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
           <Button asChild size="lg" className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-300">
-            <Link href={contactHref}>Submit Product Enquiry</Link>
+            <Link href={requestHref}>Submit Product Request</Link>
           </Button>
           <Button asChild size="lg" variant="outline" className="rounded-full border-white/20 px-8 text-white hover:bg-white/10">
             <Link href="/store">Browse Other Catalogue Items</Link>

@@ -36,8 +36,25 @@ const directUrl = firstDefined(
 if (pooledUrl) env.POSTGRES_PRISMA_URL = pooledUrl;
 if (directUrl) env.POSTGRES_URL_NON_POOLING = directUrl;
 
+console.log("Promoting separated-intake Prisma models...");
+run("node", ["scripts/apply-intake-prisma-models.mjs"], env);
+
+// `prisma validate` only parses the schema and does not connect to PostgreSQL. Some
+// preview environments expose only one database variable (or load it through a
+// Prisma-consumed env file), so give validation a complete, non-routable pair without
+// replacing the real environment used by migration or application commands.
+const schemaValidationUrl = "postgresql://schema:validation@127.0.0.1:5432/schema_validation";
+const schemaValidationEnv = {
+  ...env,
+  POSTGRES_PRISMA_URL: pooledUrl || schemaValidationUrl,
+  POSTGRES_URL_NON_POOLING: directUrl || pooledUrl || schemaValidationUrl,
+};
+
+console.log("Validating Prisma schema...");
+run("pnpm", ["exec", "prisma", "validate"], schemaValidationEnv);
+
 console.log("Generating Prisma client...");
-run("pnpm", ["exec", "prisma", "generate"], env);
+run("pnpm", ["exec", "prisma", "generate"], schemaValidationEnv);
 
 const shouldVerifyPreview =
   env.VERCEL_ENV === "preview" || env.RUN_PREVIEW_VERIFICATION === "true";
