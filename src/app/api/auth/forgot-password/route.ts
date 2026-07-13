@@ -12,6 +12,7 @@ import {
   shouldUseSupabaseGateway,
 } from "@/lib/supabase-gateway";
 
+// Production deployment marker: canonical secure recovery route.
 const DEFAULT_APP_URL = "https://www.gemcybersecurityassist.com";
 
 const forgotPasswordSchema = z.object({
