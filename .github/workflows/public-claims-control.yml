@@ -1,0 +1,58 @@
+name: Public Claims Control
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/app/hub-controlled/**"
+      - "src/app/company-controlled/**"
+      - "src/app/request-access-controlled/**"
+      - "src/lib/publicClaims.ts"
+      - "src/lib/publicClaimsControl.ts"
+      - "src/lib/publicClaimsRegistryVersion.ts"
+      - "src/__tests__/public-claims-control.test.ts"
+      - "scripts/generate-public-claims-report.ts"
+      - "docs/PUBLIC_CLAIMS_REVIEW.md"
+      - "next.config.js"
+      - "package.json"
+      - ".vercelignore"
+      - ".github/workflows/public-claims-control.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-claims-control-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate claims registry and application tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+          run_install: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm run db:generate
+
+      - name: Verify claims report, lint, types, and tests
+        run: pnpm run verify:preview
