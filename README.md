@@ -1,574 +1,222 @@
 # GEM Enterprise Platform
 
-> Cybersecurity-first enterprise platform serving Financial and Real Estate divisions — built on Next.js 15 with end-to-end type safety, regulated KYC onboarding, and role-based access control.
+GEM Enterprise is the controlled-access application behind `gemcybersecurityassist.com`. It supports public service discovery, governed onboarding, client workspaces, cybersecurity and compliance coordination, product and service enquiries, support operations, evidence governance, content workflows, and provider integrations.
 
----
+The platform is in a **controlled production launch**. Provider-dependent, regulated, or high-impact capabilities remain disabled or request-only until their infrastructure, evidence, staffing, authorization, and owner approvals are complete.
 
-## Table of Contents
+## Canonical production identity
 
-1. [Overview](#overview)
-2. [Tech Stack](#tech-stack)
-3. [Architecture](#architecture)
-4. [Quick Start](#quick-start)
-5. [Route Map](#route-map)
-6. [Legacy Redirects](#legacy-redirects)
-7. [API Reference](#api-reference)
-8. [Environment Variables](#environment-variables)
-9. [Database](#database)
-10. [Authentication Flow](#authentication-flow)
-11. [KYC Flow](#kyc-flow)
-12. [Deployment (Vercel)](#deployment-vercel)
-13. [Admin Access](#admin-access)
-14. [Smoke Checks](#smoke-checks)
-15. [Contributing](#contributing)
-16. [License](#license)
+| Item | Canonical value |
+|---|---|
+| Public domain | `https://www.gemcybersecurityassist.com` |
+| Repository | `support371/gem-enterprise` |
+| Production branch | `main` |
+| Vercel project | `support371-gem-enterprise` |
+| Package manager | `pnpm@10.28.0` |
+| Node runtime | `24.x` |
+| Production deployment | Vercel Git integration from `main` |
 
----
+Do not create a second production deployment, database, authentication system, or Base44-hosted replacement without a documented and approved migration plan.
 
-## Overview
-
-GEM Enterprise is a secure, invite-only platform that provides institutional and qualified clients with access to curated financial products and real estate investment opportunities. The platform enforces a fully-gated onboarding pipeline:
-
-- **Identity verification (KYC)** — individuals, businesses, trusts, and family offices
-- **Compliance review** — manual and automated approval workflows
-- **Entitlement gating** — product and portfolio access is granted only after approval
-- **Audit trail** — every sensitive action is logged for regulatory compliance
-
----
-
-## Tech Stack
+## Technology stack
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 16 (App Router) |
-| Language | TypeScript 5 |
-| ORM | Prisma 5 |
-| Database | PostgreSQL 15+ |
-| UI Components | shadcn/ui |
-| Styling | Tailwind CSS 3 |
-| Authentication | JWT (HTTP-only cookies) |
-| Deployment | Vercel |
+| Application | Next.js 16 App Router, React 18, TypeScript 5.8 |
+| Styling | Tailwind CSS 3 and existing shared UI components |
+| Database | PostgreSQL through Prisma 5 |
+| Authentication | Signed JWT sessions in the HTTP-only `gem_session` cookie; optional approved Supabase gateway |
+| Validation | Zod |
+| Email | Nodemailer SMTP when production credentials are configured |
+| Testing | Vitest and Playwright |
+| Hosting | Vercel |
+| Analytics | Vercel Analytics and Speed Insights |
 
----
+## Safety posture
 
-## Architecture
+The following are fail-closed or request-only until their activation requirements pass:
 
-```
-src/
-├── app/                    # Next.js App Router — pages and layouts
-│   ├── (public)/           # Marketing and informational pages
-│   ├── (auth)/             # Login and session management
-│   ├── kyc/                # KYC onboarding flow
-│   ├── decision/           # Post-KYC decision screens
-│   ├── app/                # Protected client portal
-│   │   └── admin/          # Admin-only panel
-│   ├── api/                # Route Handlers (REST API)
-│   └── (compliance)/       # Legal and compliance pages
-├── components/             # Shared React components
-├── lib/                    # Utilities, auth helpers, Prisma client
-└── types/                  # Shared TypeScript types
-prisma/
-├── schema.prisma           # Database schema
-├── migrations/             # Prisma migration history
-└── seed.ts                 # Database seed script
-```
+- Identity and financial document upload
+- Biometric and liveness verification
+- Automatic KYC or KYB approval
+- Automatic payments and subscriptions
+- Marketplace transactions
+- Production TikTok publishing, advertising, and shop writes
+- Live threat-intelligence assertions
+- Guaranteed response times or continuous-monitoring claims
+- Public claims without approved supporting evidence
 
-**Key architectural decisions:**
+Static, sample, mock, seeded, imported, or manually entered information must not be described as live, verified, certified, encrypted, guaranteed, or available 24/7.
 
-- **Server Components by default** — data fetching happens on the server; client components are opt-in via `"use client"`.
-- **Route Handlers** — all API logic lives in `app/api/` and uses the Next.js Route Handler pattern.
-- **Prisma ORM** — single source of truth for the database schema; migrations are version-controlled.
-- **Middleware-based auth** — JWT validation runs in `middleware.ts` before protected routes are served.
+## Local development
 
----
+### Requirements
 
-## Quick Start
-
-### Prerequisites
-
-- Node.js 20+
-- npm 10+
-- PostgreSQL 15+ (local or remote)
+- Node.js 24.x
+- Corepack
+- pnpm 10.28.0
+- PostgreSQL 15 or later
 
 ### Setup
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-org/gem-enterprise.git
+corepack enable
+git clone https://github.com/support371/gem-enterprise.git
 cd gem-enterprise
-
-# 2. Install dependencies
-npm install
-
-# 3. Configure environment variables
+pnpm install --frozen-lockfile
 cp .env.example .env.local
-# Edit .env.local and fill in all required values
-
-# 4. Push the Prisma schema to your database
-npx prisma db push
-
-# 5. Seed the database (creates admin user and reference data)
-npx prisma db seed
-
-# 6. Start the development server
-npm run dev
+pnpm run db:generate
+pnpm run dev
 ```
 
-The application will be available at [http://localhost:3000](http://localhost:3000).
+The local application is available at `http://localhost:3000`.
 
----
+Use a disposable development database. Do not point local development or automated tests at production.
 
-## Route Map
-
-### Public Routes
-
-| Path | Label | Description | Auth Required |
-|---|---|---|---|
-| `/` | Home | Marketing landing page | No |
-| `/intel` | Intel | Market intelligence and insights | No |
-| `/assets` | Assets | Asset overview and listings | No |
-| `/community` | Community | Community hub | No |
-| `/hub` | Hub | Resource hub | No |
-| `/about` | About | Company information | No |
-| `/contact` | Contact | Contact form | No |
-| `/resources` | Resources | Downloadable resources | No |
-| `/services` | Services | Service offerings | No |
-| `/company` | Company | Company profile | No |
-| `/get-started` | Get Started | Onboarding entry point | No |
-| `/eligibility` | Eligibility | Eligibility pre-check | No |
-
-### Authentication Routes
-
-| Path | Label | Description | Auth Required |
-|---|---|---|---|
-| `/client-login` | Client Login | Login form | No |
-| `/portal` | Portal | Session entry redirect | No |
-| `/access/continue` | Continue | Post-login routing gate | Partial |
-
-### KYC Routes
-
-| Path | Label | Description | Auth Required |
-|---|---|---|---|
-| `/kyc/start` | KYC Start | KYC flow entry point | Yes |
-| `/kyc/individual` | Individual | Individual applicant form | Yes |
-| `/kyc/business` | Business | Business entity form | Yes |
-| `/kyc/trust` | Trust | Trust entity form | Yes |
-| `/kyc/family-office` | Family Office | Family office form | Yes |
-| `/kyc/upload` | Document Upload | Supporting document upload | Yes |
-| `/kyc/review` | Review | Submission review and confirm | Yes |
-| `/kyc/status` | KYC Status | Application status tracker | Yes |
-
-### Decision Routes
-
-| Path | Label | Description | Auth Required |
-|---|---|---|---|
-| `/decision/pending` | Pending | Application under review | Yes |
-| `/decision/approved` | Approved | Approval confirmation | Yes |
-| `/decision/rejected` | Rejected | Rejection notification | Yes |
-| `/decision/manual-review` | Manual Review | Flagged for manual review | Yes |
-
-### Protected Client Portal (`/app/*`)
-
-| Path | Label | Description | Auth Required |
-|---|---|---|---|
-| `/app/dashboard` | Dashboard | Client overview dashboard | Yes — Client |
-| `/app/products` | Products | Available investment products | Yes — Client |
-| `/app/portfolios` | Portfolios | Portfolio management | Yes — Client |
-| `/app/documents` | Documents | Document vault | Yes — Client |
-| `/app/support` | Support | Support ticket system | Yes — Client |
-| `/app/compliance` | Compliance | Compliance centre | Yes — Client |
-| `/app/requests` | Requests | Service requests | Yes — Client |
-| `/app/profile` | Profile | Profile management | Yes — Client |
-| `/app/settings` | Settings | Account settings | Yes — Client |
-| `/app/security` | Security | Security settings | Yes — Client |
-| `/app/notifications` | Notifications | Notification centre | Yes — Client |
-| `/app/messages` | Messages | Internal messaging | Yes — Client |
-
-### Admin Routes (`/app/admin/*`)
-
-| Path | Label | Description | Auth Required |
-|---|---|---|---|
-| `/app/admin` | Admin | Admin overview | Yes — Admin |
-| `/app/admin/kyc` | KYC Management | Review KYC submissions | Yes — Admin |
-| `/app/admin/approvals` | Approvals | Manage approval queue | Yes — Admin |
-| `/app/admin/users` | Users | User management | Yes — Admin |
-| `/app/admin/allocations` | Allocations | Product allocations | Yes — Admin |
-
-### Compliance Routes
-
-| Path | Label | Description | Auth Required |
-|---|---|---|---|
-| `/privacy` | Privacy Policy | Data privacy policy | No |
-| `/terms` | Terms of Service | Terms and conditions | No |
-| `/compliance-notice` | Compliance Notice | Regulatory disclosures | No |
-
----
-
-## Legacy Redirects
-
-The following redirects are configured to maintain backward compatibility:
-
-| From (Legacy) | To (Canonical) | Type |
-|---|---|---|
-| `/login` | `/client-login` | 301 |
-| `/register` | `/get-started` | 301 |
-| `/apply` | `/kyc/start` | 301 |
-| `/dashboard` | `/app/dashboard` | 301 |
-| `/admin` | `/app/admin` | 301 |
-| `/profile` | `/app/profile` | 301 |
-
----
-
-## API Reference
-
-### Health
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/health` | No | Liveness check — returns `{ status: "ok" }` |
-| `GET` | `/api/routes` | No | Lists all registered API routes |
-
-### Authentication
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `POST` | `/api/auth/login` | No | Authenticate with email and password; sets JWT cookie |
-| `POST` | `/api/auth/logout` | Yes | Clears JWT cookie |
-| `GET` | `/api/auth/session` | Yes | Returns current session user object |
-
-### KYC
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/kyc` | Yes | Get current user's KYC submission status |
-| `POST` | `/api/kyc/submit` | Yes | Submit a completed KYC application |
-| `POST` | `/api/kyc/documents` | Yes | Upload supporting KYC documents (multipart) |
-
-### User
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/users/profile` | Yes | Get authenticated user's profile |
-| `PATCH` | `/api/users/profile` | Yes | Update authenticated user's profile |
-
-### Notifications
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/notifications` | Yes | List notifications for current user |
-| `PATCH` | `/api/notifications` | Yes | Mark notifications as read |
-
-### Support
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/support` | Yes | List support tickets for current user |
-| `POST` | `/api/support` | Yes | Create a new support ticket |
-
-### Requests
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/requests` | Yes | List service requests for current user |
-| `POST` | `/api/requests` | Yes | Submit a new service request |
-
-### Admin
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `GET` | `/api/admin/kyc` | Yes — Admin | List all KYC submissions with filters |
-| `PATCH` | `/api/admin/kyc` | Yes — Admin | Approve, reject, or flag a KYC submission |
-| `GET` | `/api/admin/users` | Yes — Admin | List all users with filters and pagination |
-| `PATCH` | `/api/admin/users` | Yes — Admin | Update user role or status |
-
-### Contact
-
-| Method | Endpoint | Auth | Description |
-|---|---|---|---|
-| `POST` | `/api/contact` | No | Submit a public contact form enquiry |
-
----
-
-## Environment Variables
-
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `JWT_SECRET` | Yes | JWT signing secret, min 32 chars. App throws at startup in production if absent or default. |
-| `ANTHROPIC_API_KEY` | No | Anthropic key for GEM Concierge chat. Falls back to rule-based replies if absent. |
-| `NEXT_PUBLIC_AI_DISCLOSURE_TEXT` | Yes | Disclosure text shown before first AI message. SHA-256 stored in `consent_records`. |
-| `NEXT_PUBLIC_APP_URL` | Yes | Canonical public URL of the application |
-| `NEXT_PUBLIC_APP_NAME` | Yes | Display name used in UI and emails |
-| `SMTP_HOST` | Yes | SMTP server hostname |
-| `SMTP_PORT` | Yes | SMTP server port (`587` or `465`) |
-| `SMTP_USER` | Yes | SMTP authentication username |
-| `SMTP_PASS` | Yes | SMTP authentication password |
-| `EMAIL_FROM` | Yes | From address used in outbound emails |
-| `ADMIN_EMAIL` | Yes | Email address for the seeded admin account (seed script only) |
-| `ADMIN_INITIAL_PASSWORD` | Yes | Temporary password for seeded admin. Change immediately after first login. |
-| `AUDIT_ENABLED` | No | Set to `true` to persist compliance audit events to the database |
-| `VERCEL_URL` | Auto | Auto-injected by Vercel at build time |
-
-See [`.env.example`](.env.example) for a copy-paste template.
-
----
-
-## Vercel Environment Setup
-
-> Add variables in **Vercel Dashboard → Project → Settings → Environment Variables**.
-> Do not place real values in `vercel.json`. See [`DEPLOYMENT.md`](DEPLOYMENT.md) for full steps.
-
-**Required before first deploy:**
+### Database development
 
 ```bash
-# Add each via Vercel CLI or the dashboard
-vercel env add DATABASE_URL
-vercel env add JWT_SECRET                       # openssl rand -hex 32
-vercel env add NEXT_PUBLIC_AI_DISCLOSURE_TEXT
-vercel env add NEXT_PUBLIC_APP_URL
-vercel env add NEXT_PUBLIC_APP_NAME
-vercel env add SMTP_HOST
-vercel env add SMTP_PORT
-vercel env add SMTP_USER
-vercel env add SMTP_PASS
-vercel env add EMAIL_FROM
-vercel env add ADMIN_EMAIL
-vercel env add ADMIN_INITIAL_PASSWORD
-vercel env add AUDIT_ENABLED
-# Optional — enables live AI chat:
-vercel env add ANTHROPIC_API_KEY
+# Generate Prisma client
+pnpm run db:generate
+
+# Create and apply a development migration
+pnpm run db:migrate -- --name describe-the-change
+
+# Development-only schema synchronization when explicitly appropriate
+pnpm run db:push
+
+# Seed a controlled development database
+pnpm run db:seed
 ```
 
-**After adding variables, force a redeploy** (build-time variables are baked in at build):
+Production schema changes require a committed migration, compatibility review, rollback plan, disposable-database validation, and owner-approved execution. Do not use `prisma db push` against production.
+
+## Repository structure
+
+```text
+src/
+├── app/                 Next.js pages, layouts, and API route handlers
+│   ├── app/             Protected client and administrative application
+│   ├── api/             Server-side REST endpoints
+│   ├── community-hub/   Fictional interface preview; not a live network
+│   ├── kyc/             Controlled onboarding and review routes
+│   ├── store/           Request-only product catalogues
+│   └── tokmetric/       Governed social-content operations foundation
+├── components/          Reusable UI and domain components
+├── lib/                 Authentication, database, mail, audit, provider adapters
+└── __tests__/           Vitest tests
+prisma/
+├── schema.prisma        Database source of truth
+├── migrations/          Version-controlled migrations
+└── seed.ts              Controlled reference and development data
+scripts/                 Verification and operational scripts
+docs/                    Architecture, deployment, controls, and integration docs
+```
+
+## Authentication and authorization
+
+The application uses the existing authentication implementation in `src/lib/auth.ts` and related API routes.
+
+1. A user authenticates through `/client-login`.
+2. `/api/auth/login` validates credentials locally or through the configured Supabase gateway.
+3. A signed session is stored in the HTTP-only `gem_session` cookie.
+4. `src/proxy.ts` protects application, onboarding, decision, review, and administrative routes.
+5. Sensitive API routes must independently validate the signed session and resource authorization.
+6. Roles, organization membership, workspace permissions, entitlements, and ownership checks are separate controls.
+
+Open self-registration is disabled. Accounts are provisioned through approved onboarding or administrator-controlled invitation.
+
+## Public routing notes
+
+- `/community` temporarily redirects to `/community-hub` while identity, staffing, affiliation, and operating claims undergo evidence review.
+- `/community-hub` is a fictional, non-indexed interface preview. It is not a live member network, marketplace, event programme, or secure messaging service.
+- `/register` permanently redirects to `/get-started`; it does not enable self-registration.
+- `/command-center` and `/admin-command` redirect to the separately hosted administrative command centre.
+- Store pages are request-only and do not create orders, subscriptions, payment obligations, inventory commitments, or service-level agreements.
+
+## Core application domains
+
+The Prisma schema includes foundations for:
+
+- Users, profiles, roles, sessions, and entitlements
+- KYC applications, reviews, decisions, and document metadata
+- Support tickets, service requests, meetings, and notifications
+- Products and portfolios
+- Auditing, consent records, evidence, and AI governance
+- News ingestion and content presentation
+- Organizations, workspaces, roles, permissions, and connectors
+- Campaigns, content versions, media assets, compliance reviews, approvals, publishing jobs, webhooks, idempotency, and analytics
+
+Some domains remain preview-only or provider-gated. Model presence does not imply production activation.
+
+## Environment configuration
+
+Use `.env.example` as the canonical variable inventory. Store real values only in approved secret stores and Vercel Project Settings.
+
+Important groups include:
+
+- PostgreSQL pooled and direct connections
+- JWT and password-reset signing secrets
+- Canonical application URL and name
+- SMTP and reply-to configuration
+- Platform Operations Agent credentials
+- Supabase evidence-vault server credentials
+- Audit and upload feature gates
+- TokMetric OAuth, webhook, encryption, and publishing gates
+
+Never commit `.env.local`, API keys, service-role keys, OAuth secrets, SMTP credentials, reset tokens, or customer data.
+
+## Verification gate
+
+Before a pull request is represented as ready, run:
 
 ```bash
-vercel redeploy --force
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run verify
 ```
 
-**Apply database migrations** (Vercel does not run this automatically):
+`pnpm run verify` performs:
 
-```bash
-DATABASE_URL="<production-url>" npx prisma migrate deploy
-```
+1. Prisma client generation
+2. ESLint with zero warnings
+3. TypeScript checking
+4. Vitest tests
+5. Next.js production build
 
-Full ordered steps including smoke tests: [`DEPLOYMENT.md`](DEPLOYMENT.md).
+If a check cannot run, report it as **blocked** or **not run**. Never describe an unstarted workflow as passing.
 
----
+## Deployment
 
-## Database
+Vercel Git integration owns production deployment.
 
-### Schema Overview
+- Pull requests create canonical preview deployments.
+- Preview verification must pass before merge.
+- Approved changes merge to `main`.
+- Vercel deploys `main` to production.
+- Do not run a second `vercel --prod` workflow from CI or another agent.
+- Database migrations are separate, controlled operations and are not automatically authorized by a code merge.
 
-The Prisma schema defines the following primary models:
+See:
 
-| Model | Description |
-|---|---|
-| `User` | Platform user accounts with role, status, and KYC state |
-| `KycSubmission` | KYC application data linked to a user |
-| `KycDocument` | Uploaded documents associated with a KYC submission |
-| `Notification` | In-app notification records per user |
-| `SupportTicket` | Support request threads |
-| `ServiceRequest` | Formal service requests from clients |
-| `AuditLog` | Immutable compliance audit log entries |
+- [`DEPLOYMENT.md`](DEPLOYMENT.md)
+- [`DEVELOPER_ONBOARDING.md`](DEVELOPER_ONBOARDING.md)
+- [`docs/CANONICAL_PRODUCTION_ARCHITECTURE.md`](docs/CANONICAL_PRODUCTION_ARCHITECTURE.md)
+- [`AGENTS.md`](AGENTS.md)
 
-### Migrations
+## Contribution workflow
 
-```bash
-# Generate and apply a new migration
-npx prisma migrate dev --name describe-your-change
-
-# Apply pending migrations in production (no schema changes)
-npx prisma migrate deploy
-
-# Inspect the current database schema
-npx prisma db pull
-
-# Open Prisma Studio (visual DB browser)
-npx prisma studio
-```
-
-### Seed
-
-The seed script (`prisma/seed.ts`) creates:
-
-- Initial admin user using `ADMIN_EMAIL` and `ADMIN_INITIAL_PASSWORD`
-- Reference data (roles, statuses, categories)
-
-```bash
-npx prisma db seed
-```
-
----
-
-## Authentication Flow
-
-```
-User submits credentials at /client-login
-        │
-        ▼
-POST /api/auth/login
-  ├── Invalid → 401, show error on /client-login
-  └── Valid   → Set JWT cookie → Redirect to /access/continue
-                        │
-                        ▼
-              /access/continue  (server-side routing gate)
-                │
-                ├── No KYC submission → /kyc/start
-                ├── KYC pending       → /decision/pending
-                ├── KYC rejected      → /decision/rejected
-                ├── KYC manual review → /decision/manual-review
-                └── KYC approved      → /app/dashboard  (or original destination)
-```
-
-All `/app/*` routes are protected by `middleware.ts`, which validates the JWT on every request and redirects unauthenticated users to `/client-login`.
-
----
-
-## KYC Flow
-
-```
-/kyc/start
-    │
-    ├── Individual    → /kyc/individual
-    ├── Business      → /kyc/business
-    ├── Trust         → /kyc/trust
-    └── Family Office → /kyc/family-office
-              │
-              ▼
-        /kyc/upload   (supporting documents)
-              │
-              ▼
-        /kyc/review   (confirm all data before submission)
-              │
-              ▼
-    POST /api/kyc/submit
-              │
-              ▼
-        /kyc/status   (polls submission status)
-              │
-              ▼
-    Admin reviews at /app/admin/kyc
-              │
-              ├── Approve → /decision/approved
-              ├── Reject  → /decision/rejected
-              └── Flag    → /decision/manual-review
-```
-
----
-
-## Deployment (Vercel)
-
-### Quick Start - 2-5 Minutes to Production
-
-See [`DEPLOYMENT_QUICK_START.md`](DEPLOYMENT_QUICK_START.md) for fast deployment options:
-
-**Option A: One-Click Deploy (Easiest)**
-- Click [Deploy with Vercel](https://vercel.com/new/clone?repository-url=https://github.com/support371/gem-enterprise) button
-- Creates new repo + project in 2 minutes
-- Automatic deployment to production
-
-**Option B: Vercel CLI (3 minutes)**
-```bash
-npm install -g vercel
-npm run build
-vercel --prod
-```
-
-**Option C: GitHub Auto-Deploy (5 minutes, best for teams)**
-1. Push to GitHub
-2. Connect GitHub to Vercel
-3. Auto-deploy on every push
-
-### Detailed Deployment Guide
-
-See [`VERCEL_DEPLOYMENT_GUIDE.md`](VERCEL_DEPLOYMENT_GUIDE.md) for the complete guide including:
-
-- All required environment variables and where to add them
-- Exact Vercel CLI commands
-- Custom domain setup
-- Performance monitoring
-- Team collaboration setup
-- Cost and limits
-- Troubleshooting
-
-### Deploying to Another Vercel Account
-
-The project is configured for easy deployment to any Vercel account:
-
-1. **Configuration files ready**
-   - `vercel.json` - Standard Next.js 20.x configuration (portable)
-   - `.env.example` - All environment variable templates
-   - `package.json` - Standard npm scripts
-
-2. **Deploy to new account**
-   ```bash
-   # Option A: One-click (easiest)
-   # Click deploy button in DEPLOYMENT_QUICK_START.md
-   
-   # Option B: Manual
-   vercel login  # Login with your Vercel account
-   vercel link   # Link to new project
-   vercel --prod # Deploy
-   ```
-
-3. **Add environment variables** (if needed)
-   - Vercel Dashboard → Settings → Environment Variables
-   - Copy values from `.env.example`
-
-### Smoke Tests (Post-Deployment)
-
-After every deployment, verify these endpoints:
-
-| Endpoint | Expected |
-|----------|----------|
-| `/api/health` | `200 { "status": "ok" }` |
-| `/` | `200` — landing page renders |
-| `/client-login` | `200` — login form renders |
-| `/app/dashboard` | `302` redirect to `/client-login` (without auth) |
-| `POST /api/auth/login` (bad creds) | `401` |
-
----
-
-## Admin Access
-
-1. After running `npx prisma db seed`, an admin account is created using the values in `ADMIN_EMAIL` and `ADMIN_INITIAL_PASSWORD`.
-2. Log in at `/client-login` with those credentials.
-3. The auth middleware checks the `role` field on the user record; the admin is granted role `ADMIN`.
-4. Navigate to `/app/admin` to access the administration panel.
-5. **Change the admin password immediately** via `/app/settings` or `/app/security`.
-
----
-
-## Smoke Checks
-
-After every deployment, verify the following URLs return the expected responses:
-
-| URL | Expected |
-|---|---|
-| `/api/health` | `200 { "status": "ok" }` |
-| `/` | `200` — landing page renders |
-| `/client-login` | `200` — login form renders |
-| `/privacy` | `200` — privacy policy renders |
-| `/terms` | `200` — terms page renders |
-| `/get-started` | `200` — onboarding entry renders |
-| `/app/dashboard` | `302` redirect to `/client-login` (unauthenticated) |
-| `/app/admin` | `302` redirect to `/client-login` (unauthenticated) |
-| `/kyc/start` | `302` redirect to `/client-login` (unauthenticated) |
-| `POST /api/auth/login` (bad creds) | `401` |
-| `GET /api/auth/session` (no cookie) | `401` |
-
----
-
-## Contributing
-
-1. Branch from `main` using the convention `feat/`, `fix/`, or `chore/` prefix.
-2. Write or update tests for any changed behaviour.
-3. Ensure `npm run build` passes with zero TypeScript errors.
-4. Open a pull request with a clear description of the change and any compliance implications.
-5. Obtain at least one approval before merging.
-
----
+1. Create or reference a GitHub issue.
+2. Branch from current `main` using `feat/`, `fix/`, `security/`, `test/`, `docs/`, or `chore/`.
+3. Inspect affected routes, APIs, schema, tests, configuration, and related pull requests.
+4. Implement the smallest complete vertical slice.
+5. Add tests for success, validation failure, authorization failure, provider failure, and fail-closed behavior as applicable.
+6. Run `pnpm run verify`.
+7. Open a pull request with risks, manual dependencies, evidence, and rollback notes.
+8. Require the canonical Vercel preview to pass.
+9. Merge only after the available required gates and human approvals pass.
+10. Run production smoke checks without using sensitive data or causing billable external actions.
 
 ## License
 
-Proprietary. All rights reserved. Unauthorised use, reproduction, or distribution of this software or any portion thereof is strictly prohibited.
+Proprietary. All rights reserved.

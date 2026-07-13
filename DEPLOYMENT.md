@@ -1,219 +1,257 @@
-# GEM Enterprise — Vercel Deployment Guide
+# GEM Enterprise Deployment Guide
 
-## Stack
+This document defines the canonical deployment process for the existing GEM Enterprise application.
 
-Next.js 16 · Prisma 5 · PostgreSQL · Vercel
+## Canonical production configuration
 
----
+| Item | Value |
+|---|---|
+| Public domain | `https://www.gemcybersecurityassist.com` |
+| Repository | `support371/gem-enterprise` |
+| Production branch | `main` |
+| Vercel project | `support371-gem-enterprise` |
+| Runtime | Node.js 24.x |
+| Package manager | pnpm 10.28.0 |
+| Database | PostgreSQL through Prisma 5 |
 
-## Required Environment Variables
+Vercel Git integration is the only canonical production deployment path. Do not create a second production project, run a parallel `vercel --prod` workflow from CI, or attach the production domain to another project without an approved migration plan.
 
-Add every variable below in **Vercel Dashboard → Project → Settings →
-Environment Variables**. Do not place real values in `vercel.json` or commit
-them to the repository.
+## Deployment boundaries
 
-| Variable | Required | Build-time | Description |
-|----------|----------|-----------|-------------|
-| `POSTGRES_PRISMA_URL` | **Yes** | Yes | Pooled PostgreSQL connection string used by the app runtime and Prisma client generation. Use a serverless-safe pooler (Neon, Supabase, PgBouncer). |
-| `POSTGRES_URL_NON_POOLING` | **Yes** | No | Direct PostgreSQL connection string used by Prisma migrations. In local development this can match `POSTGRES_PRISMA_URL`. |
-| `JWT_SECRET` | **Yes** | Yes | Minimum 32 characters. Generate: `openssl rand -hex 32`. App throws at runtime if absent or equal to the default dev value. |
-| `ANTHROPIC_API_KEY` | No | No | Anthropic key for GEM Concierge chat. If absent, falls back to rule-based replies — no build failure. |
-| `NEXT_PUBLIC_AI_DISCLOSURE_TEXT` | **Yes** | Yes | Disclosure text shown before the first AI message. SHA-256 of this string is stored in `consent_records`. Keep stable — changing it invalidates prior consent receipts. |
-| `NEXT_PUBLIC_APP_URL` | **Yes** | Yes | Canonical URL, e.g. `https://gem-enterprise.com` |
-| `NEXT_PUBLIC_APP_NAME` | **Yes** | Yes | Display name, e.g. `GEM Enterprise` |
-| `SMTP_HOST` | **Yes** | No | SMTP server hostname |
-| `SMTP_PORT` | **Yes** | No | `587` for TLS, `465` for SSL |
-| `SMTP_USER` | **Yes** | No | SMTP username / sending address |
-| `SMTP_PASS` | **Yes** | No | SMTP password or app-password |
-| `EMAIL_FROM` | **Yes** | No | Display name + address, e.g. `GEM Enterprise <noreply@example.com>` |
-| `ADMIN_EMAIL` | **Yes** | No | Email for the initial admin account (used by seed script once) |
-| `ADMIN_INITIAL_PASSWORD` | **Yes** | No | Temporary password. **Change immediately after first login.** |
-| `AUDIT_ENABLED` | No | No | Set `true` to write audit events to `audit_logs`. |
-| `CRON_SECRET` | **Yes** | No | Shared secret for authenticated cron execution of `/api/cron/news-ingest`. |
+A code deployment does not authorize:
 
-> Vercel Project Settings are the source of truth for runtime and build-time
-> environment variables. The repository no longer carries repo-managed env
-> bindings in `vercel.json`.
+- Production database migrations
+- KYC document-upload activation
+- Payment or subscription activation
+- Provider purchases or billing commitments
+- TikTok, advertising, or seller-account writes
+- Public operational claims
+- Production secret changes
 
----
+Those are separate controlled actions and require explicit owner approval.
 
-## Manual Deployment Steps — Exact Order
+## Environment variables
 
-### Step 1 — Add environment variables in Vercel Project Settings
+`.env.example` is the canonical inventory. Add real values only through Vercel Project Settings or another approved server-side secret store.
 
-In the Vercel dashboard, go to **Project → Settings → Environment Variables**
-and add each variable from the table above for the appropriate environments.
+Required groups include:
 
-For the Vercel CLI alternative:
+### Database
 
-```bash
-vercel env add POSTGRES_PRISMA_URL
-vercel env add POSTGRES_URL_NON_POOLING
-vercel env add JWT_SECRET
-vercel env add ANTHROPIC_API_KEY
-vercel env add NEXT_PUBLIC_AI_DISCLOSURE_TEXT
-vercel env add NEXT_PUBLIC_APP_URL
-vercel env add NEXT_PUBLIC_APP_NAME
-vercel env add SMTP_HOST
-vercel env add SMTP_PORT
-vercel env add SMTP_USER
-vercel env add SMTP_PASS
-vercel env add EMAIL_FROM
-vercel env add ADMIN_EMAIL
-vercel env add ADMIN_INITIAL_PASSWORD
-vercel env add AUDIT_ENABLED
-vercel env add CRON_SECRET
-```
+- `POSTGRES_PRISMA_URL`
+- `POSTGRES_URL_NON_POOLING`
 
-### Step 2 — Trigger a Vercel redeploy
+### Authentication and recovery
 
-After adding all variables, force a redeploy so the build picks up the new
-values (build-time variables are baked in at build time):
+- `JWT_SECRET`
+- `PASSWORD_RESET_SECRET`
 
-```bash
-vercel redeploy --force
-```
+### Application
 
-Or click **Redeploy** in the Vercel dashboard on the most recent deployment.
+- `NEXT_PUBLIC_APP_URL`
+- `NEXT_PUBLIC_APP_NAME`
+- `NEXT_PUBLIC_AI_DISCLOSURE_TEXT`
 
-### Step 3 — Apply database migrations
+### Email
 
-Vercel does not run `prisma migrate deploy` automatically. Run this once from
-a machine with a direct connection to the target Postgres instance:
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_SECURE`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `EMAIL_FROM`
+- `REPLY_TO_EMAIL`
 
-```bash
-POSTGRES_PRISMA_URL="postgresql://..." \
-POSTGRES_URL_NON_POOLING="postgresql://..." \
-npx prisma migrate deploy
-```
+### Platform operations and evidence governance
 
-This applies both pending migrations in order:
+- `GEM_AGENT_API_KEY`
+- `GEM_PUBLIC_APP_URL`
+- `GEM_AGENT_API_BASE_URL`
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- Evidence scanner and feature-gate variables documented in `.env.example`
 
-1. `20260318000001_init` — all base tables, enums, FK constraints
-2. `20260318000002_add_support_ai_runtime` — support sessions, AI runs,
-   consent records, escalation events
+### Optional integrations
 
-Confirm the output shows both migrations applied with no errors.
+TokMetric, TikTok, seller, merchant, AI, and webhook variables are optional and must remain disabled until their corresponding provider, approval, and security requirements pass.
 
-### Step 4 — Seed the initial admin account (first deployment only)
+Never place real values in `vercel.json`, source files, pull requests, issues, prompts, screenshots, logs, or client-side environment variables.
 
-```bash
-POSTGRES_PRISMA_URL="postgresql://..." \
-POSTGRES_URL_NON_POOLING="postgresql://..." \
-ADMIN_EMAIL="admin@example.com" \
-ADMIN_INITIAL_PASSWORD="replace-this" \
-npm run db:seed
-```
+## Safety defaults
 
-**Change the admin password immediately after first login** via `/app/security`.
+The following production flags must remain false unless the owner approves activation after the documented gates pass:
 
-### Step 5 — Smoke tests
+- Database auto-push, auto-seed, and automatic migration flags
+- Demo-data seeding
+- KYC document upload
+- Evidence-vault activation
+- TokMetric live publishing
+- TokMetric sandbox publishing when not explicitly approved
+- External seller and merchant connections
 
-Run these checks against the deployed preview or production URL in order.
+## Pull-request preview process
 
-#### Auth and protected routes
-
-```
-GET  /                          → 200, page renders
-GET  /client-login              → 200, login form renders
-GET  /app/dashboard             → 302 → /client-login  (no cookie)
-GET  /app/admin                 → 302 → /client-login  (no cookie)
-GET  /kyc/start                 → 302 → /client-login  (no cookie)
-GET  /decision/pending          → 302 → /client-login  (no cookie)
-GET  /portal                    → 302 → /client-login  (no cookie)
-
-POST /api/auth/login            body: { email, password } (wrong creds)
-                                → 401
-
-POST /api/auth/login            body: { email, password } (correct creds)
-                                → 200, Set-Cookie: gem_session
-
-GET  /app/dashboard             (with valid cookie)  → 200
-GET  /app/admin                 (client cookie)      → 302 → /app/dashboard
-GET  /app/admin                 (admin cookie)       → 200
-```
-
-#### Support consent
-
-```
-POST /api/support/session
-     → 201, returns { sessionId }
-     → verify row exists in support_sessions table
-
-POST /api/support/consent       body: { sessionId, accepted: true }
-     → 200
-     → verify support_sessions.consent_given = true in DB
-
-POST /api/support/message       body: { sessionId, message: "..." }
-     → 200, returns { reply }
-     → verify messages JSONB column updated in support_sessions
-```
-
-#### AI governance — disclosure gate
-
-```
-POST /api/assistant/session
-     body: { profileId: "PRF-005", consentGiven: false, disclosureTextHash: "x" }
-     → 422  "AI session cannot start without disclosure acceptance"
-
-POST /api/assistant/session
-     body: { profileId: "PRF-005", consentGiven: true, disclosureTextHash: "<sha256 of NEXT_PUBLIC_AI_DISCLOSURE_TEXT>" }
-     → 201, returns { sessionId }
-     → verify row in ai_runs AND consent_records tables
-```
-
-#### AI escalation
-
-```
-POST /api/assistant/message
-     body: { sessionId: "<id>", message: "What is my account balance?" }
-     → 200, { escalated: false, response: "..." }
-     → verify ai_runs.message_count incremented
-
-POST /api/assistant/message
-     body: { sessionId: "<id>", message: "You should invest in this stock" }
-     → 200, { escalated: true, restrictedClass: "FINANCIAL_ADVICE" }
-     → verify row in ai_escalation_events
-     → verify ai_runs.escalation_triggered = true, output_status = "escalated"
-
-POST /api/assistant/message     (same session, after escalation)
-     → 409  "Session has been escalated"
-```
-
-#### Audit trail
-
-```sql
-SELECT action, resource, resource_id, created_at
-FROM audit_logs
-ORDER BY created_at DESC
-LIMIT 10;
--- Expected rows: ai_session_opened, ai_message_responded, ai_message_escalated
-```
-
----
-
-## Local Development
+1. Create or reference a GitHub issue.
+2. Create a focused branch from current `main`.
+3. Implement and test the smallest complete vertical slice.
+4. Run the local verification gate:
 
 ```bash
-cp .env.example .env.local
-# Fill in .env.local with real values
-
-npm install
-npm run db:generate
-npx prisma migrate deploy  # or: npx prisma db push (dev only)
-npm run db:seed
-npm run dev
+corepack enable
+pnpm install --frozen-lockfile
+pnpm run verify
 ```
 
----
+5. Open a pull request against `main`.
+6. Inspect the canonical Vercel preview build and affected routes.
+7. Record security, privacy, claims, billing, and provider impacts.
+8. Record any unavailable check as **blocked** or **not run**.
+9. Merge only after required checks and human approvals pass.
 
-## Notes
+The Vercel preview independently runs the repository's preview verification before the Next.js production build.
 
-- `JWT_SECRET` must be at least 32 characters. The app throws at startup in
-  production if the variable is absent or equal to the default dev placeholder.
-- `NEXT_PUBLIC_*` variables are embedded at build time. A redeploy is required
-  after changing them.
-- `consent_records` rows must not be deleted — they are the audit trail for
-  AI disclosure acceptance.
-- The `lodash` moderate CVE (transitive from `recharts`) has no upstream fix.
-  No lodash 5.x exists. Risk accepted; attack surface is internal to recharts.
+## Production deployment process
+
+1. Confirm the pull request is approved and the available required gates pass.
+2. Confirm no unresolved production-secret, provider, migration, or legal dependency is being represented as complete.
+3. Merge the approved pull request into `main`.
+4. Vercel Git integration deploys `main` to the canonical project.
+5. Inspect deployment logs.
+6. Run production smoke checks.
+7. Monitor errors and regressions.
+8. Roll back through Vercel or revert the merge if required.
+
+Do not trigger a second independent production deployment after the Git integration deployment.
+
+## Database migrations
+
+Production database changes are not implied by a code merge.
+
+Every migration requires:
+
+- A committed Prisma migration
+- Compatibility assessment
+- Data-backfill plan when applicable
+- Index and lock-impact review
+- Disposable PostgreSQL application test
+- Recovery or rollback procedure
+- Test evidence
+- Owner-approved production execution
+
+A controlled migration command is:
+
+```bash
+pnpm exec prisma migrate deploy
+```
+
+Run it only from an approved environment using the intended production connection variables. Do not run `prisma db push` against production.
+
+Do not seed production automatically. Initial administrator provisioning and any reference-data seeding must be separately reviewed, executed once where needed, and documented.
+
+## Production smoke checks
+
+Use no sensitive personal, financial, identity, or client data.
+
+### Public routes
+
+| Check | Expected |
+|---|---|
+| `GET /` | `200` |
+| `GET /services` | `200` |
+| `GET /store` | `200` |
+| `GET /community` | Temporary redirect to `/community-hub` |
+| `GET /community-hub` | `200`, fictional-preview disclosure visible, non-indexed metadata |
+| `GET /register` | Permanent redirect to `/get-started` |
+| `GET /get-started` | `200` |
+| `GET /contact` | `200` |
+| `GET /privacy` | `200` |
+| `GET /terms` | `200` |
+| `GET /api/health` | Healthy response |
+
+### Authentication and authorization
+
+| Check | Expected |
+|---|---|
+| `GET /client-login` | Login form renders |
+| Invalid login | Generic `401` response |
+| Protected client route without session | Redirect to `/client-login` |
+| Admin route with client role | Access denied or safe redirect |
+| Admin route with approved admin role | Authorized response |
+| Forgot-password request | Non-enumerating response |
+| Recovery when SMTP is not configured | Explicit fail-closed service state |
+
+### Safety gates
+
+Verify:
+
+- KYC document upload remains unavailable unless its full production pipeline is approved.
+- Store pages remain request-only.
+- Community Hub remains clearly fictional and non-indexed.
+- Provider-dependent services report accurate disabled or pending states.
+- Production social publishing and advertising remain blocked unless separately approved.
+- Public claims do not imply activation from deployment alone.
+
+### Security headers
+
+Confirm production responses include the configured controls, including:
+
+- HSTS
+- `X-Frame-Options`
+- `X-Content-Type-Options`
+- Referrer Policy
+- Permissions Policy
+- Content Security Policy
+- COOP and CORP where configured
+
+## Email verification
+
+When SMTP is configured, verify:
+
+- Sender domain authorization
+- SPF
+- DKIM
+- DMARC
+- Password-recovery delivery
+- Reply-to behavior
+- Failure logging without sensitive content
+
+Do not claim password recovery is operational solely because the route exists. Verify actual message delivery and reset completion.
+
+## Rollback
+
+### Code-only release
+
+- Use the Vercel deployment rollback capability, or
+- Revert the merge commit through a reviewed pull request.
+
+### Release with migration
+
+Follow the migration-specific recovery plan. Do not automatically reverse a migration that may have accepted production data. Prefer a reviewed forward fix when destructive reversal is unsafe.
+
+### Feature or provider activation
+
+Disable the relevant server-side feature gate or connector through the approved operations process. Do not expose secret values while troubleshooting.
+
+## Evidence required for release records
+
+Record:
+
+- Issue and pull-request references
+- Commit SHA
+- Verification output
+- Vercel preview and production deployment references
+- Migration evidence when applicable
+- Smoke-test results
+- Manual dependencies
+- Security and privacy impact
+- Rollback method
+- Owner approval for high-impact actions
+
+## Related documents
+
+- `README.md`
+- `DEVELOPER_ONBOARDING.md`
+- `AGENTS.md`
+- `.env.example`
+- `docs/CANONICAL_PRODUCTION_ARCHITECTURE.md`
+- `docs/deployment-checklist.md`

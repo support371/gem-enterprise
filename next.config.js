@@ -1,4 +1,4 @@
-// GEM Build: 2026-07-09 production-readiness hardening
+// GEM Build: 2026-07-13 public-truth routing hardening
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
@@ -87,6 +87,16 @@ const nextConfig = {
   async redirects() {
     return [
       { source: '/blog', destination: '/resources', permanent: true },
+      {
+        source: '/community',
+        destination: '/community-hub',
+        permanent: false,
+      },
+      {
+        source: '/register',
+        destination: '/get-started',
+        permanent: true,
+      },
       {
         source: '/command-center',
         destination: 'https://admin.gemcybersecurityassist.com',
