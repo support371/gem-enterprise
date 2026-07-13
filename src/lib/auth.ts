@@ -1,10 +1,7 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify, SignJWT } from "jose";
-import {
-  unwrapGatewayToken,
-  verifyGatewaySession,
-} from "@/lib/supabase-gateway";
+import { unwrapGatewayToken, verifyGatewaySession } from "@/lib/supabase-gateway";
 
 export const SESSION_COOKIE = "gem_session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
@@ -32,9 +29,19 @@ export interface SessionPayload {
   portfolioId?: string;
   organizationId?: string;
   authSource?: "local" | "supabase_gateway";
+  iat?: number;
+  exp?: number;
 }
 
 export type IssuedSessionPayload = SessionPayload & { sessionVersion: number };
+
+export interface AuthState {
+  isAuthenticated: boolean;
+  session: SessionPayload | null;
+  isAdmin: boolean;
+  isApproved: boolean;
+  kycStatus: KYCStatus;
+}
 
 const AUTH_ROLES: readonly AuthRole[] = [
   "client",
@@ -65,7 +72,6 @@ export async function signSession(payload: IssuedSessionPayload) {
   if (!validSessionVersion(payload.sessionVersion)) {
     throw new Error("A non-negative session version is required when issuing a session.");
   }
-
   return new SignJWT({ ...payload, authSource: "local" })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuedAt()
@@ -114,10 +120,8 @@ async function validateDirectSessionAuthority(
         sessionVersion: true,
       },
     });
-
     if (
       !account ||
-      account.id !== claims.userId ||
       !account.isActive ||
       account.status === "suspended" ||
       !validRole(account.role) ||
@@ -126,7 +130,6 @@ async function validateDirectSessionAuthority(
     ) {
       return null;
     }
-
     return {
       ...claims,
       email: account.email,
@@ -150,19 +153,33 @@ async function resolveSessionToken(token: string): Promise<SessionPayload | null
       return null;
     }
   }
-
   const local = await verifySession(token);
   return local ? validateDirectSessionAuthority(local) : null;
 }
 
+export async function getSessionCookieValue(): Promise<string | null> {
+  const store = await cookies();
+  return store.get(SESSION_COOKIE)?.value ?? null;
+}
+
+export async function getGatewaySessionToken(): Promise<string | null> {
+  const value = await getSessionCookieValue();
+  return value ? unwrapGatewayToken(value) : null;
+}
+
 export async function getSession(): Promise<SessionPayload | null> {
   try {
-    const store = await cookies();
-    const token = store.get(SESSION_COOKIE)?.value;
+    const token = await getSessionCookieValue();
     return token ? await resolveSessionToken(token) : null;
   } catch {
     return null;
   }
+}
+
+export async function createSessionCookie(
+  payload: IssuedSessionPayload,
+): Promise<string> {
+  return signSession(payload);
 }
 
 export async function getSessionFromRequest(
@@ -197,7 +214,6 @@ export function clearSessionCookie(response: NextResponse): NextResponse {
 export function resolveAccessDestination(session: SessionPayload): string {
   if (["admin", "super_admin", "internal"].includes(session.role)) return "/app/admin";
   if (session.role === "analyst") return "/review/verification";
-
   if (session.kycStatus === "not_started") return "/kyc/start";
   if (["started", "in_progress", "documents_uploaded"].includes(session.kycStatus)) {
     return "/kyc/status";
@@ -206,7 +222,6 @@ export function resolveAccessDestination(session: SessionPayload): string {
   if (["manual_review", "rejected", "expired"].includes(session.kycStatus)) {
     return "/kyc/status";
   }
-
   if (session.portfolioId) return `/app/portfolios/${session.portfolioId}`;
   if (session.entitlements.includes("cyber")) return "/app/products/cyber";
   if (session.entitlements.includes("financial")) return "/app/products/financial";
@@ -214,12 +229,11 @@ export function resolveAccessDestination(session: SessionPayload): string {
   return "/app/dashboard";
 }
 
-export function resolveAuthState(session: SessionPayload | null) {
+export function resolveAuthState(session: SessionPayload | null): AuthState {
   return {
     isAuthenticated: Boolean(session),
-    isAdmin: Boolean(
-      session && ["admin", "super_admin", "internal"].includes(session.role),
-    ),
+    session,
+    isAdmin: Boolean(session && ["admin", "super_admin", "internal"].includes(session.role)),
     isApproved: session?.kycStatus === "approved",
     kycStatus: session?.kycStatus ?? "not_started",
   };

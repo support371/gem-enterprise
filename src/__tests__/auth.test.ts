@@ -11,19 +11,20 @@ const clientSession: IssuedSessionPayload = {
   sessionVersion: 0,
 };
 
-const originalSecret = process.env.JWT_SECRET;
-const originalNodeEnv = process.env.NODE_ENV;
+const mutableEnv = process.env as Record<string, string | undefined>;
+const originalSecret = mutableEnv.JWT_SECRET;
+const originalNodeEnv = mutableEnv.NODE_ENV;
 
 afterEach(() => {
-  if (originalSecret === undefined) delete process.env.JWT_SECRET;
-  else process.env.JWT_SECRET = originalSecret;
-  if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
-  else process.env.NODE_ENV = originalNodeEnv;
+  if (originalSecret === undefined) delete mutableEnv.JWT_SECRET;
+  else mutableEnv.JWT_SECRET = originalSecret;
+  if (originalNodeEnv === undefined) delete mutableEnv.NODE_ENV;
+  else mutableEnv.NODE_ENV = originalNodeEnv;
 });
 
 describe("session JWT", () => {
   it("signs and verifies a versioned session", async () => {
-    process.env.JWT_SECRET = "test-secret-that-is-longer-than-32-characters";
+    mutableEnv.JWT_SECRET = "test-secret-that-is-longer-than-32-characters";
     const token = await signSession(clientSession);
     const verified = await verifySession(token);
     expect(verified).toMatchObject({
@@ -35,14 +36,14 @@ describe("session JWT", () => {
   });
 
   it("rejects a tampered token", async () => {
-    process.env.JWT_SECRET = "test-secret-that-is-longer-than-32-characters";
+    mutableEnv.JWT_SECRET = "test-secret-that-is-longer-than-32-characters";
     const token = await signSession(clientSession);
     await expect(verifySession(`${token.slice(0, -1)}x`)).resolves.toBeNull();
   });
 
   it("requires a production JWT secret", async () => {
-    delete process.env.JWT_SECRET;
-    process.env.NODE_ENV = "production";
+    delete mutableEnv.JWT_SECRET;
+    mutableEnv.NODE_ENV = "production";
     await expect(signSession(clientSession)).rejects.toThrow(/JWT_SECRET/);
   });
 });
