@@ -31,6 +31,7 @@ export default function AdminAccessPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [authorizationFailure, setAuthorizationFailure] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,6 +60,7 @@ export default function AdminAccessPage() {
     if (!accessToken || !passwordValid || !confirmationValid) return;
 
     setSubmitting(true);
+    setAuthorizationFailure(false);
     setError(null);
 
     try {
@@ -69,9 +71,16 @@ export default function AdminAccessPage() {
       });
       const body = (await response.json().catch(() => ({}))) as {
         error?: string;
+        code?: string;
       };
 
       if (!response.ok) {
+        if (body.code === "INVALID_TOKEN") {
+          setAuthorizationFailure(true);
+          throw new Error(
+            "The one-time authorization is missing, expired, or already used. Start a new authorization and verify it before returning to this page.",
+          );
+        }
         throw new Error(body.error || "The administrator password could not be set.");
       }
 
@@ -124,7 +133,10 @@ export default function AdminAccessPage() {
           <p className="mt-3 text-sm leading-6 text-slate-300">
             This page requires a valid one-time setup link. The link may be incomplete, expired, or already consumed.
           </p>
-          <Button asChild variant="outline" className="mt-7 w-full border-white/15 text-white">
+          <Button asChild className="mt-7 w-full bg-cyan-400 font-semibold text-black hover:bg-cyan-300">
+            <Link href="/admin-access/authorize">Start a new authorization</Link>
+          </Button>
+          <Button asChild variant="outline" className="mt-3 w-full border-white/15 text-white">
             <Link href="/client-login">Return to sign-in</Link>
           </Button>
         </section>
@@ -203,13 +215,18 @@ export default function AdminAccessPage() {
 
           {error && (
             <div className="rounded-xl border border-red-500/25 bg-red-500/10 p-4 text-sm text-red-300">
-              {error}
+              <p>{error}</p>
+              {authorizationFailure ? (
+                <Button asChild variant="outline" className="mt-4 w-full border-red-300/30 text-red-100">
+                  <Link href="/admin-access/authorize">Start a new authorization</Link>
+                </Button>
+              ) : null}
             </div>
           )}
 
           <Button
             type="submit"
-            disabled={submitting || !passwordValid || !confirmationValid}
+            disabled={submitting || !passwordValid || !confirmationValid || authorizationFailure}
             className="w-full bg-cyan-400 font-semibold text-black hover:bg-cyan-300"
           >
             {submitting ? (
