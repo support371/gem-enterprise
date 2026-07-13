@@ -9,6 +9,7 @@ export interface AuthoritativeAccountSnapshot {
   status: AccountStatus;
   isActive: boolean;
   organizationId: string | null;
+  sessionVersion: number;
 }
 
 type AuthoritySuccess = {
@@ -24,7 +25,8 @@ type AuthorityFailure = {
   code:
     | "SESSION_ACCOUNT_NOT_FOUND"
     | "SESSION_ACCOUNT_DISABLED"
-    | "SESSION_ROLE_INVALID";
+    | "SESSION_ROLE_INVALID"
+    | "SESSION_REVOKED";
   message: string;
 };
 
@@ -73,6 +75,18 @@ export function reconcileSessionAuthority(
     };
   }
 
+  if (
+    !Number.isSafeInteger(claims.sessionVersion) ||
+    claims.sessionVersion !== account.sessionVersion
+  ) {
+    return {
+      ok: false,
+      statusCode: 401,
+      code: "SESSION_REVOKED",
+      message: "This session is no longer valid. Sign in again.",
+    };
+  }
+
   const organizationId = account.organizationId ?? undefined;
   const claimsChanged =
     claims.email !== account.email ||
@@ -88,6 +102,7 @@ export function reconcileSessionAuthority(
       email: account.email,
       role: account.role,
       organizationId,
+      sessionVersion: account.sessionVersion,
     },
   };
 }

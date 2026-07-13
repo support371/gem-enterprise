@@ -6,7 +6,7 @@ import {
   signSession,
   setSessionCookie,
   resolveAccessDestination,
-  type SessionPayload,
+  type IssuedSessionPayload,
 } from "@/lib/auth";
 import { emitAuditLog } from "@/lib/audit";
 import { getRequestContext } from "@/lib/api/auth-helpers";
@@ -15,7 +15,6 @@ import {
   GatewayRequestError,
   loginWithGateway,
   shouldUseSupabaseGateway,
-  wrapGatewayToken,
 } from "@/lib/supabase-gateway";
 
 const loginSchema = z.object({
@@ -24,6 +23,70 @@ const loginSchema = z.object({
 });
 
 const INVALID_CREDENTIALS = { error: "Invalid credentials" };
+
+type CanonicalUser = Awaited<ReturnType<typeof findCanonicalUser>>;
+
+async function findCanonicalUser(userId: string) {
+  return db.user.findUnique({
+    where: { id: userId },
+    include: {
+      entitlements: { where: { isActive: true } },
+      kycApplications: { orderBy: { createdAt: "desc" }, take: 1 },
+      portfolioMemberships: { take: 1, orderBy: { assignedAt: "desc" } },
+    },
+  });
+}
+
+function canonicalSessionPayload(user: NonNullable<CanonicalUser>): IssuedSessionPayload {
+  const latestKyc = user.kycApplications[0] ?? null;
+  return {
+    userId: user.id,
+    email: user.email,
+    role: user.role as IssuedSessionPayload["role"],
+    kycStatus: (latestKyc?.status ?? "not_started") as IssuedSessionPayload["kycStatus"],
+    entitlements: user.entitlements.map((entitlement) => entitlement.slug),
+    sessionVersion: user.sessionVersion,
+    kycApplicationId: latestKyc?.id ?? undefined,
+    portfolioId: user.portfolioMemberships[0]?.portfolioId ?? undefined,
+    organizationId: user.organizationId ?? undefined,
+  };
+}
+
+async function issueCanonicalSession(
+  user: NonNullable<CanonicalUser>,
+  ipAddress: string,
+  userAgent: string,
+  source: "local_password" | "gateway_credential_verification",
+) {
+  if (!user.isActive || user.status === "suspended") {
+    return NextResponse.json({ error: "Account suspended" }, { status: 403 });
+  }
+
+  const sessionPayload = canonicalSessionPayload(user);
+  const token = await signSession(sessionPayload);
+  await db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+  await emitAuditLog({
+    userId: user.id,
+    action: "login",
+    resource: "user",
+    resourceId: user.id,
+    metadata: {
+      email: user.email,
+      source,
+      sessionVersion: user.sessionVersion,
+    },
+    ipAddress,
+    userAgent,
+  });
+
+  const response = NextResponse.json({
+    success: true,
+    role: sessionPayload.role,
+    kycStatus: sessionPayload.kycStatus,
+    redirect: resolveAccessDestination(sessionPayload),
+  });
+  return setSessionCookie(response, token);
+}
 
 async function localLogin(
   email: string,
@@ -34,7 +97,6 @@ async function localLogin(
   const user = await db.user.findUnique({
     where: { email: email.toLowerCase() },
     include: {
-      profile: true,
       entitlements: { where: { isActive: true } },
       kycApplications: { orderBy: { createdAt: "desc" }, take: 1 },
       portfolioMemberships: { take: 1, orderBy: { assignedAt: "desc" } },
@@ -63,40 +125,7 @@ async function localLogin(
     return NextResponse.json(INVALID_CREDENTIALS, { status: 401 });
   }
 
-  if (!user.isActive || user.status === "suspended") {
-    return NextResponse.json({ error: "Account suspended" }, { status: 403 });
-  }
-
-  const latestKyc = user.kycApplications[0] ?? null;
-  const sessionPayload: SessionPayload = {
-    userId: user.id,
-    email: user.email,
-    role: user.role as SessionPayload["role"],
-    kycStatus: (latestKyc?.status ?? "not_started") as SessionPayload["kycStatus"],
-    kycApplicationId: latestKyc?.id ?? undefined,
-    entitlements: user.entitlements.map((entitlement) => entitlement.slug),
-    portfolioId: user.portfolioMemberships[0]?.portfolioId ?? undefined,
-    organizationId: user.organizationId ?? undefined,
-  };
-  const token = await signSession(sessionPayload);
-  await db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-  await emitAuditLog({
-    userId: user.id,
-    action: "login",
-    resource: "user",
-    resourceId: user.id,
-    metadata: { email: user.email },
-    ipAddress,
-    userAgent,
-  });
-
-  const response = NextResponse.json({
-    success: true,
-    role: sessionPayload.role,
-    kycStatus: sessionPayload.kycStatus,
-    redirect: resolveAccessDestination(sessionPayload),
-  });
-  return setSessionCookie(response, token);
+  return issueCanonicalSession(user, ipAddress, userAgent, "local_password");
 }
 
 export async function POST(request: NextRequest) {
@@ -136,20 +165,16 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await loginWithGateway(email, password);
-    const sessionPayload = {
-      ...result.session,
-      authSource: "supabase_gateway" as const,
-    };
-    const response = NextResponse.json(
-      {
-        success: true,
-        role: sessionPayload.role,
-        kycStatus: sessionPayload.kycStatus,
-        redirect: resolveAccessDestination(sessionPayload),
-      },
-      { headers: { "Cache-Control": "no-store" } },
+    const user = await findCanonicalUser(result.session.userId);
+    if (!user || user.email.toLowerCase() !== result.session.email.toLowerCase()) {
+      return NextResponse.json(INVALID_CREDENTIALS, { status: 401 });
+    }
+    return issueCanonicalSession(
+      user,
+      ipAddress,
+      userAgent,
+      "gateway_credential_verification",
     );
-    return setSessionCookie(response, wrapGatewayToken(result.token));
   } catch (error) {
     if (error instanceof GatewayRequestError) {
       const status = [400, 401, 403, 429].includes(error.statusCode)
@@ -163,6 +188,7 @@ export async function POST(request: NextRequest) {
         { status, headers: { "Cache-Control": "no-store" } },
       );
     }
+    console.error("[POST /api/auth/login gateway verification]", error);
     return NextResponse.json(
       { error: "Authentication service unavailable" },
       { status: 503, headers: { "Cache-Control": "no-store" } },

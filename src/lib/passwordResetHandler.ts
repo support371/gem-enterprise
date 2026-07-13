@@ -20,12 +20,19 @@ const schema = z.object({
 
 export async function handlePasswordReset(request: NextRequest) {
   const { ipAddress, userAgent } = getRequestContext(request);
-  const limit = rateLimit(ipAddress, { key: "auth:reset-password", windowMs: 900_000, max: 10 });
+  const limit = rateLimit(ipAddress, {
+    key: "auth:reset-password",
+    windowMs: 900_000,
+    max: 10,
+  });
   if (!limit.ok) return rateLimitedResponse(limit.retryAfterSeconds);
 
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten().fieldErrors }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request", details: parsed.error.flatten().fieldErrors },
+      { status: 400 },
+    );
   }
 
   const result = await completePasswordReset(parsed.data.token, parsed.data.newPassword);
@@ -51,13 +58,21 @@ export async function handlePasswordReset(request: NextRequest) {
       action: "password_change",
       resource: "user",
       resourceId: result.userId,
-      metadata: { flow: "forgot_password_reset" },
+      metadata: {
+        flow: "forgot_password_reset",
+        sessionsRevoked: true,
+        sessionVersion: result.sessionVersion,
+      },
       ipAddress,
       userAgent,
     });
   }
 
-  const response = NextResponse.json({ success: true, message: "Your password has been reset." });
+  const response = NextResponse.json({
+    success: true,
+    sessionsRevoked: true,
+    message: "Your password has been reset. All existing sessions were signed out.",
+  });
   response.headers.set("Cache-Control", "no-store");
   return clearSessionCookie(response);
 }
