@@ -141,6 +141,10 @@ The branch includes regression tests that verify:
 
 The canonical Vercel project must be used for final preview validation. Duplicate Vercel projects attached to the same repository may report build-rate-limit failures that are unrelated to application correctness. The pull request must not merge until the final canonical head passes the repository gate.
 
+### Canonical preview retrigger
+
+A single isolated documentation commit is used to retrigger the canonical `support371-gem-enterprise` preview after the earlier rapid commit sequence caused queued previews to be superseded or canceled. The deployment that validates the pull request must reference the current branch head; an earlier green deployment is not sufficient.
+
 ## Rollback
 
 Before migration promotion, rollback is simply reverting the feature branch or pull-request merge; no proposed SQL has been applied.
