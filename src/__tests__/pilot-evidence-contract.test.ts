@@ -17,16 +17,26 @@ describe("GEM Verify pilot evidence contract", () => {
     expect(route).toContain('mutatesProductionData: false');
   });
 
-  it("uses an isolated, timeout-protected production gateway", () => {
+  it("uses the isolated, timeout-protected production gateway v2", () => {
     const route = source("src/app/api/verify/pilot-evidence/route.ts");
     const gateway = source("src/lib/kyc/pilot-evidence-gateway.ts");
 
     expect(route).toContain("readPilotEvidenceGateway");
     expect(route).toContain("getGatewaySessionToken");
-    expect(gateway).toContain("gem-pilot-evidence-read");
+    expect(gateway).toContain("gem-pilot-evidence-read-v2");
     expect(gateway).toContain("AbortController");
     expect(gateway).toContain('method: "POST"');
     expect(gateway).not.toMatch(/\.(create|update|delete|upsert)\(/);
+  });
+
+  it("requires the complete controlled audit chain", () => {
+    const evaluator = source("src/lib/kyc/pilot-evidence.ts");
+
+    expect(evaluator).toContain('id: "authenticated-sessions"');
+    expect(evaluator).toContain('id: "review-audit-chain"');
+    expect(evaluator).toContain("submissionAudits.length >= 2");
+    expect(evaluator).toContain("startReviewAudits.length >= 2");
+    expect(evaluator).toContain('decisionReviewAction = outcome === "approved" ? "approve" : "reject"');
   });
 
   it("requires an explicit synthetic marker and guarded naming convention", () => {
