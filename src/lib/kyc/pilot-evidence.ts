@@ -76,9 +76,9 @@ function hasOrderedActions(actions: string[], expected: string[]) {
   return false;
 }
 
-function auditStage(audit: PilotEvidenceAudit) {
-  const stage = asRecord(audit.metadata).stage;
-  return typeof stage === "string" ? stage : "";
+function auditValue(audit: PilotEvidenceAudit, key: string) {
+  const value = asRecord(audit.metadata)[key];
+  return typeof value === "string" ? value : "";
 }
 
 export function evaluatePilotEvidence(input: {
@@ -105,7 +105,6 @@ export function evaluatePilotEvidence(input: {
       : application.decision?.decision === "rejected"
         ? "application_rejected"
         : null;
-
   const requiredPath = [
     "application_created",
     "consent_recorded",
@@ -114,36 +113,88 @@ export function evaluatePilotEvidence(input: {
     "review_started",
     "information_requested",
     "information_resubmitted",
+    "review_started",
     ...(decisionEvent ? [decisionEvent] : []),
   ];
 
   const orderedHistory =
     decisionEvent !== null && hasOrderedActions(reviewActions, requiredPath);
-  const uniqueHistory = new Set(reviews.map((review) => review.id)).size === reviews.length;
+  const uniqueHistory =
+    new Set(reviews.map((review) => review.id)).size === reviews.length;
   const chronologicalHistory = reviews.every(
     (review, index) =>
-      index === 0 || timestamp(reviews[index - 1].createdAt) <= timestamp(review.createdAt),
+      index === 0 ||
+      timestamp(reviews[index - 1].createdAt) <= timestamp(review.createdAt),
   );
 
   const roleChangeAudit = input.audits.some(
     (audit) =>
       audit.action === "role_change" &&
       audit.resource === "user" &&
-      audit.resourceId === analyst?.id,
+      audit.resourceId === analyst?.id &&
+      auditValue(audit, "newRole") === "analyst",
+  );
+  const loginIds = [applicant?.id, analyst?.id, decisionMaker?.id].filter(
+    (value): value is string => Boolean(value),
+  );
+  const authenticatedSessions =
+    loginIds.length === 3 &&
+    loginIds.every((id) =>
+      input.audits.some(
+        (audit) =>
+          audit.action === "login" &&
+          audit.resource === "user" &&
+          audit.resourceId === id &&
+          audit.userId === id,
+      ),
+    );
+  const creationAudit = input.audits.some(
+    (audit) =>
+      audit.action === "case_created" &&
+      audit.resource === "verification_application" &&
+      audit.resourceId === application.id &&
+      audit.userId === applicant?.id &&
+      auditValue(audit, "stage") === "draft_created",
   );
   const consentAudit = input.audits.some(
     (audit) =>
       audit.action === "kyc_submit" &&
       audit.resource === "verification_application" &&
       audit.resourceId === application.id &&
-      auditStage(audit) === "consent_recorded",
+      audit.userId === applicant?.id &&
+      auditValue(audit, "stage") === "consent_recorded",
   );
-  const submissionAudit = input.audits.some(
+  const submissionAudits = input.audits.filter(
     (audit) =>
       audit.action === "kyc_submit" &&
       audit.resource === "verification_application" &&
       audit.resourceId === application.id &&
-      auditStage(audit) === "submitted_for_manual_review",
+      audit.userId === applicant?.id &&
+      auditValue(audit, "stage") === "submitted_for_manual_review",
+  );
+  const assignmentAudit = input.audits.some(
+    (audit) =>
+      audit.action === "admin_action" &&
+      audit.resource === "verification_application" &&
+      audit.resourceId === application.id &&
+      audit.userId === analyst?.id &&
+      auditValue(audit, "reviewAction") === "assign",
+  );
+  const startReviewAudits = input.audits.filter(
+    (audit) =>
+      audit.action === "kyc_flag" &&
+      audit.resource === "verification_application" &&
+      audit.resourceId === application.id &&
+      audit.userId === analyst?.id &&
+      auditValue(audit, "reviewAction") === "start_review",
+  );
+  const informationRequestAudit = input.audits.some(
+    (audit) =>
+      audit.action === "kyc_flag" &&
+      audit.resource === "verification_application" &&
+      audit.resourceId === application.id &&
+      audit.userId === analyst?.id &&
+      auditValue(audit, "reviewAction") === "request_information",
   );
   const expectedDecisionAudit =
     application.decision?.decision === "approved" ? "kyc_approve" : "kyc_reject";
@@ -154,7 +205,8 @@ export function evaluatePilotEvidence(input: {
           audit.action === expectedDecisionAudit &&
           audit.resource === "verification_application" &&
           audit.resourceId === application.id &&
-          audit.userId === application.decision?.decisionBy,
+          audit.userId === application.decision?.decisionBy &&
+          auditValue(audit, "reviewAction") === application.decision?.decision,
       ),
   );
 
@@ -166,6 +218,17 @@ export function evaluatePilotEvidence(input: {
           review.action === "reviewer_assigned" && review.reviewerId === analyst.id,
       ),
   );
+  const informationRoundTrip =
+    reviewActions.includes("information_requested") &&
+    reviewActions.includes("information_resubmitted") &&
+    reviewActions.indexOf("information_requested") <
+      reviewActions.indexOf("information_resubmitted") &&
+    submissionAudits.length >= 2;
+  const reviewAuditChain =
+    creationAudit &&
+    assignmentAudit &&
+    startReviewAudits.length >= 2 &&
+    informationRequestAudit;
   const finalDecisionValid = Boolean(
     application.decision &&
       ["approved", "rejected"].includes(application.decision.decision) &&
@@ -180,6 +243,7 @@ export function evaluatePilotEvidence(input: {
       applicant.id !== analyst.id &&
       applicant.id !== decisionMaker.id &&
       analyst.id !== decisionMaker.id &&
+      isActiveVerified(decisionMaker) &&
       ["admin", "super_admin", "internal"].includes(decisionMaker.role) &&
       application.decision?.decisionBy === decisionMaker.id,
   );
@@ -205,44 +269,57 @@ export function evaluatePilotEvidence(input: {
     {
       id: "analyst-account",
       label: "Active verified analyst designation",
-      passed: isActiveVerified(analyst) && analyst?.role === "analyst" && roleChangeAudit,
+      passed:
+        isActiveVerified(analyst) && analyst?.role === "analyst" && roleChangeAudit,
       detail:
         isActiveVerified(analyst) && analyst?.role === "analyst" && roleChangeAudit
-          ? "The selected reviewer is an active verified analyst and the designation has an audit event."
+          ? "The selected reviewer is an active verified analyst and the designation has a matching role-change audit event."
           : "The analyst account or its role-change audit evidence is incomplete.",
     },
     {
+      id: "authenticated-sessions",
+      label: "Controlled identities authenticated",
+      passed: authenticatedSessions,
+      detail: authenticatedSessions
+        ? "Login audit events exist for the applicant, analyst, and administrator-level decision maker."
+        : "One or more controlled identities do not have a matching successful-login audit event.",
+    },
+    {
       id: "consent-and-submission",
-      label: "Consent and submission recorded",
-      passed: Boolean(application.submittedAt && consentAudit && submissionAudit),
+      label: "Consent and two submissions recorded",
+      passed: Boolean(
+        application.submittedAt && consentAudit && submissionAudits.length >= 2,
+      ),
       detail:
-        application.submittedAt && consentAudit && submissionAudit
-          ? "Consent and manual-review submission are present in both workflow history and audit evidence."
-          : "Consent, submission timestamp, or the corresponding audit stages are incomplete.",
+        application.submittedAt && consentAudit && submissionAudits.length >= 2
+          ? "Consent, initial submission, and information resubmission are present in audit evidence."
+          : "Consent, submission timestamp, initial submission, or resubmission audit evidence is incomplete.",
     },
     {
       id: "analyst-assignment",
       label: "Case assigned to the selected analyst",
-      passed: analystAssigned,
-      detail: analystAssigned
-        ? "The application and assignment history identify the selected analyst."
-        : "The selected analyst is not the recorded reviewer for this case.",
+      passed: analystAssigned && assignmentAudit,
+      detail:
+        analystAssigned && assignmentAudit
+          ? "The application, workflow history, and audit evidence identify the selected analyst."
+          : "The selected analyst assignment or matching audit event is incomplete.",
     },
     {
       id: "information-round-trip",
       label: "Information-request round trip",
-      passed:
-        reviewActions.includes("information_requested") &&
-        reviewActions.includes("information_resubmitted") &&
-        reviewActions.indexOf("information_requested") <
-          reviewActions.indexOf("information_resubmitted"),
+      passed: informationRoundTrip && informationRequestAudit,
       detail:
-        reviewActions.includes("information_requested") &&
-        reviewActions.includes("information_resubmitted") &&
-        reviewActions.indexOf("information_requested") <
-          reviewActions.indexOf("information_resubmitted")
-          ? "An information request was followed by an applicant resubmission."
-          : "The information-request and resubmission sequence is incomplete.",
+        informationRoundTrip && informationRequestAudit
+          ? "An audited information request was followed by an applicant resubmission."
+          : "The information-request, audit event, and resubmission sequence is incomplete.",
+    },
+    {
+      id: "review-audit-chain",
+      label: "Review actions audited",
+      passed: reviewAuditChain,
+      detail: reviewAuditChain
+        ? "Case creation, assignment, both review starts, and the information request have matching audit evidence."
+        : "One or more required review actions do not have matching audit evidence.",
     },
     {
       id: "final-decision",
@@ -250,8 +327,8 @@ export function evaluatePilotEvidence(input: {
       passed: finalDecisionValid && decisionAudit && decisionRoleSeparated,
       detail:
         finalDecisionValid && decisionAudit && decisionRoleSeparated
-          ? "A final decision, administrator-level decision maker, timestamps, and matching audit event are present."
-          : "The final decision, role separation, timestamps, or matching audit evidence is incomplete.",
+          ? "A final decision, active administrator-level decision maker, timestamps, role separation, and matching audit event are present."
+          : "The final decision, role separation, timestamps, decision-maker status, or matching audit evidence is incomplete.",
     },
     {
       id: "ordered-history",
@@ -259,7 +336,7 @@ export function evaluatePilotEvidence(input: {
       passed: orderedHistory && uniqueHistory && chronologicalHistory,
       detail:
         orderedHistory && uniqueHistory && chronologicalHistory
-          ? "Required workflow events are unique and appear in chronological order."
+          ? "Required workflow events, including the second review start, are unique and appear in chronological order."
           : "Required events are missing, duplicated, or out of order.",
     },
     {
