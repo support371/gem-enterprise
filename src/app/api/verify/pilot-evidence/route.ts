@@ -1,18 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { getGatewaySessionToken } from "@/lib/auth";
 import { requireAdmin } from "@/lib/api/auth-helpers";
 import { evaluatePilotEvidence } from "@/lib/kyc/pilot-evidence";
+import {
+  adminReadGateway,
+  type AdminReadGatewayAction,
+  GatewayRequestError,
+} from "@/lib/supabase-gateway";
 
 const querySchema = z.object({
   applicationId: z.string().trim().min(1),
   analystId: z.string().trim().min(1),
 });
 
+type PilotEvidenceSource = Parameters<typeof evaluatePilotEvidence>[0];
+
 function json(body: unknown, status = 200) {
   return NextResponse.json(body, {
     status,
     headers: { "Cache-Control": "no-store" },
+  });
+}
+
+function reportResponse(source: PilotEvidenceSource) {
+  const report = evaluatePilotEvidence(source);
+  return json({
+    ok: true,
+    evaluatedAt: new Date().toISOString(),
+    mutatesProductionData: false,
+    applicationId: source.application.id,
+    analystId: source.analyst?.id ?? null,
+    ...report,
   });
 }
 
@@ -32,6 +52,26 @@ export async function GET(request: NextRequest) {
       },
       400,
     );
+  }
+
+  const gatewayToken = await getGatewaySessionToken();
+  if (gatewayToken) {
+    try {
+      const source = await adminReadGateway<PilotEvidenceSource>(
+        "pilot_evidence" as AdminReadGatewayAction,
+        gatewayToken,
+        parsed.data,
+      );
+      return reportResponse(source);
+    } catch (error) {
+      if (error instanceof GatewayRequestError) {
+        return json(
+          { error: error.message, code: error.code },
+          error.statusCode,
+        );
+      }
+      return json({ error: "Pilot evidence could not be evaluated." }, 500);
+    }
   }
 
   try {
@@ -106,7 +146,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const report = evaluatePilotEvidence({
+    return reportResponse({
       application: {
         id: application.id,
         userId: application.userId,
@@ -124,15 +164,6 @@ export async function GET(request: NextRequest) {
       analyst,
       decisionMaker,
       audits,
-    });
-
-    return json({
-      ok: true,
-      evaluatedAt: new Date().toISOString(),
-      mutatesProductionData: false,
-      applicationId: application.id,
-      analystId: analyst.id,
-      ...report,
     });
   } catch (error) {
     console.error("[GET /api/verify/pilot-evidence]", error);
