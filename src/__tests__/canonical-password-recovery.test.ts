@@ -26,18 +26,22 @@ describe("canonical password recovery and session revocation", () => {
     expect(gateway).toContain('"SESSION_REVOKED"');
   });
 
-  it("increments the session version in every password-reset implementation", () => {
+  it("centralizes revocation in password-change database triggers", () => {
     const direct = source("src/lib/passwordResetService.ts");
     const recovery = source("supabase/functions/gem-password-recovery/index.ts");
     const migration = source(
       "prisma/migrations/20260713213000_password_recovery_session_revocation/migration.sql",
     );
 
-    expect(direct).toContain("sessionVersion: { increment: 1 }");
-    expect(recovery).toContain("const nextSessionVersion = user.sessionVersion + 1");
+    expect(direct).toContain("sessionVersion: user.sessionVersion");
+    expect(direct).not.toContain("sessionVersion: { increment: 1 }");
     expect(recovery).toContain('.eq("sessionVersion", user.sessionVersion)');
-    expect(migration).toContain('"sessionVersion" = next_session_version');
+    expect(recovery).toContain('select("id,sessionVersion")');
+    expect(migration).toContain("gem_increment_session_version_on_password_change");
+    expect(migration).toContain('NEW."sessionVersion" := OLD."sessionVersion" + 1');
+    expect(migration).toContain("gem_audit_session_revocation_on_password_change");
     expect(migration).toContain("'sessionsRevoked', true");
+    expect(migration).not.toContain("CREATE OR REPLACE FUNCTION public.gem_consume_admin_access_token");
   });
 
   it("keeps direct sessions authoritative at both cookie and API gates", () => {

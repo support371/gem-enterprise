@@ -290,21 +290,18 @@ async function completeRecovery(tokenInput: unknown, passwordInput: unknown) {
 
   const passwordHash = await bcrypt.hash(password, 12);
   const now = new Date().toISOString();
-  const nextSessionVersion = user.sessionVersion + 1;
   const { data: changed, error: updateError } = await db
     .from("users")
-    .update({
-      passwordHash,
-      sessionVersion: nextSessionVersion,
-      updatedAt: now,
-    })
+    .update({ passwordHash, updatedAt: now })
     .eq("id", user.id)
     .eq("passwordHash", user.passwordHash)
     .eq("sessionVersion", user.sessionVersion)
     .select("id,sessionVersion")
     .maybeSingle();
   if (updateError) throw new RecoveryError(503, "DATABASE_ERROR", "Recovery service unavailable");
-  if (!changed) throw new RecoveryError(400, "INVALID_TOKEN", "Invalid or expired reset link");
+  if (!changed || changed.sessionVersion <= user.sessionVersion) {
+    throw new RecoveryError(400, "INVALID_TOKEN", "Invalid or expired reset link");
+  }
 
   await audit(user.id, {
     flow: "forgot_password_reset",

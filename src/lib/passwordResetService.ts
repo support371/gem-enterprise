@@ -66,17 +66,22 @@ export async function completePasswordReset(token: string, newPassword: string) 
       passwordHash: user.passwordHash,
       sessionVersion: user.sessionVersion,
     },
-    data: {
-      passwordHash: nextHash,
-      sessionVersion: { increment: 1 },
-    },
+    data: { passwordHash: nextHash },
   });
   if (changed.count !== 1) return { ok: false as const, code: "invalid_token" };
+
+  const updated = await db.user.findUnique({
+    where: { id: user.id },
+    select: { sessionVersion: true },
+  });
+  if (!updated || updated.sessionVersion <= user.sessionVersion) {
+    return { ok: false as const, code: "service_unavailable" };
+  }
 
   return {
     ok: true as const,
     userId: user.id,
-    sessionVersion: user.sessionVersion + 1,
+    sessionVersion: updated.sessionVersion,
     sessionsRevoked: true as const,
     auditRecorded: false as const,
   };
