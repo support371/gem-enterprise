@@ -56,6 +56,12 @@ describe("password recovery gateway routing", () => {
     expect(resetPageSource).toContain("maxLength={128}")
   })
 
+  it("keeps reset capabilities in the URL fragment instead of server logs", () => {
+    expect(resetPageSource).toContain("window.location.hash")
+    expect(resetPageSource).toContain("window.history.replaceState")
+    expect(resetPageSource).not.toContain("searchParams.get(\"token\")")
+  })
+
   it("does not report success when the recovery gateway is unavailable", () => {
     expect(routeSource).toContain("status: 503")
     expect(routeSource).toContain("recovery service is temporarily unavailable")
