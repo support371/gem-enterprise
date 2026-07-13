@@ -6,8 +6,10 @@ import { emitAuditLog } from "@/lib/audit";
 import { getRequestContext, badRequest } from "@/lib/api/auth-helpers";
 import { rateLimit, rateLimitedResponse } from "@/lib/api/rate-limit";
 import { sendMail } from "@/lib/mail/send";
-import { submitContactGateway } from "@/lib/contact-gateway";
-import { shouldUseSupabaseGateway } from "@/lib/supabase-gateway";
+import {
+  shouldUseSupabaseGateway,
+  submitContactGateway,
+} from "@/lib/supabase-gateway";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
