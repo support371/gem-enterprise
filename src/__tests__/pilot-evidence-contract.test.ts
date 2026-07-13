@@ -17,15 +17,18 @@ describe("GEM Verify pilot evidence contract", () => {
     expect(route).toContain('mutatesProductionData: false');
   });
 
-  it("uses the isolated, timeout-protected production gateway v3", () => {
+  it("uses the token-free, timeout-protected gateway v4", () => {
     const route = source("src/app/api/verify/pilot-evidence/route.ts");
     const gateway = source("src/lib/kyc/pilot-evidence-gateway.ts");
 
     expect(route).toContain("readPilotEvidenceGateway");
     expect(route).toContain("getGatewaySessionToken");
-    expect(gateway).toContain("gem-pilot-evidence-read-v3");
+    expect(gateway).toContain("gem-pilot-evidence-read-v4");
     expect(gateway).toContain("AbortController");
     expect(gateway).toContain('method: "POST"');
+    expect(gateway).not.toContain("apikey");
+    expect(gateway).not.toContain("Bearer");
+    expect(gateway).not.toMatch(/eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/);
     expect(gateway).not.toMatch(/\.(create|update|delete|upsert)\(/);
   });
 
