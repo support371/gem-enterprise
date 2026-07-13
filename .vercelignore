@@ -5,8 +5,9 @@ supabase/
 *.md
 DEPLOYMENT.md
 
-# Keep command-center migration governance notes available to verification tests.
+# Keep governance records required by build-time verification.
 !prisma/proposals/README.md
+!docs/PUBLIC_CLAIMS_REVIEW.md
 
 # Local environment templates are not deployed
 .env.example
