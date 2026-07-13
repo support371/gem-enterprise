@@ -49,7 +49,7 @@ export interface PilotEvidenceCheck {
   detail: string;
 }
 
-function asRecord(value: unknown): Record<string, unknown> {
+function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return value as Record<string, unknown>;
 }
@@ -77,7 +77,7 @@ function hasOrderedActions(actions: string[], expected: string[]) {
 }
 
 function auditValue(audit: PilotEvidenceAudit, key: string) {
-  const value = asRecord(audit.metadata)[key];
+  const value = record(audit.metadata)[key];
   return typeof value === "string" ? value : "";
 }
 
@@ -88,8 +88,8 @@ export function evaluatePilotEvidence(input: {
   decisionMaker: PilotEvidenceAccount | null;
   audits: PilotEvidenceAudit[];
 }) {
-  const { application, applicant, analyst, decisionMaker } = input;
-  const marker = asRecord(asRecord(application.formData)._verificationPilot);
+  const { application, applicant, analyst, decisionMaker, audits } = input;
+  const marker = record(record(application.formData)._verificationPilot);
   const syntheticMarkerValid =
     marker.synthetic === true &&
     marker.scenario === "gem-verify-phase-1b" &&
@@ -99,12 +99,15 @@ export function evaluatePilotEvidence(input: {
     (left, right) => timestamp(left.createdAt) - timestamp(right.createdAt),
   );
   const reviewActions = reviews.map((review) => review.action);
+  const outcome = application.decision?.decision ?? null;
   const decisionEvent =
-    application.decision?.decision === "approved"
+    outcome === "approved"
       ? "application_approved"
-      : application.decision?.decision === "rejected"
+      : outcome === "rejected"
         ? "application_rejected"
         : null;
+  const decisionAuditAction = outcome === "approved" ? "kyc_approve" : "kyc_reject";
+  const decisionReviewAction = outcome === "approved" ? "approve" : "reject";
   const requiredPath = [
     "application_created",
     "consent_recorded",
@@ -127,20 +130,21 @@ export function evaluatePilotEvidence(input: {
       timestamp(reviews[index - 1].createdAt) <= timestamp(review.createdAt),
   );
 
-  const roleChangeAudit = input.audits.some(
+  const roleChangeAudit = audits.some(
     (audit) =>
       audit.action === "role_change" &&
       audit.resource === "user" &&
       audit.resourceId === analyst?.id &&
       auditValue(audit, "newRole") === "analyst",
   );
-  const loginIds = [applicant?.id, analyst?.id, decisionMaker?.id].filter(
+  const controlledIds = [applicant?.id, analyst?.id, decisionMaker?.id].filter(
     (value): value is string => Boolean(value),
   );
   const authenticatedSessions =
-    loginIds.length === 3 &&
-    loginIds.every((id) =>
-      input.audits.some(
+    controlledIds.length === 3 &&
+    new Set(controlledIds).size === 3 &&
+    controlledIds.every((id) =>
+      audits.some(
         (audit) =>
           audit.action === "login" &&
           audit.resource === "user" &&
@@ -148,7 +152,7 @@ export function evaluatePilotEvidence(input: {
           audit.userId === id,
       ),
     );
-  const creationAudit = input.audits.some(
+  const creationAudit = audits.some(
     (audit) =>
       audit.action === "case_created" &&
       audit.resource === "verification_application" &&
@@ -156,7 +160,7 @@ export function evaluatePilotEvidence(input: {
       audit.userId === applicant?.id &&
       auditValue(audit, "stage") === "draft_created",
   );
-  const consentAudit = input.audits.some(
+  const consentAudit = audits.some(
     (audit) =>
       audit.action === "kyc_submit" &&
       audit.resource === "verification_application" &&
@@ -164,7 +168,7 @@ export function evaluatePilotEvidence(input: {
       audit.userId === applicant?.id &&
       auditValue(audit, "stage") === "consent_recorded",
   );
-  const submissionAudits = input.audits.filter(
+  const submissionAudits = audits.filter(
     (audit) =>
       audit.action === "kyc_submit" &&
       audit.resource === "verification_application" &&
@@ -172,7 +176,7 @@ export function evaluatePilotEvidence(input: {
       audit.userId === applicant?.id &&
       auditValue(audit, "stage") === "submitted_for_manual_review",
   );
-  const assignmentAudit = input.audits.some(
+  const assignmentAudit = audits.some(
     (audit) =>
       audit.action === "admin_action" &&
       audit.resource === "verification_application" &&
@@ -180,7 +184,7 @@ export function evaluatePilotEvidence(input: {
       audit.userId === analyst?.id &&
       auditValue(audit, "reviewAction") === "assign",
   );
-  const startReviewAudits = input.audits.filter(
+  const startReviewAudits = audits.filter(
     (audit) =>
       audit.action === "kyc_flag" &&
       audit.resource === "verification_application" &&
@@ -188,7 +192,7 @@ export function evaluatePilotEvidence(input: {
       audit.userId === analyst?.id &&
       auditValue(audit, "reviewAction") === "start_review",
   );
-  const informationRequestAudit = input.audits.some(
+  const informationRequestAudit = audits.some(
     (audit) =>
       audit.action === "kyc_flag" &&
       audit.resource === "verification_application" &&
@@ -196,17 +200,15 @@ export function evaluatePilotEvidence(input: {
       audit.userId === analyst?.id &&
       auditValue(audit, "reviewAction") === "request_information",
   );
-  const expectedDecisionAudit =
-    application.decision?.decision === "approved" ? "kyc_approve" : "kyc_reject";
   const decisionAudit = Boolean(
     application.decision &&
-      input.audits.some(
+      audits.some(
         (audit) =>
-          audit.action === expectedDecisionAudit &&
+          audit.action === decisionAuditAction &&
           audit.resource === "verification_application" &&
           audit.resourceId === application.id &&
           audit.userId === application.decision?.decisionBy &&
-          auditValue(audit, "reviewAction") === application.decision?.decision,
+          auditValue(audit, "reviewAction") === decisionReviewAction,
       ),
   );
 
@@ -352,11 +354,11 @@ export function evaluatePilotEvidence(input: {
 
   return {
     completed: checks.every((check) => check.passed),
-    outcome: application.decision?.decision ?? null,
+    outcome,
     checks,
     counts: {
       reviewEvents: reviews.length,
-      auditEvents: input.audits.length,
+      auditEvents: audits.length,
       documents: application.documentCount,
     },
   };
