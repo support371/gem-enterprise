@@ -87,7 +87,7 @@ returning id, expires_at;`;
 }
 
 export async function generateAdminAccessAuthorization(
-  lifetimeMs = 30 * 60 * 1000,
+  lifetimeMs = 60 * 60 * 1000,
 ): Promise<AdminAccessAuthorization> {
   if (!globalThis.crypto?.getRandomValues || !globalThis.crypto?.subtle) {
     throw new Error("This browser does not support secure token generation.");
