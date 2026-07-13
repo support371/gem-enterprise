@@ -70,6 +70,25 @@ describe("administrator access validation API", () => {
     expect(response.headers.get("referrer-policy")).toBe("no-referrer");
   });
 
+  it("returns a fail-closed result when no authorization row matches", async () => {
+    validationMocks.validate.mockResolvedValue({
+      valid: false,
+      expiresAt: null,
+      requestId: null,
+    });
+
+    const response = await POST(request({ accessToken: "c".repeat(48) }));
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toEqual({
+      valid: false,
+      expiresAt: null,
+      requestId: null,
+    });
+    expect(response.headers.get("cache-control")).toBe("no-store");
+  });
+
   it("returns a safe unavailable response when validation cannot run", async () => {
     const { AdminAccessValidationError } = await import(
       "@/lib/admin-access-token-validation"
