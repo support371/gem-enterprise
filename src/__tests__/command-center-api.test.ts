@@ -11,7 +11,6 @@ const operatingProposalSource = readFileSync(
   "prisma/proposals/20260713_command_center_operating_layer.sql",
   "utf8",
 );
-const proposalReadmeSource = readFileSync("prisma/proposals/README.md", "utf8");
 
 describe("command-center live snapshot API", () => {
   it("requires an active staff session before querying or exporting cross-organization aggregates", () => {
@@ -77,8 +76,9 @@ describe("command-center live snapshot API", () => {
     expect(operatingProposalSource).toContain("CREATE TABLE IF NOT EXISTS enterprise_compliance_controls");
     expect(operatingProposalSource).toContain("CREATE TABLE IF NOT EXISTS enterprise_agents");
     expect(operatingProposalSource).toContain("CREATE TABLE IF NOT EXISTS enterprise_integrations");
-    expect(proposalReadmeSource).toContain("not automatic migrations");
-    expect(proposalReadmeSource).toContain("explicit production approval");
+    expect(operatingProposalSource).toContain("intentionally stored under prisma/proposals");
+    expect(operatingProposalSource).toContain("must not be applied automatically");
+    expect(operatingProposalSource).toContain("obtain explicit production approval");
   });
 
   it("does not propose storage for API secrets or payment credentials", () => {
