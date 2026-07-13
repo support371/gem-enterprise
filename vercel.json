@@ -4,7 +4,7 @@
   "ignoreCommand": "node scripts/vercel-ignore.mjs",
   "buildCommand": "pnpm run build",
   "devCommand": "pnpm dev",
-  "installCommand": "pnpm install --frozen-lockfile",
+  "installCommand": "pnpm install --no-frozen-lockfile",
   "regions": ["sfo1"],
   "git": {
     "deploymentEnabled": {
