@@ -29,8 +29,9 @@ export default function AdminAccessAuthorizePage() {
     useState<AdminAccessAuthorization | null>(null);
   const [ready, setReady] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [sqlConfirmed, setSqlConfirmed] = useState(false);
+  const [verified, setVerified] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -53,7 +54,7 @@ export default function AdminAccessAuthorizePage() {
   async function generate() {
     setGenerating(true);
     setCopied(false);
-    setSqlConfirmed(false);
+    setVerified(false);
     setError(null);
     try {
       const next = await generateAdminAccessAuthorization();
@@ -78,23 +79,59 @@ export default function AdminAccessAuthorizePage() {
     try {
       await navigator.clipboard.writeText(authorization.sql);
       setCopied(true);
+      setError(null);
     } catch {
-      setError("Copy failed. Select the SQL manually and copy it.");
+      setError("Copy failed. Select the SQL statement manually and copy it.");
     }
   }
 
-  function continueToPasswordSetup() {
-    if (!authorization || !sqlConfirmed) return;
-    window.location.assign(
-      `/admin-access#token=${encodeURIComponent(authorization.token)}`,
-    );
+  async function verifyAndContinue() {
+    if (!authorization) return;
+    setVerifying(true);
+    setVerified(false);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/admin-access/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accessToken: authorization.token }),
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        valid?: boolean;
+        error?: string;
+        message?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(body.error || "Authorization could not be checked.");
+      }
+      if (!body.valid) {
+        throw new Error(
+          "No active authorization row was found. Return to the Supabase SQL Editor, run the complete statement, confirm that one row is returned, then tap Check authorization again.",
+        );
+      }
+
+      setVerified(true);
+      window.location.assign(
+        `/admin-access#token=${encodeURIComponent(authorization.token)}`,
+      );
+    } catch (verificationError) {
+      setError(
+        verificationError instanceof Error
+          ? verificationError.message
+          : "Authorization could not be checked.",
+      );
+    } finally {
+      setVerifying(false);
+    }
   }
 
   function discard() {
     window.sessionStorage.removeItem(ADMIN_ACCESS_SESSION_KEY);
     setAuthorization(null);
     setCopied(false);
-    setSqlConfirmed(false);
+    setVerified(false);
     setError(null);
   }
 
@@ -121,10 +158,8 @@ export default function AdminAccessAuthorizePage() {
               Authorize administrator password setup
             </h1>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              This browser creates a one-time capability locally. Only its
-              SHA-256 hash appears in the SQL statement. The usable capability
-              remains in this browser session and is never copied into chat,
-              email, GitHub, analytics, or the SQL editor.
+              The usable capability stays in this browser. Only its SHA-256 hash
+              appears in the SQL statement.
             </p>
           </div>
         </div>
@@ -160,11 +195,10 @@ export default function AdminAccessAuthorizePage() {
                 <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-400" />
                 <div>
                   <h2 className="font-semibold text-green-200">
-                    Local capability generated
+                    Browser capability generated
                   </h2>
                   <p className="mt-1 text-xs leading-5 text-green-100/70">
-                    It expires at {expiryLabel}. Keep this tab open while completing
-                    the authorization step.
+                    Expires at {expiryLabel}. Keep this tab open.
                   </p>
                 </div>
               </div>
@@ -173,10 +207,9 @@ export default function AdminAccessAuthorizePage() {
             <section>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h2 className="font-semibold">1. Copy the authorization SQL</h2>
+                  <h2 className="font-semibold">1. Copy the complete SQL statement</h2>
                   <p className="mt-1 text-xs leading-5 text-slate-400">
-                    It contains only a token hash, request ID, expiry time, and a
-                    constrained lookup of the approved administrator account.
+                    Do not copy only part of the statement.
                   </p>
                 </div>
                 <Button
@@ -209,9 +242,8 @@ export default function AdminAccessAuthorizePage() {
             <section className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
               <h2 className="font-semibold">2. Run it in the official Supabase project</h2>
               <p className="mt-2 text-sm leading-6 text-slate-400">
-                Open the SQL Editor, paste the copied statement, and run it. A
-                successful result returns one authorization row. No password or
-                usable capability is present in that statement.
+                Paste the complete statement and tap Run. Continue only after the
+                result shows one authorization row.
               </p>
               <Button asChild className="mt-4 bg-cyan-400 text-black hover:bg-cyan-300">
                 <a
@@ -225,50 +257,52 @@ export default function AdminAccessAuthorizePage() {
               </Button>
             </section>
 
-            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-4 text-sm text-amber-100/80">
-              <input
-                type="checkbox"
-                checked={sqlConfirmed}
-                onChange={(event) => setSqlConfirmed(event.target.checked)}
-                className="mt-1"
-              />
-              <span>
-                I ran the statement in the correct Supabase project and it returned
-                one authorization row.
-              </span>
-            </label>
+            <section className="rounded-xl border border-cyan-500/20 bg-cyan-500/[0.05] p-5">
+              <h2 className="font-semibold">3. Check the database authorization</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-400">
+                This check prevents an unregistered or expired browser token from
+                reaching the password screen.
+              </p>
+              <Button
+                type="button"
+                onClick={() => void verifyAndContinue()}
+                disabled={verifying || verified}
+                className="mt-4 w-full bg-cyan-400 font-semibold text-black hover:bg-cyan-300"
+              >
+                {verifying ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Checking authorization
+                  </>
+                ) : verified ? (
+                  <>
+                    <Check className="mr-2 h-4 w-4" /> Authorization confirmed
+                  </>
+                ) : (
+                  "Check authorization and continue"
+                )}
+              </Button>
+            </section>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button
-                type="button"
-                onClick={continueToPasswordSetup}
-                disabled={!sqlConfirmed}
-                className="flex-1 bg-cyan-400 font-semibold text-black hover:bg-cyan-300"
-              >
-                Continue to password setup
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={discard}
-                className="border-white/15 text-white"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" /> Start over
-              </Button>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={discard}
+              className="w-full border-white/15 text-white"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" /> Discard and generate a new authorization
+            </Button>
           </div>
         )}
 
         {error ? (
-          <div className="mt-5 flex gap-3 rounded-xl border border-red-500/25 bg-red-500/10 p-4 text-sm text-red-300">
+          <div className="mt-5 flex gap-3 rounded-xl border border-red-500/25 bg-red-500/10 p-4 text-sm leading-6 text-red-300">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
             <span>{error}</span>
           </div>
         ) : null}
 
         <p className="mt-6 text-center text-xs leading-5 text-slate-500">
-          No password is created on this page. You choose it only after the
-          one-time authorization is registered.
+          No password is created until database authorization is confirmed.
           <Link href="/client-login" className="ml-1 text-cyan-400 hover:underline">
             Return to sign-in
           </Link>
