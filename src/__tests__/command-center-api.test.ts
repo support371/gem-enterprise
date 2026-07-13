@@ -50,9 +50,10 @@ describe("command-center live snapshot API", () => {
   });
 
   it("keeps the runtime operating repository read-only", () => {
-    const forbiddenWrites = ["INSERT INTO", "UPDATE enterprise_", "DELETE FROM", "DROP TABLE", "ALTER TABLE"];
+    const normalizedRepository = operatingRepositorySource.toUpperCase();
+    const forbiddenWrites = ["INSERT INTO", "UPDATE ENTERPRISE_", "DELETE FROM", "DROP TABLE", "ALTER TABLE"];
     for (const statement of forbiddenWrites) {
-      expect(operatingRepositorySource.toUpperCase()).not.toContain(statement);
+      expect(normalizedRepository).not.toContain(statement);
     }
     expect(operatingRepositorySource).toContain("db.$queryRaw");
     expect(operatingRepositorySource).not.toContain("$executeRaw");
