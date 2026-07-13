@@ -1,4 +1,4 @@
-// GEM Build: 2026-07-13 public-truth routing hardening
+// GEM Build: 2026-07-13 public claims control
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
@@ -111,7 +111,14 @@ const nextConfig = {
   },
 
   async rewrites() {
-    return { beforeFiles: [], afterFiles: [] };
+    return {
+      beforeFiles: [
+        { source: '/hub', destination: '/hub-controlled' },
+        { source: '/company', destination: '/company-controlled' },
+        { source: '/request-access', destination: '/request-access-controlled' },
+      ],
+      afterFiles: [],
+    };
   },
 
   typescript: {
