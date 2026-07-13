@@ -96,12 +96,30 @@ export async function POST(request: NextRequest) {
       {
         error:
           'Synthetic pilot applications must use a legal name beginning with "GEM Verify Synthetic".',
+        code: "SYNTHETIC_PILOT_NAMING_REQUIRED",
       },
       400,
     );
   }
 
   try {
+    if (parsed.data.syntheticPilot) {
+      const existing = await getLatestVerificationApplication(gate.session.userId);
+      const existingState = existing
+        ? toVerificationApplicationView(existing).workflowState
+        : null;
+      if (existingState && existingState !== "closed") {
+        return json(
+          {
+            error:
+              "Close the existing verification application before creating a synthetic pilot case.",
+            code: "SYNTHETIC_PILOT_REQUIRES_NEW_APPLICATION",
+          },
+          409,
+        );
+      }
+    }
+
     const result = await saveVerificationApplication(gate.session.userId, {
       entityType: parsed.data.entityType as EntityType,
       legalName: parsed.data.legalName,
@@ -113,6 +131,16 @@ export async function POST(request: NextRequest) {
     let application = result.application;
 
     if (parsed.data.syntheticPilot) {
+      if (!result.created) {
+        return json(
+          {
+            error: "Synthetic pilot applications must be created as a new case.",
+            code: "SYNTHETIC_PILOT_REQUIRES_NEW_APPLICATION",
+          },
+          409,
+        );
+      }
+
       const markedAt = new Date().toISOString();
       const merged = {
         ...asRecord(result.application.formData),
