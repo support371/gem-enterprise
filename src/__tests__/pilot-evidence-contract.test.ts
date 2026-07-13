@@ -44,11 +44,15 @@ describe("GEM Verify pilot evidence contract", () => {
     );
   });
 
-  it("requires an explicit synthetic marker and guarded naming convention", () => {
+  it("requires a new, explicitly named synthetic pilot case", () => {
     const route = source("src/app/api/verify/applications/route.ts");
 
     expect(route).toContain("syntheticPilot: z.literal(true).optional()");
     expect(route).toContain('startsWith("gem verify synthetic")');
+    expect(route).toContain('code: "SYNTHETIC_PILOT_NAMING_REQUIRED"');
+    expect(route).toContain('code: "SYNTHETIC_PILOT_REQUIRES_NEW_APPLICATION"');
+    expect(route).toContain('existingState !== "closed"');
+    expect(route).toContain("if (!result.created)");
     expect(route).toContain('scenario: "gem-verify-phase-1b"');
     expect(route).toContain("synthetic: true");
   });
