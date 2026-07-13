@@ -65,7 +65,8 @@ describe("canonical password recovery and session revocation", () => {
     const handler = source("src/lib/passwordResetHandler.ts");
     const page = source("src/app/reset-password/page.tsx");
     const layout = source("src/app/reset-password/layout.tsx");
-    expect(resetToken).toContain('setExpirationTime("15m")');
+    expect(resetToken).toContain("const RESET_TTL_SECONDS = 15 * 60");
+    expect(resetToken).toContain('setExpirationTime(`${RESET_TTL_SECONDS}s`)');
     expect(resetToken).toContain("passwordFingerprint");
     expect(handler).toContain(".min(14)");
     expect(handler).toContain("All existing sessions were signed out");
