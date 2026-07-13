@@ -8,7 +8,6 @@ const applicant = {
   isActive: true,
   isEmailVerified: true,
 };
-
 const analyst = {
   id: "analyst-1",
   role: "analyst",
@@ -16,7 +15,6 @@ const analyst = {
   isActive: true,
   isEmailVerified: true,
 };
-
 const decisionMaker = {
   id: "admin-1",
   role: "admin",
@@ -37,6 +35,24 @@ const reviewActions = [
   "application_approved",
 ];
 
+function audit(
+  action: string,
+  resource: string,
+  resourceId: string,
+  userId: string,
+  metadata: Record<string, string>,
+  minute: number,
+) {
+  return {
+    action,
+    resource,
+    resourceId,
+    userId,
+    metadata,
+    createdAt: new Date(Date.UTC(2026, 6, 13, 9, minute)).toISOString(),
+  };
+}
+
 function completeInput() {
   return {
     application: {
@@ -55,16 +71,16 @@ function completeInput() {
       submittedAt: "2026-07-13T10:02:00.000Z",
       reviewedAt: "2026-07-13T10:08:00.000Z",
       completedAt: "2026-07-13T10:09:00.000Z",
-      reviews: reviewActions.map((action, index) => ({
+      reviews: reviewActions.map((actionName, index) => ({
         id: `review-${index}`,
         reviewerId:
-          action === "application_created" ||
-          action === "consent_recorded" ||
-          action === "application_submitted" ||
-          action === "information_resubmitted"
+          actionName === "application_created" ||
+          actionName === "consent_recorded" ||
+          actionName === "application_submitted" ||
+          actionName === "information_resubmitted"
             ? applicant.id
             : analyst.id,
-        action,
+        action: actionName,
         createdAt: new Date(Date.UTC(2026, 6, 13, 10, index)).toISOString(),
       })),
       decision: {
@@ -78,38 +94,40 @@ function completeInput() {
     analyst,
     decisionMaker,
     audits: [
-      {
-        action: "role_change",
-        resource: "user",
-        resourceId: analyst.id,
-        userId: decisionMaker.id,
-        metadata: { previousRole: "client", newRole: "analyst" },
-        createdAt: "2026-07-13T09:55:00.000Z",
-      },
-      {
-        action: "kyc_submit",
-        resource: "verification_application",
-        resourceId: "application-1",
-        userId: applicant.id,
-        metadata: { stage: "consent_recorded" },
-        createdAt: "2026-07-13T10:01:00.000Z",
-      },
-      {
-        action: "kyc_submit",
-        resource: "verification_application",
-        resourceId: "application-1",
-        userId: applicant.id,
-        metadata: { stage: "submitted_for_manual_review" },
-        createdAt: "2026-07-13T10:02:00.000Z",
-      },
-      {
-        action: "kyc_approve",
-        resource: "verification_application",
-        resourceId: "application-1",
-        userId: decisionMaker.id,
-        metadata: { reviewAction: "approve" },
-        createdAt: "2026-07-13T10:09:00.000Z",
-      },
+      audit("role_change", "user", analyst.id, decisionMaker.id, {
+        previousRole: "client",
+        newRole: "analyst",
+      }, 1),
+      audit("login", "user", applicant.id, applicant.id, {}, 2),
+      audit("login", "user", analyst.id, analyst.id, {}, 3),
+      audit("login", "user", decisionMaker.id, decisionMaker.id, {}, 4),
+      audit("case_created", "verification_application", "application-1", applicant.id, {
+        stage: "draft_created",
+      }, 5),
+      audit("kyc_submit", "verification_application", "application-1", applicant.id, {
+        stage: "consent_recorded",
+      }, 6),
+      audit("kyc_submit", "verification_application", "application-1", applicant.id, {
+        stage: "submitted_for_manual_review",
+      }, 7),
+      audit("admin_action", "verification_application", "application-1", analyst.id, {
+        reviewAction: "assign",
+      }, 8),
+      audit("kyc_flag", "verification_application", "application-1", analyst.id, {
+        reviewAction: "start_review",
+      }, 9),
+      audit("kyc_flag", "verification_application", "application-1", analyst.id, {
+        reviewAction: "request_information",
+      }, 10),
+      audit("kyc_submit", "verification_application", "application-1", applicant.id, {
+        stage: "submitted_for_manual_review",
+      }, 11),
+      audit("kyc_flag", "verification_application", "application-1", analyst.id, {
+        reviewAction: "start_review",
+      }, 12),
+      audit("kyc_approve", "verification_application", "application-1", decisionMaker.id, {
+        reviewAction: "approve",
+      }, 13),
     ],
   };
 }
@@ -123,7 +141,7 @@ describe("evaluatePilotEvidence", () => {
     expect(report.checks.every((check) => check.passed)).toBe(true);
     expect(report.counts).toEqual({
       reviewEvents: reviewActions.length,
-      auditEvents: 4,
+      auditEvents: 13,
       documents: 0,
     });
   });
@@ -140,7 +158,6 @@ describe("evaluatePilotEvidence", () => {
     };
 
     const report = evaluatePilotEvidence(input);
-
     expect(report.completed).toBe(false);
     expect(report.checks.find((check) => check.id === "synthetic-marker")?.passed).toBe(false);
   });
@@ -153,7 +170,6 @@ describe("evaluatePilotEvidence", () => {
     input.application.documentCount = 1;
 
     const report = evaluatePilotEvidence(input);
-
     expect(report.completed).toBe(false);
     expect(report.checks.find((check) => check.id === "information-round-trip")?.passed).toBe(false);
     expect(report.checks.find((check) => check.id === "sensitive-documents-disabled")?.passed).toBe(false);
@@ -170,8 +186,18 @@ describe("evaluatePilotEvidence", () => {
     input.audits[input.audits.length - 1].userId = analyst.id;
 
     const report = evaluatePilotEvidence(input);
-
     expect(report.completed).toBe(false);
     expect(report.checks.find((check) => check.id === "final-decision")?.passed).toBe(false);
+  });
+
+  it("rejects missing controlled login evidence", () => {
+    const input = completeInput();
+    input.audits = input.audits.filter(
+      (entry) => !(entry.action === "login" && entry.userId === analyst.id),
+    );
+
+    const report = evaluatePilotEvidence(input);
+    expect(report.completed).toBe(false);
+    expect(report.checks.find((check) => check.id === "authenticated-sessions")?.passed).toBe(false);
   });
 });
