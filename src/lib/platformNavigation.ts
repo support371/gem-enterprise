@@ -43,6 +43,7 @@ export interface PlatformNavItem {
   icon: PlatformNavIcon;
   label: string;
   description: string;
+  ownerOnly?: boolean;
 }
 
 export interface PlatformNavGroup {
@@ -288,6 +289,13 @@ export const adminPortalNavItems: PlatformNavItem[] = [
     icon: "Shield",
     label: "Admin Center",
     description: "Administrative overview and controls.",
+  },
+  {
+    href: "/app/admin/plan-workspaces",
+    icon: "Building2",
+    label: "Plan Workspaces",
+    description: "Owner-only preview of every plan and representative workspace role.",
+    ownerOnly: true,
   },
   {
     href: "/app/admin/api",

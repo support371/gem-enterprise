@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import {
@@ -93,7 +94,15 @@ function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function SidebarContent({ isAdmin, pathname }: { isAdmin: boolean; pathname: string }) {
+function SidebarContent({
+  isAdmin,
+  pathname,
+  viewerRole,
+}: {
+  isAdmin: boolean;
+  pathname: string;
+  viewerRole: string | null;
+}) {
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-white/10 px-4 py-5">
@@ -160,7 +169,9 @@ function SidebarContent({ isAdmin, pathname }: { isAdmin: boolean; pathname: str
           <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
             Admin
           </p>
-          {adminPortalNavItems.map(({ href, icon, label: itemLabel, description }) => {
+          {adminPortalNavItems
+            .filter((item) => !item.ownerOnly || viewerRole === "super_admin")
+            .map(({ href, icon, label: itemLabel, description }) => {
             const Icon = iconMap[icon];
             const active = isActivePath(pathname, href);
             return (
@@ -184,7 +195,7 @@ function SidebarContent({ isAdmin, pathname }: { isAdmin: boolean; pathname: str
                 <span className="truncate">{itemLabel}</span>
               </Link>
             );
-          })}
+            })}
         </div>
       )}
     </div>
@@ -193,14 +204,30 @@ function SidebarContent({ isAdmin, pathname }: { isAdmin: boolean; pathname: str
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [viewerRole, setViewerRole] = useState<string | null>(null);
   const segment = pathname.split("/").filter(Boolean).pop() ?? "dashboard";
   const pageTitle = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, " ");
   const isAdmin = pathname.startsWith("/app/admin");
 
+  useEffect(() => {
+    let active = true;
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((session) => {
+        if (active) setViewerRole(session?.role ?? null);
+      })
+      .catch(() => {
+        if (active) setViewerRole(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <div className="flex min-h-screen bg-background">
       <aside className="glass-panel sticky top-0 hidden h-screen w-56 shrink-0 overflow-hidden border-r border-white/10 lg:flex xl:w-64">
-        <SidebarContent isAdmin={isAdmin} pathname={pathname} />
+        <SidebarContent isAdmin={isAdmin} pathname={pathname} viewerRole={viewerRole} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -213,7 +240,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-64 border-white/10 bg-background p-0">
-                <SidebarContent isAdmin={isAdmin} pathname={pathname} />
+                <SidebarContent isAdmin={isAdmin} pathname={pathname} viewerRole={viewerRole} />
               </SheetContent>
             </Sheet>
 

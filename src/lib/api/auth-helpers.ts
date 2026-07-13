@@ -18,6 +18,10 @@ export function isAdminRole(role: string | undefined | null): boolean {
   return !!role && ADMIN_ROLES.includes(role);
 }
 
+export function isPlatformOwnerRole(role: string | undefined | null): boolean {
+  return role === "super_admin";
+}
+
 export function isStaffRole(role: string | undefined | null): boolean {
   return !!role && STAFF_ROLES.includes(role);
 }
@@ -142,6 +146,23 @@ export async function requireAdmin(): Promise<GateResult> {
     return err(forbidden("An active account is required for administrator access."));
   }
   if (!isAdminRole(gate.session.role)) return err(forbidden());
+  return gate;
+}
+
+export async function requirePlatformOwner(): Promise<GateResult> {
+  const gate = await resolveAuthoritativeGate();
+  if (!gate.ok) return gate;
+  if (gate.accountStatus !== "active") {
+    return err(forbidden("An active account is required for platform owner access."));
+  }
+  if (!isPlatformOwnerRole(gate.session.role)) {
+    return err(
+      forbidden(
+        "Platform Owner access is required.",
+        "PLATFORM_OWNER_REQUIRED",
+      ),
+    );
+  }
   return gate;
 }
 
