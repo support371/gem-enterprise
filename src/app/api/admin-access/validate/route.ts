@@ -7,6 +7,8 @@ import {
   validateAdminAccessToken,
 } from "@/lib/admin-access-token-validation";
 
+// This route is intentionally dynamic and no-store because setup capabilities
+// are short-lived and must always be checked against the current database state.
 const schema = z
   .object({
     accessToken: z.string().min(32).max(512),
