@@ -76,9 +76,10 @@ export default function ControlledRequestAccessPage() {
 
       <section className="mx-auto max-w-5xl px-6 pb-24">
         <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-6 text-sm leading-6 text-amber-100">
-          These are non-binding qualification paths. A submission does not create membership, an
-          account, a contract, an entitlement, a price, a response-time guarantee, or service
-          activation. Do not submit passwords, identity documents, payment details, private keys,
+          This page is a non-binding request for information and qualification. Submission does not
+          guarantee acceptance, membership, availability, pricing, response timing, or service
+          activation. It does not create an account, contract, entitlement, or response-time
+          guarantee. Do not submit passwords, identity documents, payment details, private keys,
           medical records, or confidential client records.
         </div>
       </section>
