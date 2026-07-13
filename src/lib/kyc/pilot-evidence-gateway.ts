@@ -2,8 +2,6 @@ import { GatewayRequestError } from "@/lib/supabase-gateway";
 
 const DEFAULT_GATEWAY_BASE_URL =
   "https://slzdjoqpzbkwzuaexlkj.supabase.co/functions/v1";
-const DEFAULT_GATEWAY_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNsemRqb3FwemJrd3p1YWV4bGtqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyOTk1MTQsImV4cCI6MjA5ODg3NTUxNH0.0wfgX_m6SBn_TtD0ZNjkOZ-bk8Frp2Tq1HL9mYFBm4M";
 const REQUEST_TIMEOUT_MS = 60_000;
 
 function gatewayBaseUrl() {
@@ -11,13 +9,6 @@ function gatewayBaseUrl() {
     process.env.GEM_SUPABASE_GATEWAY_BASE_URL?.trim() ||
     DEFAULT_GATEWAY_BASE_URL
   ).replace(/\/$/, "");
-}
-
-function gatewayAnonKey() {
-  return (
-    process.env.GEM_SUPABASE_GATEWAY_ANON_KEY?.trim() ||
-    DEFAULT_GATEWAY_ANON_KEY
-  );
 }
 
 export async function readPilotEvidenceGateway<T>(input: {
@@ -29,16 +20,11 @@ export async function readPilotEvidenceGateway<T>(input: {
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
-    const key = gatewayAnonKey();
     const response = await fetch(
-      `${gatewayBaseUrl()}/gem-pilot-evidence-read-v3`,
+      `${gatewayBaseUrl()}/gem-pilot-evidence-read-v4`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${key}`,
-          apikey: key,
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(input),
         cache: "no-store",
         signal: controller.signal,
