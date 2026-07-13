@@ -134,6 +134,15 @@ function account(value: Record<string, unknown> | null) {
   };
 }
 
+function safeAuditMetadata(value: unknown) {
+  const source = asRecord(value);
+  const safe: Record<string, string> = {};
+  for (const key of ["stage", "reviewAction", "previousRole", "newRole"]) {
+    if (typeof source[key] === "string") safe[key] = source[key] as string;
+  }
+  return safe;
+}
+
 async function readAccount(id: string) {
   const { data, error } = await db
     .from("users")
@@ -207,8 +216,11 @@ async function pilotEvidenceSource(body: Record<string, unknown>) {
   const decisionMaker = decision?.decisionBy
     ? await readAccount(requireSafeId(decision.decisionBy, "Decision-maker ID"))
     : null;
+  const controlledIds = [applicantId, analystId, decisionMaker?.id].filter(
+    (value): value is string => Boolean(value),
+  );
 
-  const [applicationAudits, analystAudits] = await Promise.all([
+  const [applicationAudits, analystAudits, loginAudits] = await Promise.all([
     db
       .from("audit_logs")
       .select("action,resource,resourceId,userId,metadata,createdAt")
@@ -222,30 +234,34 @@ async function pilotEvidenceSource(body: Record<string, unknown>) {
       .eq("resource", "user")
       .eq("resourceId", analystId)
       .order("createdAt", { ascending: true }),
+    db
+      .from("audit_logs")
+      .select("action,resource,resourceId,userId,metadata,createdAt")
+      .eq("action", "login")
+      .eq("resource", "user")
+      .in("resourceId", controlledIds)
+      .order("createdAt", { ascending: true }),
   ]);
-  if (applicationAudits.error) {
-    throw new GatewayError(503, "DATABASE_ERROR", applicationAudits.error.message);
-  }
-  if (analystAudits.error) {
-    throw new GatewayError(503, "DATABASE_ERROR", analystAudits.error.message);
+  for (const result of [applicationAudits, analystAudits, loginAudits]) {
+    if (result.error) {
+      throw new GatewayError(503, "DATABASE_ERROR", result.error.message);
+    }
   }
 
   const marker = asRecord(asRecord(application.formData)._verificationPilot);
   const audits = [
     ...(applicationAudits.data ?? []),
     ...(analystAudits.data ?? []),
+    ...(loginAudits.data ?? []),
   ]
-    .map((audit) => {
-      const stage = asRecord(audit.metadata).stage;
-      return {
-        action: audit.action,
-        resource: audit.resource,
-        resourceId: audit.resourceId,
-        userId: audit.userId,
-        metadata: typeof stage === "string" ? { stage } : {},
-        createdAt: audit.createdAt,
-      };
-    })
+    .map((audit) => ({
+      action: audit.action,
+      resource: audit.resource,
+      resourceId: audit.resourceId,
+      userId: audit.userId,
+      metadata: safeAuditMetadata(audit.metadata),
+      createdAt: audit.createdAt,
+    }))
     .sort(
       (left, right) =>
         new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
