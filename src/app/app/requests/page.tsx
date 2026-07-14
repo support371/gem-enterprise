@@ -24,7 +24,7 @@ import {
   serviceRequestPriorityIds,
   serviceRequestTypeCatalog,
   type ServiceRequestTypeId,
-} from "@/lib/serviceRequests";
+} from "@/lib/serviceRequestCatalog";
 
 interface WorkspaceSummary {
   id: string;
@@ -346,7 +346,7 @@ export default function RequestsPage() {
                 <div className="flex items-start gap-3 rounded-xl border border-cyan-400/20 bg-cyan-400/[0.04] p-4 text-sm text-cyan-50/80">
                   <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300" />
                   <span>
-                    Submitting to <strong>{selectedWorkspace.organization.name}</strong> — {" "}
+                    Submitting to <strong>{selectedWorkspace.organization.name}</strong> —{" "}
                     <strong>{selectedWorkspace.name}</strong> as {selectedWorkspace.role.name}.
                   </span>
                 </div>
