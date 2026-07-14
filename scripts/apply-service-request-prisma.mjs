@@ -21,7 +21,7 @@ function validatePromotedSchema(source) {
     marker,
     "serviceRequests             ServiceRequest[]",
     "workspaceId String?",
-    "workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)",
+    "workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)",
     "@@index([workspaceId, createdAt])",
     '@@map("requests")',
   ];
@@ -73,7 +73,7 @@ model ServiceRequest {
   schema = schema.replace(
     requestRelationAnchor,
     `  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
   @@index([workspaceId, createdAt])
   @@map("requests")`,
