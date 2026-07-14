@@ -57,7 +57,7 @@ describe("organization-scoped workspace access", () => {
       "workspace identity, membership, role assignment, permission metadata",
     );
     expect(compatibilitySource).toContain(
-      "Platform-owner status alone to bypass workspace membership",
+      "platform-owner status alone to bypass workspace membership",
     );
     expect(compatibilitySource).toContain("No database migration is included in this slice");
     expect(compatibilitySource).toContain("must never display or mutate real client records");
