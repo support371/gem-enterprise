@@ -39,7 +39,15 @@ function json(body: unknown, status = 200) {
 
 function sameOriginFailure(request: NextRequest) {
   const origin = request.headers.get("origin");
-  if (!origin) return null;
+  if (!origin) {
+    return json(
+      {
+        error: "An explicit same-origin browser request is required.",
+        code: "ORIGIN_REQUIRED",
+      },
+      403,
+    );
+  }
 
   try {
     if (new URL(origin).origin !== request.nextUrl.origin) {
