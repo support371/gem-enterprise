@@ -90,10 +90,12 @@ describe("workspace access administration", () => {
       workspacePermissionCatalog.some((permission) => permission.scope === "workspace"),
     ).toBe(true);
     expect(
-      workspacePermissionCatalog.some((permission) => permission.scope === "publishing"),
+      workspacePermissionCatalog.some(
+        (permission) => String(permission.scope) === "publishing",
+      ),
     ).toBe(false);
     expect(
-      workspacePermissionCatalog.some((permission) => permission.scope === "payments"),
+      workspacePermissionCatalog.some((permission) => String(permission.scope) === "payments"),
     ).toBe(false);
     expect(() =>
       normalizeWorkspacePermissions([{ action: "publish", scope: "publishing" }]),
