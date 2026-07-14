@@ -10,6 +10,7 @@ const source = (path: string) => readFileSync(path, "utf8");
 
 const apiSource = source("src/app/api/requests/route.ts");
 const domainSource = source("src/lib/serviceRequests.ts");
+const scopeSource = source("src/lib/serviceRequestScope.ts");
 const catalogSource = source("src/lib/serviceRequestCatalog.ts");
 const pageSource = source("src/app/app/requests/page.tsx");
 const migrationSource = source(
@@ -85,8 +86,9 @@ describe("secure scoped service requests", () => {
 
   it("keeps personal scope explicit and revalidates workspace membership server-side", () => {
     expect(domainSource).toContain("listAccessibleWorkspaces(normalizedUserId)");
-    expect(domainSource).toContain(
-      "accessibleWorkspaces.find((workspace) => workspace.id === normalizedWorkspaceId)",
+    expect(domainSource.match(/resolveServiceRequestScope/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(scopeSource).toContain(
+      "accessibleWorkspaces.find((candidate) => candidate.id === normalizedWorkspaceId)",
     );
     expect(domainSource).toContain("WORKSPACE_ACCESS_DENIED");
     expect(domainSource).toContain("workspaceId: selectedWorkspace?.id ?? null");
