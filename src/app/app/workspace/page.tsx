@@ -127,6 +127,16 @@ export default async function WorkspacePage({ searchParams }: WorkspacePageProps
     ["Connector operations", selected.controls.connectorDisabled],
   ] as const;
 
+  const metrics = [
+    { label: "Active members", value: selected.counts.members, Icon: Users },
+    { label: "Connector records", value: selected.counts.connectors, Icon: Plug },
+    {
+      label: "Approval records",
+      value: selected.counts.approvalRecords,
+      Icon: ClipboardList,
+    },
+  ];
+
   return (
     <div className="space-y-6 pb-10">
       {accessNotice === "denied" && (
@@ -196,12 +206,8 @@ export default async function WorkspacePage({ searchParams }: WorkspacePageProps
       )}
 
       <section className="grid gap-4 sm:grid-cols-3">
-        {[
-          ["Active members", selected.counts.members, Users],
-          ["Connector records", selected.counts.connectors, Plug],
-          ["Approval records", selected.counts.approvalRecords, ClipboardList],
-        ].map(([label, value, Icon]) => (
-          <Card key={String(label)} className="border-white/10 bg-card">
+        {metrics.map(({ label, value, Icon }) => (
+          <Card key={label} className="border-white/10 bg-card">
             <CardContent className="flex items-center gap-4 p-5">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10">
                 <Icon className="h-5 w-5 text-cyan-300" />
