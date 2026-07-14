@@ -70,6 +70,15 @@ function deniedWorkspace(): never {
   );
 }
 
+function isSerializableConflict(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error as { code?: unknown }).code === "P2034",
+  );
+}
+
 export async function getServiceRequestCenter(
   userId: string,
   requestedWorkspaceId?: string | null,
@@ -152,73 +161,118 @@ export async function createServiceRequest(input: {
   const description = input.description.trim();
   const priority = input.priority.trim();
 
+  if (!userId) {
+    throw new ServiceRequestDomainError("Authentication is required.", 401, "AUTH_REQUIRED");
+  }
+
   assertControlledRequestType(type);
   assertControlledPriority(priority);
   assertContentSafe(subject, description);
 
-  let selectedWorkspace:
-    | Awaited<ReturnType<typeof listAccessibleWorkspaces>>[number]
-    | null = null;
+  try {
+    const request = await db.$transaction(
+      async (tx) => {
+        let selectedWorkspace: {
+          id: string;
+          name: string;
+          slug: string;
+          organization: { id: string; name: string; slug: string };
+        } | null = null;
 
-  if (workspaceId) {
-    const accessibleWorkspaces = await listAccessibleWorkspaces(userId);
-    const scope = resolveServiceRequestScope(accessibleWorkspaces, workspaceId);
-    if (scope.kind === "denied") deniedWorkspace();
-    selectedWorkspace = scope.workspace;
+        if (workspaceId) {
+          const membership = await tx.workspaceMember.findFirst({
+            where: {
+              userId,
+              workspaceId,
+              status: "active",
+              workspace: {
+                organization: {
+                  status: "active",
+                },
+              },
+            },
+            select: {
+              workspace: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  organization: {
+                    select: { id: true, name: true, slug: true },
+                  },
+                },
+              },
+            },
+          });
+
+          if (!membership) deniedWorkspace();
+          selectedWorkspace = membership.workspace;
+        }
+
+        const created = await tx.serviceRequest.create({
+          data: {
+            userId,
+            workspaceId: selectedWorkspace?.id ?? null,
+            type,
+            subject,
+            description,
+            priority,
+            status: "open",
+          },
+          select: {
+            id: true,
+            userId: true,
+            workspaceId: true,
+            type: true,
+            subject: true,
+            description: true,
+            status: true,
+            priority: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        });
+
+        await tx.auditLog.create({
+          data: {
+            userId,
+            action: "case_created",
+            resource: "service_request",
+            resourceId: created.id,
+            metadata: {
+              type,
+              subject,
+              priority,
+              scope: selectedWorkspace ? "workspace" : "personal",
+              workspaceId: selectedWorkspace?.id ?? null,
+              workspaceName: selectedWorkspace?.name ?? null,
+              organizationId: selectedWorkspace?.organization.id ?? null,
+              organizationName: selectedWorkspace?.organization.name ?? null,
+            },
+            ipAddress: input.ipAddress,
+            userAgent: input.userAgent,
+          },
+        });
+
+        return created;
+      },
+      { isolationLevel: "Serializable" },
+    );
+
+    return {
+      ...request,
+      createdAt: request.createdAt.toISOString(),
+      updatedAt: request.updatedAt.toISOString(),
+    };
+  } catch (error) {
+    if (error instanceof ServiceRequestDomainError) throw error;
+    if (isSerializableConflict(error)) {
+      throw new ServiceRequestDomainError(
+        "Workspace access changed while the request was being submitted. Refresh and try again.",
+        409,
+        "REQUEST_CONFLICT",
+      );
+    }
+    throw error;
   }
-
-  const request = await db.$transaction(async (tx) => {
-    const created = await tx.serviceRequest.create({
-      data: {
-        userId,
-        workspaceId: selectedWorkspace?.id ?? null,
-        type,
-        subject,
-        description,
-        priority,
-        status: "open",
-      },
-      select: {
-        id: true,
-        userId: true,
-        workspaceId: true,
-        type: true,
-        subject: true,
-        description: true,
-        status: true,
-        priority: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    await tx.auditLog.create({
-      data: {
-        userId,
-        action: "case_created",
-        resource: "service_request",
-        resourceId: created.id,
-        metadata: {
-          type,
-          subject,
-          priority,
-          scope: selectedWorkspace ? "workspace" : "personal",
-          workspaceId: selectedWorkspace?.id ?? null,
-          workspaceName: selectedWorkspace?.name ?? null,
-          organizationId: selectedWorkspace?.organization.id ?? null,
-          organizationName: selectedWorkspace?.organization.name ?? null,
-        },
-        ipAddress: input.ipAddress,
-        userAgent: input.userAgent,
-      },
-    });
-
-    return created;
-  });
-
-  return {
-    ...request,
-    createdAt: request.createdAt.toISOString(),
-    updatedAt: request.updatedAt.toISOString(),
-  };
 }
