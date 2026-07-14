@@ -36,7 +36,10 @@ const createRoleSchema = z
       .trim()
       .min(2)
       .max(80)
-      .regex(/^[A-Za-z0-9][A-Za-z0-9 _-]*$/, "Use letters, numbers, spaces, hyphens, or underscores."),
+      .regex(
+        /^[A-Za-z0-9][A-Za-z0-9 _-]*$/,
+        "Use letters, numbers, spaces, hyphens, or underscores.",
+      ),
     description: z.string().trim().max(300).optional().nullable(),
     permissions: z.array(permissionSchema).min(1).max(8),
     reason,
@@ -91,7 +94,10 @@ function sameOriginFailure(request: NextRequest) {
   try {
     if (new URL(origin).origin !== request.nextUrl.origin) {
       return json(
-        { error: "Cross-origin workspace administration requests are not allowed.", code: "SAME_ORIGIN_REQUIRED" },
+        {
+          error: "Cross-origin workspace administration requests are not allowed.",
+          code: "SAME_ORIGIN_REQUIRED",
+        },
         403,
       );
     }
@@ -164,19 +170,43 @@ export async function POST(request: NextRequest) {
 
   const requestContext = getRequestContext(request);
   try {
-    if (parsed.data.operation === "create_role") {
-      const role = await createWorkspaceRole(parsed.data, {
-        actorUserId: gate.session.userId,
-        ...requestContext,
-      });
-      return json({ ok: true, operation: parsed.data.operation, role }, 201);
+    const data = parsed.data;
+    if (data.operation === "create_role") {
+      const role = await createWorkspaceRole(
+        {
+          workspaceId: data.workspaceId!,
+          confirmWorkspaceSlug: data.confirmWorkspaceSlug!,
+          name: data.name!,
+          description: data.description ?? null,
+          permissions: (data.permissions ?? []).map((permission) => ({
+            action: permission.action!,
+            scope: permission.scope!,
+          })),
+          reason: data.reason!,
+        },
+        {
+          actorUserId: gate.session.userId,
+          ...requestContext,
+        },
+      );
+      return json({ ok: true, operation: data.operation, role }, 201);
     }
 
-    const membership = await assignWorkspaceMembership(parsed.data, {
-      actorUserId: gate.session.userId,
-      ...requestContext,
-    });
-    return json({ ok: true, operation: parsed.data.operation, membership }, 201);
+    const membership = await assignWorkspaceMembership(
+      {
+        workspaceId: data.workspaceId!,
+        confirmWorkspaceSlug: data.confirmWorkspaceSlug!,
+        userId: data.userId!,
+        confirmEmail: data.confirmEmail!,
+        roleId: data.roleId!,
+        reason: data.reason!,
+      },
+      {
+        actorUserId: gate.session.userId,
+        ...requestContext,
+      },
+    );
+    return json({ ok: true, operation: data.operation, membership }, 201);
   } catch (error) {
     return administrationError(error);
   }
@@ -204,10 +234,21 @@ export async function PATCH(request: NextRequest) {
   }
 
   try {
-    const membership = await updateWorkspaceMembership(parsed.data, {
-      actorUserId: gate.session.userId,
-      ...getRequestContext(request),
-    });
+    const data = parsed.data;
+    const membership = await updateWorkspaceMembership(
+      {
+        membershipId: data.membershipId!,
+        expectedUpdatedAt: data.expectedUpdatedAt!,
+        confirmEmail: data.confirmEmail!,
+        reason: data.reason!,
+        ...(data.roleId ? { roleId: data.roleId } : {}),
+        ...(data.status ? { status: data.status } : {}),
+      },
+      {
+        actorUserId: gate.session.userId,
+        ...getRequestContext(request),
+      },
+    );
     return json({ ok: true, operation: "update_membership", membership });
   } catch (error) {
     return administrationError(error);
