@@ -1,76 +1,144 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { db } from "@/lib/db";
-import { emitAuditLog } from "@/lib/audit";
-import { getSession } from "@/lib/auth";
+import {
+  forbidden,
+  getRequestContext,
+  requireSession,
+} from "@/lib/api/auth-helpers";
+import { rateLimit, rateLimitedResponse } from "@/lib/api/rate-limit";
+import {
+  createServiceRequest,
+  getServiceRequestCenter,
+  ServiceRequestDomainError,
+  serviceRequestPriorityIds,
+  serviceRequestTypeCatalog,
+  serviceRequestTypeIds,
+} from "@/lib/serviceRequests";
 
-const createSchema = z.object({
-  type: z.string().min(1, "Request type is required"),
-  subject: z.string().min(3, "Subject is required"),
-  description: z.string().min(10, "Description must be at least 10 characters"),
-  priority: z.enum(["low", "medium", "high", "critical"]).optional(),
-});
+export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+const createSchema = z
+  .object({
+    workspaceId: z.string().trim().min(1).max(128).nullable().optional(),
+    type: z.enum(serviceRequestTypeIds),
+    subject: z.string().trim().min(3).max(120),
+    description: z.string().trim().min(10).max(3000),
+    priority: z.enum(serviceRequestPriorityIds).default("medium"),
+  })
+  .strict();
 
-  const requests = await db.serviceRequest.findMany({
-    where: { userId: session.userId },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      type: true,
-      subject: true,
-      description: true,
-      status: true,
-      priority: true,
-      createdAt: true,
-      updatedAt: true,
+function json(body: unknown, status = 200) {
+  return NextResponse.json(body, {
+    status,
+    headers: {
+      "Cache-Control": "no-store",
+      "Referrer-Policy": "no-referrer",
     },
   });
-
-  return NextResponse.json({ requests });
 }
 
-export async function POST(req: NextRequest) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+function sameOriginFailure(request: NextRequest) {
+  const origin = request.headers.get("origin");
+  if (!origin) return null;
+
+  try {
+    if (new URL(origin).origin !== request.nextUrl.origin) {
+      return json(
+        {
+          error: "Cross-origin service-request submissions are not allowed.",
+          code: "SAME_ORIGIN_REQUIRED",
+        },
+        403,
+      );
+    }
+  } catch {
+    return json({ error: "The request origin is invalid.", code: "ORIGIN_INVALID" }, 403);
+  }
+
+  return null;
+}
+
+function domainError(error: unknown) {
+  if (error instanceof ServiceRequestDomainError) {
+    return json({ error: error.message, code: error.code }, error.statusCode);
+  }
+
+  console.error("[service-requests] request operation failed", error);
+  return json({ error: "The service-request system is unavailable." }, 500);
+}
+
+export async function GET(request: NextRequest) {
+  const gate = await requireSession();
+  if (!gate.ok) return gate.response;
+  if (gate.accountStatus !== "active") {
+    return forbidden("An active account is required for service requests.");
+  }
+
+  const workspaceId = request.nextUrl.searchParams.get("workspaceId");
+
+  try {
+    const center = await getServiceRequestCenter(gate.session.userId, workspaceId);
+    return json({
+      ...center,
+      requestTypes: serviceRequestTypeCatalog,
+      priorities: serviceRequestPriorityIds,
+    });
+  } catch (error) {
+    return domainError(error);
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const gate = await requireSession();
+  if (!gate.ok) return gate.response;
+  if (gate.accountStatus !== "active") {
+    return forbidden("An active account is required for service requests.");
+  }
+
+  const originFailure = sameOriginFailure(request);
+  if (originFailure) return originFailure;
+
+  const context = getRequestContext(request);
+  const limit = rateLimit(`${gate.session.userId}:${context.ipAddress}`, {
+    key: "service-requests:create",
+    windowMs: 10 * 60_000,
+    max: 8,
+  });
+  if (!limit.ok) return rateLimitedResponse(limit.retryAfterSeconds);
 
   let body: unknown;
   try {
-    body = await req.json();
+    body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return json({ error: "Invalid JSON" }, 400);
   }
 
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Validation failed", details: parsed.error.flatten().fieldErrors },
-      { status: 400 }
+    return json(
+      {
+        error: "Validation failed",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      400,
     );
   }
 
-  const { type, subject, description, priority } = parsed.data;
+  try {
+    const data = parsed.data;
+    const created = await createServiceRequest({
+      userId: gate.session.userId,
+      workspaceId: data.workspaceId ?? null,
+      type: data.type!,
+      subject: data.subject!,
+      description: data.description!,
+      priority: data.priority ?? "medium",
+      ipAddress: context.ipAddress,
+      userAgent: context.userAgent,
+    });
 
-  const request = await db.serviceRequest.create({
-    data: {
-      userId: session.userId,
-      type,
-      subject,
-      description,
-      priority: priority ?? "medium",
-      status: "open",
-    },
-  });
-
-  await emitAuditLog({
-    action: "case_created",
-    resource: "service_request",
-    resourceId: request.id,
-    metadata: { type, subject },
-  });
-
-  return NextResponse.json({ ok: true, request }, { status: 201 });
+    return json({ ok: true, request: created }, 201);
+  } catch (error) {
+    return domainError(error);
+  }
 }
