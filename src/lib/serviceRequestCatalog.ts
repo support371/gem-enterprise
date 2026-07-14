@@ -69,7 +69,7 @@ function uniqueCategories(categories: SensitiveContentCategory[]) {
 function hasLuhnValidNumber(value: string): boolean {
   const candidates = value.match(/(?:\d[ -]?){13,19}/g) ?? [];
   return candidates.some((candidate) => {
-    const digits = candidate.replace(/\D/g, "");
+    const digits = String(candidate).replace(/\D/g, "");
     if (digits.length < 13 || digits.length > 19 || /^(\d)\1+$/.test(digits)) return false;
 
     let sum = 0;
