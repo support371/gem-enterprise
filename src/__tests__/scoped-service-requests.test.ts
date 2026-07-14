@@ -76,8 +76,9 @@ describe("secure scoped service requests", () => {
     expect(apiSource).toContain('"Referrer-Policy": "no-referrer"');
   });
 
-  it("requires same-origin and rate-limited submissions", () => {
+  it("requires explicit same-origin and rate-limited submissions", () => {
     expect(apiSource).toContain('request.headers.get("origin")');
+    expect(apiSource).toContain("ORIGIN_REQUIRED");
     expect(apiSource).toContain("request.nextUrl.origin");
     expect(apiSource).toContain("SAME_ORIGIN_REQUIRED");
     expect(apiSource).toContain('key: "service-requests:create"');
@@ -86,10 +87,12 @@ describe("secure scoped service requests", () => {
 
   it("keeps personal scope explicit and revalidates workspace membership server-side", () => {
     expect(domainSource).toContain("listAccessibleWorkspaces(normalizedUserId)");
-    expect(domainSource.match(/resolveServiceRequestScope/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(domainSource).toContain("resolveServiceRequestScope(accessibleWorkspaces");
     expect(scopeSource).toContain(
       "accessibleWorkspaces.find((candidate) => candidate.id === normalizedWorkspaceId)",
     );
+    expect(domainSource).toContain("tx.workspaceMember.findFirst");
+    expect(domainSource).toContain('status: "active"');
     expect(domainSource).toContain("WORKSPACE_ACCESS_DENIED");
     expect(domainSource).toContain("workspaceId: selectedWorkspace?.id ?? null");
     expect(domainSource).not.toContain("db.workspace.findUnique");
@@ -104,10 +107,14 @@ describe("secure scoped service requests", () => {
     expect(domainSource).not.toContain("serviceRequest.findMany({\n    where: {\n      workspaceId:");
   });
 
-  it("creates request and audit evidence in one transaction", () => {
-    expect(domainSource).toContain("db.$transaction(async (tx)");
+  it("creates membership check, request, and audit evidence in one serializable transaction", () => {
+    expect(domainSource).toContain("db.$transaction(");
+    expect(domainSource).toContain("tx.workspaceMember.findFirst");
     expect(domainSource).toContain("tx.serviceRequest.create");
     expect(domainSource).toContain("tx.auditLog.create");
+    expect(domainSource).toContain('isolationLevel: "Serializable"');
+    expect(domainSource).toContain('code?: unknown }).code === "P2034"');
+    expect(domainSource).toContain("REQUEST_CONFLICT");
     expect(domainSource).toContain('action: "case_created"');
     expect(domainSource).toContain('resource: "service_request"');
     expect(domainSource).toContain("ipAddress: input.ipAddress");
@@ -123,11 +130,13 @@ describe("secure scoped service requests", () => {
     expect(pageSource).toContain("setSuccess(");
   });
 
-  it("uses an additive nullable migration without historical backfill", () => {
+  it("uses an additive nullable migration without historical backfill or scope erasure", () => {
     expect(migrationSource).toContain('ADD COLUMN "workspaceId" TEXT');
     expect(migrationSource).toContain('CREATE INDEX "requests_workspaceId_createdAt_idx"');
     expect(migrationSource).toContain('REFERENCES public."tokmetric_workspaces"("id")');
-    expect(migrationSource).toContain("ON DELETE SET NULL");
+    expect(migrationSource).toContain("ON DELETE RESTRICT");
+    expect(migrationSource).toContain("ENABLE ROW LEVEL SECURITY");
+    expect(migrationSource).not.toContain("ON DELETE SET NULL");
     expect(migrationSource).not.toContain("UPDATE public");
     expect(migrationSource).not.toContain("NOT NULL");
   });
@@ -135,7 +144,8 @@ describe("secure scoped service requests", () => {
   it("promotes the Prisma relation idempotently for every build workflow", () => {
     expect(promotionSource).toContain("serviceRequests             ServiceRequest[]");
     expect(promotionSource).toContain("workspaceId String?");
-    expect(promotionSource).toContain("onDelete: SetNull");
+    expect(promotionSource).toContain("onDelete: Restrict");
+    expect(promotionSource).not.toContain("onDelete: SetNull");
     expect(promotionSource).toContain("@@index([workspaceId, createdAt])");
     expect(promotionSource).toContain("result.changed");
   });
