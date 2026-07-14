@@ -6,6 +6,7 @@ import {
   type ServiceRequestPriorityId,
   type ServiceRequestTypeId,
 } from "@/lib/serviceRequestCatalog";
+import { resolveServiceRequestScope } from "@/lib/serviceRequestScope";
 import { listAccessibleWorkspaces } from "@/lib/workspaceAccess";
 
 export {
@@ -61,6 +62,14 @@ function assertContentSafe(subject: string, description: string) {
   }
 }
 
+function deniedWorkspace(): never {
+  throw new ServiceRequestDomainError(
+    "The selected workspace is not assigned to this account.",
+    403,
+    "WORKSPACE_ACCESS_DENIED",
+  );
+}
+
 export async function getServiceRequestCenter(
   userId: string,
   requestedWorkspaceId?: string | null,
@@ -71,18 +80,9 @@ export async function getServiceRequestCenter(
   }
 
   const accessibleWorkspaces = await listAccessibleWorkspaces(normalizedUserId);
-  const normalizedWorkspaceId = requestedWorkspaceId?.trim() || null;
-  const selectedWorkspace = normalizedWorkspaceId
-    ? accessibleWorkspaces.find((workspace) => workspace.id === normalizedWorkspaceId) ?? null
-    : null;
-
-  if (normalizedWorkspaceId && !selectedWorkspace) {
-    throw new ServiceRequestDomainError(
-      "The selected workspace is not assigned to this account.",
-      403,
-      "WORKSPACE_ACCESS_DENIED",
-    );
-  }
+  const scope = resolveServiceRequestScope(accessibleWorkspaces, requestedWorkspaceId);
+  if (scope.kind === "denied") deniedWorkspace();
+  const selectedWorkspace = scope.workspace;
 
   const requests = await db.serviceRequest.findMany({
     where: {
@@ -162,15 +162,9 @@ export async function createServiceRequest(input: {
 
   if (workspaceId) {
     const accessibleWorkspaces = await listAccessibleWorkspaces(userId);
-    selectedWorkspace =
-      accessibleWorkspaces.find((workspace) => workspace.id === workspaceId) ?? null;
-    if (!selectedWorkspace) {
-      throw new ServiceRequestDomainError(
-        "The selected workspace is not assigned to this account.",
-        403,
-        "WORKSPACE_ACCESS_DENIED",
-      );
-    }
+    const scope = resolveServiceRequestScope(accessibleWorkspaces, workspaceId);
+    if (scope.kind === "denied") deniedWorkspace();
+    selectedWorkspace = scope.workspace;
   }
 
   const request = await db.$transaction(async (tx) => {
