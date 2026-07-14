@@ -1,177 +1,287 @@
-'use client'
-
-import { useState } from 'react'
-import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import type { Metadata } from "next";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
-  Layers,
-  FileText,
-  ClipboardList,
-  MessageSquare,
-  Bell,
-  Upload,
+  AlertTriangle,
   ArrowRight,
-  Clock,
+  Building2,
   CheckCircle2,
-  AlertCircle,
-} from 'lucide-react'
+  ClipboardList,
+  LockKeyhole,
+  Plug,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { isPlatformOwnerRole, requireSession } from "@/lib/api/auth-helpers";
+import { resolveWorkspaceAccess } from "@/lib/workspaceAccess";
+import { cn } from "@/lib/utils";
 
-type TaskStatus = 'pending' | 'in_progress' | 'completed'
+export const metadata: Metadata = {
+  title: "Workspace | GEM Enterprise",
+  description: "Membership-scoped GEM Enterprise organization workspace.",
+};
 
-interface Task {
-  title: string
-  category: string
-  status: TaskStatus
-  due: string
+export const dynamic = "force-dynamic";
+
+interface WorkspacePageProps {
+  searchParams: Promise<{
+    workspace?: string | string[];
+    access?: string | string[];
+  }>;
 }
 
-const tasks: Task[] = [
-  { title: 'Upload Q1 financial statements', category: 'Documents', status: 'pending', due: 'Mar 25, 2026' },
-  { title: 'Review and sign updated compliance attestation', category: 'Compliance', status: 'in_progress', due: 'Mar 22, 2026' },
-  { title: 'KYC renewal — annual identity verification', category: 'KYC', status: 'pending', due: 'Apr 1, 2026' },
-  { title: 'Confirm portfolio allocation preferences', category: 'Portfolio', status: 'completed', due: 'Mar 10, 2026' },
-]
-
-const statusConfig: Record<TaskStatus, { icon: typeof Clock; label: string; color: string; bg: string }> = {
-  pending:     { icon: Clock,         label: 'Pending',     color: 'text-amber-400',   bg: 'bg-amber-400/10' },
-  in_progress: { icon: AlertCircle,   label: 'In Progress', color: 'text-blue-400',    bg: 'bg-blue-400/10' },
-  completed:   { icon: CheckCircle2,  label: 'Completed',   color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
+function firstString(value: string | string[] | undefined): string | null {
+  return typeof value === "string" ? value : null;
 }
 
-const quickActions = [
-  { icon: Upload,        label: 'Upload Document',    href: '/app/documents' },
-  { icon: ClipboardList, label: 'New Request',         href: '/app/requests' },
-  { icon: MessageSquare, label: 'Message Team',        href: '/app/messages' },
-  { icon: Bell,          label: 'Notifications',       href: '/app/notifications' },
-]
+function ControlState({ locked }: { locked: boolean }) {
+  return (
+    <Badge
+      className={cn(
+        "border",
+        locked
+          ? "border-amber-400/25 bg-amber-400/10 text-amber-300"
+          : "border-emerald-400/25 bg-emerald-400/10 text-emerald-300",
+      )}
+    >
+      {locked ? (
+        <LockKeyhole className="mr-1.5 h-3.5 w-3.5" />
+      ) : (
+        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+      )}
+      {locked ? "Locked" : "Available"}
+    </Badge>
+  );
+}
 
-export default function WorkspacePage() {
-  const [filter, setFilter] = useState<TaskStatus | 'all'>('all')
+export default async function WorkspacePage({ searchParams }: WorkspacePageProps) {
+  const gate = await requireSession();
+  if (!gate.ok) {
+    redirect("/client-login?next=/app/workspace");
+  }
+  if (gate.accountStatus !== "active") {
+    redirect("/client-login?status=account-review");
+  }
 
-  const filtered = filter === 'all' ? tasks : tasks.filter((t) => t.status === filter)
-  const pendingCount = tasks.filter((t) => t.status === 'pending').length
-  const inProgressCount = tasks.filter((t) => t.status === 'in_progress').length
+  const params = await searchParams;
+  const requestedWorkspaceId = firstString(params.workspace);
+  const accessNotice = firstString(params.access);
+  const resolution = await resolveWorkspaceAccess(
+    gate.session.userId,
+    requestedWorkspaceId,
+  );
+
+  if (resolution.requestedDenied) {
+    redirect("/app/workspace?access=denied");
+  }
+
+  const selected = resolution.selected;
+
+  if (!selected) {
+    const owner = isPlatformOwnerRole(gate.session.role);
+    return (
+      <div className="mx-auto max-w-3xl space-y-6 py-8">
+        <Card className="border-amber-400/20 bg-amber-400/[0.04]">
+          <CardHeader>
+            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-amber-400/10">
+              <Building2 className="h-5 w-5 text-amber-300" />
+            </div>
+            <CardTitle className="text-xl text-white">No active workspace assignment</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <p className="text-sm leading-7 text-slate-300">
+              Your account is authenticated, but it is not currently assigned to an active
+              organization workspace. GEM does not create a synthetic client membership or expose
+              another organization as a fallback.
+            </p>
+            <div className="rounded-xl border border-white/10 bg-black/15 p-4 text-sm leading-6 text-slate-400">
+              Workspace access begins only after an administrator assigns your account to a real
+              organization workspace with an active membership and role.
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {owner && (
+                <Button asChild className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">
+                  <Link href="/app/admin/plan-workspaces">
+                    Open owner plan preview <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              )}
+              <Button asChild variant="outline" className="border-white/15 text-slate-200">
+                <Link href="/app/support">Contact workspace support</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const controls = [
+    ["Global emergency lock", selected.controls.globalEmergencyLock],
+    ["Publishing", selected.controls.publishingDisabled],
+    ["Advertising", selected.controls.advertisingDisabled],
+    ["Shop write operations", selected.controls.shopWriteDisabled],
+    ["Connector operations", selected.controls.connectorDisabled],
+  ] as const;
+
+  const metrics = [
+    { label: "Active members", value: selected.counts.members, Icon: Users },
+    { label: "Connector records", value: selected.counts.connectors, Icon: Plug },
+    {
+      label: "Approval records",
+      value: selected.counts.approvalRecords,
+      Icon: ClipboardList,
+    },
+  ];
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Workspace</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            Your action items, outstanding tasks, and quick-access tools.
-          </p>
+    <div className="space-y-6 pb-10">
+      {accessNotice === "denied" && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-400/25 bg-amber-400/[0.07] p-4 text-sm text-amber-100">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+          The requested workspace was not assigned to your account. Your first active membership is
+          shown instead.
         </div>
-        {pendingCount > 0 && (
-          <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20">
-            {pendingCount} pending
-          </Badge>
-        )}
-      </div>
+      )}
 
-      {/* Quick actions */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {quickActions.map(({ icon: Icon, label, href }) => (
-          <Button
-            key={label}
-            asChild
-            variant="outline"
-            className="h-auto flex-col gap-2 py-4 border-[hsl(var(--border))] text-slate-300 hover:text-white hover:border-[hsl(var(--svc-cyber))]/40"
-          >
-            <Link href={href}>
-              <Icon className="w-5 h-5 text-[hsl(var(--svc-cyber))]" />
-              <span className="text-xs font-medium">{label}</span>
-            </Link>
-          </Button>
-        ))}
-      </div>
+      <section className="overflow-hidden rounded-2xl border border-cyan-400/20 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_38%),linear-gradient(145deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))] p-5 sm:p-7">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+          <div className="max-w-3xl">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <Badge className="border-cyan-400/30 bg-cyan-400/10 text-cyan-200">
+                <ShieldCheck className="mr-1.5 h-3.5 w-3.5" /> Membership scoped
+              </Badge>
+              <Badge variant="outline" className="border-white/15 text-slate-300">
+                Real organization workspace
+              </Badge>
+            </div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-300">
+              {selected.organization.name}
+            </p>
+            <h1 className="mt-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              {selected.name}
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
+              This page is resolved from your active workspace membership. It does not use the
+              synthetic Basic, Professional, or Enterprise preview records.
+            </p>
+          </div>
+          <div className="rounded-xl border border-white/10 bg-black/20 p-4 xl:min-w-[280px]">
+            <p className="text-xs uppercase tracking-wider text-slate-500">Assigned role</p>
+            <p className="mt-2 font-semibold text-white">{selected.role.name}</p>
+            <p className="mt-1 text-xs leading-5 text-slate-400">
+              {selected.role.description ?? "No additional role description is recorded."}
+            </p>
+          </div>
+        </div>
+      </section>
 
-      {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: 'Pending',     value: pendingCount,   color: 'text-amber-400',   bg: 'bg-amber-400/10' },
-          { label: 'In Progress', value: inProgressCount, color: 'text-blue-400',    bg: 'bg-blue-400/10' },
-          { label: 'Completed',   value: tasks.filter((t) => t.status === 'completed').length, color: 'text-emerald-400', bg: 'bg-emerald-400/10' },
-        ].map(({ label, value, color, bg }) => (
-          <Card key={label} className="bg-[hsl(var(--card))] border-[hsl(var(--border))]">
-            <CardContent className="pt-5 flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-lg ${bg} flex items-center justify-center`}>
-                <Layers className={`w-4 h-4 ${color}`} />
+      {resolution.workspaces.length > 1 && (
+        <Card className="border-white/10 bg-card">
+          <CardHeader>
+            <CardTitle className="text-sm text-white">Your assigned workspaces</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {resolution.workspaces.map((workspace) => (
+              <Link
+                key={workspace.id}
+                href={`/app/workspace?workspace=${encodeURIComponent(workspace.id)}`}
+                className={cn(
+                  "rounded-xl border p-4 transition",
+                  workspace.id === selected.id
+                    ? "border-cyan-400/35 bg-cyan-400/10"
+                    : "border-white/10 bg-white/[0.02] hover:border-white/20",
+                )}
+              >
+                <p className="text-xs text-slate-500">{workspace.organization.name}</p>
+                <p className="mt-1 font-semibold text-white">{workspace.name}</p>
+                <p className="mt-2 text-xs text-slate-400">{workspace.role.name}</p>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <section className="grid gap-4 sm:grid-cols-3">
+        {metrics.map(({ label, value, Icon }) => (
+          <Card key={label} className="border-white/10 bg-card">
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10">
+                <Icon className="h-5 w-5 text-cyan-300" />
               </div>
               <div>
                 <p className="text-xs text-slate-500">{label}</p>
-                <p className="text-lg font-bold text-white">{value}</p>
+                <p className="mt-1 text-2xl font-bold text-white">{value}</p>
               </div>
             </CardContent>
           </Card>
         ))}
-      </div>
-
-      {/* Tasks list */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-widest">Action Items</h2>
-          <div className="flex gap-1">
-            {(['all', 'pending', 'in_progress', 'completed'] as const).map((s) => (
-              <Button
-                key={s}
-                size="sm"
-                variant={filter === s ? 'default' : 'ghost'}
-                onClick={() => setFilter(s)}
-                className="h-7 text-xs capitalize"
-              >
-                {s === 'all' ? 'All' : s.replace('_', ' ')}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          {filtered.map((task) => {
-            const cfg = statusConfig[task.status]
-            const Icon = cfg.icon
-            return (
-              <Card key={task.title} className="bg-[hsl(var(--card))] border-[hsl(var(--border))]">
-                <CardContent className="flex items-center gap-4 py-4">
-                  <div className={`w-8 h-8 rounded-lg ${cfg.bg} flex items-center justify-center shrink-0`}>
-                    <Icon className={`w-4 h-4 ${cfg.color}`} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-white truncate">{task.title}</p>
-                    <p className="text-xs text-slate-500">{task.category} · Due {task.due}</p>
-                  </div>
-                  <Badge
-                    variant="outline"
-                    className={`text-xs border-current ${cfg.color} shrink-0`}
-                  >
-                    {cfg.label}
-                  </Badge>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
       </section>
 
-      {/* Documents shortcut */}
-      <Card className="bg-[hsl(var(--card))] border-[hsl(var(--border))]">
-        <CardHeader className="pb-2">
-          <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-[hsl(var(--svc-cyber))]" />
-            <CardTitle className="text-sm text-white">Documents & Requests</CardTitle>
+      <section className="grid gap-6 xl:grid-cols-2">
+        <Card className="border-white/10 bg-card">
+          <CardHeader>
+            <CardTitle className="text-base text-white">Workspace controls</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {controls.map(([label, locked]) => (
+              <div
+                key={label}
+                className="flex items-center justify-between gap-4 rounded-xl border border-white/8 bg-white/[0.02] p-3"
+              >
+                <span className="text-sm text-slate-300">{label}</span>
+                <ControlState locked={locked} />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="border-white/10 bg-card">
+          <CardHeader>
+            <CardTitle className="text-base text-white">Role permissions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {selected.permissions.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {selected.permissions.map((permission) => (
+                  <Badge
+                    key={`${permission.scope}:${permission.action}`}
+                    variant="outline"
+                    className="border-white/12 bg-white/[0.025] text-slate-300"
+                  >
+                    {permission.scope} · {permission.action}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-xl border border-white/8 bg-white/[0.02] p-4 text-sm leading-6 text-slate-400">
+                No explicit permission labels are attached to this membership role. Protected
+                actions remain unavailable unless an authoritative server-side gate permits them.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      <Card className="border-cyan-400/15 bg-cyan-400/[0.035]">
+        <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-semibold text-white">Data boundary</p>
+            <p className="mt-1 text-sm leading-6 text-slate-400">
+              Workspace selection is validated on the server from your active memberships. Platform
+              owner status alone does not expose another client's workspace through this route.
+            </p>
           </div>
-        </CardHeader>
-        <CardContent className="flex gap-3">
-          <Button asChild size="sm" variant="outline" className="border-[hsl(var(--border))] text-slate-300 hover:text-white">
-            <Link href="/app/documents">View Documents <ArrowRight className="w-3.5 h-3.5 ml-1" /></Link>
-          </Button>
-          <Button asChild size="sm" variant="outline" className="border-[hsl(var(--border))] text-slate-300 hover:text-white">
-            <Link href="/app/requests">View Requests <ArrowRight className="w-3.5 h-3.5 ml-1" /></Link>
-          </Button>
+          {isPlatformOwnerRole(gate.session.role) && (
+            <Button asChild variant="outline" className="shrink-0 border-cyan-400/25 text-cyan-200">
+              <Link href="/app/admin/plan-workspaces">Open synthetic plan preview</Link>
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
