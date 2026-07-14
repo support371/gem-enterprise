@@ -33,6 +33,8 @@ console.log("Promoting auth session-version Prisma field...");
 run("node", ["scripts/apply-auth-session-prisma.mjs"], env);
 console.log("Promoting separated-intake Prisma models...");
 run("node", ["scripts/apply-intake-prisma-models.mjs"], env);
+console.log("Promoting scoped service-request Prisma fields...");
+run("node", ["scripts/apply-service-request-prisma.mjs"], env);
 
 const schemaValidationUrl = "postgresql://schema:validation@127.0.0.1:5432/schema_validation";
 const schemaValidationEnv = {
