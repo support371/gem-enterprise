@@ -38,7 +38,13 @@ describe("session JWT", () => {
   it("rejects a tampered token", async () => {
     mutableEnv.JWT_SECRET = "test-secret-that-is-longer-than-32-characters";
     const token = await signSession(clientSession);
-    await expect(verifySession(`${token.slice(0, -1)}x`)).resolves.toBeNull();
+    const [header, payload, signature] = token.split(".");
+    const index = Math.floor(signature.length / 2);
+    const replacement = signature[index] === "a" ? "b" : "a";
+    const tamperedSignature = `${signature.slice(0, index)}${replacement}${signature.slice(index + 1)}`;
+    await expect(
+      verifySession(`${header}.${payload}.${tamperedSignature}`),
+    ).resolves.toBeNull();
   });
 
   it("requires a production JWT secret", async () => {
