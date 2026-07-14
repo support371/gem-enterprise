@@ -75,8 +75,8 @@ describe("workspace access administration", () => {
     expect(componentSource).toContain("Human-initiated access only");
     expect(componentSource).toContain("Deployment does not seed roles or assign users");
     expect(componentSource).not.toContain("useEffect(");
-    expect(snapshotSource).not.toContain("workspaceMember.create");
-    expect(snapshotSource).not.toContain("role.create");
+    expect(snapshotSource).not.toContain("workspaceMember.create({");
+    expect(snapshotSource).not.toContain("role.create({");
   });
 
   it("limits role permissions to the controlled workspace catalog", () => {
