@@ -4,12 +4,13 @@ import {
   inspectServiceRequestContent,
   serviceRequestPriorityIds,
   serviceRequestTypeCatalog,
-} from "@/lib/serviceRequests";
+} from "@/lib/serviceRequestCatalog";
 
 const source = (path: string) => readFileSync(path, "utf8");
 
 const apiSource = source("src/app/api/requests/route.ts");
 const domainSource = source("src/lib/serviceRequests.ts");
+const catalogSource = source("src/lib/serviceRequestCatalog.ts");
 const pageSource = source("src/app/app/requests/page.tsx");
 const migrationSource = source(
   "prisma/migrations/20260714053000_scoped_service_requests/migration.sql",
@@ -44,7 +45,9 @@ describe("secure scoped service requests", () => {
       ).categories,
     ).toContain("private_key");
     expect(
-      inspectServiceRequestContent("My recovery phrase is one two three four five six seven eight").categories,
+      inspectServiceRequestContent(
+        "My recovery phrase is one two three four five six seven eight",
+      ).categories,
     ).toContain("recovery_material");
     expect(inspectServiceRequestContent("Card: 4111 1111 1111 1111").categories).toContain(
       "payment_card",
@@ -55,6 +58,13 @@ describe("secure scoped service requests", () => {
     expect(inspectServiceRequestContent("My passport number is A12345678").categories).toContain(
       "identity_identifier",
     );
+  });
+
+  it("keeps the browser-safe policy isolated from Prisma", () => {
+    expect(catalogSource).not.toContain('from "@/lib/db"');
+    expect(catalogSource).not.toContain("Prisma");
+    expect(pageSource).toContain('from "@/lib/serviceRequestCatalog"');
+    expect(pageSource).not.toContain('from "@/lib/serviceRequests"');
   });
 
   it("uses authoritative active-account authentication for reads and writes", () => {
@@ -79,7 +89,6 @@ describe("secure scoped service requests", () => {
       "accessibleWorkspaces.find((workspace) => workspace.id === normalizedWorkspaceId)",
     );
     expect(domainSource).toContain("WORKSPACE_ACCESS_DENIED");
-    expect(domainSource).toContain("workspaceId: selectedWorkspace?.id ?? null");
     expect(domainSource).toContain("workspaceId: selectedWorkspace?.id ?? null");
     expect(domainSource).not.toContain("db.workspace.findUnique");
     expect(domainSource).not.toContain("db.workspace.findFirst");
