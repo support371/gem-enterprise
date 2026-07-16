@@ -6,6 +6,10 @@ const gatewayClientSource = readFileSync(
   "src/lib/tokmetric/gptGateway.ts",
   "utf8",
 );
+const edgeGatewaySource = readFileSync(
+  "supabase/functions/gem-tokmetric-gpt-gateway/index.ts",
+  "utf8",
+);
 const migrationSource = readFileSync(
   "supabase/migrations/20260716140000_create_tokmetric_gpt_credentials.sql",
   "utf8",
@@ -27,6 +31,8 @@ describe("TokMetric Custom GPT Supabase gateway", () => {
     expect(gatewayClientSource).toContain("Authorization: input.authorization");
     expect(gatewayClientSource).not.toContain("gem_tokmetric_");
     expect(gatewayClientSource).not.toContain("GPT_AUTH_TOKEN =");
+    expect(edgeGatewaySource).toContain('crypto.subtle.digest(\n    "SHA-256"');
+    expect(edgeGatewaySource).not.toContain("gem_tokmetric_");
   });
 
   it("fails safely when the gateway cannot be reached", () => {
@@ -41,10 +47,20 @@ describe("TokMetric Custom GPT Supabase gateway", () => {
     expect(migrationSource).toContain("workspace_id text not null");
     expect(migrationSource).toContain("enable row level security");
     expect(migrationSource).toContain("no plaintext bearer tokens");
+    expect(edgeGatewaySource).toContain('from("tokmetric_gpt_credentials")');
+    expect(edgeGatewaySource).toContain("WORKSPACE_FORBIDDEN");
   });
 
-  it("keeps Custom GPT operations read-only during the controlled launch", () => {
-    expect(smokeSource).toContain('controlled_write_mode === "COMMAND_CENTER_ONLY"');
+  it("keeps Custom GPT writes blocked and audited during controlled launch", () => {
+    expect(edgeGatewaySource).toContain("CONTROLLED_WRITE_DISABLED");
+    expect(edgeGatewaySource).toContain('sourceChannel: "custom_gpt"');
+    expect(edgeGatewaySource).toContain('production_activation: "BLOCKED"');
+    expect(edgeGatewaySource).toContain(
+      'controlled_write_mode: "COMMAND_CENTER_ONLY"',
+    );
+    expect(smokeSource).toContain(
+      'controlled_write_mode === "COMMAND_CENTER_ONLY"',
+    );
     expect(smokeSource).toContain("CONTROLLED_WRITE_DISABLED");
     expect(smokeSource).toContain('live_publishing_expected: "BLOCKED"');
   });
