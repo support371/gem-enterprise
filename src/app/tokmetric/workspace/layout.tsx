@@ -1,9 +1,5 @@
 import Link from "next/link";
-import { ExternalLink, ShieldCheck } from "lucide-react";
-
-const TOKMETRIC_APP_URL =
-  process.env.NEXT_PUBLIC_TOKMETRIC_APP_URL ||
-  "https://venomous-tok-metric-pulse.base44.app";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 
 export default function TokMetricWorkspaceLayout({
   children,
@@ -20,10 +16,10 @@ export default function TokMetricWorkspaceLayout({
             </div>
             <div>
               <p className="text-sm font-semibold text-white">
-                TokMetric operational application
+                TokMetric is controlled from GEM Enterprise
               </p>
               <p className="mt-1 text-xs leading-5 text-white/50">
-                The existing Base44 application is connected to this verified GEM Enterprise product route.
+                TikTok operations, GPT controls, approvals, compliance, publishing locks, and connector state are consolidated in the authenticated Command Center.
               </p>
             </div>
           </div>
@@ -35,15 +31,13 @@ export default function TokMetricWorkspaceLayout({
             >
               View app gateway
             </Link>
-            <a
-              href={TOKMETRIC_APP_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/app/command-center/tokmetric"
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-300 px-4 py-2 text-sm font-semibold text-[#071019] hover:bg-cyan-200"
             >
-              Open TokMetric
-              <ExternalLink className="h-4 w-4" aria-hidden="true" />
-            </a>
+              Open in Command Center
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Link>
           </div>
         </div>
       </section>
