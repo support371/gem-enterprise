@@ -6,6 +6,11 @@ import {
   type TokMetricGptAction,
 } from "@/lib/tokmetric/gptActionsV2";
 import {
+  invokeTokMetricGptGateway,
+  shouldUseTokMetricGptGateway,
+  TokMetricGatewayUnavailableError,
+} from "@/lib/tokmetric/gptGateway";
+import {
   correlationId,
   redactSecrets,
   TokMetricError,
@@ -34,13 +39,34 @@ export async function POST(
 ) {
   const cid = correlationId(request);
   try {
-    requireTokMetricGptAuth(request);
     const { action } = await params;
     if (!isSupportedAction(action)) {
-      throw new TokMetricError(404, "GPT_ACTION_NOT_FOUND", "The requested TokMetric GPT action does not exist.");
+      throw new TokMetricError(
+        404,
+        "GPT_ACTION_NOT_FOUND",
+        "The requested TokMetric GPT action does not exist.",
+      );
     }
 
     const body = await readRequestBody(request);
+
+    // The canonical Vercel runtime uses the Supabase gateway rather than a
+    // direct Prisma connection. Forward the caller's bearer credential to the
+    // dedicated TokMetric gateway, which validates a SHA-256 credential hash,
+    // binds access to one production workspace, audits each action, and keeps
+    // write operations blocked during the controlled launch.
+    if (shouldUseTokMetricGptGateway()) {
+      const result = await invokeTokMetricGptGateway({
+        action,
+        body,
+        authorization: request.headers.get("authorization") ?? "",
+        correlationId: cid,
+      });
+
+      return NextResponse.json(result.body, { status: result.statusCode });
+    }
+
+    requireTokMetricGptAuth(request);
     const result = await executeTokMetricGptAction(action, body, cid);
     return NextResponse.json(
       {
@@ -51,6 +77,20 @@ export async function POST(
       { status: result.statusCode },
     );
   } catch (error) {
+    if (error instanceof TokMetricGatewayUnavailableError) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: {
+            code: error.code,
+            message: error.message,
+            correlationId: cid,
+          },
+        },
+        { status: 503 },
+      );
+    }
+
     return tokMetricErrorResponse(error, cid);
   }
 }
