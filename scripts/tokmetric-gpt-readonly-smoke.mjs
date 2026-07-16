@@ -92,8 +92,9 @@ async function main() {
     readiness.body?.ok === true &&
     readinessData?.gpt_auth_configured === true &&
     readinessData?.gpt_actor_configured === true &&
-    readinessData?.token_encryption_configured === true &&
-    readinessData?.production_activation === "BLOCKED";
+    readinessData?.production_activation === "BLOCKED" &&
+    readinessData?.controlled_write_mode === "COMMAND_CENTER_ONLY" &&
+    readinessData?.workspace_id === workspaceId;
   record("authenticated system readiness", readinessPassed, readiness);
 
   const workspaceActions = [
@@ -110,11 +111,24 @@ async function main() {
     record(`${action} read-only flow`, result.status === 200 && result.body?.ok === true, result);
   }
 
+  const blockedWrite = await postAction("gptCreateContentDraft", {
+    workspace_id: workspaceId,
+    title: "Controlled smoke test",
+    content_type: "video",
+    platform: "tiktok_organic",
+  });
+  record(
+    "blocks GPT write operations during controlled launch",
+    blockedWrite.status === 423 &&
+      blockedWrite.body?.error?.code === "CONTROLLED_WRITE_DISABLED",
+    blockedWrite,
+  );
+
   const report = {
     generated_at: new Date().toISOString(),
     base_url: baseUrl,
     workspace_id: workspaceId,
-    mode: "read_only",
+    mode: "read_only_controlled_launch",
     live_publishing_expected: "BLOCKED",
     passed: results.every((result) => result.passed),
     results,
