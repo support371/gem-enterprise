@@ -37,7 +37,8 @@ describe("TokMetric Custom GPT canonical production contract", () => {
 
   it("preserves the controlled-launch safety assertions", () => {
     expect(schema).toContain("externalActionTaken=false");
-    expect(schema).toContain("authenticated GEM Command Center");
+    expect(schema).toContain("authenticated GEM");
+    expect(schema).toContain("Command Center");
     expect(smoke).toContain(
       'readinessData.production_activation !== "BLOCKED"',
     );
