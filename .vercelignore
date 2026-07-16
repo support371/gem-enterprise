@@ -1,5 +1,24 @@
-# Supabase local tooling is not needed during application builds
-supabase/
+# Supabase local tooling is not needed during application builds. Retain only
+# the governed TokMetric gateway sources and their credential migration because
+# repository verification reads them to enforce security invariants.
+supabase/*
+!supabase/functions/
+!supabase/migrations/
+
+supabase/functions/*
+!supabase/functions/gem-tokmetric-gpt-gateway/
+!supabase/functions/gem-tokmetric-agent-gateway/
+
+supabase/functions/gem-tokmetric-gpt-gateway/*
+!supabase/functions/gem-tokmetric-gpt-gateway/index.ts
+!supabase/functions/gem-tokmetric-gpt-gateway/deno.json
+
+supabase/functions/gem-tokmetric-agent-gateway/*
+!supabase/functions/gem-tokmetric-agent-gateway/index.ts
+!supabase/functions/gem-tokmetric-agent-gateway/deno.json
+
+supabase/migrations/*
+!supabase/migrations/20260716140000_create_tokmetric_gpt_credentials.sql
 
 # Documentation is excluded from deployment bundles
 *.md

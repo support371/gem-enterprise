@@ -1,23 +1,26 @@
 openapi: 3.1.0
 info:
   title: TokMetric Specialized Agents API
-  version: 1.0.0
+  version: 1.1.0
   description: |
-    Controlled TokMetric agent planning endpoint. It creates structured internal
-    drafts and review artifacts only. It cannot publish, approve, spend funds,
-    change account settings, or claim external TikTok success.
+    Bearer-protected TokMetric planning endpoint for the controlled production launch.
+    It returns deterministic internal plans and review structures, creates an audit
+    record, and never publishes, approves, spends funds, changes account settings,
+    or claims external TikTok success.
 servers:
   - url: https://gemcybersecurityassist.com
+    description: GEM Enterprise production domain
 security:
   - bearerAuth: []
 paths:
   /functions/tokmetric/agent-plan:
     post:
       operationId: createTokMetricSpecializedAgentPlan
-      summary: Run a controlled TokMetric specialized agent
+      summary: Generate a governed TokMetric internal plan
       description: |
-        Runs one registered agent against an authorized workspace, evaluates
-        safety, validates the output schema, and records audit/domain events.
+        Runs one registered planning role against the credential-bound workspace.
+        The result is deterministic and internal-only. Human review remains required,
+        production publishing remains blocked, and externalActionTaken is always false.
       x-openai-isConsequential: false
       requestBody:
         required: true
@@ -26,6 +29,7 @@ paths:
             schema:
               type: object
               required: [agent, outputType, workspaceId, brief]
+              additionalProperties: false
               properties:
                 agent:
                   type: string
@@ -51,26 +55,41 @@ paths:
                     - preflight_report
                 workspaceId:
                   type: string
+                  description: Credential-bound TokMetric workspace ID.
                 brief:
                   type: string
                   minLength: 1
                   maxLength: 5000
       responses:
         '200':
-          description: Controlled internal agent result
+          description: Governed internal planning result
           content:
             application/json:
               schema:
                 type: object
+                required: [ok, correlationId, workspaceId, data]
                 properties:
                   ok:
                     type: boolean
+                    enum: [true]
                   correlationId:
                     type: string
                   workspaceId:
                     type: string
                   data:
                     type: object
+                    required:
+                      - runId
+                      - status
+                      - outputType
+                      - safety
+                      - output
+                      - provider
+                      - modelVersion
+                      - promptVersion
+                      - estimatedCostMicros
+                      - durationMs
+                      - externalActionTaken
                     properties:
                       runId:
                         type: string
@@ -81,6 +100,7 @@ paths:
                         type: string
                       safety:
                         type: object
+                        required: [state, findings]
                         properties:
                           state:
                             type: string
@@ -89,11 +109,13 @@ paths:
                             type: array
                             items:
                               type: object
+                              required: [code, severity, message]
                               properties:
                                 code:
                                   type: string
                                 severity:
                                   type: string
+                                  enum: [warning, block]
                                 message:
                                   type: string
                       output:
@@ -101,27 +123,33 @@ paths:
                         additionalProperties: true
                       provider:
                         type: string
+                        enum: [gem-controlled-planner]
                       modelVersion:
                         type: string
+                        enum: [deterministic-policy-v1]
                       promptVersion:
                         type: string
+                        enum: [tokmetric-agent-plan-v1]
                       estimatedCostMicros:
                         type: integer
+                        enum: [0]
                       durationMs:
                         type: integer
+                        minimum: 0
                       externalActionTaken:
                         type: boolean
                         enum: [false]
+        '400':
+          description: Invalid agent, output type, or request body
         '401':
-          description: Invalid bearer token
+          description: Invalid or expired bearer token
         '403':
-          description: Configured GPT actor cannot access the workspace
-        '422':
-          description: Request blocked by agent safety controls
+          description: Credential cannot access the supplied workspace
         '503':
-          description: GPT actor is not configured or active
+          description: Gateway, actor, workspace, or storage is unavailable
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
+      bearerFormat: TokMetric
