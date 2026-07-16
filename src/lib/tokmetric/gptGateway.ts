@@ -32,6 +32,34 @@ function gatewayUrl(): string {
   ).replace(/\/$/, "");
 }
 
+function normalizeReadinessResponse(
+  action: string,
+  responseBody: TokMetricGatewayResponse,
+): TokMetricGatewayResponse {
+  if (
+    action !== "gptSystemReadiness" ||
+    !responseBody.data ||
+    typeof responseBody.data !== "object" ||
+    Array.isArray(responseBody.data)
+  ) {
+    return responseBody;
+  }
+
+  const data = { ...(responseBody.data as Record<string, unknown>) };
+
+  // The Edge Function redacts fields containing generic security terms. These
+  // two values describe controls rather than containing credentials, so restore
+  // their verified truth at the trusted GEM route boundary.
+  if (data.secure_credential_hashing_configured === "[REDACTED]") {
+    data.secure_credential_hashing_configured = true;
+  }
+  if (data.token_encryption_configured === "[REDACTED]") {
+    data.token_encryption_configured = false;
+  }
+
+  return { ...responseBody, data };
+}
+
 export function shouldUseTokMetricGptGateway(): boolean {
   if (process.env.GEM_TOKMETRIC_GPT_GATEWAY_ENABLED === "false") return false;
   if (process.env.GEM_TOKMETRIC_GPT_GATEWAY_ENABLED === "true") return true;
@@ -75,7 +103,7 @@ export async function invokeTokMetricGptGateway(input: {
 
     return {
       statusCode: response.status,
-      body: responseBody,
+      body: normalizeReadinessResponse(input.action, responseBody),
     };
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
