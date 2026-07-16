@@ -181,6 +181,12 @@ export const clientPortalNavGroups: PlatformNavGroup[] = [
         description: "Agent registry, task quality, approvals, costs, and errors.",
       },
       {
+        href: "/app/command-center/tokmetric",
+        icon: "Bot",
+        label: "TikTok Operations",
+        description: "TokMetric accounts, content, compliance, approvals, publishing, analytics, and Custom GPT controls.",
+      },
+      {
         href: "/app/command-center/integrations",
         icon: "Plug",
         label: "Integrations",

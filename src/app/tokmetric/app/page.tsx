@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Bot, LockKeyhole, ShieldCheck } from "lucide-rea
 
 export const metadata: Metadata = {
   title: "Launch TokMetric Application",
-  description: "Open the native TokMetric operations workspace inside GEM Enterprise.",
+  description: "Open the native TokMetric operations workspace inside GEM Enterprise Command Center.",
   alternates: { canonical: "/tokmetric/app" },
 };
 
@@ -24,22 +24,24 @@ export default function TokMetricAppGatewayPage() {
             </div>
 
             <p className="mt-6 text-sm font-semibold uppercase tracking-[0.22em] text-cyan-300">
-              Native GEM Enterprise Application
+              GEM Enterprise Command Center Module
             </p>
             <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">
-              Open the TokMetric operations workspace
+              Open TikTok Operations in the Command Center
             </h1>
             <p className="mt-5 max-w-3xl text-base leading-8 text-white/60">
-              TokMetric now operates inside the verified GEM Enterprise website. The workspace provides controlled account connections, content drafting, compliance review, approvals, publishing preparation, analytics, developer controls, and specialized agents without redirecting users to the earlier Base44 application.
+              TokMetric is already built into the GEM Enterprise repository. Its account connections,
+              content workflows, compliance controls, approvals, publishing preparation, analytics,
+              specialized agents, and Custom GPT Actions are now accessed from one controlled Command Center entry point.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/tokmetric/dashboard" className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-300 px-6 py-3.5 font-semibold text-[#071019] transition hover:bg-cyan-200">
-                Open TokMetric Dashboard
+              <Link href="/app/command-center/tokmetric" className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-300 px-6 py-3.5 font-semibold text-[#071019] transition hover:bg-cyan-200">
+                Open TikTok Operations
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
               <Link href="/tokmetric/agents" className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 px-6 py-3.5 font-semibold text-white/80 transition hover:bg-white/[0.06]">
-                Open Specialized Agents
+                View Specialized Agents
                 <Bot className="h-4 w-4" aria-hidden="true" />
               </Link>
             </div>
@@ -49,10 +51,10 @@ export default function TokMetricAppGatewayPage() {
             <div className="rounded-2xl border border-white/[0.08] bg-[#0b121c] p-5">
               <div className="flex items-center gap-2 font-semibold">
                 <LockKeyhole className="h-4 w-4 text-emerald-300" aria-hidden="true" />
-                Current application location
+                Canonical application location
               </div>
               <p className="mt-3 break-all font-mono text-xs leading-6 text-white/50">
-                https://gemcybersecurityassist.com/tokmetric/dashboard
+                https://gemcybersecurityassist.com/app/command-center/tokmetric
               </p>
             </div>
 
