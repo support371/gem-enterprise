@@ -1,0 +1,405 @@
+openapi: 3.1.0
+info:
+  title: TokMetric Custom GPT Controlled Production API
+  version: 1.0.0
+  description: |
+    Canonical controlled-production Action surface for GEM Enterprise TokMetric.
+    This schema uses the non-redirecting www production origin so bearer
+    credentials are preserved. It exposes workspace-scoped read operations and
+    a deterministic internal planning agent only. It cannot publish, approve,
+    spend funds, connect accounts, change settings, or claim external TikTok
+    success. Operational writes remain restricted to the authenticated GEM
+    Command Center during the controlled launch.
+servers:
+  - url: https://www.gemcybersecurityassist.com
+    description: Canonical GEM Enterprise production origin
+security:
+  - bearerAuth: []
+paths:
+  /functions/gptSystemReadiness:
+    post:
+      operationId: getTokMetricSystemReadiness
+      summary: Check TokMetric production readiness and safety gates
+      x-openai-isConsequential: false
+      responses:
+        '200':
+          description: Readiness, workspace counts, and production activation state
+        '401':
+          description: Invalid or expired bearer credential
+        '503':
+          description: Gateway or storage unavailable; request fails closed
+
+  /functions/gptConnectorReadiness:
+    post:
+      operationId: getTokMetricConnectorReadiness
+      summary: Check connector readiness for the authorized workspace
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkspaceRequest'
+      responses:
+        '200':
+          description: Connector states and emergency-control status
+        '401':
+          description: Invalid or expired bearer credential
+        '403':
+          description: Workspace is outside the credential scope
+
+  /functions/gptListAccounts:
+    post:
+      operationId: listTokMetricAccounts
+      summary: List safe TikTok connector-account metadata
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListAccountsRequest'
+      responses:
+        '200':
+          description: Connector-account metadata without tokens or secrets
+        '401':
+          description: Invalid or expired bearer credential
+        '403':
+          description: Workspace is outside the credential scope
+
+  /functions/gptListCampaigns:
+    post:
+      operationId: listTokMetricCampaigns
+      summary: List internal campaigns for the authorized workspace
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListRecordsRequest'
+      responses:
+        '200':
+          description: Campaign records and current version metadata
+        '401':
+          description: Invalid or expired bearer credential
+
+  /functions/gptGetCampaign:
+    post:
+      operationId: getTokMetricCampaign
+      summary: Get one internal campaign and its versions
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CampaignRequest'
+      responses:
+        '200':
+          description: Campaign record, versions, and related content
+        '404':
+          description: Campaign not found in the authorized workspace
+
+  /functions/gptListContent:
+    post:
+      operationId: listTokMetricContent
+      summary: List internal content records for the authorized workspace
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListContentRequest'
+      responses:
+        '200':
+          description: Content records and latest version metadata
+        '401':
+          description: Invalid or expired bearer credential
+
+  /functions/gptGetContent:
+    post:
+      operationId: getTokMetricContent
+      summary: Get content versions, reviews, approvals, and publishing state
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContentRequest'
+      responses:
+        '200':
+          description: Complete internal content workflow record
+        '404':
+          description: Content not found in the authorized workspace
+
+  /functions/gptGetApprovalStatus:
+    post:
+      operationId: getTokMetricApprovalStatus
+      summary: Get one approval request and its decision history
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalStatusRequest'
+      responses:
+        '200':
+          description: Approval state and decision history
+        '404':
+          description: Approval request not found
+
+  /functions/gptGetPublishJobStatus:
+    post:
+      operationId: getTokMetricPublishJobStatus
+      summary: Get internal and external publishing states separately
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PublishJobStatusRequest'
+      responses:
+        '200':
+          description: Publishing job and attempt history
+        '404':
+          description: Publishing job not found
+
+  /functions/gptGetAnalyticsSummary:
+    post:
+      operationId: getTokMetricAnalyticsSummary
+      summary: Get analytics snapshots with source classification
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnalyticsRequest'
+      responses:
+        '200':
+          description: Analytics snapshots and live/imported/manual source classification
+
+  /functions/gptGetAuditHistory:
+    post:
+      operationId: getTokMetricAuditHistory
+      summary: Get redacted TokMetric audit history
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuditHistoryRequest'
+      responses:
+        '200':
+          description: Redacted workspace audit events
+
+  /functions/tokmetric/agent-plan:
+    post:
+      operationId: createTokMetricControlledAgentPlan
+      summary: Generate a deterministic internal TokMetric plan
+      description: |
+        Produces a reviewable internal planning artifact. It always requires
+        human review and always reports externalActionTaken=false. It cannot
+        publish, approve, spend funds, connect accounts, or modify settings.
+      x-openai-isConsequential: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentPlanRequest'
+      responses:
+        '200':
+          description: Controlled internal plan with safety findings and provenance
+        '401':
+          description: Invalid or expired bearer credential
+        '403':
+          description: Workspace is outside the credential scope
+        '422':
+          description: Request blocked by agent safety controls
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque
+
+  schemas:
+    WorkspaceRequest:
+      type: object
+      additionalProperties: false
+      required: [workspace_id]
+      properties:
+        workspace_id:
+          type: string
+          description: Authorized TokMetric workspace identifier
+
+    ListAccountsRequest:
+      allOf:
+        - $ref: '#/components/schemas/WorkspaceRequest'
+        - type: object
+          additionalProperties: false
+          properties:
+            provider:
+              type: string
+              enum:
+                - TIKTOK_LOGIN_KIT
+                - TIKTOK_DISPLAY_API
+                - TIKTOK_CONTENT_POSTING_API
+                - TIKTOK_BUSINESS_API
+                - TIKTOK_SHOP_SELLER
+                - TIKTOK_SHOP_CREATOR
+            status:
+              type: string
+              enum:
+                - NOT_CONFIGURED
+                - AUTHORIZATION_REQUIRED
+                - AUTHORIZATION_PENDING
+                - CONNECTED
+                - DEGRADED
+                - TOKEN_EXPIRED
+                - REAUTHORIZATION_REQUIRED
+                - DISCONNECTED
+                - PLATFORM_APPROVAL_REQUIRED
+                - BLOCKED
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 100
+              default: 25
+
+    ListRecordsRequest:
+      allOf:
+        - $ref: '#/components/schemas/WorkspaceRequest'
+        - type: object
+          additionalProperties: false
+          properties:
+            status:
+              type: string
+              enum: [DRAFT, REVIEW_READY, APPROVAL_REQUIRED, APPROVED, REJECTED, REVOKED, EXPIRED, BLOCKED, ARCHIVED]
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 100
+              default: 25
+
+    CampaignRequest:
+      allOf:
+        - $ref: '#/components/schemas/WorkspaceRequest'
+        - type: object
+          additionalProperties: false
+          required: [campaign_id]
+          properties:
+            campaign_id:
+              type: string
+
+    ListContentRequest:
+      allOf:
+        - $ref: '#/components/schemas/ListRecordsRequest'
+        - type: object
+          additionalProperties: false
+          properties:
+            campaign_id:
+              type: string
+
+    ContentRequest:
+      allOf:
+        - $ref: '#/components/schemas/WorkspaceRequest'
+        - type: object
+          additionalProperties: false
+          required: [content_id]
+          properties:
+            content_id:
+              type: string
+
+    ApprovalStatusRequest:
+      allOf:
+        - $ref: '#/components/schemas/WorkspaceRequest'
+        - type: object
+          additionalProperties: false
+          required: [approval_request_id]
+          properties:
+            approval_request_id:
+              type: string
+
+    PublishJobStatusRequest:
+      allOf:
+        - $ref: '#/components/schemas/WorkspaceRequest'
+        - type: object
+          additionalProperties: false
+          required: [job_id]
+          properties:
+            job_id:
+              type: string
+
+    AnalyticsRequest:
+      allOf:
+        - $ref: '#/components/schemas/WorkspaceRequest'
+        - type: object
+          additionalProperties: false
+          properties:
+            date_from:
+              type: string
+              format: date
+            date_to:
+              type: string
+              format: date
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 100
+              default: 25
+
+    AuditHistoryRequest:
+      allOf:
+        - $ref: '#/components/schemas/WorkspaceRequest'
+        - type: object
+          additionalProperties: false
+          properties:
+            entity_type:
+              type: string
+            entity_id:
+              type: string
+            limit:
+              type: integer
+              minimum: 1
+              maximum: 100
+              default: 25
+
+    AgentPlanRequest:
+      type: object
+      additionalProperties: false
+      required: [agent, outputType, workspaceId, brief]
+      properties:
+        agent:
+          type: string
+          enum: [content_strategist, script_writer, quality_reviewer, publishing_coordinator]
+        outputType:
+          type: string
+          enum:
+            - campaign_brief
+            - content_outline
+            - audience_notes
+            - script
+            - caption
+            - hashtags
+            - findings
+            - recommended_changes
+            - review_result
+            - publish_plan
+            - job_request
+            - preflight_report
+        workspaceId:
+          type: string
+          description: Authorized TokMetric workspace identifier
+        brief:
+          type: string
+          minLength: 1
+          maxLength: 5000
