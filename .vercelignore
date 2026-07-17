@@ -8,7 +8,6 @@ supabase/*
 supabase/functions/*
 !supabase/functions/gem-tokmetric-gpt-gateway/
 !supabase/functions/gem-tokmetric-agent-gateway/
-!supabase/functions/gem-tokmetric-credential-admin/
 
 supabase/functions/gem-tokmetric-gpt-gateway/*
 !supabase/functions/gem-tokmetric-gpt-gateway/index.ts
@@ -17,10 +16,6 @@ supabase/functions/gem-tokmetric-gpt-gateway/*
 supabase/functions/gem-tokmetric-agent-gateway/*
 !supabase/functions/gem-tokmetric-agent-gateway/index.ts
 !supabase/functions/gem-tokmetric-agent-gateway/deno.json
-
-supabase/functions/gem-tokmetric-credential-admin/*
-!supabase/functions/gem-tokmetric-credential-admin/index.ts
-!supabase/functions/gem-tokmetric-credential-admin/deno.json
 
 supabase/migrations/*
 !supabase/migrations/20260716140000_create_tokmetric_gpt_credentials.sql
