@@ -1,7 +1,9 @@
-const DEFAULT_SUPABASE_URL = "https://slzdjoqpzbkwzuaexlkj.supabase.co";
+const DEFAULT_GATEWAY_BASE_URL =
+  "https://slzdjoqpzbkwzuaexlkj.supabase.co/functions/v1";
 const DEFAULT_PUBLISHABLE_KEY =
   "sb_publishable_3VgoXwVcWcoxNM2O-89hkw_uLxBNzd1";
 const REQUEST_TIMEOUT_MS = 15_000;
+const ACCESS_TOKEN_PATTERN = /^(aar_[a-f0-9]{32})\.([A-Za-z0-9_-]{48,128})$/;
 
 export interface AdminAccessTokenValidation {
   valid: boolean;
@@ -20,10 +22,11 @@ export class AdminAccessValidationError extends Error {
   }
 }
 
-function projectUrl(): string {
-  const configured = process.env.GEM_SUPABASE_GATEWAY_BASE_URL?.trim();
-  if (!configured) return DEFAULT_SUPABASE_URL;
-  return configured.replace(/\/functions\/v1\/?$/, "").replace(/\/$/, "");
+function gatewayBaseUrl(): string {
+  return (
+    process.env.GEM_SUPABASE_GATEWAY_BASE_URL?.trim() ||
+    DEFAULT_GATEWAY_BASE_URL
+  ).replace(/\/$/, "");
 }
 
 function publishableKey(): string {
@@ -32,21 +35,6 @@ function publishableKey(): string {
     process.env.GEM_SUPABASE_GATEWAY_ANON_KEY?.trim() ||
     DEFAULT_PUBLISHABLE_KEY
   );
-}
-
-function requestHeaders(key: string): Record<string, string> {
-  const headers: Record<string, string> = {
-    apikey: key,
-    "Content-Type": "application/json",
-  };
-
-  // Legacy anon keys are JWTs and may be used as a Bearer token. Modern
-  // publishable keys authenticate through the apikey header only.
-  if (!key.startsWith("sb_publishable_")) {
-    headers.Authorization = `Bearer ${key}`;
-  }
-
-  return headers;
 }
 
 async function sha256Hex(value: string): Promise<string> {
@@ -59,34 +47,43 @@ async function sha256Hex(value: string): Promise<string> {
     .join("");
 }
 
+function requestIdFromAccessToken(accessToken: string): string {
+  const match = ACCESS_TOKEN_PATTERN.exec(accessToken);
+  if (!match) {
+    throw new AdminAccessValidationError(
+      400,
+      "INVALID_TOKEN",
+      "Administrator authorization is invalid or expired.",
+    );
+  }
+  return match[1];
+}
+
 export async function validateAdminAccessToken(
   accessToken: string,
 ): Promise<AdminAccessTokenValidation> {
+  const requestId = requestIdFromAccessToken(accessToken);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
     const key = publishableKey();
-    const response = await fetch(
-      `${projectUrl()}/rest/v1/rpc/gem_validate_admin_access_token`,
-      {
-        method: "POST",
-        headers: requestHeaders(key),
-        body: JSON.stringify({
-          p_token_hash: await sha256Hex(accessToken),
-        }),
-        cache: "no-store",
-        signal: controller.signal,
+    const response = await fetch(`${gatewayBaseUrl()}/gem-admin-access-status`, {
+      method: "POST",
+      headers: {
+        apikey: key,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        tokenHash: await sha256Hex(accessToken),
+        requestId,
+      }),
+      cache: "no-store",
+      signal: controller.signal,
+    });
 
     const body = (await response.json().catch(() => null)) as
-      | Array<{
-          valid?: boolean;
-          expires_at?: string | null;
-          request_id?: string | null;
-        }>
-      | { message?: string }
+      | { active?: boolean; expiresAt?: string | null; error?: string }
       | null;
 
     if (!response.ok) {
@@ -97,17 +94,12 @@ export async function validateAdminAccessToken(
       );
     }
 
-    const result = Array.isArray(body) ? body[0] : null;
+    const valid = body?.active === true;
     return {
-      valid: result?.valid === true,
+      valid,
       expiresAt:
-        result?.valid === true && typeof result.expires_at === "string"
-          ? result.expires_at
-          : null,
-      requestId:
-        result?.valid === true && typeof result.request_id === "string"
-          ? result.request_id
-          : null,
+        valid && typeof body?.expiresAt === "string" ? body.expiresAt : null,
+      requestId: valid ? requestId : null,
     };
   } catch (error) {
     if (error instanceof AdminAccessValidationError) throw error;

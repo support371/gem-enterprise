@@ -4,23 +4,22 @@ import {
   validateAdminAccessToken,
 } from "@/lib/admin-access-token-validation";
 
+const requestId = `aar_${"5".repeat(32)}`;
+const accessToken = `${requestId}.${"a".repeat(64)}`;
+
 describe("administrator access token validation client", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
   });
 
-  it("sends only a SHA-256 token hash to the validation RPC", async () => {
-    const accessToken = "browser-capability-" + "a".repeat(48);
+  it("sends the bound request ID and only a SHA-256 token hash to the status boundary", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
-        JSON.stringify([
-          {
-            valid: true,
-            expires_at: "2026-07-13T02:00:00.000Z",
-            request_id: "aar_5757acb2c0219ac97831663f5f408695",
-          },
-        ]),
+        JSON.stringify({
+          active: true,
+          expiresAt: "2026-07-17T06:00:00.000Z",
+        }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       ),
     );
@@ -30,16 +29,20 @@ describe("administrator access token validation client", () => {
 
     expect(result).toEqual({
       valid: true,
-      expiresAt: "2026-07-13T02:00:00.000Z",
-      requestId: "aar_5757acb2c0219ac97831663f5f408695",
+      expiresAt: "2026-07-17T06:00:00.000Z",
+      requestId,
     });
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    const body = JSON.parse(String(init.body)) as { p_token_hash: string };
+    const body = JSON.parse(String(init.body)) as {
+      tokenHash: string;
+      requestId: string;
+    };
     const headers = init.headers as Record<string, string>;
-    expect(url).toContain("/rest/v1/rpc/gem_validate_admin_access_token");
-    expect(body.p_token_hash).toMatch(/^[a-f0-9]{64}$/);
-    expect(body.p_token_hash).not.toContain(accessToken);
+
+    expect(url).toContain("/functions/v1/gem-admin-access-status");
+    expect(body.requestId).toBe(requestId);
+    expect(body.tokenHash).toMatch(/^[a-f0-9]{64}$/);
     expect(String(init.body)).not.toContain(accessToken);
     expect(headers.apikey).toMatch(/^sb_publishable_/);
     expect(headers.Authorization).toBeUndefined();
@@ -50,33 +53,42 @@ describe("administrator access token validation client", () => {
       "fetch",
       vi.fn().mockResolvedValue(
         new Response(
-          JSON.stringify([
-            { valid: false, expires_at: null, request_id: null },
-          ]),
+          JSON.stringify({ active: false, expiresAt: null }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         ),
       ),
     );
 
-    await expect(validateAdminAccessToken("b".repeat(48))).resolves.toEqual({
+    await expect(validateAdminAccessToken(accessToken)).resolves.toEqual({
       valid: false,
       expiresAt: null,
       requestId: null,
     });
   });
 
+  it("rejects legacy unbound capabilities before contacting Supabase", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(validateAdminAccessToken("b".repeat(64))).rejects.toMatchObject({
+      statusCode: 400,
+      code: "INVALID_TOKEN",
+    } satisfies Partial<AdminAccessValidationError>);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("maps remote failures to a typed safe error", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ message: "not available" }), {
+        new Response(JSON.stringify({ error: "not available" }), {
           status: 503,
           headers: { "Content-Type": "application/json" },
         }),
       ),
     );
 
-    await expect(validateAdminAccessToken("c".repeat(48))).rejects.toMatchObject({
+    await expect(validateAdminAccessToken(accessToken)).rejects.toMatchObject({
       statusCode: 503,
       code: "ADMIN_ACCESS_VALIDATION_FAILED",
     } satisfies Partial<AdminAccessValidationError>);
