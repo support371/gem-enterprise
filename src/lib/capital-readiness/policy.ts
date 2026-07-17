@@ -226,6 +226,8 @@ export function evaluateTransactionAction(input: TransactionPolicyInput): Transa
         ["HUMAN"],
       );
     }
+
+    return allowed(input);
   }
 
   if (input.classification === "GREEN_NON_REGULATED") {
