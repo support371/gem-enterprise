@@ -89,9 +89,11 @@ async function consumeAuthorization(
   requestId: string,
   passwordHash: string,
 ) {
-  const { data, error } = await db.rpc("gem_consume_admin_access_token_v2", {
+  const authorization = await validateAuthorization(tokenHash, requestId);
+  if (!authorization.valid || authorization.requestId !== requestId) return null;
+
+  const { data, error } = await db.rpc("gem_consume_admin_access_token", {
     p_token_hash: tokenHash,
-    p_request_id: requestId,
     p_password_hash: passwordHash,
   });
 
