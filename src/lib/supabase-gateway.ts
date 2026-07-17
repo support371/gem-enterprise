@@ -246,6 +246,23 @@ export async function adminWriteGateway<T>(
   });
 }
 
+export type TokMetricCredentialStoreAction =
+  | "list"
+  | "issue_hash"
+  | "revoke";
+
+export async function tokMetricCredentialStoreGateway<T>(
+  action: TokMetricCredentialStoreAction,
+  token: string,
+  payload: Record<string, unknown> = {},
+): Promise<T> {
+  return invokeGateway<T>("gem-tokmetric-credential-store", {
+    action,
+    token,
+    ...payload,
+  });
+}
+
 export type EvidenceGatewayAction =
   | "readiness"
   | "upload_intent"
