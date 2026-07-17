@@ -6,15 +6,40 @@ const proposalPath = path.resolve(process.cwd(), "prisma/proposals/CAPITAL_READI
 const checkOnly = process.argv.includes("--check");
 const marker = "// ─── Capital Readiness & Transaction Command Center Models ────────────────";
 
-function occurrences(source, search) {
-  return source.split(search).length - 1;
+const workspaceRelationLines = [
+  "  capitalOpportunities    CapitalOpportunity[]",
+  "  capitalKybCases         CapitalKybCase[]",
+  "  capitalEngagements      CapitalEngagement[]",
+  "  capitalMatters          CapitalMatter[]",
+  "  capitalLicensedPartners CapitalLicensedPartner[]",
+  "  capitalTargetUniverses  CapitalTargetUniverse[]",
+  "  capitalDataRooms        CapitalDataRoom[]",
+  "  capitalServiceContracts CapitalServiceContract[]",
+  "  capitalRevenueEvents    CapitalRevenueEvent[]",
+  "  capitalGovernedAgents   CapitalGovernedAgent[]",
+];
+
+function extractModel(source, modelName) {
+  const startToken = `model ${modelName} {`;
+  const start = source.indexOf(startToken);
+  if (start < 0) throw new Error(`${modelName} model was not found.`);
+  const end = source.indexOf("\n}\n", start);
+  if (end < 0) throw new Error(`${modelName} model closing boundary was not found.`);
+  return { start, end: end + 2, block: source.slice(start, end + 2) };
 }
 
-function requireSingleAnchor(source, search, label) {
-  const count = occurrences(source, search);
-  if (count !== 1) {
-    throw new Error(`Expected exactly one ${label} anchor, found ${count}.`);
+function promoteWorkspaceRelations(source) {
+  const workspace = extractModel(source, "Workspace");
+  const uniqueAnchor = "  @@unique([organizationId, slug])";
+  if (!workspace.block.includes(uniqueAnchor)) {
+    throw new Error("Workspace unique anchor was not found inside the Workspace model.");
   }
+
+  const missing = workspaceRelationLines.filter((line) => !workspace.block.includes(line));
+  if (missing.length === 0) return source;
+
+  const updatedBlock = workspace.block.replace(uniqueAnchor, `${missing.join("\n")}\n\n${uniqueAnchor}`);
+  return `${source.slice(0, workspace.start)}${updatedBlock}${source.slice(workspace.end)}`;
 }
 
 function validatePromotedSchema(source) {
@@ -35,8 +60,7 @@ function validatePromotedSchema(source) {
     "model CapitalClosing {",
     "model CapitalServiceContract {",
     "model CapitalGovernedAgent {",
-    "capitalOpportunities CapitalOpportunity[]",
-    "capitalGovernedAgents CapitalGovernedAgent[]",
+    ...workspaceRelationLines.map((line) => line.trim()),
     '@@map("capital_opportunities")',
     '@@map("capital_matters")',
     '@@map("capital_governed_agent_runs")',
@@ -51,35 +75,17 @@ function validatePromotedSchema(source) {
 
 async function promoteSchema(source) {
   if (source.includes(marker)) {
-    validatePromotedSchema(source);
-    return { schema: source, changed: false };
+    const withRelations = promoteWorkspaceRelations(source);
+    validatePromotedSchema(withRelations);
+    return { schema: withRelations, changed: withRelations !== source };
   }
-
-  const workspaceAnchor = `  oauthAuthorizationAttempts OAuthAuthorizationAttempt[]
-
-  @@unique([organizationId, slug])`;
-  requireSingleAnchor(source, workspaceAnchor, "Workspace relation");
-
-  const workspaceRelations = `  oauthAuthorizationAttempts OAuthAuthorizationAttempt[]
-  capitalOpportunities    CapitalOpportunity[]
-  capitalKybCases         CapitalKybCase[]
-  capitalEngagements      CapitalEngagement[]
-  capitalMatters          CapitalMatter[]
-  capitalLicensedPartners CapitalLicensedPartner[]
-  capitalTargetUniverses  CapitalTargetUniverse[]
-  capitalDataRooms        CapitalDataRoom[]
-  capitalServiceContracts CapitalServiceContract[]
-  capitalRevenueEvents    CapitalRevenueEvent[]
-  capitalGovernedAgents   CapitalGovernedAgent[]
-
-  @@unique([organizationId, slug])`;
 
   const proposal = (await readFile(proposalPath, "utf8")).trim();
   if (!proposal.startsWith("// GEM Enterprise Capital Readiness")) {
     throw new Error("Capital-readiness Prisma proposal header is missing.");
   }
 
-  let schema = source.replace(workspaceAnchor, workspaceRelations);
+  let schema = promoteWorkspaceRelations(source);
   schema = `${schema.trimEnd()}\n\n${marker}\n\n${proposal}\n`;
   validatePromotedSchema(schema);
   return { schema, changed: true };
@@ -91,7 +97,7 @@ const result = await promoteSchema(current);
 if (checkOnly) {
   console.log(
     result.changed
-      ? "Capital-readiness Prisma promotion anchors are valid and ready."
+      ? "Capital-readiness Prisma promotion is composable and ready."
       : "Capital-readiness Prisma models are present and structurally complete.",
   );
 } else if (result.changed) {
