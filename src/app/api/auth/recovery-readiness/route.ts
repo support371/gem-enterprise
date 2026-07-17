@@ -24,7 +24,9 @@ export async function GET() {
       },
       gatewayRecoveryDisabled: true,
       sessionRevocation: "database_password_change_trigger",
-      legacyGatewaySessionsAccepted: false,
+      legacyGatewaySessionsAccepted: true,
+      gatewaySessionAuthority: "supabase_gateway",
+      directDatabaseSessionAuthority: "prisma_when_configured",
     },
     { headers: { "Cache-Control": "no-store" } },
   );
