@@ -19,7 +19,7 @@ export async function GET() {
         senderConfigured: emailDelivery.senderConfigured,
         replyToConfigured: emailDelivery.replyToConfigured,
         transportSecurity: emailDelivery.transportSecurity,
-        transportVerified: false,
+        transportVerification: "on_demand",
         verificationRequiresAdmin: true,
       },
       gatewayRecoveryDisabled: true,
