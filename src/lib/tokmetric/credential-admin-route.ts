@@ -2,8 +2,9 @@ import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getGatewaySessionToken } from "@/lib/auth";
 import {
+  adminWriteGateway,
+  type AdminWriteGatewayAction,
   GatewayRequestError,
-  tokMetricCredentialStoreGateway,
 } from "@/lib/supabase-gateway";
 
 export const TOKMETRIC_PRODUCTION_WORKSPACE_ID =
@@ -75,17 +76,18 @@ function digestOneTimeValue(value: string) {
 
 async function listCredentials() {
   const token = await requireGatewayToken();
-  return tokMetricCredentialStoreGateway<CredentialListResult>(
-    "list",
+  return adminWriteGateway<CredentialListResult>(
+    "tokmetric_credential_list" as AdminWriteGatewayAction,
     token,
+    {},
   );
 }
 
 async function issueCredential(payload: JsonRecord) {
   const token = await requireGatewayToken();
   const oneTimeValue = generateOneTimeValue();
-  const result = await tokMetricCredentialStoreGateway<CredentialMutationResult>(
-    "issue_hash",
+  const result = await adminWriteGateway<CredentialMutationResult>(
+    "tokmetric_credential_issue_hash" as AdminWriteGatewayAction,
     token,
     {
       tokenHash: digestOneTimeValue(oneTimeValue),
@@ -107,8 +109,8 @@ async function issueCredential(payload: JsonRecord) {
 
 async function revokeCredential(payload: JsonRecord) {
   const token = await requireGatewayToken();
-  return tokMetricCredentialStoreGateway<CredentialMutationResult>(
-    "revoke",
+  return adminWriteGateway<CredentialMutationResult>(
+    "tokmetric_credential_revoke" as AdminWriteGatewayAction,
     token,
     {
       credentialId: payload.credentialId,
