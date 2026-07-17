@@ -5,6 +5,7 @@ export const ADMIN_ACCESS_SESSION_KEY = "gem_admin_access_authorization_v2";
 
 const REQUEST_ID_PATTERN = /^aar_[a-f0-9]{32}$/;
 const SHA256_HEX_PATTERN = /^[a-f0-9]{64}$/;
+const TOKEN_SECRET_PATTERN = /^[A-Za-z0-9_-]{48,128}$/;
 
 export interface AdminAccessAuthorization {
   token: string;
@@ -37,6 +38,15 @@ function bytesToBase64Url(bytes: Uint8Array): string {
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
     .replace(/=+$/g, "");
+}
+
+function tokenMatchesRequestId(token: string, requestId: string): boolean {
+  const separator = token.indexOf(".");
+  if (separator <= 0) return false;
+  return (
+    token.slice(0, separator) === requestId &&
+    TOKEN_SECRET_PATTERN.test(token.slice(separator + 1))
+  );
 }
 
 export function buildAdminAccessSql({
@@ -101,13 +111,13 @@ export async function generateAdminAccessAuthorization(
   globalThis.crypto.getRandomValues(tokenBytes);
   globalThis.crypto.getRandomValues(requestBytes);
 
-  const token = bytesToBase64Url(tokenBytes);
+  const requestId = `aar_${bytesToHex(requestBytes)}`;
+  const token = `${requestId}.${bytesToBase64Url(tokenBytes)}`;
   const digest = await globalThis.crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(token),
   );
   const tokenHash = bytesToHex(new Uint8Array(digest));
-  const requestId = `aar_${bytesToHex(requestBytes)}`;
   const expiresAt = new Date(Date.now() + lifetimeMs).toISOString();
 
   return {
@@ -134,11 +144,11 @@ export function parseAdminAccessAuthorization(
     const parsed = JSON.parse(value) as Partial<AdminAccessAuthorization>;
     if (
       typeof parsed.token !== "string" ||
-      parsed.token.length < 40 ||
       typeof parsed.tokenHash !== "string" ||
       !SHA256_HEX_PATTERN.test(parsed.tokenHash) ||
       typeof parsed.requestId !== "string" ||
       !REQUEST_ID_PATTERN.test(parsed.requestId) ||
+      !tokenMatchesRequestId(parsed.token, parsed.requestId) ||
       typeof parsed.expiresAt !== "string" ||
       new Date(parsed.expiresAt).getTime() <= Date.now() ||
       typeof parsed.sql !== "string" ||
