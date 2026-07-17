@@ -20,6 +20,18 @@ function gatewayUrl() {
   );
 }
 
+function gatewayAnonKey() {
+  const key = process.env.GEM_SUPABASE_GATEWAY_ANON_KEY?.trim();
+  if (!key) {
+    throw new GatewayRequestError(
+      503,
+      "TOKMETRIC_COMMAND_CONFIGURATION_MISSING",
+      "TokMetric command gateway authentication is not configured.",
+    );
+  }
+  return key;
+}
+
 export async function invokeTokMetricCommandGateway<T>(
   token: string,
   operation: TokMetricCommandOperation,
@@ -29,9 +41,14 @@ export async function invokeTokMetricCommandGateway<T>(
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
+    const key = gatewayAnonKey();
     const response = await fetch(gatewayUrl(), {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${key}`,
+        apikey: key,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ token, operation, ...payload }),
       cache: "no-store",
       signal: controller.signal,
