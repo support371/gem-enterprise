@@ -130,7 +130,20 @@ export const capitalLifecycleSchema = z.discriminatedUnion("action", [
   }),
 ]);
 
-export type CapitalLifecycleInput = z.infer<typeof capitalLifecycleSchema>;
+export type CapitalLifecycleAction = z.infer<typeof capitalLifecycleSchema>["action"];
+
+/**
+ * Requests are validated by capitalLifecycleSchema before reaching the executor.
+ * The repository currently compiles with strictNullChecks disabled, which causes
+ * Zod object inference to mark validated fields optional. Keep the runtime schema
+ * authoritative and use a post-validation executor contract here.
+ */
+export interface CapitalLifecycleInput {
+  workspaceId: string;
+  action: CapitalLifecycleAction;
+  approvalRequestId?: string;
+  payload: Record<string, any>;
+}
 
 export class CapitalLifecycleError extends Error {
   constructor(
@@ -214,8 +227,12 @@ async function requireApproval(input: {
   return result;
 }
 
-export async function executeCapitalLifecycle(input: CapitalLifecycleInput, actor: { id: string; workspaceRole: string }) {
-  const { workspaceId, payload } = input;
+export async function executeCapitalLifecycle(
+  input: CapitalLifecycleInput,
+  actor: { id: string; workspaceRole: string },
+) {
+  const workspaceId = input.workspaceId;
+  const payload = input.payload;
 
   switch (input.action) {
     case "QUALIFY_OPPORTUNITY": {
@@ -239,7 +256,15 @@ export async function executeCapitalLifecycle(input: CapitalLifecycleInput, acto
         await transaction.capitalOpportunity.update({ where: { id: opportunity.id }, data: { status: payload.decision } });
         return created;
       });
-      await audit({ workspaceId, actorId: actor.id, action: "CAPITAL_OPPORTUNITY_QUALIFIED", entityType: "CapitalOpportunity", entityId: opportunity.id, outcome: payload.decision, metadata: { reviewId: review.id } });
+      await audit({
+        workspaceId,
+        actorId: actor.id,
+        action: "CAPITAL_OPPORTUNITY_QUALIFIED",
+        entityType: "CapitalOpportunity",
+        entityId: opportunity.id,
+        outcome: payload.decision,
+        metadata: { reviewId: review.id },
+      });
       return { opportunityId: opportunity.id, review, status: payload.decision };
     }
 
@@ -254,10 +279,22 @@ export async function executeCapitalLifecycle(input: CapitalLifecycleInput, acto
         data: {
           verificationStatus: payload.verificationStatus,
           documentRef: payload.evidenceRef,
-          safeMetadata: jsonValue({ rationale: payload.rationale, verifiedById: actor.id, verifiedAt: new Date().toISOString() }),
+          safeMetadata: jsonValue({
+            rationale: payload.rationale,
+            verifiedById: actor.id,
+            verifiedAt: new Date().toISOString(),
+          }),
         },
       });
-      await audit({ workspaceId, actorId: actor.id, action: "CAPITAL_BENEFICIAL_OWNER_VERIFIED", entityType: "CapitalBeneficialOwner", entityId: owner.id, outcome: payload.verificationStatus, metadata: { evidenceRef: payload.evidenceRef } });
+      await audit({
+        workspaceId,
+        actorId: actor.id,
+        action: "CAPITAL_BENEFICIAL_OWNER_VERIFIED",
+        entityType: "CapitalBeneficialOwner",
+        entityId: owner.id,
+        outcome: payload.verificationStatus,
+        metadata: { evidenceRef: payload.evidenceRef },
+      });
       return { owner: updated };
     }
 
@@ -275,8 +312,15 @@ export async function executeCapitalLifecycle(input: CapitalLifecycleInput, acto
         if (kybCase.holds.length > 0) {
           throw new CapitalLifecycleError(409, "ACTIVE_HOLD", "KYB cannot be approved while an active hold exists.");
         }
-        if (kybCase.beneficialOwners.length === 0 || kybCase.beneficialOwners.some((owner) => owner.verificationStatus !== "VERIFIED")) {
-          throw new CapitalLifecycleError(409, "BENEFICIAL_OWNER_VERIFICATION_REQUIRED", "Every beneficial owner and control person must be verified.");
+        if (
+          kybCase.beneficialOwners.length === 0 ||
+          kybCase.beneficialOwners.some((owner) => owner.verificationStatus !== "VERIFIED")
+        ) {
+          throw new CapitalLifecycleError(
+            409,
+            "BENEFICIAL_OWNER_VERIFICATION_REQUIRED",
+            "Every beneficial owner and control person must be verified.",
+          );
         }
         const required = ["ENTITY", "SANCTIONS", "PEP", "ADVERSE_MEDIA", "SOURCE_OF_FUNDS"] as const;
         for (const screeningType of required) {
@@ -284,7 +328,11 @@ export async function executeCapitalLifecycle(input: CapitalLifecycleInput, acto
             .filter((screening) => screening.screeningType === screeningType)
             .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0];
           if (!latest || latest.result !== "CLEAR" || (latest.expiresAt && latest.expiresAt <= new Date())) {
-            throw new CapitalLifecycleError(409, "CLEAR_SCREENING_REQUIRED", `Current clear ${screeningType} screening is required.`);
+            throw new CapitalLifecycleError(
+              409,
+              "CLEAR_SCREENING_REQUIRED",
+              `Current clear ${screeningType} screening is required.`,
+            );
           }
         }
       }
@@ -297,22 +345,45 @@ export async function executeCapitalLifecycle(input: CapitalLifecycleInput, acto
             approvedAt: payload.decision === "APPROVED" ? new Date() : undefined,
             rejectedAt: payload.decision === "REJECTED" ? new Date() : undefined,
             expiresAt: payload.decision === "EXPIRED" ? new Date() : kybCase.expiresAt,
-            safeMetadata: jsonValue({ rationale: payload.rationale, evidenceRef: payload.evidenceRef, decidedById: actor.id }),
+            safeMetadata: jsonValue({
+              rationale: payload.rationale,
+              evidenceRef: payload.evidenceRef,
+              decidedById: actor.id,
+            }),
           },
         });
         await transaction.capitalOpportunity.update({
           where: { id: kybCase.opportunityId },
-          data: { status: payload.decision === "APPROVED" ? "QUALIFIED" : payload.decision === "REJECTED" ? "DECLINED" : "PENDING_INFORMATION" },
+          data: {
+            status:
+              payload.decision === "APPROVED"
+                ? "QUALIFIED"
+                : payload.decision === "REJECTED"
+                  ? "DECLINED"
+                  : "PENDING_INFORMATION",
+          },
         });
         return record;
       });
-      await audit({ workspaceId, actorId: actor.id, action: "CAPITAL_KYB_CASE_DECIDED", entityType: "CapitalKybCase", entityId: kybCase.id, outcome: payload.decision, metadata: { rationale: payload.rationale, evidenceRef: payload.evidenceRef } });
+      await audit({
+        workspaceId,
+        actorId: actor.id,
+        action: "CAPITAL_KYB_CASE_DECIDED",
+        entityType: "CapitalKybCase",
+        entityId: kybCase.id,
+        outcome: payload.decision,
+        metadata: { rationale: payload.rationale, evidenceRef: payload.evidenceRef },
+      });
       return { kybCase: updated };
     }
 
     case "DECIDE_PARTNER_MANDATE": {
       if (!isPartnerRole(actor.workspaceRole) && !isComplianceRole(actor.workspaceRole)) {
-        throw new CapitalLifecycleError(403, "LICENSED_PARTNER_ROLE_REQUIRED", "Partner mandate decisions require a licensed-partner workspace role.");
+        throw new CapitalLifecycleError(
+          403,
+          "LICENSED_PARTNER_ROLE_REQUIRED",
+          "Partner mandate decisions require a licensed-partner workspace role.",
+        );
       }
       const mandate = await db.capitalPartnerMandate.findFirst({
         where: { id: payload.mandateId, matter: { workspaceId } },
@@ -343,24 +414,43 @@ export async function executeCapitalLifecycle(input: CapitalLifecycleInput, acto
           },
         });
         if (payload.decision === "ACCEPTED") {
-          await transaction.capitalMatter.update({ where: { id: mandate.matterId }, data: { status: "CONTROLLED_MARKET_PROCESS" } });
+          await transaction.capitalMatter.update({
+            where: { id: mandate.matterId },
+            data: { status: "CONTROLLED_MARKET_PROCESS" },
+          });
         }
         return record;
       });
-      await audit({ workspaceId, actorId: actor.id, action: "CAPITAL_PARTNER_MANDATE_DECIDED", entityType: "CapitalPartnerMandate", entityId: mandate.id, outcome: payload.decision, metadata: { partnerEvidenceRef: payload.partnerEvidenceRef } });
+      await audit({
+        workspaceId,
+        actorId: actor.id,
+        action: "CAPITAL_PARTNER_MANDATE_DECIDED",
+        entityType: "CapitalPartnerMandate",
+        entityId: mandate.id,
+        outcome: payload.decision,
+        metadata: { partnerEvidenceRef: payload.partnerEvidenceRef },
+      });
       return { mandate: updated };
     }
 
     case "UPDATE_OUTREACH_STATUS": {
       if (!isPartnerRole(actor.workspaceRole) && !isComplianceRole(actor.workspaceRole)) {
-        throw new CapitalLifecycleError(403, "LICENSED_PARTNER_ROLE_REQUIRED", "Only the licensed partner or compliance may update controlled outreach.");
+        throw new CapitalLifecycleError(
+          403,
+          "LICENSED_PARTNER_ROLE_REQUIRED",
+          "Only the licensed partner or compliance may update controlled outreach.",
+        );
       }
       const outreach = await db.capitalOutreachEvent.findFirst({
         where: { id: payload.outreachEventId, targetEntry: { universe: { workspaceId } } },
       });
       if (!outreach) throw new CapitalLifecycleError(404, "OUTREACH_EVENT_NOT_FOUND", "Outreach event was not found.");
       if (outreach.status === "NOT_APPROVED" || !outreach.partnerApprovalRef || !outreach.complianceApprovalRef) {
-        throw new CapitalLifecycleError(409, "APPROVED_OUTREACH_REQUIRED", "The outreach event lacks partner and compliance approval.");
+        throw new CapitalLifecycleError(
+          409,
+          "APPROVED_OUTREACH_REQUIRED",
+          "The outreach event lacks partner and compliance approval.",
+        );
       }
       const updated = await db.capitalOutreachEvent.update({
         where: { id: outreach.id },
@@ -370,38 +460,89 @@ export async function executeCapitalLifecycle(input: CapitalLifecycleInput, acto
           safeMetadata: jsonValue({ evidenceRef: payload.evidenceRef, updatedById: actor.id }),
         },
       });
-      await audit({ workspaceId, actorId: actor.id, action: "CAPITAL_OUTREACH_STATUS_UPDATED", entityType: "CapitalOutreachEvent", entityId: outreach.id, outcome: payload.status, metadata: { evidenceRef: payload.evidenceRef } });
+      await audit({
+        workspaceId,
+        actorId: actor.id,
+        action: "CAPITAL_OUTREACH_STATUS_UPDATED",
+        entityType: "CapitalOutreachEvent",
+        entityId: outreach.id,
+        outcome: payload.status,
+        metadata: { evidenceRef: payload.evidenceRef },
+      });
       return { outreach: updated };
     }
 
     case "UPDATE_DILIGENCE_STATUS": {
       if (!isInternalOperator(actor.workspaceRole) && !isPartnerRole(actor.workspaceRole)) {
-        throw new CapitalLifecycleError(403, "DILIGENCE_ROLE_REQUIRED", "Diligence status requires an internal or licensed-partner role.");
+        throw new CapitalLifecycleError(
+          403,
+          "DILIGENCE_ROLE_REQUIRED",
+          "Diligence status requires an internal or licensed-partner role.",
+        );
       }
-      const question = await db.capitalDiligenceQuestion.findFirst({ where: { id: payload.questionId, matter: { workspaceId } } });
+      const question = await db.capitalDiligenceQuestion.findFirst({
+        where: { id: payload.questionId, matter: { workspaceId } },
+      });
       if (!question) throw new CapitalLifecycleError(404, "DILIGENCE_QUESTION_NOT_FOUND", "Diligence question was not found.");
       if (["APPROVED", "CLOSED"].includes(payload.status)) {
-        const response = await db.capitalDiligenceResponse.findFirst({ where: { questionId: question.id }, orderBy: { version: "desc" } });
+        const response = await db.capitalDiligenceResponse.findFirst({
+          where: { questionId: question.id },
+          orderBy: { version: "desc" },
+        });
         if (!response || response.evidenceRefs.length === 0) {
-          throw new CapitalLifecycleError(409, "EVIDENCED_RESPONSE_REQUIRED", "Approved or closed diligence requires an evidenced response.");
+          throw new CapitalLifecycleError(
+            409,
+            "EVIDENCED_RESPONSE_REQUIRED",
+            "Approved or closed diligence requires an evidenced response.",
+          );
         }
       }
-      const updated = await db.capitalDiligenceQuestion.update({ where: { id: question.id }, data: { status: payload.status } });
-      await audit({ workspaceId, actorId: actor.id, action: "CAPITAL_DILIGENCE_STATUS_UPDATED", entityType: "CapitalDiligenceQuestion", entityId: question.id, outcome: payload.status, metadata: { rationale: payload.rationale } });
+      const updated = await db.capitalDiligenceQuestion.update({
+        where: { id: question.id },
+        data: { status: payload.status },
+      });
+      await audit({
+        workspaceId,
+        actorId: actor.id,
+        action: "CAPITAL_DILIGENCE_STATUS_UPDATED",
+        entityType: "CapitalDiligenceQuestion",
+        entityId: question.id,
+        outcome: payload.status,
+        metadata: { rationale: payload.rationale },
+      });
       return { question: updated };
     }
 
     case "UPDATE_CLOSING_CONDITION": {
       if (!isInternalOperator(actor.workspaceRole)) {
-        throw new CapitalLifecycleError(403, "INTERNAL_OPERATOR_REQUIRED", "Closing-condition decisions require an internal operator.");
+        throw new CapitalLifecycleError(
+          403,
+          "INTERNAL_OPERATOR_REQUIRED",
+          "Closing-condition decisions require an internal operator.",
+        );
       }
-      const condition = await db.capitalClosingCondition.findFirst({ where: { id: payload.conditionId, matter: { workspaceId } } });
-      if (!condition) throw new CapitalLifecycleError(404, "CLOSING_CONDITION_NOT_FOUND", "Closing condition was not found.");
+      const condition = await db.capitalClosingCondition.findFirst({
+        where: { id: payload.conditionId, matter: { workspaceId } },
+      });
+      if (!condition) {
+        throw new CapitalLifecycleError(404, "CLOSING_CONDITION_NOT_FOUND", "Closing condition was not found.");
+      }
       if (condition.ownerId === actor.id && ["VERIFIED", "WAIVED_BY_COUNSEL"].includes(payload.status)) {
-        throw new CapitalLifecycleError(409, "SEPARATION_OF_DUTIES_REQUIRED", "The condition owner cannot independently verify or waive the condition.");
+        throw new CapitalLifecycleError(
+          409,
+          "SEPARATION_OF_DUTIES_REQUIRED",
+          "The condition owner cannot independently verify or waive the condition.",
+        );
       }
       if (payload.status === "WAIVED_BY_COUNSEL") {
-        await requireApproval({ workspaceId, approvalRequestId: input.approvalRequestId, action: "CRITICAL_RISK_ACCEPTANCE", entityType: "CapitalClosingCondition", entityId: condition.id, object: payload });
+        await requireApproval({
+          workspaceId,
+          approvalRequestId: input.approvalRequestId,
+          action: "CRITICAL_RISK_ACCEPTANCE",
+          entityType: "CapitalClosingCondition",
+          entityId: condition.id,
+          object: payload,
+        });
       }
       const updated = await db.capitalClosingCondition.update({
         where: { id: condition.id },
@@ -412,18 +553,36 @@ export async function executeCapitalLifecycle(input: CapitalLifecycleInput, acto
           verifiedAt: ["VERIFIED", "WAIVED_BY_COUNSEL"].includes(payload.status) ? new Date() : undefined,
         },
       });
-      await audit({ workspaceId, actorId: actor.id, action: "CAPITAL_CLOSING_CONDITION_UPDATED", entityType: "CapitalClosingCondition", entityId: condition.id, outcome: payload.status, metadata: { rationale: payload.rationale, evidenceRef: payload.evidenceRef } });
+      await audit({
+        workspaceId,
+        actorId: actor.id,
+        action: "CAPITAL_CLOSING_CONDITION_UPDATED",
+        entityType: "CapitalClosingCondition",
+        entityId: condition.id,
+        outcome: payload.status,
+        metadata: { rationale: payload.rationale, evidenceRef: payload.evidenceRef },
+      });
       return { condition: updated };
     }
 
     case "UPDATE_SERVICE_CONTRACT": {
       if (!isInternalOperator(actor.workspaceRole)) {
-        throw new CapitalLifecycleError(403, "INTERNAL_OPERATOR_REQUIRED", "Service-contract lifecycle requires an internal operator.");
+        throw new CapitalLifecycleError(
+          403,
+          "INTERNAL_OPERATOR_REQUIRED",
+          "Service-contract lifecycle requires an internal operator.",
+        );
       }
-      const contract = await db.capitalServiceContract.findFirst({ where: { id: payload.contractId, workspaceId } });
+      const contract = await db.capitalServiceContract.findFirst({
+        where: { id: payload.contractId, workspaceId },
+      });
       if (!contract) throw new CapitalLifecycleError(404, "SERVICE_CONTRACT_NOT_FOUND", "Service contract was not found.");
       if (["SIGNED", "ACTIVE"].includes(payload.status) && !payload.effectiveAt && !contract.startAt) {
-        throw new CapitalLifecycleError(409, "EFFECTIVE_DATE_REQUIRED", "Signed or active contracts require an effective date.");
+        throw new CapitalLifecycleError(
+          409,
+          "EFFECTIVE_DATE_REQUIRED",
+          "Signed or active contracts require an effective date.",
+        );
       }
       const effectiveAt = payload.effectiveAt ?? contract.startAt;
       const updated = await db.capitalServiceContract.update({
@@ -434,40 +593,106 @@ export async function executeCapitalLifecycle(input: CapitalLifecycleInput, acto
           startAt: effectiveAt,
         },
       });
-      await audit({ workspaceId, actorId: actor.id, action: "CAPITAL_SERVICE_CONTRACT_UPDATED", entityType: "CapitalServiceContract", entityId: contract.id, outcome: payload.status, metadata: { rationale: payload.rationale } });
+      await audit({
+        workspaceId,
+        actorId: actor.id,
+        action: "CAPITAL_SERVICE_CONTRACT_UPDATED",
+        entityType: "CapitalServiceContract",
+        entityId: contract.id,
+        outcome: payload.status,
+        metadata: { rationale: payload.rationale },
+      });
       return { contract: updated };
     }
 
     case "UPDATE_GOVERNED_AGENT": {
       if (!isComplianceRole(actor.workspaceRole)) {
-        throw new CapitalLifecycleError(403, "COMPLIANCE_ROLE_REQUIRED", "Governed-agent status changes require compliance or administrator authority.");
+        throw new CapitalLifecycleError(
+          403,
+          "COMPLIANCE_ROLE_REQUIRED",
+          "Governed-agent status changes require compliance or administrator authority.",
+        );
       }
       const agent = await db.capitalGovernedAgent.findFirst({ where: { id: payload.agentId, workspaceId } });
       if (!agent) throw new CapitalLifecycleError(404, "GOVERNED_AGENT_NOT_FOUND", "Governed agent was not found.");
+      const priorConfiguration =
+        agent.configuration && typeof agent.configuration === "object" && !Array.isArray(agent.configuration)
+          ? (agent.configuration as Record<string, unknown>)
+          : {};
       const updated = await db.capitalGovernedAgent.update({
         where: { id: agent.id },
-        data: { status: payload.status, configuration: jsonValue({ ...((agent.configuration as Record<string, unknown>) ?? {}), lastStatusRationale: payload.rationale, lastStatusActorId: actor.id }) },
+        data: {
+          status: payload.status,
+          configuration: jsonValue({
+            ...priorConfiguration,
+            lastStatusRationale: payload.rationale,
+            lastStatusActorId: actor.id,
+          }),
+        },
       });
-      await audit({ workspaceId, actorId: actor.id, action: "CAPITAL_GOVERNED_AGENT_UPDATED", entityType: "CapitalGovernedAgent", entityId: agent.id, outcome: payload.status, metadata: { rationale: payload.rationale } });
+      await audit({
+        workspaceId,
+        actorId: actor.id,
+        action: "CAPITAL_GOVERNED_AGENT_UPDATED",
+        entityType: "CapitalGovernedAgent",
+        entityId: agent.id,
+        outcome: payload.status,
+        metadata: { rationale: payload.rationale },
+      });
       return { agent: updated };
     }
 
     case "COMPLETE_CLOSING": {
       if (!isComplianceRole(actor.workspaceRole)) {
-        throw new CapitalLifecycleError(403, "CLOSING_AUTHORITY_REQUIRED", "Closing completion requires compliance or administrator authority.");
+        throw new CapitalLifecycleError(
+          403,
+          "CLOSING_AUTHORITY_REQUIRED",
+          "Closing completion requires compliance or administrator authority.",
+        );
       }
-      const closing = await db.capitalClosing.findFirst({ where: { id: payload.closingId, matter: { workspaceId } }, include: { matter: true } });
+      const closing = await db.capitalClosing.findFirst({
+        where: { id: payload.closingId, matter: { workspaceId } },
+        include: { matter: true },
+      });
       if (!closing) throw new CapitalLifecycleError(404, "CLOSING_NOT_FOUND", "Closing was not found.");
       if (closing.status !== "READY_TO_CLOSE") {
-        throw new CapitalLifecycleError(409, "CLOSING_NOT_AUTHORIZED", "Closing must be READY_TO_CLOSE before completion.");
+        throw new CapitalLifecycleError(
+          409,
+          "CLOSING_NOT_AUTHORIZED",
+          "Closing must be READY_TO_CLOSE before completion.",
+        );
       }
-      await requireApproval({ workspaceId, approvalRequestId: input.approvalRequestId, action: "CLOSING_AUTHORIZATION", entityType: "CapitalClosing", entityId: closing.id, object: payload });
+      await requireApproval({
+        workspaceId,
+        approvalRequestId: input.approvalRequestId,
+        action: "CLOSING_AUTHORIZATION",
+        entityType: "CapitalClosing",
+        entityId: closing.id,
+        object: payload,
+      });
       const result = await db.$transaction(async (transaction) => {
-        const updatedClosing = await transaction.capitalClosing.update({ where: { id: closing.id }, data: { status: "CLOSED", closedAt: payload.closedAt } });
-        const updatedMatter = await transaction.capitalMatter.update({ where: { id: closing.matterId }, data: { status: "CLOSED", closedAt: payload.closedAt } });
+        const updatedClosing = await transaction.capitalClosing.update({
+          where: { id: closing.id },
+          data: { status: "CLOSED", closedAt: payload.closedAt },
+        });
+        const updatedMatter = await transaction.capitalMatter.update({
+          where: { id: closing.matterId },
+          data: { status: "CLOSED", closedAt: payload.closedAt },
+        });
         return { closing: updatedClosing, matter: updatedMatter };
       });
-      await audit({ workspaceId, actorId: actor.id, action: "CAPITAL_CLOSING_COMPLETED", entityType: "CapitalClosing", entityId: closing.id, outcome: "CLOSED", metadata: { closingEvidenceRef: payload.closingEvidenceRef, postCloseOwnersAssigned: payload.postCloseOwnersAssigned } });
+      await audit({
+        workspaceId,
+        actorId: actor.id,
+        action: "CAPITAL_CLOSING_COMPLETED",
+        entityType: "CapitalClosing",
+        entityId: closing.id,
+        outcome: "CLOSED",
+        metadata: {
+          closingEvidenceRef: payload.closingEvidenceRef,
+          postCloseOwnersAssigned: payload.postCloseOwnersAssigned,
+        },
+      });
       return result;
     }
   }
