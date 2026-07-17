@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
-import { isMailDeliveryConfigured } from "@/lib/mail/send";
+import { getMailDeliveryReadiness } from "@/lib/mail/send";
 
 export async function GET() {
+  const emailDelivery = getMailDeliveryReadiness();
+
   return NextResponse.json(
     {
       ok: true,
@@ -9,7 +11,17 @@ export async function GET() {
       canonicalResetPage: true,
       resetPageOrigin: "https://www.gemcybersecurityassist.com",
       tokenTransport: "url_fragment",
-      emailDeliveryConfigured: isMailDeliveryConfigured(),
+      emailDeliveryConfigured: emailDelivery.configured,
+      emailDelivery: {
+        missingVariables: emailDelivery.missing,
+        portValid: emailDelivery.portValid,
+        secureSettingValid: emailDelivery.secureSettingValid,
+        senderConfigured: emailDelivery.senderConfigured,
+        replyToConfigured: emailDelivery.replyToConfigured,
+        transportSecurity: emailDelivery.transportSecurity,
+        transportVerified: false,
+        verificationRequiresAdmin: true,
+      },
       gatewayRecoveryDisabled: true,
       sessionRevocation: "database_password_change_trigger",
       legacyGatewaySessionsAccepted: false,
