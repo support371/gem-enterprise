@@ -77,7 +77,7 @@ describe("canonical password recovery and session revocation", () => {
     expect(readiness).toContain('tokenTransport: "url_fragment"');
     expect(readiness).toContain("emailDeliveryConfigured: emailDelivery.configured");
     expect(readiness).toContain("missingVariables: emailDelivery.missing");
-    expect(readiness).toContain("transportVerified: false");
+    expect(readiness).toContain('transportVerification: "on_demand"');
     expect(readiness).toContain("verificationRequiresAdmin: true");
     expect(readiness).toContain("gatewayRecoveryDisabled: true");
     expect(readiness).toContain("legacyGatewaySessionsAccepted: false");
