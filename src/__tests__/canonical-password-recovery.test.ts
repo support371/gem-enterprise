@@ -22,18 +22,26 @@ describe("canonical password recovery and session revocation", () => {
     expect(service).not.toContain("completePasswordRecoveryGateway");
   });
 
-  it("uses the old gateway only for credential verification and issues a canonical JWT", () => {
+  it("uses the gateway as the session authority when direct database access is absent", () => {
     const login = source("src/app/api/auth/login/route.ts");
     expect(login).toContain("loginWithGateway");
-    expect(login).toContain("gateway_credential_verification");
-    expect(login).toContain("signSession");
-    expect(login).not.toContain("wrapGatewayToken");
+    expect(login).toContain("wrapGatewayToken(result.token)");
+    expect(login).toContain("resolveAccessDestination(result.session)");
+
+    const gatewayStart = login.indexOf(
+      "const result = await loginWithGateway(email, password);",
+    );
+    const gatewayEnd = login.indexOf("} catch (error)", gatewayStart);
+    const gatewayBlock = login.slice(gatewayStart, gatewayEnd);
+    expect(gatewayBlock).not.toContain("findCanonicalUser");
+    expect(gatewayBlock).not.toContain("db.user");
+    expect(gatewayBlock).not.toContain("signSession");
   });
 
-  it("rejects legacy wrapped gateway sessions without a database version", () => {
+  it("revalidates wrapped gateway sessions through Supabase in gateway mode", () => {
     const auth = source("src/lib/auth.ts");
-    expect(auth).toContain("Gateway tokens issued before Release 3");
-    expect(auth).toContain("validSessionVersion(gatewaySession.sessionVersion)");
+    expect(auth).toContain("verifyGatewaySession(gatewayToken)");
+    expect(auth).toContain("if (shouldUseSupabaseGateway()) return gatewaySession;");
     expect(auth).toContain("return validateDirectSessionAuthority(gatewaySession)");
   });
 
@@ -80,7 +88,8 @@ describe("canonical password recovery and session revocation", () => {
     expect(readiness).toContain('transportVerification: "on_demand"');
     expect(readiness).toContain("verificationRequiresAdmin: true");
     expect(readiness).toContain("gatewayRecoveryDisabled: true");
-    expect(readiness).toContain("legacyGatewaySessionsAccepted: false");
+    expect(readiness).toContain("legacyGatewaySessionsAccepted: true");
+    expect(readiness).toContain('gatewaySessionAuthority: "supabase_gateway"');
     expect(readiness).not.toContain("SMTP_PASS");
     expect(readiness).not.toContain("SMTP_USER");
   });
