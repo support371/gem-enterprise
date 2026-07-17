@@ -75,9 +75,25 @@ describe("canonical password recovery and session revocation", () => {
     const readiness = source("src/app/api/auth/recovery-readiness/route.ts");
     expect(readiness).toContain('resetPageOrigin: "https://www.gemcybersecurityassist.com"');
     expect(readiness).toContain('tokenTransport: "url_fragment"');
-    expect(readiness).toContain("emailDeliveryConfigured: isMailDeliveryConfigured()");
+    expect(readiness).toContain("emailDeliveryConfigured: emailDelivery.configured");
+    expect(readiness).toContain("missingVariables: emailDelivery.missing");
+    expect(readiness).toContain("transportVerified: false");
+    expect(readiness).toContain("verificationRequiresAdmin: true");
     expect(readiness).toContain("gatewayRecoveryDisabled: true");
     expect(readiness).toContain("legacyGatewaySessionsAccepted: false");
+    expect(readiness).not.toContain("SMTP_PASS");
+    expect(readiness).not.toContain("SMTP_USER");
+  });
+
+  it("protects no-send transport verification behind the administrator gate", () => {
+    const verification = source(
+      "src/app/api/auth/recovery-readiness/verify/route.ts",
+    );
+    expect(verification).toContain("requireAdmin()");
+    expect(verification).toContain("verifyMailTransport()");
+    expect(verification).toContain("sentMessage: false");
+    expect(verification).toContain("credentialsExposed: false");
+    expect(verification).not.toContain("sendMail(");
   });
 
   it("promotes the session-version field before Prisma validation and generation", () => {
