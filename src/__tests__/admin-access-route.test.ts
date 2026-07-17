@@ -5,8 +5,8 @@ const validationMocks = vi.hoisted(() => ({
   validate: vi.fn(),
 }));
 
-const gatewayMocks = vi.hoisted(() => ({
-  setPassword: vi.fn(),
+const consumerMocks = vi.hoisted(() => ({
+  consume: vi.fn(),
 }));
 
 vi.mock("@/lib/admin-access-token-validation", () => {
@@ -26,8 +26,8 @@ vi.mock("@/lib/admin-access-token-validation", () => {
   };
 });
 
-vi.mock("@/lib/supabase-gateway", () => {
-  class GatewayRequestError extends Error {
+vi.mock("@/lib/admin-access-consumer", () => {
+  class AdminAccessConsumptionError extends Error {
     constructor(
       public statusCode: number,
       public code: string,
@@ -38,8 +38,8 @@ vi.mock("@/lib/supabase-gateway", () => {
   }
 
   return {
-    setAdminPasswordWithAccessToken: gatewayMocks.setPassword,
-    GatewayRequestError,
+    consumeAdminAccessToken: consumerMocks.consume,
+    AdminAccessConsumptionError,
   };
 });
 
@@ -68,7 +68,7 @@ describe("administrator access setup API", () => {
       expiresAt: "2026-07-17T06:00:00.000Z",
       requestId,
     });
-    gatewayMocks.setPassword.mockResolvedValue({
+    consumerMocks.consume.mockResolvedValue({
       ok: true,
       email: "admin@gemcybersecurityassist.com",
       loginPath: "/client-login",
@@ -82,10 +82,10 @@ describe("administrator access setup API", () => {
 
     expect(response.status).toBe(400);
     expect(validationMocks.validate).not.toHaveBeenCalled();
-    expect(gatewayMocks.setPassword).not.toHaveBeenCalled();
+    expect(consumerMocks.consume).not.toHaveBeenCalled();
   });
 
-  it("prevalidates the bound capability before atomic consumption", async () => {
+  it("prevalidates the bound capability before direct database consumption", async () => {
     const password = "Strong-Administrator-Password-2026!";
     const response = await POST(request({ accessToken, password }));
     const body = await response.json();
@@ -93,9 +93,13 @@ describe("administrator access setup API", () => {
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
     expect(validationMocks.validate).toHaveBeenCalledWith(accessToken);
-    expect(gatewayMocks.setPassword).toHaveBeenCalledWith(accessToken, password);
+    expect(consumerMocks.consume).toHaveBeenCalledWith(
+      accessToken,
+      password,
+      requestId,
+    );
     expect(validationMocks.validate.mock.invocationCallOrder[0]).toBeLessThan(
-      gatewayMocks.setPassword.mock.invocationCallOrder[0],
+      consumerMocks.consume.mock.invocationCallOrder[0],
     );
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("referrer-policy")).toBe("no-referrer");
@@ -119,13 +123,15 @@ describe("administrator access setup API", () => {
     expect(response.status).toBe(400);
     expect(body.code).toBe("INVALID_TOKEN");
     expect(body.error).toBe("This setup link is invalid or expired.");
-    expect(gatewayMocks.setPassword).not.toHaveBeenCalled();
+    expect(consumerMocks.consume).not.toHaveBeenCalled();
   });
 
   it("maps an invalid one-time token from atomic consumption to a safe error", async () => {
-    const { GatewayRequestError } = await import("@/lib/supabase-gateway");
-    gatewayMocks.setPassword.mockRejectedValue(
-      new GatewayRequestError(400, "INVALID_TOKEN", "Invalid token"),
+    const { AdminAccessConsumptionError } = await import(
+      "@/lib/admin-access-consumer"
+    );
+    consumerMocks.consume.mockRejectedValue(
+      new AdminAccessConsumptionError(400, "INVALID_TOKEN", "Invalid token"),
     );
 
     const response = await POST(
