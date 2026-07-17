@@ -5,8 +5,8 @@ const gatewayMocks = vi.hoisted(() => ({
   setPassword: vi.fn(),
 }));
 
-vi.mock("@/lib/supabase-gateway", () => {
-  class GatewayRequestError extends Error {
+vi.mock("@/lib/admin-access-gateway", () => {
+  class AdminAccessGatewayError extends Error {
     constructor(
       public statusCode: number,
       public code: string,
@@ -18,7 +18,7 @@ vi.mock("@/lib/supabase-gateway", () => {
 
   return {
     setAdminPasswordWithAccessToken: gatewayMocks.setPassword,
-    GatewayRequestError,
+    AdminAccessGatewayError,
   };
 });
 
@@ -27,6 +27,9 @@ vi.mock("@/lib/api/auth-helpers", () => ({
 }));
 
 import { POST } from "@/app/api/admin-access/route";
+
+const requestId = `aar_${"5".repeat(32)}`;
+const accessToken = `${requestId}.${"a".repeat(64)}`;
 
 function request(body: unknown) {
   return new NextRequest("http://localhost/api/admin-access", {
@@ -48,39 +51,36 @@ describe("administrator access setup API", () => {
 
   it("rejects a weak password before calling the gateway", async () => {
     const response = await POST(
-      request({ accessToken: "a".repeat(48), password: "weak-password" }),
+      request({ accessToken, password: "weak-password" }),
     );
 
     expect(response.status).toBe(400);
     expect(gatewayMocks.setPassword).not.toHaveBeenCalled();
   });
 
-  it("sets a strong password through the one-time gateway", async () => {
+  it("sets a strong password through the controlled edge gateway", async () => {
     const password = "Strong-Administrator-Password-2026!";
-    const response = await POST(
-      request({ accessToken: "a".repeat(48), password }),
-    );
+    const response = await POST(request({ accessToken, password }));
     const body = await response.json();
 
     expect(response.status).toBe(200);
     expect(body.ok).toBe(true);
-    expect(gatewayMocks.setPassword).toHaveBeenCalledWith(
-      "a".repeat(48),
-      password,
-    );
+    expect(gatewayMocks.setPassword).toHaveBeenCalledWith(accessToken, password);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("referrer-policy")).toBe("no-referrer");
   });
 
   it("maps an invalid one-time token to a safe error", async () => {
-    const { GatewayRequestError } = await import("@/lib/supabase-gateway");
+    const { AdminAccessGatewayError } = await import(
+      "@/lib/admin-access-gateway"
+    );
     gatewayMocks.setPassword.mockRejectedValue(
-      new GatewayRequestError(400, "INVALID_TOKEN", "Invalid token"),
+      new AdminAccessGatewayError(400, "INVALID_TOKEN", "Invalid token"),
     );
 
     const response = await POST(
       request({
-        accessToken: "b".repeat(48),
+        accessToken: `${requestId}.${"b".repeat(64)}`,
         password: "Another-Strong-Password-2026!",
       }),
     );
