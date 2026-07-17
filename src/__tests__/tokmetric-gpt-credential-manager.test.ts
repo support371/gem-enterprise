@@ -58,8 +58,16 @@ describe("TokMetric GPT credential manager", () => {
       "workspace_id: TOKMETRIC_PRODUCTION_WORKSPACE_ID",
     );
     expect(adminSource).toContain("WORKSPACE_CONFIRMATION_MISMATCH");
-    expect(routeSource).toContain("TOKMETRIC_PRODUCTION_WORKSPACE_ID");
     expect(storeSource).toContain(
+      '"ws_60488340ded94dcfab3b875ef9ae591c"',
+    );
+  });
+
+  it("derives the client workspace from the authorized registry response", () => {
+    expect(componentSource).toContain("setWorkspaceId(body.workspace.id)");
+    expect(componentSource).toContain("confirmWorkspaceId: workspaceId");
+    expect(componentSource).not.toContain("const WORKSPACE_ID");
+    expect(componentSource).not.toContain(
       '"ws_60488340ded94dcfab3b875ef9ae591c"',
     );
   });
@@ -71,6 +79,25 @@ describe("TokMetric GPT credential manager", () => {
     expect(adminSource).toContain("tokmetric.gpt_credential.issued");
     expect(adminSource).toContain("tokmetric.gpt_credential.revoked");
     expect(storeSource).toContain('sourceChannel: "command_center"');
+  });
+
+  it("uses a controlled revocation dialog and prevents duplicate requests", () => {
+    expect(componentSource).toContain("revocationCredential");
+    expect(componentSource).toContain("revocationReason");
+    expect(componentSource).toContain("revocationLabelConfirmation");
+    expect(componentSource).toContain("revokingId");
+    expect(componentSource).toContain('role="dialog"');
+    expect(componentSource).toContain('aria-modal="true"');
+    expect(componentSource).not.toContain("window.prompt");
+  });
+
+  it("does not disclose workspace configuration in invalid-action responses", () => {
+    const unknownActionStart = routeSource.indexOf(
+      'error: "Unknown credential action."',
+    );
+    const unknownActionResponse = routeSource.slice(unknownActionStart);
+    expect(unknownActionResponse).not.toContain("workspaceId");
+    expect(routeSource).not.toContain("TOKMETRIC_PRODUCTION_WORKSPACE_ID");
   });
 
   it("separates one-time generation from server-only database authority", () => {
