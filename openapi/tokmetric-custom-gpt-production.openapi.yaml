@@ -1,21 +1,13 @@
 openapi: 3.1.0
 info:
   title: TokMetric Custom GPT Controlled Production API
-  version: 1.0.1
-  description: |
-    Canonical controlled-production Action surface for GEM Enterprise TokMetric.
-    This schema uses the non-redirecting www production origin so bearer
-    credentials are preserved. It exposes workspace-scoped read operations and
-    a deterministic internal planning agent only. It cannot publish, approve,
-    spend funds, connect accounts, change settings, or claim external TikTok
-    success. Operational writes remain restricted to the authenticated GEM
-    Command Center during the controlled launch.
+  version: 1.0.2
+  description: Canonical controlled-production Action surface for GEM Enterprise TokMetric. This schema uses the non-redirecting www production origin so bearer credentials are preserved. It exposes workspace-scoped read operations and a deterministic internal planning agent only. It cannot publish, approve, spend funds, connect accounts, change settings, or claim external TikTok success. Operational writes remain restricted to the authenticated GEM Command Center during the controlled launch.
 servers:
-  - url: https://www.gemcybersecurityassist.com
-    description: Canonical GEM Enterprise production origin
+- url: https://www.gemcybersecurityassist.com
+  description: Canonical GEM Enterprise production origin
 security:
-  - bearerAuth: []
-
+- bearerAuth: []
 paths:
   /functions/gptSystemReadiness:
     post:
@@ -29,7 +21,6 @@ paths:
           description: Invalid or expired bearer credential
         '503':
           description: Gateway or storage unavailable; request fails closed
-
   /functions/gptConnectorReadiness:
     post:
       operationId: getTokMetricConnectorReadiness
@@ -43,7 +34,7 @@ paths:
               type: object
               additionalProperties: false
               required:
-                - workspace_id
+              - workspace_id
               properties:
                 workspace_id:
                   type: string
@@ -55,7 +46,6 @@ paths:
           description: Invalid or expired bearer credential
         '403':
           description: Workspace is outside the credential scope
-
   /functions/gptListAccounts:
     post:
       operationId: listTokMetricAccounts
@@ -69,7 +59,7 @@ paths:
               type: object
               additionalProperties: false
               required:
-                - workspace_id
+              - workspace_id
               properties:
                 workspace_id:
                   type: string
@@ -77,25 +67,25 @@ paths:
                 provider:
                   type: string
                   enum:
-                    - TIKTOK_LOGIN_KIT
-                    - TIKTOK_DISPLAY_API
-                    - TIKTOK_CONTENT_POSTING_API
-                    - TIKTOK_BUSINESS_API
-                    - TIKTOK_SHOP_SELLER
-                    - TIKTOK_SHOP_CREATOR
+                  - TIKTOK_LOGIN_KIT
+                  - TIKTOK_DISPLAY_API
+                  - TIKTOK_CONTENT_POSTING_API
+                  - TIKTOK_BUSINESS_API
+                  - TIKTOK_SHOP_SELLER
+                  - TIKTOK_SHOP_CREATOR
                 status:
                   type: string
                   enum:
-                    - NOT_CONFIGURED
-                    - AUTHORIZATION_REQUIRED
-                    - AUTHORIZATION_PENDING
-                    - CONNECTED
-                    - DEGRADED
-                    - TOKEN_EXPIRED
-                    - REAUTHORIZATION_REQUIRED
-                    - DISCONNECTED
-                    - PLATFORM_APPROVAL_REQUIRED
-                    - BLOCKED
+                  - NOT_CONFIGURED
+                  - AUTHORIZATION_REQUIRED
+                  - AUTHORIZATION_PENDING
+                  - CONNECTED
+                  - DEGRADED
+                  - TOKEN_EXPIRED
+                  - REAUTHORIZATION_REQUIRED
+                  - DISCONNECTED
+                  - PLATFORM_APPROVAL_REQUIRED
+                  - BLOCKED
                 limit:
                   type: integer
                   minimum: 1
@@ -108,7 +98,6 @@ paths:
           description: Invalid or expired bearer credential
         '403':
           description: Workspace is outside the credential scope
-
   /functions/gptListCampaigns:
     post:
       operationId: listTokMetricCampaigns
@@ -122,7 +111,7 @@ paths:
               type: object
               additionalProperties: false
               required:
-                - workspace_id
+              - workspace_id
               properties:
                 workspace_id:
                   type: string
@@ -130,15 +119,15 @@ paths:
                 status:
                   type: string
                   enum:
-                    - DRAFT
-                    - REVIEW_READY
-                    - APPROVAL_REQUIRED
-                    - APPROVED
-                    - REJECTED
-                    - REVOKED
-                    - EXPIRED
-                    - BLOCKED
-                    - ARCHIVED
+                  - DRAFT
+                  - REVIEW_READY
+                  - APPROVAL_REQUIRED
+                  - APPROVED
+                  - REJECTED
+                  - REVOKED
+                  - EXPIRED
+                  - BLOCKED
+                  - ARCHIVED
                 limit:
                   type: integer
                   minimum: 1
@@ -151,7 +140,6 @@ paths:
           description: Invalid or expired bearer credential
         '403':
           description: Workspace is outside the credential scope
-
   /functions/gptGetCampaign:
     post:
       operationId: getTokMetricCampaign
@@ -165,8 +153,8 @@ paths:
               type: object
               additionalProperties: false
               required:
-                - workspace_id
-                - campaign_id
+              - workspace_id
+              - campaign_id
               properties:
                 workspace_id:
                   type: string
@@ -182,7 +170,6 @@ paths:
           description: Workspace is outside the credential scope
         '404':
           description: Campaign not found in the authorized workspace
-
   /functions/gptListContent:
     post:
       operationId: listTokMetricContent
@@ -196,7 +183,7 @@ paths:
               type: object
               additionalProperties: false
               required:
-                - workspace_id
+              - workspace_id
               properties:
                 workspace_id:
                   type: string
@@ -206,15 +193,15 @@ paths:
                 status:
                   type: string
                   enum:
-                    - DRAFT
-                    - REVIEW_READY
-                    - APPROVAL_REQUIRED
-                    - APPROVED
-                    - REJECTED
-                    - REVOKED
-                    - EXPIRED
-                    - BLOCKED
-                    - ARCHIVED
+                  - DRAFT
+                  - REVIEW_READY
+                  - APPROVAL_REQUIRED
+                  - APPROVED
+                  - REJECTED
+                  - REVOKED
+                  - EXPIRED
+                  - BLOCKED
+                  - ARCHIVED
                 limit:
                   type: integer
                   minimum: 1
@@ -227,7 +214,6 @@ paths:
           description: Invalid or expired bearer credential
         '403':
           description: Workspace is outside the credential scope
-
   /functions/gptGetContent:
     post:
       operationId: getTokMetricContent
@@ -241,8 +227,8 @@ paths:
               type: object
               additionalProperties: false
               required:
-                - workspace_id
-                - content_id
+              - workspace_id
+              - content_id
               properties:
                 workspace_id:
                   type: string
@@ -258,7 +244,6 @@ paths:
           description: Workspace is outside the credential scope
         '404':
           description: Content not found in the authorized workspace
-
   /functions/gptGetApprovalStatus:
     post:
       operationId: getTokMetricApprovalStatus
@@ -272,8 +257,8 @@ paths:
               type: object
               additionalProperties: false
               required:
-                - workspace_id
-                - approval_request_id
+              - workspace_id
+              - approval_request_id
               properties:
                 workspace_id:
                   type: string
@@ -289,7 +274,6 @@ paths:
           description: Workspace is outside the credential scope
         '404':
           description: Approval request not found
-
   /functions/gptGetPublishJobStatus:
     post:
       operationId: getTokMetricPublishJobStatus
@@ -303,8 +287,8 @@ paths:
               type: object
               additionalProperties: false
               required:
-                - workspace_id
-                - job_id
+              - workspace_id
+              - job_id
               properties:
                 workspace_id:
                   type: string
@@ -320,7 +304,6 @@ paths:
           description: Workspace is outside the credential scope
         '404':
           description: Publishing job not found
-
   /functions/gptGetAnalyticsSummary:
     post:
       operationId: getTokMetricAnalyticsSummary
@@ -334,7 +317,7 @@ paths:
               type: object
               additionalProperties: false
               required:
-                - workspace_id
+              - workspace_id
               properties:
                 workspace_id:
                   type: string
@@ -357,7 +340,6 @@ paths:
           description: Invalid or expired bearer credential
         '403':
           description: Workspace is outside the credential scope
-
   /functions/gptGetAuditHistory:
     post:
       operationId: getTokMetricAuditHistory
@@ -371,7 +353,7 @@ paths:
               type: object
               additionalProperties: false
               required:
-                - workspace_id
+              - workspace_id
               properties:
                 workspace_id:
                   type: string
@@ -392,16 +374,12 @@ paths:
           description: Invalid or expired bearer credential
         '403':
           description: Workspace is outside the credential scope
-
   /functions/tokmetric/agent-plan:
     post:
       operationId: createTokMetricControlledAgentPlan
       summary: Generate a deterministic internal TokMetric plan
-      description: |
-        Produces a reviewable internal planning artifact. It always requires
-        human review and always reports externalActionTaken=false. It cannot
-        publish, approve, spend funds, connect accounts, or modify settings.
       x-openai-isConsequential: false
+      description: Produces a reviewable internal planning artifact. It always requires human review and always reports externalActionTaken=false. It cannot publish, approve, spend funds, connect accounts, or modify settings.
       requestBody:
         required: true
         content:
@@ -410,33 +388,33 @@ paths:
               type: object
               additionalProperties: false
               required:
-                - agent
-                - outputType
-                - workspaceId
-                - brief
+              - agent
+              - outputType
+              - workspaceId
+              - brief
               properties:
                 agent:
                   type: string
                   enum:
-                    - content_strategist
-                    - script_writer
-                    - quality_reviewer
-                    - publishing_coordinator
+                  - content_strategist
+                  - script_writer
+                  - quality_reviewer
+                  - publishing_coordinator
                 outputType:
                   type: string
                   enum:
-                    - campaign_brief
-                    - content_outline
-                    - audience_notes
-                    - script
-                    - caption
-                    - hashtags
-                    - findings
-                    - recommended_changes
-                    - review_result
-                    - publish_plan
-                    - job_request
-                    - preflight_report
+                  - campaign_brief
+                  - content_outline
+                  - audience_notes
+                  - script
+                  - caption
+                  - hashtags
+                  - findings
+                  - recommended_changes
+                  - review_result
+                  - publish_plan
+                  - job_request
+                  - preflight_report
                 workspaceId:
                   type: string
                   description: Authorized TokMetric workspace identifier
@@ -453,8 +431,8 @@ paths:
           description: Workspace is outside the credential scope
         '422':
           description: Request blocked by agent safety controls
-
 components:
+  schemas: {}
   securitySchemes:
     bearerAuth:
       type: http

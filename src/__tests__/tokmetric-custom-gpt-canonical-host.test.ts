@@ -42,6 +42,11 @@ describe("TokMetric Custom GPT canonical production contract", () => {
     expect(schema.match(/schema:\n\s+type: object/g)?.length).toBe(11);
   });
 
+  it("defines components.schemas as an object for the GPT Actions editor", () => {
+    expect(schema).toContain("components:\n  schemas: {}");
+    expect(schema).toContain("version: 1.0.2");
+  });
+
   it("preserves the controlled-launch safety assertions", () => {
     expect(schema).toContain("externalActionTaken=false");
     expect(schema).toContain("authenticated GEM");
