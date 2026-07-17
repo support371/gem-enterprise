@@ -1,7 +1,11 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify, SignJWT } from "jose";
-import { unwrapGatewayToken, verifyGatewaySession } from "@/lib/supabase-gateway";
+import {
+  shouldUseSupabaseGateway,
+  unwrapGatewayToken,
+  verifyGatewaySession,
+} from "@/lib/supabase-gateway";
 
 export const SESSION_COOKIE = "gem_session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
@@ -150,8 +154,7 @@ async function resolveSessionToken(token: string): Promise<SessionPayload | null
   if (gatewayToken) {
     try {
       const gatewaySession = await verifyGatewaySession(gatewayToken);
-      // Gateway tokens issued before Release 3 have no account session version and
-      // are deliberately rejected. Users sign in again and receive a canonical GEM JWT.
+      if (shouldUseSupabaseGateway()) return gatewaySession;
       if (!validSessionVersion(gatewaySession.sessionVersion)) return null;
       return validateDirectSessionAuthority(gatewaySession);
     } catch {
