@@ -22,6 +22,25 @@ import {
   verifyMailTransport,
 } from "@/lib/mail/send";
 
+const MAIL_ENVIRONMENT_VARIABLES = [
+  "SMTP_HOST",
+  "SMTP_PORT",
+  "SMTP_SECURE",
+  "SMTP_USER",
+  "SMTP_PASS",
+  "SMTP_FROM",
+  "EMAIL_FROM",
+  "MAIL_FROM",
+  "REPLY_TO_EMAIL",
+  "GEM_OWNER_EMAIL",
+] as const;
+
+function clearSmtpEnvironment() {
+  for (const name of MAIL_ENVIRONMENT_VARIABLES) {
+    vi.stubEnv(name, "");
+  }
+}
+
 function configureSmtp() {
   vi.stubEnv("SMTP_HOST", "smtp.provider.example");
   vi.stubEnv("SMTP_PORT", "587");
@@ -38,6 +57,7 @@ function configureSmtp() {
 describe("SMTP delivery readiness", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    clearSmtpEnvironment();
     transportMocks.verify.mockResolvedValue(true);
     transportMocks.sendMail.mockResolvedValue({
       accepted: ["admin@gemcybersecurityassist.com"],
