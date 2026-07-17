@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ADMIN_ACCESS_EMAIL,
   buildAdminAccessSql,
+  generateAdminAccessAuthorization,
   parseAdminAccessAuthorization,
   serializeAdminAccessAuthorization,
   type AdminAccessAuthorization,
@@ -28,8 +29,21 @@ describe("browser-local administrator authorization", () => {
     expect(sql).not.toMatch(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/);
   });
 
+  it("generates a capability cryptographically bound to its request ID", async () => {
+    const authorization = await generateAdminAccessAuthorization();
+
+    expect(authorization.requestId).toMatch(/^aar_[a-f0-9]{32}$/);
+    expect(authorization.token).toMatch(
+      new RegExp(`^${authorization.requestId}\\.[A-Za-z0-9_-]{48,128}$`),
+    );
+    expect(authorization.tokenHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(authorization.sql).toContain(authorization.requestId);
+    expect(authorization.sql).toContain(authorization.tokenHash);
+    expect(authorization.sql).not.toContain(authorization.token);
+  });
+
   it("does not place the usable capability in the SQL statement", () => {
-    const token = "local-only-capability-that-must-not-appear-in-sql";
+    const token = `${requestId}.${"c".repeat(64)}`;
     const authorization: AdminAccessAuthorization = {
       token,
       tokenHash,
@@ -46,18 +60,30 @@ describe("browser-local administrator authorization", () => {
     ).toEqual(authorization);
   });
 
-  it("rejects expired or token-leaking session records", () => {
+  it("rejects expired, unbound, or token-leaking session records", () => {
     const expiredAt = new Date(Date.now() - 1_000).toISOString();
     expect(() =>
       buildAdminAccessSql({ tokenHash, requestId, expiresAt: expiredAt }),
     ).toThrow(/expiry/);
 
-    const leaking: AdminAccessAuthorization = {
-      token: "x".repeat(48),
+    const unbound: AdminAccessAuthorization = {
+      token: `${`aar_${"d".repeat(32)}`}.${"x".repeat(64)}`,
       tokenHash,
       requestId,
       expiresAt,
-      sql: `select '${"x".repeat(48)}'`,
+      sql: buildAdminAccessSql({ tokenHash, requestId, expiresAt }),
+    };
+    expect(
+      parseAdminAccessAuthorization(serializeAdminAccessAuthorization(unbound)),
+    ).toBeNull();
+
+    const token = `${requestId}.${"x".repeat(64)}`;
+    const leaking: AdminAccessAuthorization = {
+      token,
+      tokenHash,
+      requestId,
+      expiresAt,
+      sql: `select '${token}'`,
     };
     expect(
       parseAdminAccessAuthorization(serializeAdminAccessAuthorization(leaking)),
