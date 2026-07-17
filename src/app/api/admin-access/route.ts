@@ -3,13 +3,13 @@ import { z } from "zod";
 import { getRequestContext } from "@/lib/api/auth-helpers";
 import { rateLimit, rateLimitedResponse } from "@/lib/api/rate-limit";
 import {
+  AdminAccessConsumptionError,
+  consumeAdminAccessToken,
+} from "@/lib/admin-access-consumer";
+import {
   AdminAccessValidationError,
   validateAdminAccessToken,
 } from "@/lib/admin-access-token-validation";
-import {
-  GatewayRequestError,
-  setAdminPasswordWithAccessToken,
-} from "@/lib/supabase-gateway";
 
 const schema = z
   .object({
@@ -65,18 +65,18 @@ export async function POST(request: NextRequest) {
   try {
     const authorization = await validateAdminAccessToken(parsed.data.accessToken);
     if (!authorization.valid || !authorization.requestId) {
-      throw new GatewayRequestError(
+      throw new AdminAccessConsumptionError(
         400,
         "INVALID_TOKEN",
         "Invalid or expired setup capability.",
       );
     }
 
-    const result = await setAdminPasswordWithAccessToken<{
-      ok: boolean;
-      email: string;
-      loginPath: string;
-    }>(parsed.data.accessToken, parsed.data.password);
+    const result = await consumeAdminAccessToken(
+      parsed.data.accessToken,
+      parsed.data.password,
+      authorization.requestId,
+    );
 
     return json({
       ok: result.ok,
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (error instanceof GatewayRequestError) {
+    if (error instanceof AdminAccessConsumptionError) {
       const status = [400, 401, 403, 409, 429].includes(error.statusCode)
         ? error.statusCode
         : 503;
