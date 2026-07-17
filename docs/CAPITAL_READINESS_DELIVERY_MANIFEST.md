@@ -7,6 +7,18 @@
 - Branch: `feat/capital-readiness-transaction-command-center`
 - Command Center path: `/app/command-center/capital-readiness`
 
+## Execution gates
+
+The remaining work is tracked in dependency order:
+
+1. #222 — green verification and retained Vercel preview;
+2. #223 — disposable PostgreSQL migration and recovery rehearsal;
+3. #224 — KYB, screening, signing, storage and notification provider onboarding;
+4. #225 — securities-counsel and licensed-partner activation package;
+5. #226 — separately approved production migration and controlled activation.
+
+Engineering verification is the immediate priority. Provider and legal work may proceed in parallel, but production activation remains blocked until the applicable preceding gates are complete.
+
 ## Delivered software
 
 ### Policy and workflow
