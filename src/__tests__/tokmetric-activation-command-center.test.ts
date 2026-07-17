@@ -34,11 +34,11 @@ describe("TokMetric activation command center", () => {
       "supabase/functions/gem-tokmetric-command-gateway/index.ts",
     );
     expect(gateway).toContain('controlledWriteMode: "COMMAND_CENTER_ONLY"');
-    expect(gateway).toContain('externalWritesAvailable: false');
-    expect(gateway).toContain('externalActionTaken: false');
+    expect(gateway).toContain("externalWritesAvailable: false");
+    expect(gateway).toContain("externalActionTaken: false");
     expect(gateway).toContain('"LIVE_PUBLISHING_GATE_DISABLED"');
     expect(gateway).not.toContain("PUBLISHED_CONFIRMED");
-    expect(gateway).not.toContain("fetch(\"https://open.tiktokapis.com");
+    expect(gateway).not.toContain('fetch("https://open.tiktokapis.com');
   });
 
   it("supports the complete controlled activation sequence", () => {
@@ -54,16 +54,18 @@ describe("TokMetric activation command center", () => {
       "decide_approval",
       "publish_preflight",
     ]) {
-      expect(gateway).toContain(`operation === \"${operation}\"`);
+      expect(gateway).toContain(`operation === "${operation}"`);
     }
   });
 
   it("proxies commands only through the HttpOnly GEM session", () => {
     const route = source("src/app/api/tokmetric/command/route.ts");
+    const client = source("src/lib/tokmetric/command-gateway.ts");
     expect(route).toContain("getGatewaySessionToken");
     expect(route).toContain("GEM_SESSION_REQUIRED");
     expect(route).toContain("invokeTokMetricCommandGateway");
-    expect(route).toContain('cache: "no-store"');
+    expect(route).toContain('"Cache-Control": "no-store, max-age=0"');
+    expect(client).toContain('cache: "no-store"');
     expect(route).not.toContain("POSTGRES_PRISMA_URL");
     expect(route).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
   });
