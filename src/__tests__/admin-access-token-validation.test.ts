@@ -13,13 +13,12 @@ describe("administrator access token validation client", () => {
     vi.restoreAllMocks();
   });
 
-  it("sends the bound request ID and only a SHA-256 token hash to the edge gateway", async () => {
+  it("sends the bound request ID and only a SHA-256 token hash to the status boundary", async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
         JSON.stringify({
-          valid: true,
+          active: true,
           expiresAt: "2026-07-17T06:00:00.000Z",
-          requestId,
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       ),
@@ -36,18 +35,17 @@ describe("administrator access token validation client", () => {
 
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     const body = JSON.parse(String(init.body)) as {
-      action: string;
       tokenHash: string;
       requestId: string;
     };
     const headers = init.headers as Record<string, string>;
 
-    expect(url).toContain("/functions/v1/gem-admin-access-gateway");
-    expect(body).toMatchObject({ action: "validate", requestId });
+    expect(url).toContain("/functions/v1/gem-admin-access-status");
+    expect(body.requestId).toBe(requestId);
     expect(body.tokenHash).toMatch(/^[a-f0-9]{64}$/);
     expect(String(init.body)).not.toContain(accessToken);
-    expect(headers.apikey).toBeTruthy();
-    expect(headers.Authorization).toMatch(/^Bearer /);
+    expect(headers.apikey).toMatch(/^sb_publishable_/);
+    expect(headers.Authorization).toBeUndefined();
   });
 
   it("returns a simple invalid result for missing or expired capabilities", async () => {
@@ -55,7 +53,7 @@ describe("administrator access token validation client", () => {
       "fetch",
       vi.fn().mockResolvedValue(
         new Response(
-          JSON.stringify({ valid: false, expiresAt: null, requestId: null }),
+          JSON.stringify({ active: false, expiresAt: null }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         ),
       ),
@@ -83,19 +81,16 @@ describe("administrator access token validation client", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            error: "not available",
-            code: "ADMIN_ACCESS_GATEWAY_UNAVAILABLE",
-          }),
-          { status: 503, headers: { "Content-Type": "application/json" } },
-        ),
+        new Response(JSON.stringify({ error: "not available" }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        }),
       ),
     );
 
     await expect(validateAdminAccessToken(accessToken)).rejects.toMatchObject({
       statusCode: 503,
-      code: "ADMIN_ACCESS_GATEWAY_UNAVAILABLE",
+      code: "ADMIN_ACCESS_VALIDATION_FAILED",
     } satisfies Partial<AdminAccessValidationError>);
   });
 });
