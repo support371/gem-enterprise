@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
       400,
     );
   }
-  const { operation: _operation, ...commandPayload } = payload;
+  const commandPayload = { ...payload };
+  delete commandPayload.operation;
   return run(operation, commandPayload);
 }
