@@ -10,6 +10,7 @@ supabase/functions/*
 !supabase/functions/gem-admin-write/
 !supabase/functions/gem-tokmetric-gpt-gateway/
 !supabase/functions/gem-tokmetric-agent-gateway/
+!supabase/functions/gem-tokmetric-command-gateway/
 
 supabase/functions/gem-auth-gateway/*
 !supabase/functions/gem-auth-gateway/index.ts
@@ -25,6 +26,10 @@ supabase/functions/gem-tokmetric-gpt-gateway/*
 supabase/functions/gem-tokmetric-agent-gateway/*
 !supabase/functions/gem-tokmetric-agent-gateway/index.ts
 !supabase/functions/gem-tokmetric-agent-gateway/deno.json
+
+supabase/functions/gem-tokmetric-command-gateway/*
+!supabase/functions/gem-tokmetric-command-gateway/index.ts
+!supabase/functions/gem-tokmetric-command-gateway/deno.json
 
 supabase/migrations/*
 !supabase/migrations/20260716140000_create_tokmetric_gpt_credentials.sql
