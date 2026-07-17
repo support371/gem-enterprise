@@ -46,29 +46,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run verification with captured output
+      - name: Capture environment, installation, and verification
         id: verification
+        continue-on-error: true
         shell: bash
         run: |
           set +e
-          pnpm run verify 2>&1 | tee capital-readiness-verify.log
+          : > capital-readiness-verify.log
+          {
+            echo "## Environment"
+            node --version
+            npm --version
+            echo "## Enable pnpm"
+            npm install --global pnpm@10.28.0
+            pnpm --version
+            echo "## Install dependencies"
+            pnpm install --frozen-lockfile
+            echo "## Verify"
+            pnpm run verify
+          } 2>&1 | tee -a capital-readiness-verify.log
           status=${PIPESTATUS[0]}
           echo "exit_code=$status" >> "$GITHUB_OUTPUT"
           exit 0
 
+      - name: Ensure diagnostic log exists
+        if: always()
+        shell: bash
+        run: |
+          test -f capital-readiness-verify.log || echo "Verification did not reach the diagnostic shell step." > capital-readiness-verify.log
+
       - name: Upload verification log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: capital-readiness-verification-log
@@ -77,16 +85,16 @@ jobs:
           retention-days: 14
 
       - name: Post verification result to pull request
-        if: github.event_name == 'pull_request'
+        if: always() && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         env:
           VERIFY_EXIT_CODE: ${{ steps.verification.outputs.exit_code }}
         with:
           script: |
             const fs = require('fs');
-            const exitCode = process.env.VERIFY_EXIT_CODE || 'unknown';
+            const exitCode = process.env.VERIFY_EXIT_CODE || 'bootstrap_failure';
             const log = fs.readFileSync('capital-readiness-verify.log', 'utf8');
-            const tail = log.split('\n').slice(-180).join('\n');
+            const tail = log.split('\n').slice(-220).join('\n');
             const marker = '<!-- capital-readiness-verification -->';
             const body = `${marker}\n## Capital Readiness Verification\n\n**Exit code:** \`${exitCode}\`\n\n<details><summary>Verification log tail</summary>\n\n\`\`\`text\n${tail.slice(0, 60000)}\n\`\`\`\n</details>`;
             const { owner, repo } = context.repo;
@@ -100,5 +108,5 @@ jobs:
             }
 
       - name: Enforce verification result
-        if: steps.verification.outputs.exit_code != '0'
+        if: always() && steps.verification.outputs.exit_code != '0'
         run: exit 1
