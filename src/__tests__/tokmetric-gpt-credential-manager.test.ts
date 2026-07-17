@@ -75,6 +75,8 @@ describe("TokMetric GPT credential manager", () => {
 
   it("separates one-time generation from server-only database authority", () => {
     expect(storeSource).toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(storeSource).not.toContain("@supabase/supabase-js");
+    expect(storeSource).toContain("/rest/v1");
     expect(adminSource).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(componentSource).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(componentSource).not.toContain("serviceRoleKey");
