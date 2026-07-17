@@ -96,13 +96,22 @@ export async function POST(request: NextRequest) {
     );
   }
   const payload = body as Record<string, unknown>;
-  const operation =
-    typeof payload.operation === "string"
-      ? (payload.operation as TokMetricCommandOperation)
-      : "snapshot";
+  if (typeof payload.operation !== "string") {
+    return json(
+      {
+        error: "TokMetric command operation is required.",
+        code: "INVALID_OPERATION",
+      },
+      400,
+    );
+  }
+  const operation = payload.operation as TokMetricCommandOperation;
   if (!OPERATIONS.has(operation)) {
     return json(
-      { error: "Unknown TokMetric operation.", code: "UNKNOWN_OPERATION" },
+      {
+        error: "TokMetric command operation is invalid.",
+        code: "INVALID_OPERATION",
+      },
       400,
     );
   }
