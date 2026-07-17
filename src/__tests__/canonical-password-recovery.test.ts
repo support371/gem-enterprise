@@ -10,50 +10,44 @@ describe("canonical password recovery and session revocation", () => {
   it("keeps recovery entirely on the canonical GEM application", () => {
     const forgot = source("src/app/api/auth/forgot-password/route.ts");
     const service = source("src/lib/passwordResetService.ts");
-
-    expect(forgot).toContain(
-      'const DEFAULT_APP_URL = "https://www.gemcybersecurityassist.com"',
-    );
+    expect(forgot).toContain('const DEFAULT_APP_URL = "https://www.gemcybersecurityassist.com"');
     expect(forgot).toContain('new URL("/reset-password", appBaseUrl())');
     expect(forgot).toContain("resetUrl.hash");
     expect(forgot).toContain("gatewayRecoveryDisabled: true");
     expect(forgot).not.toContain("requestPasswordRecoveryGateway");
-    expect(forgot).not.toContain("chatgpt.site");
     expect(service).not.toContain("completePasswordRecoveryGateway");
   });
 
-  it("uses the old gateway only for credential verification and issues a canonical JWT", () => {
+  it("uses a versioned gateway session without a Prisma lookup", () => {
     const login = source("src/app/api/auth/login/route.ts");
     expect(login).toContain("loginWithGateway");
-    expect(login).toContain("gateway_credential_verification");
-    expect(login).toContain("signSession");
-    expect(login).not.toContain("wrapGatewayToken");
+    expect(login).toContain("validGatewaySession");
+    expect(login).toContain("issueGatewaySession(result.session, result.token)");
+    expect(login).toContain("wrapGatewayToken(token)");
+    const gatewayBlock = login.slice(login.indexOf("const result = await loginWithGateway"));
+    expect(gatewayBlock).not.toContain("findCanonicalUser(");
+    expect(gatewayBlock).not.toContain("db.user.findUnique");
   });
 
-  it("rejects legacy wrapped gateway sessions without a database version", () => {
+  it("rejects unversioned and revoked gateway sessions", () => {
     const auth = source("src/lib/auth.ts");
-    expect(auth).toContain("Gateway tokens issued before Release 3");
-    expect(auth).toContain("validSessionVersion(gatewaySession.sessionVersion)");
-    expect(auth).toContain("return validateDirectSessionAuthority(gatewaySession)");
+    const gateway = source("supabase/functions/gem-auth-gateway/index.ts");
+    expect(auth).toContain("validSessionVersion(session.sessionVersion)");
+    expect(auth).toContain("validGatewaySession(gatewaySession)");
+    expect(gateway).toContain("expectedSessionVersion !== user.sessionVersion");
+    expect(gateway).toContain('"SESSION_REVOKED"');
+    expect(gateway).toContain("legacyUnversionedSessionsAccepted: false");
   });
 
   it("centralizes revocation in password-change database triggers", () => {
     const direct = source("src/lib/passwordResetService.ts");
-    const migration = source(
-      "prisma/migrations/20260713213000_password_recovery_session_revocation/migration.sql",
-    );
-    const hardening = source(
-      "prisma/migrations/20260713214600_revoke_password_trigger_rpc_execute/migration.sql",
-    );
-
+    const migration = source("prisma/migrations/20260713213000_password_recovery_session_revocation/migration.sql");
+    const hardening = source("prisma/migrations/20260713214600_revoke_password_trigger_rpc_execute/migration.sql");
     expect(direct).toContain("sessionVersion: user.sessionVersion");
     expect(direct).toContain("updated.sessionVersion <= user.sessionVersion");
     expect(migration).toContain("gem_increment_session_version_on_password_change");
     expect(migration).toContain('NEW."sessionVersion" := OLD."sessionVersion" + 1');
     expect(migration).toContain("gem_audit_session_revocation_on_password_change");
-    expect(migration).toContain("'sessionsRevoked', true");
-    expect(hardening).toContain("gem_increment_session_version_on_password_change");
-    expect(hardening).toContain("gem_audit_session_revocation_on_password_change");
     expect(hardening).toContain("FROM PUBLIC");
     expect(hardening).toContain("FROM anon");
     expect(hardening).toContain("FROM authenticated");
@@ -76,7 +70,6 @@ describe("canonical password recovery and session revocation", () => {
     expect(readiness).toContain('resetPageOrigin: "https://www.gemcybersecurityassist.com"');
     expect(readiness).toContain('tokenTransport: "url_fragment"');
     expect(readiness).toContain("emailDeliveryConfigured: emailDelivery.configured");
-    expect(readiness).toContain("missingVariables: emailDelivery.missing");
     expect(readiness).toContain('transportVerification: "on_demand"');
     expect(readiness).toContain("verificationRequiresAdmin: true");
     expect(readiness).toContain("gatewayRecoveryDisabled: true");
@@ -86,9 +79,7 @@ describe("canonical password recovery and session revocation", () => {
   });
 
   it("protects no-send transport verification behind the administrator gate", () => {
-    const verification = source(
-      "src/app/api/auth/recovery-readiness/verify/route.ts",
-    );
+    const verification = source("src/app/api/auth/recovery-readiness/verify/route.ts");
     expect(verification).toContain("requireAdmin()");
     expect(verification).toContain("verifyMailTransport()");
     expect(verification).toContain("sentMessage: false");

@@ -9,7 +9,7 @@ const resetHandlerSource = readFileSync("src/lib/passwordResetHandler.ts", "utf8
 const forgotPageSource = readFileSync("src/app/forgot-password/page.tsx", "utf8")
 const resetPageSource = readFileSync("src/app/reset-password/page.tsx", "utf8")
 
-describe("canonical password recovery and session authority", () => {
+ describe("canonical password recovery and session authority", () => {
   it("keeps password recovery inside the canonical application", () => {
     expect(routeSource).toContain("createPasswordResetToken")
     expect(routeSource).toContain("sendMail")
@@ -69,12 +69,19 @@ describe("canonical password recovery and session authority", () => {
     expect(resetPageSource).not.toContain("searchParams.get(\"token\")")
   })
 
-  it("uses the gateway only for credential verification and issues a canonical GEM session", () => {
+  it("uses the verified gateway session directly when direct database access is absent", () => {
     expect(loginRouteSource).toContain("loginWithGateway(email, password)")
-    expect(loginRouteSource).toContain("gateway_credential_verification")
-    expect(loginRouteSource).toContain("signSession(sessionPayload)")
-    expect(loginRouteSource).toContain("setSessionCookie(response, token)")
-    expect(loginRouteSource).not.toContain("wrapGatewayToken")
+    expect(loginRouteSource).toContain("wrapGatewayToken(result.token)")
+    expect(loginRouteSource).toContain("resolveAccessDestination(result.session)")
+
+    const gatewayStart = loginRouteSource.indexOf(
+      "const result = await loginWithGateway(email, password);",
+    )
+    const gatewayEnd = loginRouteSource.indexOf("} catch (error)", gatewayStart)
+    const gatewayBlock = loginRouteSource.slice(gatewayStart, gatewayEnd)
+    expect(gatewayBlock).not.toContain("findCanonicalUser")
+    expect(gatewayBlock).not.toContain("db.user")
+    expect(gatewayBlock).not.toContain("signSession")
     expect(gatewaySource).toContain("loginWithGateway")
   })
 })
