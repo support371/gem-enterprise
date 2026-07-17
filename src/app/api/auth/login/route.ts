@@ -15,6 +15,7 @@ import {
   GatewayRequestError,
   loginWithGateway,
   shouldUseSupabaseGateway,
+  wrapGatewayToken,
 } from "@/lib/supabase-gateway";
 
 const loginSchema = z.object({
@@ -165,16 +166,16 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await loginWithGateway(email, password);
-    const user = await findCanonicalUser(result.session.userId);
-    if (!user || user.email.toLowerCase() !== result.session.email.toLowerCase()) {
-      return NextResponse.json(INVALID_CREDENTIALS, { status: 401 });
-    }
-    return issueCanonicalSession(
-      user,
-      ipAddress,
-      userAgent,
-      "gateway_credential_verification",
+    const response = NextResponse.json(
+      {
+        success: true,
+        role: result.session.role,
+        kycStatus: result.session.kycStatus,
+        redirect: resolveAccessDestination(result.session),
+      },
+      { headers: { "Cache-Control": "no-store" } },
     );
+    return setSessionCookie(response, wrapGatewayToken(result.token));
   } catch (error) {
     if (error instanceof GatewayRequestError) {
       const status = [400, 401, 403, 429].includes(error.statusCode)
