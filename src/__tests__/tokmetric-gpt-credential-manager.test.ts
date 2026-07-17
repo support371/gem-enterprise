@@ -75,6 +75,8 @@ describe("TokMetric GPT credential manager", () => {
     expect(componentSource).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(componentSource).not.toContain("serviceRoleKey");
     expect(componentSource).not.toContain("localStorage");
+    expect(componentSource).not.toContain("sessionStorage");
+    expect(componentSource).not.toContain("indexedDB");
   });
 
   it("displays the bearer once and provides an explicit copy flow", () => {
@@ -82,6 +84,7 @@ describe("TokMetric GPT credential manager", () => {
     expect(componentSource).toContain("navigator.clipboard.writeText");
     expect(componentSource).toContain("This value disappears when the page reloads");
     expect(componentSource).toContain("Issue one-time bearer");
+    expect(componentSource).toContain("readOnly");
   });
 
   it("surfaces the manager in the consolidated Command Center", () => {
