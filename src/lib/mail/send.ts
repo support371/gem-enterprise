@@ -72,7 +72,7 @@ export function getMailDeliveryReadiness(): MailDeliveryReadiness {
 
   const transportSecurity = !portValid
     ? "invalid"
-    : process.env.SMTP_PORT === "465" || secureSetting === "true"
+    : port === 465 || secureSetting === "true"
       ? "implicit_tls"
       : "starttls";
 
@@ -104,12 +104,12 @@ function fromAddress() {
 }
 
 function createMailTransport() {
+  const port = smtpPort();
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST?.trim(),
-    port: smtpPort(),
+    port,
     secure:
-      process.env.SMTP_SECURE?.trim().toLowerCase() === "true" ||
-      process.env.SMTP_PORT === "465",
+      process.env.SMTP_SECURE?.trim().toLowerCase() === "true" || port === 465,
     auth: {
       user: process.env.SMTP_USER?.trim(),
       pass: process.env.SMTP_PASS,
