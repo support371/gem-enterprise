@@ -1,32 +1,46 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
+import { getGatewaySessionToken } from "@/lib/auth";
 import {
-  getGatewaySessionToken,
-  getSession,
-  type SessionPayload,
-} from "@/lib/auth";
-import { verifyGatewaySession } from "@/lib/supabase-gateway";
-import {
-  activeCredentialCount,
-  credentialById,
-  credentialRegistry,
-  credentialStore,
-  credentialView,
-  CredentialStoreError,
-  insertCredential,
-  MAX_ACTIVE_CREDENTIALS_PER_WORKSPACE,
-  productionWorkspace,
-  recordCredentialAudit,
-  requiredText,
-  revokeStoredCredential,
-  TOKMETRIC_PRODUCTION_WORKSPACE_ID,
-  verifiedSuperAdmin,
-  type JsonRecord,
-} from "@/lib/tokmetric/credential-store";
+  GatewayRequestError,
+  tokMetricCredentialStoreGateway,
+} from "@/lib/supabase-gateway";
 
-export { TOKMETRIC_PRODUCTION_WORKSPACE_ID };
+export const TOKMETRIC_PRODUCTION_WORKSPACE_ID =
+  "ws_60488340ded94dcfab3b875ef9ae591c";
 
 export type TokMetricCredentialAdminAction = "list" | "issue" | "revoke";
+type JsonRecord = Record<string, unknown>;
+
+type CredentialMetadata = {
+  id: string;
+  label: string;
+  status: string;
+  actorUserId: string;
+  workspaceId: string;
+  createdAt: string;
+  updatedAt: string;
+  expiresAt: string | null;
+  lastUsedAt: string | null;
+};
+
+type CredentialListResult = {
+  ok: true;
+  viewer: { id: string; role: string };
+  workspace: {
+    id: string;
+    name: string;
+    publishingDisabled: boolean;
+    advertisingDisabled: boolean;
+    shopWriteDisabled: boolean;
+  };
+  credentials: CredentialMetadata[];
+};
+
+type CredentialMutationResult = {
+  ok: true;
+  credential: CredentialMetadata;
+};
 
 function json(body: unknown, status = 200) {
   return NextResponse.json(body, {
@@ -39,28 +53,16 @@ function json(body: unknown, status = 200) {
   });
 }
 
-async function resolvedSession(): Promise<SessionPayload | null> {
-  const gatewayToken = await getGatewaySessionToken();
-  if (gatewayToken) {
-    try {
-      return await verifyGatewaySession(gatewayToken);
-    } catch {
-      return null;
-    }
-  }
-  return getSession();
-}
-
-async function requireSession() {
-  const session = await resolvedSession();
-  if (!session) {
-    throw new CredentialStoreError(
+async function requireGatewayToken() {
+  const token = await getGatewaySessionToken();
+  if (!token) {
+    throw new GatewayRequestError(
       401,
       "GEM_SESSION_REQUIRED",
       "Authentication required.",
     );
   }
-  return session;
+  return token;
 }
 
 function generateOneTimeValue() {
@@ -72,101 +74,30 @@ function digestOneTimeValue(value: string) {
 }
 
 async function listCredentials() {
-  const db = credentialStore();
-  const session = await requireSession();
-  const actor = await verifiedSuperAdmin(db, session.userId, session.role);
-  const [workspace, credentials] = await Promise.all([
-    productionWorkspace(db),
-    credentialRegistry(db),
-  ]);
-
-  return {
-    ok: true,
-    viewer: { id: actor.id, role: actor.role },
-    workspace,
-    credentials: credentials.map(credentialView),
-  };
+  const token = await requireGatewayToken();
+  return tokMetricCredentialStoreGateway<CredentialListResult>(
+    "list",
+    token,
+  );
 }
 
 async function issueCredential(payload: JsonRecord) {
-  const db = credentialStore();
-  const session = await requireSession();
-  const actor = await verifiedSuperAdmin(db, session.userId, session.role);
-  const confirmWorkspaceId = requiredText(
-    payload.confirmWorkspaceId,
-    "confirmWorkspaceId",
-    3,
-    200,
-  );
-  const label = requiredText(payload.label, "label", 3, 120);
-  const reason = requiredText(payload.reason, "reason", 10, 500);
-  const expiresInDays =
-    typeof payload.expiresInDays === "number" ? payload.expiresInDays : 90;
-
-  if (confirmWorkspaceId !== TOKMETRIC_PRODUCTION_WORKSPACE_ID) {
-    throw new CredentialStoreError(
-      400,
-      "WORKSPACE_CONFIRMATION_MISMATCH",
-      "Workspace confirmation does not match.",
-    );
-  }
-  if (
-    !Number.isInteger(expiresInDays) ||
-    expiresInDays < 1 ||
-    expiresInDays > 365
-  ) {
-    throw new CredentialStoreError(
-      400,
-      "INVALID_EXPIRY",
-      "Credential expiry must be between 1 and 365 days.",
-    );
-  }
-
-  const [workspace, activeCount] = await Promise.all([
-    productionWorkspace(db),
-    activeCredentialCount(db),
-  ]);
-  if (activeCount >= MAX_ACTIVE_CREDENTIALS_PER_WORKSPACE) {
-    throw new CredentialStoreError(
-      409,
-      "ACTIVE_CREDENTIAL_LIMIT_REACHED",
-      "Revoke an unused TokMetric GPT credential before issuing another.",
-    );
-  }
-
+  const token = await requireGatewayToken();
   const oneTimeValue = generateOneTimeValue();
-  const now = new Date();
-  const expiresAt = new Date(
-    now.getTime() + expiresInDays * 24 * 60 * 60 * 1000,
-  ).toISOString();
-  const credentialId = `gptcred_${randomUUID().replaceAll("-", "")}`;
-  const stored = await insertCredential(db, {
-    id: credentialId,
-    tokenHash: digestOneTimeValue(oneTimeValue),
-    actorId: actor.id,
-    label,
-    createdAt: now.toISOString(),
-    expiresAt,
-  });
-
-  await recordCredentialAudit(
-    db,
-    actor,
-    "tokmetric.gpt_credential.issued",
-    credentialId,
+  const result = await tokMetricCredentialStoreGateway<CredentialMutationResult>(
+    "issue_hash",
+    token,
     {
-      label,
-      reason,
-      expiresAt,
-      workspaceName: workspace.name,
-      plaintextStored: false,
-      oneTimeDisplay: true,
+      tokenHash: digestOneTimeValue(oneTimeValue),
+      label: payload.label,
+      reason: payload.reason,
+      expiresInDays: payload.expiresInDays,
+      confirmWorkspaceId: payload.confirmWorkspaceId,
     },
   );
 
   return {
-    ok: true,
-    credential: credentialView(stored),
+    ...result,
     bearer: oneTimeValue,
     oneTimeDisplay: true,
     warning:
@@ -175,57 +106,16 @@ async function issueCredential(payload: JsonRecord) {
 }
 
 async function revokeCredential(payload: JsonRecord) {
-  const db = credentialStore();
-  const session = await requireSession();
-  const actor = await verifiedSuperAdmin(db, session.userId, session.role);
-  const credentialId = requiredText(
-    payload.credentialId,
-    "credentialId",
-    3,
-    200,
+  const token = await requireGatewayToken();
+  return tokMetricCredentialStoreGateway<CredentialMutationResult>(
+    "revoke",
+    token,
+    {
+      credentialId: payload.credentialId,
+      confirmLabel: payload.confirmLabel,
+      reason: payload.reason,
+    },
   );
-  const confirmLabel = requiredText(
-    payload.confirmLabel,
-    "confirmLabel",
-    3,
-    120,
-  );
-  const reason = requiredText(payload.reason, "reason", 10, 500);
-
-  await productionWorkspace(db);
-  const existing = await credentialById(db, credentialId);
-  if (!existing) {
-    throw new CredentialStoreError(
-      404,
-      "CREDENTIAL_NOT_FOUND",
-      "Credential not found.",
-    );
-  }
-  if (existing.label !== confirmLabel) {
-    throw new CredentialStoreError(
-      400,
-      "CREDENTIAL_CONFIRMATION_MISMATCH",
-      "Credential label confirmation does not match.",
-    );
-  }
-  if (existing.status === "revoked") {
-    throw new CredentialStoreError(
-      409,
-      "CREDENTIAL_ALREADY_REVOKED",
-      "Credential is already revoked.",
-    );
-  }
-
-  const revoked = await revokeStoredCredential(db, credentialId);
-  await recordCredentialAudit(
-    db,
-    actor,
-    "tokmetric.gpt_credential.revoked",
-    credentialId,
-    { label: existing.label, reason },
-  );
-
-  return { ok: true, credential: credentialView(revoked) };
 }
 
 export async function invokeTokMetricCredentialAdmin(
@@ -242,8 +132,11 @@ export async function invokeTokMetricCredentialAdmin(
           : await revokeCredential(payload);
     return json(result, successStatus);
   } catch (error) {
-    if (error instanceof CredentialStoreError) {
-      return json({ error: error.message, code: error.code }, error.status);
+    if (error instanceof GatewayRequestError) {
+      return json(
+        { error: error.message, code: error.code },
+        error.statusCode,
+      );
     }
 
     console.error("[tokmetric credential admin] internal error", {
