@@ -3,9 +3,9 @@ import { z } from "zod";
 import { getRequestContext } from "@/lib/api/auth-helpers";
 import { rateLimit, rateLimitedResponse } from "@/lib/api/rate-limit";
 import {
-  GatewayRequestError,
+  AdminAccessGatewayError,
   setAdminPasswordWithAccessToken,
-} from "@/lib/supabase-gateway";
+} from "@/lib/admin-access-gateway";
 
 const schema = z
   .object({
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         "Administrator password set. The one-time link has been invalidated.",
     });
   } catch (error) {
-    if (error instanceof GatewayRequestError) {
+    if (error instanceof AdminAccessGatewayError) {
       const status = [400, 401, 403, 409, 429].includes(error.statusCode)
         ? error.statusCode
         : 503;
