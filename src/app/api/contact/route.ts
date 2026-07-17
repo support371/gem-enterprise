@@ -5,12 +5,30 @@ import { getSession } from "@/lib/auth";
 import { emitAuditLog } from "@/lib/audit";
 import { getRequestContext, badRequest } from "@/lib/api/auth-helpers";
 import { rateLimit, rateLimitedResponse } from "@/lib/api/rate-limit";
+import { submitContactGateway } from "@/lib/contact-gateway";
 import { sendMail } from "@/lib/mail/send";
+import {
+  GatewayRequestError,
+  shouldUseSupabaseGateway,
+} from "@/lib/supabase-gateway";
 
 const schema = z.object({
-  name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
-  email: z.string().trim().toLowerCase().email("Invalid email address").max(254),
-  message: z.string().trim().min(10, "Message must be at least 10 characters").max(5_000),
+  name: z
+    .string()
+    .trim()
+    .min(2, "Name must be at least 2 characters")
+    .max(120),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Invalid email address")
+    .max(254),
+  message: z
+    .string()
+    .trim()
+    .min(10, "Message must be at least 10 characters")
+    .max(5_000),
   subject: z.string().trim().max(200).optional(),
   website: z.string().optional(),
 });
@@ -34,7 +52,10 @@ export async function POST(req: NextRequest) {
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return badRequest("Validation failed", parsed.error.flatten().fieldErrors);
+    return badRequest(
+      "Validation failed",
+      parsed.error.flatten().fieldErrors,
+    );
   }
 
   const { name, email, message, subject, website } = parsed.data;
@@ -44,10 +65,61 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  const session = await getSession();
   const normalizedSubject = subject?.trim() || `Contact from ${name}`;
+
+  if (shouldUseSupabaseGateway()) {
+    try {
+      const result = await submitContactGateway({
+        name,
+        email,
+        message,
+        subject: normalizedSubject,
+        website,
+        ipAddress,
+        userAgent,
+      });
+      return NextResponse.json(
+        {
+          ok: true,
+          submissionId: result.submissionId ?? null,
+          ticketId: result.ticketId ?? null,
+          persistence: result.persistence ?? "supabase_gateway",
+          notificationDelivery: result.notificationDelivery ?? "not_configured",
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    } catch (error) {
+      if (error instanceof GatewayRequestError) {
+        const status = [400, 429].includes(error.statusCode)
+          ? error.statusCode
+          : 503;
+        return NextResponse.json(
+          {
+            ok: false,
+            error:
+              status === 429
+                ? "Too many contact requests. Please try again later."
+                : "Your message could not be stored. Please use the published support email.",
+            code: error.code,
+          },
+          { status, headers: { "Cache-Control": "no-store" } },
+        );
+      }
+      console.error("[contact] gateway persistence unavailable", error);
+      return NextResponse.json(
+        {
+          ok: false,
+          error:
+            "Your message could not be stored. Please use the published support email.",
+        },
+        { status: 503, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+  }
+
+  const session = await getSession();
   const baseNotes = [
-    `Website contact enquiry`,
+    "Website contact enquiry",
     `From: ${name} <${email}>`,
     `Authenticated: ${session ? `yes (${session.email})` : "no"}`,
     "",
@@ -86,7 +158,10 @@ export async function POST(req: NextRequest) {
         });
         ticketId = ticket.id;
       } catch (error) {
-        console.error("[contact] failed to create authenticated support ticket", error);
+        console.error(
+          "[contact] failed to create authenticated support ticket",
+          error,
+        );
       }
     }
 
@@ -154,7 +229,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Your message could not be stored. Please use the published support email.",
+        error:
+          "Your message could not be stored. Please use the published support email.",
       },
       { status: 503 },
     );

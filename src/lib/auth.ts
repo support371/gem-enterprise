@@ -1,12 +1,21 @@
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify, SignJWT } from "jose";
-import { unwrapGatewayToken, verifyGatewaySession } from "@/lib/supabase-gateway";
+import {
+  shouldUseSupabaseGateway,
+  unwrapGatewayToken,
+  verifyGatewaySession,
+} from "@/lib/supabase-gateway";
 
 export const SESSION_COOKIE = "gem_session";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 7;
 
-export type AuthRole = "client" | "analyst" | "admin" | "super_admin" | "internal";
+export type AuthRole =
+  | "client"
+  | "analyst"
+  | "admin"
+  | "super_admin"
+  | "internal";
 export type KYCStatus =
   | "not_started"
   | "started"
@@ -57,7 +66,9 @@ function secret() {
   if (process.env.NODE_ENV === "production") {
     throw new Error("JWT_SECRET must be configured with at least 32 characters");
   }
-  return new TextEncoder().encode("development-only-secret-change-before-production");
+  return new TextEncoder().encode(
+    "development-only-secret-change-before-production",
+  );
 }
 
 function validSessionVersion(value: unknown): value is number {
@@ -68,9 +79,21 @@ function validRole(value: unknown): value is AuthRole {
   return typeof value === "string" && AUTH_ROLES.includes(value as AuthRole);
 }
 
+function validGatewaySession(session: SessionPayload): boolean {
+  return (
+    Boolean(session.userId) &&
+    Boolean(session.email) &&
+    validRole(session.role) &&
+    validSessionVersion(session.sessionVersion) &&
+    session.authSource === "supabase_gateway"
+  );
+}
+
 export async function signSession(payload: IssuedSessionPayload) {
   if (!validSessionVersion(payload.sessionVersion)) {
-    throw new Error("A non-negative session version is required when issuing a session.");
+    throw new Error(
+      "A non-negative session version is required when issuing a session.",
+    );
   }
   return new SignJWT({ ...payload, authSource: "local" })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
@@ -82,7 +105,9 @@ export async function signSession(payload: IssuedSessionPayload) {
     .sign(secret());
 }
 
-export async function verifySession(token: string): Promise<SessionPayload | null> {
+export async function verifySession(
+  token: string,
+): Promise<SessionPayload | null> {
   try {
     const { payload } = await jwtVerify(token, secret(), {
       issuer: "gem-enterprise",
@@ -145,22 +170,22 @@ async function validateDirectSessionAuthority(
   }
 }
 
-async function resolveSessionToken(token: string): Promise<SessionPayload | null> {
+async function resolveSessionToken(
+  token: string,
+): Promise<SessionPayload | null> {
   const gatewayToken = unwrapGatewayToken(token);
   if (gatewayToken) {
     try {
       const gatewaySession = await verifyGatewaySession(gatewayToken);
-      // Gateway tokens issued before Release 3 have no account session version and
-      // are deliberately rejected. Users sign in again and receive a canonical GEM JWT.
-      if (!validSessionVersion(gatewaySession.sessionVersion)) return null;
-      return validateDirectSessionAuthority(gatewaySession);
+      return validGatewaySession(gatewaySession) ? gatewaySession : null;
     } catch {
       return null;
     }
   }
 
   const local = await verifySession(token);
-  return local ? validateDirectSessionAuthority(local) : null;
+  if (!local || shouldUseSupabaseGateway()) return null;
+  return validateDirectSessionAuthority(local);
 }
 
 export async function getSessionCookieValue(): Promise<string | null> {
@@ -195,7 +220,10 @@ export async function getSessionFromRequest(
   return token ? resolveSessionToken(token) : null;
 }
 
-export function setSessionCookie(response: NextResponse, token: string): NextResponse {
+export function setSessionCookie(
+  response: NextResponse,
+  token: string,
+): NextResponse {
   response.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -218,10 +246,16 @@ export function clearSessionCookie(response: NextResponse): NextResponse {
 }
 
 export function resolveAccessDestination(session: SessionPayload): string {
-  if (["admin", "super_admin", "internal"].includes(session.role)) return "/app/admin";
+  if (["admin", "super_admin", "internal"].includes(session.role)) {
+    return "/app/admin";
+  }
   if (session.role === "analyst") return "/review/verification";
   if (session.kycStatus === "not_started") return "/kyc/start";
-  if (["started", "in_progress", "documents_uploaded"].includes(session.kycStatus)) {
+  if (
+    ["started", "in_progress", "documents_uploaded"].includes(
+      session.kycStatus,
+    )
+  ) {
     return "/kyc/status";
   }
   if (session.kycStatus === "under_review") return "/decision/pending";
@@ -230,8 +264,12 @@ export function resolveAccessDestination(session: SessionPayload): string {
   }
   if (session.portfolioId) return `/app/portfolios/${session.portfolioId}`;
   if (session.entitlements.includes("cyber")) return "/app/products/cyber";
-  if (session.entitlements.includes("financial")) return "/app/products/financial";
-  if (session.entitlements.includes("real-estate")) return "/app/products/real-estate";
+  if (session.entitlements.includes("financial")) {
+    return "/app/products/financial";
+  }
+  if (session.entitlements.includes("real-estate")) {
+    return "/app/products/real-estate";
+  }
   return "/app/dashboard";
 }
 
@@ -239,7 +277,10 @@ export function resolveAuthState(session: SessionPayload | null): AuthState {
   return {
     isAuthenticated: Boolean(session),
     session,
-    isAdmin: Boolean(session && ["admin", "super_admin", "internal"].includes(session.role)),
+    isAdmin: Boolean(
+      session &&
+        ["admin", "super_admin", "internal"].includes(session.role),
+    ),
     isApproved: session?.kycStatus === "approved",
     kycStatus: session?.kycStatus ?? "not_started",
   };

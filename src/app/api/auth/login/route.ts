@@ -7,6 +7,7 @@ import {
   setSessionCookie,
   resolveAccessDestination,
   type IssuedSessionPayload,
+  type SessionPayload,
 } from "@/lib/auth";
 import { emitAuditLog } from "@/lib/audit";
 import { getRequestContext } from "@/lib/api/auth-helpers";
@@ -15,6 +16,7 @@ import {
   GatewayRequestError,
   loginWithGateway,
   shouldUseSupabaseGateway,
+  wrapGatewayToken,
 } from "@/lib/supabase-gateway";
 
 const loginSchema = z.object({
@@ -37,13 +39,16 @@ async function findCanonicalUser(userId: string) {
   });
 }
 
-function canonicalSessionPayload(user: NonNullable<CanonicalUser>): IssuedSessionPayload {
+function canonicalSessionPayload(
+  user: NonNullable<CanonicalUser>,
+): IssuedSessionPayload {
   const latestKyc = user.kycApplications[0] ?? null;
   return {
     userId: user.id,
     email: user.email,
     role: user.role as IssuedSessionPayload["role"],
-    kycStatus: (latestKyc?.status ?? "not_started") as IssuedSessionPayload["kycStatus"],
+    kycStatus: (latestKyc?.status ??
+      "not_started") as IssuedSessionPayload["kycStatus"],
     entitlements: user.entitlements.map((entitlement) => entitlement.slug),
     sessionVersion: user.sessionVersion,
     kycApplicationId: latestKyc?.id ?? undefined,
@@ -52,11 +57,19 @@ function canonicalSessionPayload(user: NonNullable<CanonicalUser>): IssuedSessio
   };
 }
 
+function validGatewaySession(session: SessionPayload): session is IssuedSessionPayload {
+  return (
+    Number.isSafeInteger(session.sessionVersion) &&
+    Number(session.sessionVersion) >= 0 &&
+    session.authSource === "supabase_gateway"
+  );
+}
+
 async function issueCanonicalSession(
   user: NonNullable<CanonicalUser>,
   ipAddress: string,
   userAgent: string,
-  source: "local_password" | "gateway_credential_verification",
+  source: "local_password",
 ) {
   if (!user.isActive || user.status === "suspended") {
     return NextResponse.json({ error: "Account suspended" }, { status: 403 });
@@ -64,7 +77,10 @@ async function issueCanonicalSession(
 
   const sessionPayload = canonicalSessionPayload(user);
   const token = await signSession(sessionPayload);
-  await db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+  await db.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date() },
+  });
   await emitAuditLog({
     userId: user.id,
     action: "login",
@@ -86,6 +102,19 @@ async function issueCanonicalSession(
     redirect: resolveAccessDestination(sessionPayload),
   });
   return setSessionCookie(response, token);
+}
+
+function issueGatewaySession(session: IssuedSessionPayload, token: string) {
+  const response = NextResponse.json(
+    {
+      success: true,
+      role: session.role,
+      kycStatus: session.kycStatus,
+      redirect: resolveAccessDestination(session),
+    },
+    { headers: { "Cache-Control": "no-store" } },
+  );
+  return setSessionCookie(response, wrapGatewayToken(token));
 }
 
 async function localLogin(
@@ -159,22 +188,25 @@ export async function POST(request: NextRequest) {
       return await localLogin(email, password, ipAddress, userAgent);
     } catch (error) {
       console.error("[POST /api/auth/login local]", error);
-      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 },
+      );
     }
   }
 
   try {
     const result = await loginWithGateway(email, password);
-    const user = await findCanonicalUser(result.session.userId);
-    if (!user || user.email.toLowerCase() !== result.session.email.toLowerCase()) {
-      return NextResponse.json(INVALID_CREDENTIALS, { status: 401 });
+    if (
+      !validGatewaySession(result.session) ||
+      result.session.email.toLowerCase() !== email.toLowerCase()
+    ) {
+      return NextResponse.json(INVALID_CREDENTIALS, {
+        status: 401,
+        headers: { "Cache-Control": "no-store" },
+      });
     }
-    return issueCanonicalSession(
-      user,
-      ipAddress,
-      userAgent,
-      "gateway_credential_verification",
-    );
+    return issueGatewaySession(result.session, result.token);
   } catch (error) {
     if (error instanceof GatewayRequestError) {
       const status = [400, 401, 403, 429].includes(error.statusCode)
@@ -188,7 +220,7 @@ export async function POST(request: NextRequest) {
         { status, headers: { "Cache-Control": "no-store" } },
       );
     }
-    console.error("[POST /api/auth/login gateway verification]", error);
+    console.error("[POST /api/auth/login gateway]", error);
     return NextResponse.json(
       { error: "Authentication service unavailable" },
       { status: 503, headers: { "Cache-Control": "no-store" } },
