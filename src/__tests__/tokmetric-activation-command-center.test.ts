@@ -7,21 +7,17 @@ function source(path: string) {
 }
 
 describe("TokMetric activation command center", () => {
-  it("retains the governed command gateway in production builds", () => {
+  it("retains the approved administrator gateway and TokMetric module", () => {
     const ignore = source(".vercelignore");
-    expect(ignore).toContain("!supabase/functions/gem-tokmetric-command-gateway/");
+    expect(ignore).toContain("!supabase/functions/gem-admin-write/");
+    expect(ignore).toContain("!supabase/functions/gem-admin-write/index.ts");
     expect(ignore).toContain(
-      "!supabase/functions/gem-tokmetric-command-gateway/index.ts",
-    );
-    expect(ignore).toContain(
-      "!supabase/functions/gem-tokmetric-command-gateway/deno.json",
+      "!supabase/functions/gem-admin-write/tokmetric-command.ts",
     );
   });
 
   it("requires a versioned GEM administrator session", () => {
-    const gateway = source(
-      "supabase/functions/gem-tokmetric-command-gateway/index.ts",
-    );
+    const gateway = source("supabase/functions/gem-admin-write/index.ts");
     expect(gateway).toContain("sessionVersion");
     expect(gateway).toContain('"SESSION_REVOKED"');
     expect(gateway).toContain('payload.iss !== "gem-auth-gateway"');
@@ -30,20 +26,19 @@ describe("TokMetric activation command center", () => {
   });
 
   it("keeps activation operations internal and fail closed", () => {
-    const gateway = source(
-      "supabase/functions/gem-tokmetric-command-gateway/index.ts",
+    const command = source(
+      "supabase/functions/gem-admin-write/tokmetric-command.ts",
     );
-    expect(gateway).toContain('controlledWriteMode: "COMMAND_CENTER_ONLY"');
-    expect(gateway).toContain("externalWritesAvailable: false");
-    expect(gateway).toContain("externalActionTaken: false");
-    expect(gateway).toContain('"LIVE_PUBLISHING_GATE_DISABLED"');
-    expect(gateway).not.toContain("PUBLISHED_CONFIRMED");
-    expect(gateway).not.toContain('fetch("https://open.tiktokapis.com');
+    expect(command).toContain('controlledWriteMode: "COMMAND_CENTER_ONLY"');
+    expect(command).toContain("externalActionTaken: false");
+    expect(command).toContain('"LIVE_PUBLISHING_GATE_DISABLED"');
+    expect(command).not.toContain("PUBLISHED_CONFIRMED");
+    expect(command).not.toContain("open.tiktokapis.com");
   });
 
   it("supports the complete controlled activation sequence", () => {
-    const gateway = source(
-      "supabase/functions/gem-tokmetric-command-gateway/index.ts",
+    const command = source(
+      "supabase/functions/gem-admin-write/tokmetric-command.ts",
     );
     for (const operation of [
       "snapshot",
@@ -54,8 +49,11 @@ describe("TokMetric activation command center", () => {
       "decide_approval",
       "publish_preflight",
     ]) {
-      expect(gateway).toContain(`operation === "${operation}"`);
+      expect(command).toContain(`operation === "${operation}"`);
     }
+    const gateway = source("supabase/functions/gem-admin-write/index.ts");
+    expect(gateway).toContain('action === "tokmetric_command"');
+    expect(gateway).toContain("dispatchTokMetricCommand");
   });
 
   it("proxies commands only through the HttpOnly GEM session", () => {
@@ -65,9 +63,27 @@ describe("TokMetric activation command center", () => {
     expect(route).toContain("GEM_SESSION_REQUIRED");
     expect(route).toContain("invokeTokMetricCommandGateway");
     expect(route).toContain('"Cache-Control": "no-store, max-age=0"');
-    expect(client).toContain('cache: "no-store"');
+    expect(client).toContain("adminWriteGateway");
+    expect(client).toContain('"tokmetric_command"');
+    expect(client).not.toContain("DEFAULT_COMMAND_GATEWAY_URL");
+    expect(client).not.toContain("GEM_SUPABASE_GATEWAY_ANON_KEY");
     expect(route).not.toContain("POSTGRES_PRISMA_URL");
     expect(route).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
+  });
+
+  it("preserves existing administrator, retention, and credential actions", () => {
+    const gateway = source("supabase/functions/gem-admin-write/index.ts");
+    for (const action of [
+      "update_user",
+      "retention_policy_list",
+      "retention_policy_create",
+      "retention_policy_action",
+      "tokmetric_credential_list",
+      "tokmetric_credential_issue_hash",
+      "tokmetric_credential_revoke",
+    ]) {
+      expect(gateway).toContain(`action === "${action}"`);
+    }
   });
 
   it("exposes real operator controls in the protected command center", () => {
