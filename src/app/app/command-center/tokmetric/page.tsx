@@ -17,6 +17,7 @@ import {
   Video,
 } from "lucide-react";
 import { TokMetricConnectorPanel } from "@/components/tokmetric/TokMetricConnectorPanel";
+import { TokMetricGptCredentialManager } from "@/components/tokmetric/TokMetricGptCredentialManager";
 
 export const metadata: Metadata = {
   title: "TikTok Operations | GEM Enterprise Command Center",
@@ -84,7 +85,7 @@ const modules = [
 const controlState = [
   ["Native GEM Enterprise module", "READY"],
   ["Custom GPT Action contracts", "READY"],
-  ["Bearer-protected GPT operations", "CONFIGURATION_REQUIRED"],
+  ["Bearer credential management", "READY"],
   ["TikTok OAuth authorization", "AUTHORIZATION_REQUIRED"],
   ["Human approval enforcement", "ENABLED"],
   ["Live publishing", "LOCKED"],
@@ -194,6 +195,8 @@ export default function TokMetricCommandCenterPage() {
           </div>
         </article>
       </section>
+
+      <TokMetricGptCredentialManager />
     </div>
   );
 }
