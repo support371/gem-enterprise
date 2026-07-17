@@ -6,9 +6,14 @@ supabase/*
 !supabase/migrations/
 
 supabase/functions/*
+!supabase/functions/gem-auth-gateway/
 !supabase/functions/gem-admin-write/
 !supabase/functions/gem-tokmetric-gpt-gateway/
 !supabase/functions/gem-tokmetric-agent-gateway/
+
+supabase/functions/gem-auth-gateway/*
+!supabase/functions/gem-auth-gateway/index.ts
+!supabase/functions/gem-auth-gateway/deno.json
 
 supabase/functions/gem-admin-write/*
 !supabase/functions/gem-admin-write/index.ts
