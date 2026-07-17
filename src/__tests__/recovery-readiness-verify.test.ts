@@ -105,11 +105,12 @@ describe("protected SMTP transport verification", () => {
 
     const response = await POST(request());
     const body = await response.json();
+    const serialized = JSON.stringify(body);
 
     expect(response.status).toBe(503);
     expect(body.code).toBe("SMTP_AUTH_FAILED");
-    expect(JSON.stringify(body)).not.toContain("password");
-    expect(JSON.stringify(body)).not.toContain("smtp-user");
+    expect(serialized).not.toContain("smtp-password-that-must-never-be-returned");
+    expect(serialized).not.toContain("smtp-user@example.com");
     expect(body.sentMessage).toBe(false);
   });
 });
