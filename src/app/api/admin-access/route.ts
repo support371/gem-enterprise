@@ -3,9 +3,13 @@ import { z } from "zod";
 import { getRequestContext } from "@/lib/api/auth-helpers";
 import { rateLimit, rateLimitedResponse } from "@/lib/api/rate-limit";
 import {
-  AdminAccessGatewayError,
+  AdminAccessValidationError,
+  validateAdminAccessToken,
+} from "@/lib/admin-access-token-validation";
+import {
+  GatewayRequestError,
   setAdminPasswordWithAccessToken,
-} from "@/lib/admin-access-gateway";
+} from "@/lib/supabase-gateway";
 
 const schema = z
   .object({
@@ -59,6 +63,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const authorization = await validateAdminAccessToken(parsed.data.accessToken);
+    if (!authorization.valid || !authorization.requestId) {
+      throw new GatewayRequestError(
+        400,
+        "INVALID_TOKEN",
+        "Invalid or expired setup capability.",
+      );
+    }
+
     const result = await setAdminPasswordWithAccessToken<{
       ok: boolean;
       email: string;
@@ -73,7 +86,23 @@ export async function POST(request: NextRequest) {
         "Administrator password set. The one-time link has been invalidated.",
     });
   } catch (error) {
-    if (error instanceof AdminAccessGatewayError) {
+    if (error instanceof AdminAccessValidationError) {
+      const status = [400, 401, 403, 409, 429].includes(error.statusCode)
+        ? error.statusCode
+        : 503;
+      return json(
+        {
+          error:
+            error.code === "INVALID_TOKEN"
+              ? "This setup link is invalid or expired."
+              : error.message,
+          code: error.code,
+        },
+        status,
+      );
+    }
+
+    if (error instanceof GatewayRequestError) {
       const status = [400, 401, 403, 409, 429].includes(error.statusCode)
         ? error.statusCode
         : 503;
