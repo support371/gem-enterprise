@@ -9,9 +9,8 @@ const adminSource = readFileSync(
   "src/lib/tokmetric/credential-admin-route.ts",
   "utf8",
 );
-const gatewaySource = readFileSync("src/lib/supabase-gateway.ts", "utf8");
-const storeGatewaySource = readFileSync(
-  "supabase/functions/gem-tokmetric-credential-store/index.ts",
+const adminGatewaySource = readFileSync(
+  "supabase/functions/gem-admin-write/index.ts",
   "utf8",
 );
 const componentSource = readFileSync(
@@ -28,11 +27,11 @@ describe("TokMetric GPT credential manager", () => {
   it("requires a signed GEM session and active super administrator", () => {
     expect(adminSource).toContain("getGatewaySessionToken");
     expect(adminSource).toContain("GEM_SESSION_REQUIRED");
-    expect(storeGatewaySource).toContain("requireSuperAdmin");
-    expect(storeGatewaySource).toContain('user.role !== "super_admin"');
-    expect(storeGatewaySource).toContain("SUPER_ADMIN_REQUIRED");
-    expect(storeGatewaySource).toContain('payload.iss !== "gem-auth-gateway"');
-    expect(storeGatewaySource).toContain('payload.aud !== "gem-enterprise"');
+    expect(adminGatewaySource).toContain("requireAdmin");
+    expect(adminGatewaySource).toContain("requireSuperAdmin");
+    expect(adminGatewaySource).toContain("SUPER_ADMIN_REQUIRED");
+    expect(adminGatewaySource).toContain('payload.iss !== "gem-auth-gateway"');
+    expect(adminGatewaySource).toContain('payload.aud !== "gem-enterprise"');
   });
 
   it("generates the readable value only in GEM and sends only its digest", () => {
@@ -40,41 +39,50 @@ describe("TokMetric GPT credential manager", () => {
     expect(adminSource).toContain("tokmetric_gpt_");
     expect(adminSource).toContain('createHash("sha256")');
     expect(adminSource).toContain("digestOneTimeValue(oneTimeValue)");
-    expect(adminSource).toContain('"issue_hash"');
+    expect(adminSource).toContain("tokmetric_credential_issue_hash");
     expect(adminSource).toContain("tokenHash: digestOneTimeValue(oneTimeValue)");
-    expect(storeGatewaySource).toContain("requiredDigest");
-    expect(storeGatewaySource).toContain("token_hash: tokenHash");
-    expect(storeGatewaySource).not.toContain("randomBytes(48)");
-    expect(storeGatewaySource).not.toContain("oneTimeValue");
+    expect(adminGatewaySource).toContain("requiredDigest");
+    expect(adminGatewaySource).toContain("token_hash: tokenHash");
+    expect(adminGatewaySource).not.toContain("randomBytes(48)");
+    expect(adminGatewaySource).not.toContain("oneTimeValue");
   });
 
-  it("never returns a digest or readable value from the store registry", () => {
-    const viewStart = storeGatewaySource.indexOf("function credentialView");
-    const viewEnd = storeGatewaySource.indexOf("async function requireWorkspace");
-    const credentialView = storeGatewaySource.slice(viewStart, viewEnd);
+  it("never returns a digest or readable value from registry views", () => {
+    const viewStart = adminGatewaySource.indexOf("function credentialView");
+    const viewEnd = adminGatewaySource.indexOf(
+      "async function requireTokMetricWorkspace",
+    );
+    const credentialView = adminGatewaySource.slice(viewStart, viewEnd);
     expect(credentialView).not.toContain("token_hash");
     expect(credentialView).not.toContain("tokenHash");
     expect(credentialView).not.toContain("bearer");
   });
 
-  it("uses the centralized Supabase invocation key location", () => {
-    expect(gatewaySource).toContain("tokMetricCredentialStoreGateway");
-    expect(gatewaySource).toContain('"gem-tokmetric-credential-store"');
-    expect(adminSource).toContain("tokMetricCredentialStoreGateway");
+  it("uses the existing centralized administrator gateway", () => {
+    expect(adminSource).toContain("adminWriteGateway");
+    expect(adminSource).toContain("tokmetric_credential_list");
+    expect(adminSource).toContain("tokmetric_credential_issue_hash");
+    expect(adminSource).toContain("tokmetric_credential_revoke");
     expect(adminSource).not.toContain("DEFAULT_GATEWAY_ANON_KEY");
     expect(adminSource).not.toContain("sb_publishable_");
   });
 
-  it("binds all store operations to the canonical workspace", () => {
-    expect(storeGatewaySource).toContain(
-      'const WORKSPACE_ID = "ws_60488340ded94dcfab3b875ef9ae591c"',
+  it("preserves existing administrator and retention actions", () => {
+    expect(adminGatewaySource).toContain('action === "update_user"');
+    expect(adminGatewaySource).toContain('action === "retention_policy_list"');
+    expect(adminGatewaySource).toContain('action === "retention_policy_create"');
+    expect(adminGatewaySource).toContain('action === "retention_policy_action"');
+  });
+
+  it("binds all credential operations to the canonical workspace", () => {
+    expect(adminGatewaySource).toContain(
+      'const TOKMETRIC_WORKSPACE_ID = "ws_60488340ded94dcfab3b875ef9ae591c"',
     );
-    expect(storeGatewaySource).toContain("actor_user_id: actor.id");
-    expect(storeGatewaySource).toContain("workspace_id: WORKSPACE_ID");
-    expect(storeGatewaySource).toContain("WORKSPACE_CONFIRMATION_MISMATCH");
-    expect(adminSource).toContain(
-      '"ws_60488340ded94dcfab3b875ef9ae591c"',
+    expect(adminGatewaySource).toContain("actor_user_id: actor.id");
+    expect(adminGatewaySource).toContain(
+      "workspace_id: TOKMETRIC_WORKSPACE_ID",
     );
+    expect(adminGatewaySource).toContain("WORKSPACE_CONFIRMATION_MISMATCH");
   });
 
   it("derives the client workspace from the authorized registry response", () => {
@@ -87,12 +95,12 @@ describe("TokMetric GPT credential manager", () => {
   });
 
   it("limits issuance and supports confirmed, audited revocation", () => {
-    expect(storeGatewaySource).toContain("MAX_ACTIVE_CREDENTIALS");
-    expect(storeGatewaySource).toContain("ACTIVE_CREDENTIAL_LIMIT_REACHED");
-    expect(storeGatewaySource).toContain("CREDENTIAL_CONFIRMATION_MISMATCH");
-    expect(storeGatewaySource).toContain("tokmetric.gpt_credential.issued");
-    expect(storeGatewaySource).toContain("tokmetric.gpt_credential.revoked");
-    expect(storeGatewaySource).toContain('sourceChannel: "command_center"');
+    expect(adminGatewaySource).toContain("MAX_ACTIVE_TOKMETRIC_CREDENTIALS");
+    expect(adminGatewaySource).toContain("ACTIVE_CREDENTIAL_LIMIT_REACHED");
+    expect(adminGatewaySource).toContain("CREDENTIAL_CONFIRMATION_MISMATCH");
+    expect(adminGatewaySource).toContain("tokmetric.gpt_credential.issued");
+    expect(adminGatewaySource).toContain("tokmetric.gpt_credential.revoked");
+    expect(adminGatewaySource).toContain('sourceChannel: "command_center"');
   });
 
   it("uses a controlled revocation dialog and prevents duplicate requests", () => {
@@ -119,7 +127,7 @@ describe("TokMetric GPT credential manager", () => {
     expect(adminSource).not.toContain("SUPABASE_URL");
     expect(adminSource).not.toContain("/rest/v1");
     expect(componentSource).not.toContain("SUPABASE_SERVICE_ROLE_KEY");
-    expect(storeGatewaySource).toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(adminGatewaySource).toContain("SUPABASE_SERVICE_ROLE_KEY");
   });
 
   it("never persists the readable value in browser storage", () => {
@@ -141,12 +149,12 @@ describe("TokMetric GPT credential manager", () => {
     expect(pageSource).toContain("Bearer credential management");
   });
 
-  it("retains the store gateway source during Vercel verification", () => {
+  it("retains the extended admin gateway source during verification", () => {
     expect(vercelIgnoreSource).toContain(
-      "!supabase/functions/gem-tokmetric-credential-store/",
+      "!supabase/functions/gem-admin-write/",
     );
     expect(vercelIgnoreSource).toContain(
-      "!supabase/functions/gem-tokmetric-credential-store/index.ts",
+      "!supabase/functions/gem-admin-write/index.ts",
     );
   });
 });
