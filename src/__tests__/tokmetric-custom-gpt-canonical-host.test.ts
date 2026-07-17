@@ -35,6 +35,13 @@ describe("TokMetric Custom GPT canonical production contract", () => {
     expect(schema).not.toContain("/functions/gptCreatePublishJob:");
   });
 
+  it("uses direct object request bodies accepted by the GPT Actions editor", () => {
+    expect(schema).not.toContain("$ref:");
+    expect(schema).not.toContain("allOf:");
+    expect(schema.match(/requestBody:/g)?.length).toBe(11);
+    expect(schema.match(/schema:\n\s+type: object/g)?.length).toBe(11);
+  });
+
   it("preserves the controlled-launch safety assertions", () => {
     expect(schema).toContain("externalActionTaken=false");
     expect(schema).toContain("authenticated GEM");
