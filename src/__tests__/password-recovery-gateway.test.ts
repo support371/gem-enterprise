@@ -69,12 +69,12 @@ describe("canonical password recovery and session authority", () => {
     expect(resetPageSource).not.toContain("searchParams.get(\"token\")")
   })
 
-  it("uses the gateway only for credential verification and issues a canonical GEM session", () => {
+  it("validates and preserves gateway-issued session authority", () => {
     expect(loginRouteSource).toContain("loginWithGateway(email, password)")
-    expect(loginRouteSource).toContain("gateway_credential_verification")
-    expect(loginRouteSource).toContain("signSession(sessionPayload)")
-    expect(loginRouteSource).toContain("setSessionCookie(response, token)")
-    expect(loginRouteSource).not.toContain("wrapGatewayToken")
-    expect(gatewaySource).toContain("loginWithGateway")
+    expect(loginRouteSource).toContain("validGatewaySession(result.session)")
+    expect(loginRouteSource).toContain('session.authSource === "supabase_gateway"')
+    expect(loginRouteSource).toContain("setSessionCookie(response, wrapGatewayToken(token))")
+    expect(gatewaySource).toContain("wrapGatewayToken")
+    expect(gatewaySource).toContain("verifyGatewaySession")
   })
 })
