@@ -13,6 +13,7 @@ const decoder = new TextDecoder();
 const ORIGIN = "https://www.gemcybersecurityassist.com";
 const ALLOWED_ROLES = new Set(["analyst", "admin"]);
 const ISSUER_ROLES = new Set(["super_admin", "internal"]);
+const SHA256_PATTERN = /^[0-9a-f]{64}$/;
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": ORIGIN,
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -121,17 +122,68 @@ function normalizeName(value: unknown) {
   return name || null;
 }
 
-async function audit(userId: string, action: string, resourceId: string, metadata: Record<string, unknown>) {
+function requireTokenHash(value: unknown) {
+  const tokenHash = typeof value === "string" ? value.toLowerCase() : "";
+  if (!SHA256_PATTERN.test(tokenHash)) {
+    throw new InvitationError(400, "INVALID_INVITATION", "Invitation capability is invalid");
+  }
+  return tokenHash;
+}
+
+async function audit(userId: string, operation: string, resourceId: string, metadata: Record<string, unknown>) {
   const { error } = await db.from("audit_logs").insert({
     id: crypto.randomUUID(),
     userId,
-    action,
+    action: "admin_action",
     resource: "operator_invitation",
     resourceId,
-    metadata,
+    metadata: { operation, ...metadata },
     createdAt: new Date().toISOString(),
   });
   if (error) console.error("operator invitation audit", error.message);
+}
+
+async function publicStatus(body: Record<string, unknown>) {
+  const tokenHash = requireTokenHash(body.tokenHash);
+  const { data, error } = await db.rpc("gem_operator_invitation_status", {
+    p_token_hash: tokenHash,
+  });
+  if (error) throw new InvitationError(503, "INVITATION_STATUS_FAILED", "Invitation status is unavailable");
+  const row = Array.isArray(data) ? data[0] : null;
+  return {
+    valid: row?.valid === true,
+    maskedEmail: row?.masked_email ?? null,
+    role: row?.invited_role ?? null,
+    expiresAt: row?.expires_at ?? null,
+  };
+}
+
+async function publicAccept(body: Record<string, unknown>) {
+  const tokenHash = requireTokenHash(body.tokenHash);
+  const passwordHash = typeof body.passwordHash === "string" ? body.passwordHash : "";
+  if (passwordHash.length < 50 || !passwordHash.startsWith("$2")) {
+    throw new InvitationError(400, "INVALID_PASSWORD_HASH", "Password setup is invalid");
+  }
+  const firstName = normalizeName(body.firstName);
+  const lastName = normalizeName(body.lastName);
+  const { data, error } = await db.rpc("gem_consume_operator_invitation", {
+    p_token_hash: tokenHash,
+    p_password_hash: passwordHash,
+    p_first_name: firstName,
+    p_last_name: lastName,
+  });
+  if (error) throw new InvitationError(503, "INVITATION_ACCEPT_FAILED", "Operator account could not be created");
+  const row = Array.isArray(data) ? data[0] : null;
+  if (!row?.ok || !row.user_id || !row.email || !row.role) {
+    throw new InvitationError(400, "INVALID_OR_EXPIRED_INVITATION", "This invitation is invalid, expired, revoked, or already used");
+  }
+  return {
+    ok: true,
+    userId: row.user_id,
+    email: row.email,
+    role: row.role,
+    credentialsExposed: false,
+  };
 }
 
 async function issue(user: any, body: Record<string, unknown>) {
@@ -181,7 +233,7 @@ async function issue(user: any, body: Record<string, unknown>) {
       metadata: {
         delivery: "administrator_secure_channel",
         tokenStoredInPlaintext: false,
-        invitationVersion: "1.0.0",
+        invitationVersion: "1.1.0",
       },
     })
     .select("id,email,role,first_name,last_name,expires_at,created_at")
@@ -276,8 +328,9 @@ Deno.serve(async (req) => {
     return json({
       ok: true,
       service: "gem-operator-invitations",
-      version: "1.0.0",
+      version: "1.1.0",
       plaintextTokensStored: false,
+      directAnonymousRpcAccess: false,
       allowedRoles: Array.from(ALLOWED_ROLES),
     });
   }
@@ -285,8 +338,11 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json() as Record<string, unknown>;
-    const user = await requireIssuer(body.token);
     const action = typeof body.action === "string" ? body.action : "";
+    if (action === "status") return json(await publicStatus(body));
+    if (action === "accept") return json(await publicAccept(body));
+
+    const user = await requireIssuer(body.token);
     if (action === "issue") return json(await issue(user, body), 201);
     if (action === "list") return json(await listInvitations(user));
     if (action === "revoke") return json(await revoke(user, body));
