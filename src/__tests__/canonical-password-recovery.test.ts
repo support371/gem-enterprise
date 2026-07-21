@@ -30,11 +30,15 @@ describe("canonical password recovery and session revocation", () => {
     expect(login).not.toContain("wrapGatewayToken");
   });
 
-  it("rejects legacy wrapped gateway sessions without a database version", () => {
+  it("accepts only versioned wrapped gateway sessions and revalidates them through the gateway", () => {
     const auth = source("src/lib/auth.ts");
-    expect(auth).toContain("Gateway tokens issued before Release 3");
-    expect(auth).toContain("validSessionVersion(gatewaySession.sessionVersion)");
-    expect(auth).toContain("return validateDirectSessionAuthority(gatewaySession)");
+    expect(auth).toContain("unwrapGatewayToken(token)");
+    expect(auth).toContain("verifyGatewaySession(gatewayToken)");
+    expect(auth).toContain("validSessionVersion(session.sessionVersion)");
+    expect(auth).toContain(
+      "return validGatewaySession(gatewaySession) ? gatewaySession : null;",
+    );
+    expect(auth).not.toContain("Gateway tokens issued before Release 3");
   });
 
   it("centralizes revocation in password-change database triggers", () => {
