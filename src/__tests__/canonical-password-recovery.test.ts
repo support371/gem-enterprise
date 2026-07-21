@@ -22,12 +22,15 @@ describe("canonical password recovery and session revocation", () => {
     expect(service).not.toContain("completePasswordRecoveryGateway");
   });
 
-  it("uses the old gateway only for credential verification and issues a canonical JWT", () => {
+  it("uses the versioned gateway as the authoritative production login session", () => {
     const login = source("src/app/api/auth/login/route.ts");
     expect(login).toContain("loginWithGateway");
-    expect(login).toContain("gateway_credential_verification");
-    expect(login).toContain("signSession");
-    expect(login).not.toContain("wrapGatewayToken");
+    expect(login).toContain("validGatewaySession(result.session)");
+    expect(login).toContain(
+      "issueGatewaySession(result.session, result.token)",
+    );
+    expect(login).toContain("wrapGatewayToken(token)");
+    expect(login).not.toContain("gateway_credential_verification");
   });
 
   it("accepts only versioned wrapped gateway sessions and revalidates them through the gateway", () => {
