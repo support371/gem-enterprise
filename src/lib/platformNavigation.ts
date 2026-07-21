@@ -145,6 +145,12 @@ export const clientPortalNavGroups: PlatformNavGroup[] = [
         description: "Unified security, compliance, revenue, client, and AI operating view.",
       },
       {
+        href: "/app/command-center/capital-readiness",
+        icon: "Briefcase",
+        label: "Capital Readiness",
+        description: "Opportunity, KYB, readiness, licensed-partner, diligence, closing, and post-close controls.",
+      },
+      {
         href: "/app/command-center/executive",
         icon: "Activity",
         label: "Executive",
