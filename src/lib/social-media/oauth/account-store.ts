@@ -90,7 +90,7 @@ export async function persistDiscoveredSocialConnectors(input: {
             ${connectorId},
             ${input.workspaceId},
             ${input.provider},
-            'CONNECTED',
+            ${lifecycle.connectorState},
             ${account.displayName},
             ${account.externalAccountId},
             ${account.externalAccountId},
@@ -102,7 +102,7 @@ export async function persistDiscoveredSocialConnectors(input: {
           )
           ON CONFLICT (workspace_id, provider, external_account_key)
           DO UPDATE SET
-            state = 'CONNECTED',
+            state = EXCLUDED.state,
             display_name = EXCLUDED.display_name,
             external_account_id = EXCLUDED.external_account_id,
             granted_scopes = EXCLUDED.granted_scopes,
