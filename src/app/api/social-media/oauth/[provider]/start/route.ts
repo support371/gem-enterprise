@@ -105,7 +105,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
         externalActionTaken: false,
       },
     });
-    return NextResponse.redirect(authorizationUrl);
+
+    const response = NextResponse.redirect(authorizationUrl);
+    response.headers.set("Cache-Control", "no-store, max-age=0");
+    response.headers.set("Pragma", "no-cache");
+    return response;
   } catch (error) {
     return tokMetricErrorResponse(error, cid);
   }
