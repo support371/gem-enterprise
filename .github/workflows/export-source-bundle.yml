@@ -6,6 +6,11 @@ on:
       - main
     paths:
       - .github/workflows/export-source-bundle.yml
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/export-source-bundle.yml
   workflow_dispatch:
 
 permissions:
