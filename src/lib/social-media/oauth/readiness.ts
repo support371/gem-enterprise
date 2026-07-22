@@ -4,7 +4,7 @@ import {
   type SocialOAuthProvider,
 } from "./config";
 
-export const SOCIAL_AUTHORIZATION_FOUNDATION_VERSION = "2026-07-22.1" as const;
+export const SOCIAL_AUTHORIZATION_FOUNDATION_VERSION = "2026-07-22.2" as const;
 
 export interface SafeSocialOAuthReadiness {
   provider: SocialOAuthProvider;
