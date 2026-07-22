@@ -124,6 +124,22 @@ const nextConfig = {
   typescript: {
     tsconfigPath: './tsconfig.json',
   },
+
+  // Facebook Automation Cron Jobs
+  crons: [
+    {
+      path: '/api/facebook/jobs/process-queue',
+      schedule: '*/5 * * * *', // Every 5 minutes
+    },
+    {
+      path: '/api/facebook/jobs/refresh-analytics',
+      schedule: '0 8 * * *', // Daily at 8 AM ET
+    },
+    {
+      path: '/api/facebook/jobs/generate-content',
+      schedule: '0 6 * * *', // Daily at 6 AM ET
+    },
+  ],
 };
 
 module.exports = nextConfig;
