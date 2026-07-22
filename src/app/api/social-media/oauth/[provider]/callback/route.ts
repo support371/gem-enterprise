@@ -3,6 +3,7 @@ import { verifySession, type SessionPayload } from "@/lib/auth";
 import {
   correlationId,
   emitTokMetricAudit,
+  enforceEmergencyLocks,
   requireWorkspaceAccess,
   TokMetricError,
   tokMetricErrorResponse,
@@ -84,6 +85,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     actorId = state.actorId;
     const session = await sessionFromStateActor(request, state.actorId);
     await requireWorkspaceAccess(state.workspaceId, session);
+    await enforceEmergencyLocks(state.workspaceId, "connector");
     const consumed = await consumeSocialOAuthAuthorizationAttempt(state);
 
     const { config, missing, ok } = validateSocialOAuthProviderConfig(provider);
