@@ -2,9 +2,10 @@ import {
   socialOAuthProviders,
   validateSocialOAuthProviderConfig,
   type SocialOAuthProvider,
+  type SocialOAuthRefreshMode,
 } from "./config";
 
-export const SOCIAL_AUTHORIZATION_FOUNDATION_VERSION = "2026-07-22.2" as const;
+export const SOCIAL_AUTHORIZATION_FOUNDATION_VERSION = "2026-07-22.3" as const;
 
 export interface SafeSocialOAuthReadiness {
   provider: SocialOAuthProvider;
@@ -13,6 +14,8 @@ export interface SafeSocialOAuthReadiness {
   missing: string[];
   requestedScopes: string[];
   pkce: boolean;
+  accountDiscovery: "PROVIDER_VERIFIED";
+  refreshMode: SocialOAuthRefreshMode;
   authorizationFoundationVersion: typeof SOCIAL_AUTHORIZATION_FOUNDATION_VERSION;
   credentialStoragePolicy: "ENCRYPTED_SERVER_ONLY";
   authorizationStatePolicy: "SIGNED_SINGLE_USE";
@@ -29,6 +32,8 @@ export function getSafeSocialOAuthReadiness(): SafeSocialOAuthReadiness[] {
       missing,
       requestedScopes: config.scopes,
       pkce: config.usePkce,
+      accountDiscovery: "PROVIDER_VERIFIED",
+      refreshMode: config.refreshMode,
       authorizationFoundationVersion: SOCIAL_AUTHORIZATION_FOUNDATION_VERSION,
       credentialStoragePolicy: "ENCRYPTED_SERVER_ONLY",
       authorizationStatePolicy: "SIGNED_SINGLE_USE",
