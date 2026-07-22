@@ -24,15 +24,34 @@ const querySchema = z.object({
   redirectAfter: z.string().trim().max(500).optional(),
 });
 
+function requireTrustedNavigation(request: NextRequest) {
+  if (request.headers.get("sec-fetch-site") === "cross-site") {
+    throw new TokMetricError(
+      403,
+      "CROSS_SITE_AUTHORIZATION_BLOCKED",
+      "Social account authorization must start from the GEM Command Center.",
+    );
+  }
+}
+
 type RouteContext = { params: Promise<{ provider: string }> };
 
 export async function GET(request: NextRequest, context: RouteContext) {
   const cid = correlationId(request);
   try {
+    requireTrustedNavigation(request);
     const session = await requireTokMetricSession(request);
     const { provider: rawProvider } = await context.params;
     const provider = parseSocialOAuthProvider(rawProvider);
-    const params = querySchema.parse(Object.fromEntries(request.nextUrl.searchParams));
+    const parsed = querySchema.safeParse(Object.fromEntries(request.nextUrl.searchParams));
+    if (!parsed.success) {
+      throw new TokMetricError(
+        400,
+        "VALIDATION_ERROR",
+        "workspaceId and a valid local redirect target are required.",
+      );
+    }
+    const params = parsed.data;
     const membership = await requireWorkspaceAccess(params.workspaceId, session);
     requirePermission(membership, "manage", "connectors");
     await enforceEmergencyLocks(params.workspaceId, "connector");
