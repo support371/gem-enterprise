@@ -80,7 +80,13 @@ export function buildLocalHealthEvidence(input: {
   );
 
   let state: SocialConnectorHealthState = expiryState;
-  if (!requiredScopesPresent || !input.externalAccountVisible) state = "DEGRADED";
+  const terminalCredentialState = expiryState === "EXPIRED" || expiryState === "ERROR";
+  if (
+    !terminalCredentialState &&
+    (!requiredScopesPresent || !input.externalAccountVisible)
+  ) {
+    state = "DEGRADED";
+  }
 
   return {
     provider: input.provider,
