@@ -48,7 +48,11 @@ export async function DELETE(request: NextRequest) {
   const cid = correlationId(request);
   try {
     const session = await requireTokMetricSession(request);
-    const body = await parseJson(request, disconnectSchema);
+    const parsed = await parseJson(request, disconnectSchema);
+    const body = {
+      workspaceId: parsed.workspaceId!,
+      connectorId: parsed.connectorId!,
+    };
     const membership = await requireWorkspaceAccess(body.workspaceId, session);
     requirePermission(membership, "manage", "connectors");
     const result = await disconnectSocialConnector(body);
