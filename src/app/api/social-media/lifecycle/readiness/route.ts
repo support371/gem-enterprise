@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import {
   correlationId,
   requireTokMetricSession,
   requireWorkspaceAccess,
+  TokMetricError,
   tokMetricErrorResponse,
 } from "@/lib/tokmetric/security";
 import { socialOAuthProviders } from "@/lib/social-media/oauth/config";
@@ -11,24 +13,19 @@ import {
 } from "@/lib/social-media/oauth/lifecycle";
 import { listRegisteredSocialLifecycleProviders } from "@/lib/social-media/oauth/lifecycle-registry";
 
+const querySchema = z.object({
+  workspaceId: z.string().trim().min(1),
+});
+
 export async function GET(request: NextRequest) {
   const cid = correlationId(request);
   try {
     const session = await requireTokMetricSession(request);
-    const workspaceId = request.nextUrl.searchParams.get("workspaceId")?.trim();
-    if (!workspaceId) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "workspaceId is required",
-            correlationId: cid,
-          },
-        },
-        { status: 400, headers: { "Cache-Control": "no-store" } },
-      );
+    const parsed = querySchema.safeParse(Object.fromEntries(request.nextUrl.searchParams));
+    if (!parsed.success) {
+      throw new TokMetricError(400, "VALIDATION_ERROR", "workspaceId is required.");
     }
+    const { workspaceId } = parsed.data;
 
     await requireWorkspaceAccess(workspaceId, session);
     const registeredProviders = listRegisteredSocialLifecycleProviders();
@@ -53,6 +50,8 @@ export async function GET(request: NextRequest) {
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
-    return tokMetricErrorResponse(error, cid);
+    const response = tokMetricErrorResponse(error, cid);
+    response.headers.set("Cache-Control", "no-store");
+    return response;
   }
 }
