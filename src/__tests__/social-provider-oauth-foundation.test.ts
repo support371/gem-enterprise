@@ -215,7 +215,7 @@ describe("cross-platform social OAuth foundation", () => {
     expect(panel).toContain("Authorize another account");
     expect(panel).toContain("Authorize account");
     expect(panel).toContain("Delete stored authorization");
-    expect(panel).toContain("does not enable");
+    expect(panel).toContain("do not enable publishing");
     expect(panel).not.toContain("Publish now");
   });
 });
