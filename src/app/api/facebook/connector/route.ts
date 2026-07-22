@@ -75,7 +75,10 @@ export async function POST(request: NextRequest) {
 
     const authorizationUrl = new URL("/api/social-media/oauth/META/start", request.url);
     authorizationUrl.searchParams.set("workspaceId", workspaceId);
-    authorizationUrl.searchParams.set("redirectAfter", "/facebook/operations");
+    authorizationUrl.searchParams.set(
+      "redirectAfter",
+      `/facebook/operations?workspace=${encodeURIComponent(workspaceId)}`,
+    );
 
     return NextResponse.json(
       {
