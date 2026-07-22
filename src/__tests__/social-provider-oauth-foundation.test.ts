@@ -121,7 +121,7 @@ describe("cross-platform social OAuth foundation", () => {
     expect(decryptSocialCredential<typeof credential>(encrypted)).toEqual(credential);
   });
 
-  it("creates additive durable tables without enabling publishing", () => {
+  it("creates additive durable tables with RLS and no publishing capability", () => {
     const migration = source(
       "prisma/migrations/20260722013500_social_provider_oauth_foundation/migration.sql",
     );
@@ -129,6 +129,16 @@ describe("cross-platform social OAuth foundation", () => {
     expect(migration).toContain('CREATE TABLE "social_connector_credentials"');
     expect(migration).toContain('CREATE TABLE "social_oauth_authorization_attempts"');
     expect(migration).toContain("social_oauth_redirect_after_check");
+    expect(migration).toContain('ALTER TABLE "social_connectors" ENABLE ROW LEVEL SECURITY');
+    expect(migration).toContain(
+      'ALTER TABLE "social_connector_credentials" ENABLE ROW LEVEL SECURITY',
+    );
+    expect(migration).toContain(
+      'ALTER TABLE "social_oauth_authorization_attempts" ENABLE ROW LEVEL SECURITY',
+    );
+    expect(migration).toContain(
+      'REVOKE ALL PRIVILEGES ON TABLE "social_connector_credentials" FROM PUBLIC',
+    );
     expect(migration).not.toContain("publish_enabled");
     expect(migration).not.toContain("external_write_allowed");
   });
@@ -141,6 +151,7 @@ describe("cross-platform social OAuth foundation", () => {
     expect(start).toContain('requirePermission(membership, "manage", "connectors")');
     expect(start).toContain('enforceEmergencyLocks(params.workspaceId, "connector")');
     expect(start).toContain("createSocialOAuthAuthorizationAttempt");
+    expect(callback).toContain("getSessionFromRequest(request)");
     expect(callback).toContain("session.userId !== actorId");
     expect(callback).toContain('enforceEmergencyLocks(state.workspaceId, "connector")');
     expect(callback).toContain("consumeSocialOAuthAuthorizationAttempt");
