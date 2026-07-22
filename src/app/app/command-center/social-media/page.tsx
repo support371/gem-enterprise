@@ -70,8 +70,9 @@ export default function SocialMediaCommandCenterPage() {
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-400">
               One governed surface for TikTok, Facebook Pages, Instagram professional accounts, X,
-              Nextdoor, Indeed Employer, LinkedIn Company Pages, and YouTube. Configuration readiness,
-              platform approval, account authorization, and publishing permission remain separate controls.
+              Nextdoor, Indeed Employer, LinkedIn Company Pages, and YouTube. Configuration readiness
+              does not authorize publishing; platform approval, account authorization, and publishing
+              permission remain separate controls.
             </p>
           </div>
 
