@@ -10,6 +10,7 @@ interface ConnectorCredentialRow extends SocialConnectorRecord {
   secretRef: string;
   credentialExpiresAt: Date | null;
   credentialRefreshExpiresAt: Date | null;
+  credentialRotatedAt: Date | null;
 }
 
 function isMissingStore(error: unknown) {
@@ -53,7 +54,8 @@ export async function loadSocialConnectorCredential(input: {
         connector.updated_at AS "updatedAt",
         credential.secret_ref AS "secretRef",
         credential.expires_at AS "credentialExpiresAt",
-        credential.refresh_expires_at AS "credentialRefreshExpiresAt"
+        credential.refresh_expires_at AS "credentialRefreshExpiresAt",
+        credential.rotated_at AS "credentialRotatedAt"
       FROM social_connectors connector
       INNER JOIN social_connector_credentials credential
         ON credential.connector_id = connector.id
@@ -96,6 +98,7 @@ export async function loadSocialConnectorCredential(input: {
         updatedAt: row.updatedAt,
       } satisfies SocialConnectorRecord,
       credential,
+      credentialRotatedAt: row.credentialRotatedAt?.toISOString() || null,
     };
   } catch (error) {
     if (error instanceof TokMetricError) throw error;
@@ -108,8 +111,10 @@ export async function recordSocialConnectorLifecycle(input: {
   connectorId: string;
   lifecycle: SocialCredentialLifecycleResult;
   credential?: StoredSocialCredential;
+  expectedCredentialRotatedAt?: string | null;
   refreshAttempted: boolean;
   refreshSucceeded: boolean;
+  concurrentRotationObserved?: boolean;
 }) {
   const now = new Date();
   const metadata = {
@@ -121,6 +126,7 @@ export async function recordSocialConnectorLifecycle(input: {
     lastCredentialHealthAt: now.toISOString(),
     tokenRefreshAttempted: input.refreshAttempted,
     tokenRefreshSucceeded: input.refreshSucceeded,
+    concurrentRotationObserved: Boolean(input.concurrentRotationObserved),
     providerProbePerformed: false,
     externalPublishingEnabled: false,
   };
@@ -134,6 +140,9 @@ export async function recordSocialConnectorLifecycle(input: {
           : null;
         const refreshExpiresAt = input.credential.refreshExpiresAt
           ? new Date(input.credential.refreshExpiresAt)
+          : null;
+        const expectedRotatedAt = input.expectedCredentialRotatedAt
+          ? new Date(input.expectedCredentialRotatedAt)
           : null;
         const updatedCredentials = await transaction.$executeRaw(Prisma.sql`
           UPDATE social_connector_credentials credential
@@ -149,12 +158,13 @@ export async function recordSocialConnectorLifecycle(input: {
             AND connector.id = ${input.connectorId}
             AND connector.workspace_id = ${input.workspaceId}
             AND connector.disabled_at IS NULL
+            AND credential.rotated_at IS NOT DISTINCT FROM ${expectedRotatedAt}
         `);
         if (updatedCredentials !== 1) {
           throw new TokMetricError(
-            404,
-            "SOCIAL_CONNECTOR_CREDENTIAL_NOT_FOUND",
-            "Active social connector authorization was not found.",
+            409,
+            "SOCIAL_CREDENTIAL_ROTATION_CONFLICT",
+            "The connector credential changed during token rotation. Reload the connector before retrying.",
           );
         }
       }
