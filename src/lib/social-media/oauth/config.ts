@@ -112,6 +112,7 @@ export function getSocialOAuthProviderConfig(
         include_granted_scopes: "true",
         prompt: "consent",
       },
+      platformAccessEnv: "YOUTUBE_DATA_API_AUDIT_APPROVED",
     },
     NEXTDOOR: {
       provider: "NEXTDOOR",
