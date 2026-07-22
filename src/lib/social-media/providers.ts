@@ -13,6 +13,7 @@ export type SocialMediaProviderId = (typeof socialMediaProviderIds)[number];
 
 export type SocialMediaReadinessState =
   | "CONFIGURATION_REQUIRED"
+  | "PLATFORM_APPROVAL_REQUIRED"
   | "AUTHORIZATION_REQUIRED"
   | "HIRING_WORKFLOW_ONLY";
 
@@ -24,6 +25,7 @@ export interface SocialMediaProviderDefinition {
   supportedContent: readonly string[];
   enableEnv: string;
   requiredEnv: readonly string[];
+  approvalEnv?: string;
   liveGateEnv?: string;
   restrictions: readonly string[];
 }
@@ -38,6 +40,8 @@ export interface SocialMediaProviderReadiness {
   state: SocialMediaReadinessState;
   configurationEnabled: boolean;
   configurationReady: boolean;
+  platformApprovalRequired: boolean;
+  platformApprovalGranted: boolean;
   liveGateEnabled: boolean;
   missingConfiguration: string[];
   externalWriteAllowed: false;
@@ -45,7 +49,7 @@ export interface SocialMediaProviderReadiness {
 
 const sharedTokenEncryptionVariable = "SOCIAL_TOKEN_ENCRYPTION_KEY";
 
-export const socialMediaProviderDefinitions = [
+export const socialMediaProviderDefinitions: readonly SocialMediaProviderDefinition[] = [
   {
     id: "TIKTOK",
     label: "TikTok",
@@ -73,13 +77,19 @@ export const socialMediaProviderDefinitions = [
     supportedContent: ["TEXT", "IMAGE", "VIDEO", "LINK"],
     enableEnv: "META_SOCIAL_OAUTH_ENABLED",
     requiredEnv: [
+      "META_GRAPH_API_VERSION",
       "META_APP_ID",
       "META_APP_SECRET",
+      "META_SOCIAL_SCOPES",
       "META_OAUTH_REDIRECT_URI",
       sharedTokenEncryptionVariable,
     ],
+    approvalEnv: "META_APP_REVIEW_APPROVED",
     liveGateEnv: "META_SOCIAL_PUBLISHING_ENABLED",
-    restrictions: ["Personal-profile automation is not supported.", "A connected Facebook Page is required."],
+    restrictions: [
+      "Personal-profile automation is not supported.",
+      "A connected Facebook Page and approved permissions are required.",
+    ],
   },
   {
     id: "INSTAGRAM_PROFESSIONAL",
@@ -89,11 +99,14 @@ export const socialMediaProviderDefinitions = [
     supportedContent: ["REEL", "IMAGE", "CAROUSEL"],
     enableEnv: "META_SOCIAL_OAUTH_ENABLED",
     requiredEnv: [
+      "META_GRAPH_API_VERSION",
       "META_APP_ID",
       "META_APP_SECRET",
+      "META_SOCIAL_SCOPES",
       "META_OAUTH_REDIRECT_URI",
       sharedTokenEncryptionVariable,
     ],
+    approvalEnv: "META_APP_REVIEW_APPROVED",
     liveGateEnv: "META_SOCIAL_PUBLISHING_ENABLED",
     restrictions: [
       "A professional Instagram account is required.",
@@ -107,7 +120,13 @@ export const socialMediaProviderDefinitions = [
     connectionMode: "OAUTH",
     supportedContent: ["TEXT", "IMAGE", "VIDEO", "THREAD"],
     enableEnv: "X_SOCIAL_OAUTH_ENABLED",
-    requiredEnv: ["X_CLIENT_ID", "X_CLIENT_SECRET", "X_OAUTH_REDIRECT_URI", sharedTokenEncryptionVariable],
+    requiredEnv: [
+      "X_CLIENT_ID",
+      "X_CLIENT_SECRET",
+      "X_SOCIAL_SCOPES",
+      "X_OAUTH_REDIRECT_URI",
+      sharedTokenEncryptionVariable,
+    ],
     liveGateEnv: "X_SOCIAL_PUBLISHING_ENABLED",
     restrictions: ["Only approved company-account publishing is permitted."],
   },
@@ -121,13 +140,15 @@ export const socialMediaProviderDefinitions = [
     requiredEnv: [
       "NEXTDOOR_CLIENT_ID",
       "NEXTDOOR_CLIENT_SECRET",
+      "NEXTDOOR_SOCIAL_SCOPES",
       "NEXTDOOR_OAUTH_REDIRECT_URI",
       sharedTokenEncryptionVariable,
     ],
+    approvalEnv: "NEXTDOOR_PUBLISH_API_ACCESS_APPROVED",
     liveGateEnv: "NEXTDOOR_PUBLISHING_ENABLED",
     restrictions: [
       "Content must be locally relevant.",
-      "Publishing requires a verified and authorized Nextdoor identity or business page.",
+      "Publishing requires approved Publish API access and an authorized Nextdoor identity or business page.",
     ],
   },
   {
@@ -154,11 +175,17 @@ export const socialMediaProviderDefinitions = [
     requiredEnv: [
       "LINKEDIN_CLIENT_ID",
       "LINKEDIN_CLIENT_SECRET",
+      "LINKEDIN_SOCIAL_SCOPES",
+      "LINKEDIN_API_VERSION",
       "LINKEDIN_OAUTH_REDIRECT_URI",
       sharedTokenEncryptionVariable,
     ],
+    approvalEnv: "LINKEDIN_COMMUNITY_MANAGEMENT_ACCESS_APPROVED",
     liveGateEnv: "LINKEDIN_SOCIAL_PUBLISHING_ENABLED",
-    restrictions: ["Publishing is limited to an authorized company organization."],
+    restrictions: [
+      "Publishing is limited to an authorized company organization.",
+      "Community Management API access and organization role checks are required.",
+    ],
   },
   {
     id: "YOUTUBE",
@@ -170,13 +197,18 @@ export const socialMediaProviderDefinitions = [
     requiredEnv: [
       "GOOGLE_SOCIAL_CLIENT_ID",
       "GOOGLE_SOCIAL_CLIENT_SECRET",
+      "YOUTUBE_SOCIAL_SCOPES",
       "YOUTUBE_OAUTH_REDIRECT_URI",
       sharedTokenEncryptionVariable,
     ],
+    approvalEnv: "YOUTUBE_DATA_API_AUDIT_APPROVED",
     liveGateEnv: "YOUTUBE_PUBLISHING_ENABLED",
-    restrictions: ["A connected YouTube Brand Account or authorized channel is required."],
+    restrictions: [
+      "A connected YouTube Brand Account or authorized channel is required.",
+      "Public uploads require the applicable Google project verification or audit.",
+    ],
   },
-] as const satisfies readonly SocialMediaProviderDefinition[];
+];
 
 function enabled(env: NodeJS.ProcessEnv, name: string) {
   return env[name] === "true";
@@ -193,9 +225,17 @@ export function getSocialMediaProviderReadiness(
     const missingConfiguration = missingVariables(env, provider.requiredEnv);
     const configurationEnabled = enabled(env, provider.enableEnv);
     const configurationReady = configurationEnabled && missingConfiguration.length === 0;
+    const platformApprovalRequired = Boolean(provider.approvalEnv);
+    const platformApprovalGranted = !provider.approvalEnv || enabled(env, provider.approvalEnv);
     const liveGateEnabled =
       enabled(env, "SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED") &&
+      platformApprovalGranted &&
       (!provider.liveGateEnv || enabled(env, provider.liveGateEnv));
+
+    let state: SocialMediaReadinessState = "CONFIGURATION_REQUIRED";
+    if (configurationReady && !platformApprovalGranted) state = "PLATFORM_APPROVAL_REQUIRED";
+    else if (configurationReady && provider.id === "INDEED_EMPLOYER") state = "HIRING_WORKFLOW_ONLY";
+    else if (configurationReady) state = "AUTHORIZATION_REQUIRED";
 
     return {
       id: provider.id,
@@ -204,14 +244,11 @@ export function getSocialMediaProviderReadiness(
       connectionMode: provider.connectionMode,
       supportedContent: provider.supportedContent,
       restrictions: provider.restrictions,
-      state:
-        provider.id === "INDEED_EMPLOYER" && configurationReady
-          ? "HIRING_WORKFLOW_ONLY"
-          : configurationReady
-            ? "AUTHORIZATION_REQUIRED"
-            : "CONFIGURATION_REQUIRED",
+      state,
       configurationEnabled,
       configurationReady,
+      platformApprovalRequired,
+      platformApprovalGranted,
       liveGateEnabled,
       missingConfiguration,
       externalWriteAllowed: false,

@@ -11,27 +11,22 @@ import {
   Megaphone,
   ShieldCheck,
 } from "lucide-react";
-import { getSocialMediaProviderReadiness } from "@/lib/social-media/providers";
+import { SocialConnectorPanel } from "@/components/social-media/SocialConnectorPanel";
+import { getSafeSocialOAuthReadiness } from "@/lib/social-media/oauth/readiness";
+import {
+  getSocialMediaProviderReadiness,
+  type SocialMediaReadinessState,
+} from "@/lib/social-media/providers";
 
 export const metadata: Metadata = {
   title: "Social Media Operations | GEM Enterprise Command Center",
   description:
-    "Fail-closed readiness and publishing controls for GEM social media and employer channels.",
+    "Fail-closed readiness, account authorization, and publishing controls for GEM social media and employer channels.",
 };
 
-function StatusBadge({
-  configured,
-  liveGateEnabled,
-}: {
-  configured: boolean;
-  liveGateEnabled: boolean;
-}) {
-  const label = configured
-    ? liveGateEnabled
-      ? "Authorization required"
-      : "Live gate locked"
-    : "Configuration required";
-
+function StatusBadge({ state }: { state: SocialMediaReadinessState }) {
+  const configured = state !== "CONFIGURATION_REQUIRED";
+  const label = state.replaceAll("_", " ");
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] ${
@@ -48,7 +43,11 @@ function StatusBadge({
 
 export default function SocialMediaCommandCenterPage() {
   const providers = getSocialMediaProviderReadiness();
+  const oauthProviders = getSafeSocialOAuthReadiness();
   const configuredCount = providers.filter((provider) => provider.configurationReady).length;
+  const approvalCount = providers.filter(
+    (provider) => provider.platformApprovalRequired && provider.platformApprovalGranted,
+  ).length;
   const lockedCount = providers.filter((provider) => !provider.externalWriteAllowed).length;
 
   return (
@@ -67,13 +66,13 @@ export default function SocialMediaCommandCenterPage() {
               </span>
             </div>
             <h1 className="text-2xl font-bold text-white sm:text-3xl">
-              Cross-platform content and publishing readiness
+              Cross-platform content, authorization, and publishing readiness
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-400">
               One governed surface for TikTok, Facebook Pages, Instagram professional accounts, X,
               Nextdoor, Indeed Employer, LinkedIn Company Pages, and YouTube. Configuration readiness
-              does not authorize publishing; OAuth, connector health, compliance, exact-version approval,
-              idempotency, and live gates must still pass.
+              does not authorize publishing; platform approval, account authorization, and publishing
+              permission remain separate controls.
             </p>
           </div>
 
@@ -82,17 +81,17 @@ export default function SocialMediaCommandCenterPage() {
               <AlertTriangle className="h-4 w-4" />
               External writes remain locked
             </div>
-            The readiness registry never exposes secret values and never treats environment configuration
-            alone as permission to publish.
+            OAuth can store an approved account credential, but it cannot publish without connector health,
+            channel policy, compliance, exact-version approval, idempotency, and both live gates.
           </div>
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-4">
         <article className="rounded-2xl border border-white/10 bg-card/75 p-5">
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Channels</div>
           <div className="mt-3 text-3xl font-bold text-white">{providers.length}</div>
-          <p className="mt-2 text-sm text-slate-400">Registered governed destinations</p>
+          <p className="mt-2 text-sm text-slate-400">Registered destinations</p>
         </article>
         <article className="rounded-2xl border border-white/10 bg-card/75 p-5">
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Configured</div>
@@ -100,11 +99,18 @@ export default function SocialMediaCommandCenterPage() {
           <p className="mt-2 text-sm text-slate-400">Environment configuration complete</p>
         </article>
         <article className="rounded-2xl border border-white/10 bg-card/75 p-5">
+          <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Approvals</div>
+          <div className="mt-3 text-3xl font-bold text-white">{approvalCount}</div>
+          <p className="mt-2 text-sm text-slate-400">Recorded platform approvals</p>
+        </article>
+        <article className="rounded-2xl border border-white/10 bg-card/75 p-5">
           <div className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Write locks</div>
           <div className="mt-3 text-3xl font-bold text-white">{lockedCount}</div>
           <p className="mt-2 text-sm text-slate-400">Providers blocked from external writes</p>
         </article>
       </section>
+
+      <SocialConnectorPanel providers={oauthProviders} />
 
       <section className="grid gap-4 lg:grid-cols-2">
         {providers.map((provider) => (
@@ -121,10 +127,7 @@ export default function SocialMediaCommandCenterPage() {
                 </div>
                 <p className="mt-2 text-sm leading-6 text-slate-400">{provider.purpose}</p>
               </div>
-              <StatusBadge
-                configured={provider.configurationReady}
-                liveGateEnabled={provider.liveGateEnabled}
-              />
+              <StatusBadge state={provider.state} />
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2">
@@ -146,6 +149,12 @@ export default function SocialMediaCommandCenterPage() {
                 </div>
               ))}
             </div>
+
+            {provider.platformApprovalRequired ? (
+              <div className="mt-4 rounded-xl border border-amber-500/15 bg-amber-500/[0.05] p-3 text-xs text-amber-100/80">
+                Platform approval: {provider.platformApprovalGranted ? "recorded" : "required before live activation"}
+              </div>
+            ) : null}
 
             {provider.missingConfiguration.length > 0 ? (
               <div className="mt-4 rounded-xl border border-rose-500/15 bg-rose-500/[0.05] p-3">
@@ -170,8 +179,8 @@ export default function SocialMediaCommandCenterPage() {
           <div>
             <h2 className="font-semibold text-white">Existing TikTok operating module</h2>
             <p className="mt-1 text-sm text-slate-400">
-              Continue TikTok OAuth, approvals, publishing preflight, analytics, and audit work through
-              the established TokMetric command center.
+              TikTok OAuth, approvals, publishing preflight, analytics, and audit remain inside the
+              established TokMetric command center.
             </p>
           </div>
           <Link
