@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { TokMetricError } from "@/lib/tokmetric/security";
@@ -5,6 +6,8 @@ import { decryptSocialCredential, encryptSocialCredential } from "./crypto";
 import { parseSocialOAuthProvider } from "./config";
 import type { SocialCredentialLifecycleResult } from "./lifecycle";
 import type { SocialConnectorRecord, StoredSocialCredential } from "./store";
+
+const REFRESH_CLAIM_TTL_MS = 45_000;
 
 interface ConnectorCredentialRow extends SocialConnectorRecord {
   secretRef: string;
@@ -106,12 +109,87 @@ export async function loadSocialConnectorCredential(input: {
   }
 }
 
+export async function claimSocialConnectorCredentialRefresh(input: {
+  workspaceId: string;
+  connectorId: string;
+  expectedCredentialRotatedAt: string | null;
+}) {
+  const claimId = randomUUID();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + REFRESH_CLAIM_TTL_MS);
+  const expectedRotatedAt = input.expectedCredentialRotatedAt
+    ? new Date(input.expectedCredentialRotatedAt)
+    : null;
+  const claimMetadata = JSON.stringify({
+    tokenRefreshClaimId: claimId,
+    tokenRefreshClaimedAt: now.toISOString(),
+    tokenRefreshClaimExpiresAt: expiresAt.toISOString(),
+  });
+
+  try {
+    const rows = await db.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      UPDATE social_connectors connector
+      SET
+        safe_metadata = connector.safe_metadata || CAST(${claimMetadata} AS jsonb),
+        updated_at = ${now}
+      FROM social_connector_credentials credential
+      WHERE connector.id = ${input.connectorId}
+        AND connector.workspace_id = ${input.workspaceId}
+        AND connector.disabled_at IS NULL
+        AND credential.connector_id = connector.id
+        AND credential.reference_type = 'oauth:production'
+        AND credential.rotated_at IS NOT DISTINCT FROM ${expectedRotatedAt}
+        AND (
+          connector.safe_metadata->>'tokenRefreshClaimId' IS NULL
+          OR connector.safe_metadata->>'tokenRefreshClaimExpiresAt' IS NULL
+          OR (connector.safe_metadata->>'tokenRefreshClaimExpiresAt')::timestamptz <= ${now}
+        )
+      RETURNING connector.id
+    `);
+    if (!rows[0]) {
+      throw new TokMetricError(
+        409,
+        "SOCIAL_CREDENTIAL_REFRESH_IN_PROGRESS",
+        "The connector credential is already being refreshed or changed. Reload before retrying.",
+      );
+    }
+    return { claimId, expiresAt: expiresAt.toISOString() };
+  } catch (error) {
+    if (error instanceof TokMetricError) throw error;
+    return storeUnavailable(error);
+  }
+}
+
+export async function releaseSocialConnectorCredentialRefreshClaim(input: {
+  workspaceId: string;
+  connectorId: string;
+  claimId: string;
+}) {
+  try {
+    await db.$executeRaw(Prisma.sql`
+      UPDATE social_connectors
+      SET
+        safe_metadata = safe_metadata
+          - 'tokenRefreshClaimId'
+          - 'tokenRefreshClaimedAt'
+          - 'tokenRefreshClaimExpiresAt',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${input.connectorId}
+        AND workspace_id = ${input.workspaceId}
+        AND safe_metadata->>'tokenRefreshClaimId' = ${input.claimId}
+    `);
+  } catch (error) {
+    return storeUnavailable(error);
+  }
+}
+
 export async function recordSocialConnectorLifecycle(input: {
   workspaceId: string;
   connectorId: string;
   lifecycle: SocialCredentialLifecycleResult;
   credential?: StoredSocialCredential;
   expectedCredentialRotatedAt?: string | null;
+  refreshClaimId?: string;
   refreshAttempted: boolean;
   refreshSucceeded: boolean;
   concurrentRotationObserved?: boolean;
@@ -130,6 +208,7 @@ export async function recordSocialConnectorLifecycle(input: {
     providerProbePerformed: false,
     externalPublishingEnabled: false,
   };
+  const metadataJson = JSON.stringify(metadata);
 
   try {
     return await db.$transaction(async (transaction) => {
@@ -169,35 +248,70 @@ export async function recordSocialConnectorLifecycle(input: {
         }
       }
 
-      const rows = await transaction.$queryRaw<SocialConnectorRecord[]>(Prisma.sql`
-        UPDATE social_connectors
-        SET
-          state = ${input.lifecycle.connectorState},
-          safe_metadata = safe_metadata || CAST(${JSON.stringify(metadata)} AS jsonb),
-          last_health_at = ${now},
-          updated_at = ${now}
-        WHERE id = ${input.connectorId}
-          AND workspace_id = ${input.workspaceId}
-          AND disabled_at IS NULL
-        RETURNING
-          id,
-          workspace_id AS "workspaceId",
-          provider,
-          state,
-          display_name AS "displayName",
-          external_account_id AS "externalAccountId",
-          granted_scopes AS "grantedScopes",
-          safe_metadata AS "safeMetadata",
-          last_health_at AS "lastHealthAt",
-          disabled_at AS "disabledAt",
-          created_at AS "createdAt",
-          updated_at AS "updatedAt"
-      `);
+      const rows = input.refreshClaimId
+        ? await transaction.$queryRaw<SocialConnectorRecord[]>(Prisma.sql`
+            UPDATE social_connectors
+            SET
+              state = ${input.lifecycle.connectorState},
+              safe_metadata = (
+                safe_metadata
+                  - 'tokenRefreshClaimId'
+                  - 'tokenRefreshClaimedAt'
+                  - 'tokenRefreshClaimExpiresAt'
+              ) || CAST(${metadataJson} AS jsonb),
+              last_health_at = ${now},
+              updated_at = ${now}
+            WHERE id = ${input.connectorId}
+              AND workspace_id = ${input.workspaceId}
+              AND disabled_at IS NULL
+              AND safe_metadata->>'tokenRefreshClaimId' = ${input.refreshClaimId}
+            RETURNING
+              id,
+              workspace_id AS "workspaceId",
+              provider,
+              state,
+              display_name AS "displayName",
+              external_account_id AS "externalAccountId",
+              granted_scopes AS "grantedScopes",
+              safe_metadata AS "safeMetadata",
+              last_health_at AS "lastHealthAt",
+              disabled_at AS "disabledAt",
+              created_at AS "createdAt",
+              updated_at AS "updatedAt"
+          `)
+        : await transaction.$queryRaw<SocialConnectorRecord[]>(Prisma.sql`
+            UPDATE social_connectors
+            SET
+              state = ${input.lifecycle.connectorState},
+              safe_metadata = safe_metadata || CAST(${metadataJson} AS jsonb),
+              last_health_at = ${now},
+              updated_at = ${now}
+            WHERE id = ${input.connectorId}
+              AND workspace_id = ${input.workspaceId}
+              AND disabled_at IS NULL
+            RETURNING
+              id,
+              workspace_id AS "workspaceId",
+              provider,
+              state,
+              display_name AS "displayName",
+              external_account_id AS "externalAccountId",
+              granted_scopes AS "grantedScopes",
+              safe_metadata AS "safeMetadata",
+              last_health_at AS "lastHealthAt",
+              disabled_at AS "disabledAt",
+              created_at AS "createdAt",
+              updated_at AS "updatedAt"
+          `);
       if (!rows[0]) {
         throw new TokMetricError(
-          404,
-          "SOCIAL_CONNECTOR_NOT_FOUND",
-          "Active social connector was not found.",
+          409,
+          input.refreshClaimId
+            ? "SOCIAL_CREDENTIAL_REFRESH_CLAIM_LOST"
+            : "SOCIAL_CONNECTOR_NOT_FOUND",
+          input.refreshClaimId
+            ? "The connector refresh claim was lost before lifecycle persistence. Reload before retrying."
+            : "Active social connector was not found.",
         );
       }
       return rows[0];
