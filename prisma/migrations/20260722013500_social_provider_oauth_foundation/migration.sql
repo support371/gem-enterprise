@@ -108,3 +108,30 @@ ALTER TABLE "social_oauth_authorization_attempts"
 ADD CONSTRAINT "social_oauth_authorization_attempts_actor_id_fkey"
 FOREIGN KEY ("actor_id") REFERENCES "users"("id")
 ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- These tables contain authorization state and encrypted credential material.
+-- They are never exposed through PostgREST. The application accesses them only
+-- through its server-side database connection and protected API routes.
+ALTER TABLE "social_connectors" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "social_connector_credentials" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "social_oauth_authorization_attempts" ENABLE ROW LEVEL SECURITY;
+
+REVOKE ALL PRIVILEGES ON TABLE "social_connectors" FROM PUBLIC;
+REVOKE ALL PRIVILEGES ON TABLE "social_connector_credentials" FROM PUBLIC;
+REVOKE ALL PRIVILEGES ON TABLE "social_oauth_authorization_attempts" FROM PUBLIC;
+
+DO $gem_social_privileges$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
+    REVOKE ALL PRIVILEGES ON TABLE "social_connectors" FROM anon;
+    REVOKE ALL PRIVILEGES ON TABLE "social_connector_credentials" FROM anon;
+    REVOKE ALL PRIVILEGES ON TABLE "social_oauth_authorization_attempts" FROM anon;
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN
+    REVOKE ALL PRIVILEGES ON TABLE "social_connectors" FROM authenticated;
+    REVOKE ALL PRIVILEGES ON TABLE "social_connector_credentials" FROM authenticated;
+    REVOKE ALL PRIVILEGES ON TABLE "social_oauth_authorization_attempts" FROM authenticated;
+  END IF;
+END
+$gem_social_privileges$;
