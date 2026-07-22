@@ -43,11 +43,13 @@ export async function POST(request: NextRequest) {
   let workspaceId: string | undefined;
   let connectorId: string | undefined;
   let provider: string | undefined;
+  let actorId: string | undefined;
   let refreshAttempted = false;
 
   try {
     requireSameOrigin(request);
     const session = await requireTokMetricSession(request);
+    actorId = session.userId;
     const parsed = await parseJson(request, healthSchema);
     workspaceId = parsed.workspaceId!;
     connectorId = parsed.connectorId!;
@@ -106,7 +108,7 @@ export async function POST(request: NextRequest) {
 
     await emitTokMetricAudit({
       workspaceId,
-      actorId: session.userId,
+      actorId,
       action: "social.connector.credential_health_checked",
       entityType: "connector",
       entityId: connectorId,
@@ -140,7 +142,7 @@ export async function POST(request: NextRequest) {
     if (workspaceId) {
       await emitTokMetricAudit({
         workspaceId,
-        actorId: undefined,
+        actorId,
         action: "social.connector.credential_health_failed",
         entityType: "connector",
         entityId: connectorId,
