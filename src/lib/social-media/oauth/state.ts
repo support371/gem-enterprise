@@ -24,6 +24,7 @@ function stateSigningKey() {
   }
   return crypto
     .createHash("sha256")
+    .update("gem-social-oauth-state:v1:")
     .update(material || "gem-social-oauth-development-state")
     .digest();
 }
