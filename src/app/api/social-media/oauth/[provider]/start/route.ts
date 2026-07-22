@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   correlationId,
   emitTokMetricAudit,
+  enforceEmergencyLocks,
   requirePermission,
   requireTokMetricSession,
   requireWorkspaceAccess,
@@ -34,6 +35,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const params = querySchema.parse(Object.fromEntries(request.nextUrl.searchParams));
     const membership = await requireWorkspaceAccess(params.workspaceId, session);
     requirePermission(membership, "manage", "connectors");
+    await enforceEmergencyLocks(params.workspaceId, "connector");
 
     const { config, missing, ok } = validateSocialOAuthProviderConfig(provider);
     if (!ok) {
