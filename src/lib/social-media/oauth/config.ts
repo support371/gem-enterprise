@@ -176,6 +176,12 @@ export function validateSocialOAuthProviderConfig(provider: SocialOAuthProvider)
       missing.push("LINKEDIN_ORGANIZATION_ADMIN_SCOPE");
     }
   }
+  if (
+    provider === "YOUTUBE" &&
+    !config.scopes.includes("https://www.googleapis.com/auth/youtube.readonly")
+  ) {
+    missing.push("YOUTUBE_CHANNEL_DISCOVERY_SCOPE");
+  }
   if (config.platformAccessEnv && !enabled(config.platformAccessEnv)) {
     missing.push(config.platformAccessEnv);
   }
