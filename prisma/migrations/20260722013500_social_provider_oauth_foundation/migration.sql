@@ -107,7 +107,7 @@ ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "social_oauth_authorization_attempts"
 ADD CONSTRAINT "social_oauth_authorization_attempts_actor_id_fkey"
 FOREIGN KEY ("actor_id") REFERENCES "users"("id")
-ON DELETE RESTRICT ON UPDATE CASCADE;
+ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- These tables contain authorization state and encrypted credential material.
 -- They are never exposed through PostgREST. The application accesses them only
