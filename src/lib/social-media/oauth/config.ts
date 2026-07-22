@@ -63,6 +63,7 @@ export function getSocialOAuthProviderConfig(
       tokenClientAuthentication: "BODY",
       additionalAuthorizationParameters: {},
       apiVersion: value("META_GRAPH_API_VERSION"),
+      platformAccessEnv: "META_APP_REVIEW_APPROVED",
     },
     X: {
       provider: "X",
