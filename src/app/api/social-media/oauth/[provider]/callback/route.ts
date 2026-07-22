@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifySession, type SessionPayload } from "@/lib/auth";
+import { getSessionFromRequest, type SessionPayload } from "@/lib/auth";
 import {
   correlationId,
   emitTokMetricAudit,
@@ -21,8 +21,7 @@ import {
 } from "@/lib/social-media/oauth/store";
 
 async function sessionFromStateActor(request: NextRequest, actorId: string): Promise<SessionPayload> {
-  const cookie = request.cookies.get("gem_session")?.value;
-  const session = cookie ? await verifySession(cookie) : null;
+  const session = await getSessionFromRequest(request);
   if (!session || session.userId !== actorId) {
     throw new TokMetricError(
       401,
