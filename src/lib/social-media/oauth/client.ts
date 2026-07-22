@@ -78,7 +78,7 @@ async function requestToken(input: {
       signal: AbortSignal.timeout(15_000),
     });
   } catch {
-    throw new TokMetricError(502, input.unavailableCode, input.unavailableMessage);
+    throw new TokMetricError(503, input.unavailableCode, input.unavailableMessage);
   }
 
   let payload: GenericTokenPayload = {};
@@ -88,7 +88,12 @@ async function requestToken(input: {
     payload = {};
   }
   if (!response.ok) {
-    throw new TokMetricError(502, input.failureCode, input.failureMessage);
+    const temporary = response.status === 429 || response.status >= 500;
+    throw new TokMetricError(
+      temporary ? 503 : 401,
+      temporary ? input.unavailableCode : input.failureCode,
+      temporary ? input.unavailableMessage : input.failureMessage,
+    );
   }
   return payload;
 }
@@ -194,7 +199,7 @@ export async function exchangeSocialAuthorizationCode(input: {
     config: input.config,
     body,
     unavailableCode: "SOCIAL_TOKEN_EXCHANGE_UNAVAILABLE",
-    failureCode: "SOCIAL_TOKEN_EXCHANGE_FAILED",
+    failureCode: "SOCIAL_TOKEN_EXCHANGE_REJECTED",
     unavailableMessage: `${input.config.displayName} token service is unavailable.`,
     failureMessage: `${input.config.displayName} did not authorize the connector.`,
   });
@@ -242,7 +247,7 @@ export async function refreshSocialAccessToken(input: {
     config: input.config,
     body,
     unavailableCode: "SOCIAL_TOKEN_REFRESH_UNAVAILABLE",
-    failureCode: "SOCIAL_TOKEN_REFRESH_FAILED",
+    failureCode: "SOCIAL_TOKEN_REFRESH_REJECTED",
     unavailableMessage: `${input.config.displayName} token refresh service is unavailable.`,
     failureMessage: `${input.config.displayName} rejected the stored refresh credential.`,
   });
