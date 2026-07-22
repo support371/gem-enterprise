@@ -27,6 +27,12 @@ const healthSchema = z.object({
   connectorId: z.string().trim().min(1),
 });
 
+const rejectedRefreshCodes = new Set([
+  "SOCIAL_TOKEN_REFRESH_REJECTED",
+  "SOCIAL_REFRESH_TOKEN_MISSING",
+  "SOCIAL_TOKEN_REFRESH_UNSUPPORTED",
+]);
+
 function requireSameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
   if (!origin || origin !== request.nextUrl.origin) {
@@ -36,6 +42,14 @@ function requireSameOrigin(request: NextRequest) {
       "Connector credential checks require a same-origin request.",
     );
   }
+}
+
+function isRejectedRefresh(error: unknown) {
+  return error instanceof TokMetricError && rejectedRefreshCodes.has(error.code);
+}
+
+function isTransientRefreshFailure(error: unknown) {
+  return error instanceof TokMetricError && error.code === "SOCIAL_TOKEN_REFRESH_UNAVAILABLE";
 }
 
 export async function POST(request: NextRequest) {
@@ -86,7 +100,7 @@ export async function POST(request: NextRequest) {
           credential = latest.credential;
           lifecycle = evaluateSocialCredentialLifecycle(config, credential);
           concurrentRotationObserved = true;
-        } else {
+        } else if (isRejectedRefresh(error)) {
           const reauthorization = {
             ...lifecycle,
             lifecycle: "REAUTHORIZATION_REQUIRED" as const,
@@ -100,6 +114,22 @@ export async function POST(request: NextRequest) {
             refreshAttempted: true,
             refreshSucceeded: false,
           });
+          throw error;
+        } else if (isTransientRefreshFailure(error)) {
+          const degraded = {
+            ...lifecycle,
+            connectorState: "DEGRADED" as const,
+            shouldRefresh: false,
+          };
+          await recordSocialConnectorLifecycle({
+            workspaceId,
+            connectorId,
+            lifecycle: degraded,
+            refreshAttempted: true,
+            refreshSucceeded: false,
+          });
+          throw error;
+        } else {
           throw error;
         }
       }
@@ -185,6 +215,7 @@ export async function POST(request: NextRequest) {
           provider,
           tokenRefreshAttempted: refreshAttempted,
           concurrentRotationObserved,
+          failureCode: error instanceof TokMetricError ? error.code : "UNEXPECTED_ERROR",
           externalPublishingEnabled: false,
         },
       }).catch(() => undefined);
