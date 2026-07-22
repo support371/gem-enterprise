@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { TokMetricError } from "@/lib/tokmetric/security";
+import { enforceEmergencyLocks, TokMetricError } from "@/lib/tokmetric/security";
 import { decryptSocialCredential, encryptSocialCredential } from "./crypto";
 import type { SocialOAuthProvider } from "./config";
 import type { SocialOAuthStatePayload } from "./state";
@@ -195,6 +195,8 @@ export async function persistSocialConnector(input: {
   credential: StoredSocialCredential;
   safeMetadata?: Record<string, unknown>;
 }) {
+  await enforceEmergencyLocks(input.workspaceId, "connector");
+
   const connectorId = randomUUID();
   const credentialId = randomUUID();
   const now = new Date();
