@@ -3,10 +3,12 @@ import { z } from "zod";
 import {
   correlationId,
   emitTokMetricAudit,
+  enforceEmergencyLocks,
   parseJson,
   requirePermission,
   requireTokMetricSession,
   requireWorkspaceAccess,
+  TokMetricError,
   tokMetricErrorResponse,
 } from "@/lib/tokmetric/security";
 import {
@@ -18,6 +20,17 @@ const disconnectSchema = z.object({
   workspaceId: z.string().trim().min(1),
   connectorId: z.string().trim().min(1),
 });
+
+function requireSameOrigin(request: NextRequest) {
+  const origin = request.headers.get("origin");
+  if (!origin || origin !== request.nextUrl.origin) {
+    throw new TokMetricError(
+      403,
+      "CROSS_ORIGIN_REQUEST_BLOCKED",
+      "Connector credential changes require a same-origin request.",
+    );
+  }
+}
 
 export async function GET(request: NextRequest) {
   const cid = correlationId(request);
@@ -47,6 +60,7 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const cid = correlationId(request);
   try {
+    requireSameOrigin(request);
     const session = await requireTokMetricSession(request);
     const parsed = await parseJson(request, disconnectSchema);
     const body = {
@@ -55,6 +69,7 @@ export async function DELETE(request: NextRequest) {
     };
     const membership = await requireWorkspaceAccess(body.workspaceId, session);
     requirePermission(membership, "manage", "connectors");
+    await enforceEmergencyLocks(body.workspaceId, "connector");
     const result = await disconnectSocialConnector(body);
     await emitTokMetricAudit({
       workspaceId: body.workspaceId,
