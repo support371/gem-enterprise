@@ -30,7 +30,9 @@ function secondsValue(value: unknown) {
 
 function tokenScopes(payload: GenericTokenPayload, requestedScopes: string[]) {
   if (Array.isArray(payload.scopes)) {
-    return payload.scopes.filter((scope): scope is string => typeof scope === "string" && !!scope.trim());
+    return payload.scopes.filter(
+      (scope): scope is string => typeof scope === "string" && Boolean(scope.trim()),
+    );
   }
   const scope = stringValue(payload.scope);
   if (scope) return scope.split(/[\s,]+/).filter(Boolean);
@@ -51,12 +53,9 @@ function tokenRequestHeaders(config: SocialOAuthProviderConfig) {
   return headers;
 }
 
-function addClientAuthentication(
-  body: URLSearchParams,
-  config: SocialOAuthProviderConfig,
-) {
-  body.set("client_id", config.clientId);
+function addClientAuthentication(body: URLSearchParams, config: SocialOAuthProviderConfig) {
   if (config.tokenClientAuthentication === "BODY") {
+    body.set("client_id", config.clientId);
     body.set("client_secret", config.clientSecret);
   }
 }
@@ -235,6 +234,10 @@ export async function refreshSocialAccessToken(input: {
     refresh_token: input.credential.refreshToken,
   });
   addClientAuthentication(body, input.config);
+  if (input.config.provider === "NEXTDOOR") {
+    body.set("scope", input.credential.grantedScopes.join(" "));
+  }
+
   const payload = await requestToken({
     config: input.config,
     body,
