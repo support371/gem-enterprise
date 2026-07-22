@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   buildLocalHealthEvidence,
@@ -11,6 +13,10 @@ import {
   registerSocialProviderLifecycleAdapter,
   resetSocialProviderLifecycleAdaptersForTests,
 } from "@/lib/social-media/oauth/lifecycle-registry";
+
+function source(path: string) {
+  return readFileSync(join(process.cwd(), path), "utf8");
+}
 
 function adapter(provider: SocialProviderLifecycleAdapter["provider"]): SocialProviderLifecycleAdapter {
   return {
@@ -56,6 +62,41 @@ describe("social provider lifecycle", () => {
     expect(tokenExpiryState("2026-07-22T13:00:00.000Z", now)).toBe("HEALTHY");
   });
 
+  it("preserves expired and invalid token states when scopes or accounts are missing", () => {
+    const now = Date.parse("2026-07-22T12:00:00.000Z");
+    const baseCredential = {
+      provider: "X" as const,
+      accessToken: "secret",
+      grantedScopes: [],
+    };
+
+    expect(
+      buildLocalHealthEvidence({
+        provider: "X",
+        credential: {
+          ...baseCredential,
+          expiresAt: "2026-07-22T11:59:00.000Z",
+        },
+        requiredScopes: ["tweet.read"],
+        externalAccountVisible: false,
+        now,
+      }).state,
+    ).toBe("EXPIRED");
+
+    expect(
+      buildLocalHealthEvidence({
+        provider: "X",
+        credential: {
+          ...baseCredential,
+          expiresAt: "invalid",
+        },
+        requiredScopes: ["tweet.read"],
+        externalAccountVisible: false,
+        now,
+      }).state,
+    ).toBe("ERROR");
+  });
+
   it("returns secret-safe local evidence with publishing disabled", () => {
     const evidence = buildLocalHealthEvidence({
       provider: "X",
@@ -89,5 +130,14 @@ describe("social provider lifecycle", () => {
     expect(() => registerSocialProviderLifecycleAdapter(adapter("META"))).toThrow(
       "already registered",
     );
+  });
+
+  it("validates readiness queries and prevents caching on success and error paths", () => {
+    const route = source("src/app/api/social-media/lifecycle/readiness/route.ts");
+    expect(route).toContain('import { z } from "zod"');
+    expect(route).toContain("querySchema.safeParse(Object.fromEntries(request.nextUrl.searchParams))");
+    expect(route).toContain('throw new TokMetricError(400, "VALIDATION_ERROR"');
+    expect(route).toContain('response.headers.set("Cache-Control", "no-store")');
+    expect(route).toContain('headers: { "Cache-Control": "no-store" }');
   });
 });
