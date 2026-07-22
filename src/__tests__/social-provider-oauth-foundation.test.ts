@@ -62,11 +62,14 @@ describe("cross-platform social OAuth foundation", () => {
     );
   });
 
-  it("requires YouTube API audit evidence before upload-scope authorization", () => {
+  it("requires YouTube API audit evidence before channel discovery and upload authorization", () => {
     vi.stubEnv("YOUTUBE_SOCIAL_OAUTH_ENABLED", "true");
     vi.stubEnv("GOOGLE_SOCIAL_CLIENT_ID", "google-client");
     vi.stubEnv("GOOGLE_SOCIAL_CLIENT_SECRET", "google-secret");
-    vi.stubEnv("YOUTUBE_SOCIAL_SCOPES", "https://www.googleapis.com/auth/youtube.upload");
+    vi.stubEnv(
+      "YOUTUBE_SOCIAL_SCOPES",
+      "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload",
+    );
     vi.stubEnv(
       "YOUTUBE_OAUTH_REDIRECT_URI",
       "https://gemcybersecurityassist.com/api/social-media/oauth/youtube/callback",
