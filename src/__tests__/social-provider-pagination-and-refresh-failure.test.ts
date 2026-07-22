@@ -144,25 +144,27 @@ describe("social provider pagination and refresh failure classification", () => 
     ).rejects.toMatchObject({ code: "SOCIAL_TOKEN_REFRESH_UNAVAILABLE", status: 503 });
   });
 
-  it("classifies provider 4xx as rejected authorization requiring reauthorization", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(response({ error: "invalid_grant" }, 401)),
-    );
+  it("requires explicit invalid-grant evidence before forcing reauthorization", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(response({ error: "invalid_client" }, 401))
+      .mockResolvedValueOnce(response({ error: "invalid_grant" }, 400));
+    vi.stubGlobal("fetch", fetchMock);
     const xConfig = config("X", {
       tokenClientAuthentication: "BASIC",
       refreshMode: "STANDARD",
       scopes: ["tweet.read", "users.read", "offline.access"],
     });
+    const xCredential = credential("X", {
+      refreshToken: "stored-refresh-token",
+      grantedScopes: xConfig.scopes,
+    });
 
     await expect(
-      refreshSocialAccessToken({
-        config: xConfig,
-        credential: credential("X", {
-          refreshToken: "revoked-refresh-token",
-          grantedScopes: xConfig.scopes,
-        }),
-      }),
+      refreshSocialAccessToken({ config: xConfig, credential: xCredential }),
+    ).rejects.toMatchObject({ code: "SOCIAL_TOKEN_REFRESH_UNAVAILABLE", status: 503 });
+    await expect(
+      refreshSocialAccessToken({ config: xConfig, credential: xCredential }),
     ).rejects.toMatchObject({ code: "SOCIAL_TOKEN_REFRESH_REJECTED", status: 401 });
   });
 });
