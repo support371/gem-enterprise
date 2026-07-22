@@ -15,11 +15,10 @@ import {
   validateSocialOAuthProviderConfig,
 } from "@/lib/social-media/oauth/config";
 import { exchangeSocialAuthorizationCode } from "@/lib/social-media/oauth/client";
+import { discoverSocialAccounts } from "@/lib/social-media/oauth/discovery";
+import { persistDiscoveredSocialConnectors } from "@/lib/social-media/oauth/account-store";
 import { decodeSocialOAuthState } from "@/lib/social-media/oauth/state";
-import {
-  consumeSocialOAuthAuthorizationAttempt,
-  persistSocialConnector,
-} from "@/lib/social-media/oauth/store";
+import { consumeSocialOAuthAuthorizationAttempt } from "@/lib/social-media/oauth/store";
 
 async function sessionFromStateActor(request: NextRequest, actorId: string): Promise<SessionPayload> {
   const session = await getSessionFromRequest(request);
@@ -33,10 +32,19 @@ async function sessionFromStateActor(request: NextRequest, actorId: string): Pro
   return session;
 }
 
-function safeCallbackRedirect(request: NextRequest, redirectAfter: string, provider: string, state: string) {
+function safeCallbackRedirect(
+  request: NextRequest,
+  redirectAfter: string,
+  provider: string,
+  state: string,
+  connectedCount?: number,
+) {
   const redirect = new URL(redirectAfter, request.url);
   redirect.searchParams.set("provider", provider);
   redirect.searchParams.set("connectionState", state);
+  if (connectedCount !== undefined) {
+    redirect.searchParams.set("connectedCount", String(connectedCount));
+  }
   return redirect;
 }
 
@@ -104,12 +112,15 @@ export async function GET(request: NextRequest, context: RouteContext) {
       codeVerifier: consumed.codeVerifier,
       requestedScopes: consumed.attempt.requestedScopes,
     });
-    const connector = await persistSocialConnector({
+    const accounts = await discoverSocialAccounts({
+      config,
+      credential: exchanged.credential,
+    });
+    const connectors = await persistDiscoveredSocialConnectors({
       workspaceId: state.workspaceId,
       provider,
-      displayName: config.displayName,
-      credential: exchanged.credential,
-      safeMetadata: exchanged.safeMetadata,
+      config,
+      accounts,
     });
 
     await emitTokMetricAudit({
@@ -117,20 +128,28 @@ export async function GET(request: NextRequest, context: RouteContext) {
       actorId: session.userId,
       action: "social.connector.authorized",
       entityType: "connector",
-      entityId: connector.id,
+      entityId: connectors[0]?.id,
       correlationId: cid,
       outcome: "success",
       sourceChannel: "website",
       metadata: {
         provider,
+        discoveredAccountCount: accounts.length,
+        persistedConnectorCount: connectors.length,
         grantedScopeCount: exchanged.credential.grantedScopes.length,
-        externalAccountIdPresent: Boolean(exchanged.credential.externalAccountId),
+        providerAccountDiscoveryPerformed: true,
         externalPublishingEnabled: false,
       },
     });
 
     const response = NextResponse.redirect(
-      safeCallbackRedirect(request, consumed.attempt.redirectAfter, provider, "connected"),
+      safeCallbackRedirect(
+        request,
+        consumed.attempt.redirectAfter,
+        provider,
+        "connected",
+        connectors.length,
+      ),
     );
     response.headers.set("Cache-Control", "no-store, max-age=0");
     response.headers.set("Pragma", "no-cache");
