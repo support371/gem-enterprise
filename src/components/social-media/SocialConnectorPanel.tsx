@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLink, KeyRound, Link2Off, Loader2, ShieldAlert } from "lucide-react";
+import {
+  CircleCheck,
+  ExternalLink,
+  KeyRound,
+  Link2Off,
+  Loader2,
+  RefreshCw,
+  ShieldAlert,
+  TriangleAlert,
+} from "lucide-react";
 import type { SafeSocialOAuthReadiness } from "@/lib/social-media/oauth/readiness";
 
 type Connector = {
@@ -21,12 +30,31 @@ function label(value: string) {
   return value.toLowerCase().replaceAll("_", " ").replace(/^./, (character) => character.toUpperCase());
 }
 
+function metadataText(connector: Connector, key: string) {
+  const value = connector.safeMetadata?.[key];
+  return typeof value === "string" && value.trim() ? value : undefined;
+}
+
+function metadataBoolean(connector: Connector, key: string) {
+  const value = connector.safeMetadata?.[key];
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function lifecycleTone(lifecycle?: string) {
+  if (lifecycle === "HEALTHY") return "text-emerald-200";
+  if (lifecycle === "EXPIRING" || lifecycle === "EXPIRY_UNKNOWN") return "text-amber-100";
+  if (lifecycle === "EXPIRED_REFRESHABLE") return "text-orange-200";
+  if (lifecycle === "REAUTHORIZATION_REQUIRED") return "text-rose-200";
+  return "text-white/55";
+}
+
 export function SocialConnectorPanel({ providers }: { providers: SafeSocialOAuthReadiness[] }) {
   const [workspaceId, setWorkspaceId] = useState("");
   const [connectors, setConnectors] = useState<Connector[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
   const [disconnecting, setDisconnecting] = useState<string>();
+  const [checkingHealth, setCheckingHealth] = useState<string>();
   const canLoad = useMemo(() => workspaceId.trim().length > 0, [workspaceId]);
 
   async function loadConnectors(signal?: AbortSignal) {
@@ -94,6 +122,30 @@ export function SocialConnectorPanel({ providers }: { providers: SafeSocialOAuth
     }
   }
 
+  async function checkCredentialHealth(connector: Connector) {
+    setCheckingHealth(connector.id);
+    setError(undefined);
+    try {
+      const response = await fetch("/api/social-media/connectors/health", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceId: workspaceId.trim(), connectorId: connector.id }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error?.message || "Unable to evaluate connector credential health.");
+      }
+      await loadConnectors();
+    } catch (caught) {
+      await loadConnectors().catch(() => undefined);
+      setError(
+        caught instanceof Error ? caught.message : "Unable to evaluate connector credential health.",
+      );
+    } finally {
+      setCheckingHealth(undefined);
+    }
+  }
+
   const connectorsByProvider = useMemo(() => {
     const grouped = new Map<string, Connector[]>();
     for (const connector of connectors) {
@@ -114,8 +166,9 @@ export function SocialConnectorPanel({ providers }: { providers: SafeSocialOAuth
           </p>
           <h2 className="mt-2 text-xl font-bold text-white">Workspace social accounts</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
-            Enter an authorized workspace ID to load real connector records. Client secrets, access
-            tokens, refresh tokens, and encrypted credential references are never returned to the browser.
+            Enter an authorized workspace ID to load real connector records. Provider account discovery
+            runs server-side after consent. Client secrets, access tokens, refresh tokens, and encrypted
+            credential references are never returned to the browser.
           </p>
         </div>
         <input
@@ -157,6 +210,9 @@ export function SocialConnectorPanel({ providers }: { providers: SafeSocialOAuth
                   <p className="mt-2 text-xs leading-5 text-white/45">
                     Requested scopes: {provider.requestedScopes.length > 0 ? provider.requestedScopes.join(", ") : "not configured"}
                   </p>
+                  <p className="mt-1 text-xs leading-5 text-white/40">
+                    Account discovery: provider verified · Token recovery: {label(provider.refreshMode)}
+                  </p>
                 </div>
                 <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-white/70">
                   {providerConnectors.length > 0
@@ -175,38 +231,77 @@ export function SocialConnectorPanel({ providers }: { providers: SafeSocialOAuth
 
               {providerConnectors.length > 0 ? (
                 <div className="mt-4 space-y-3">
-                  {providerConnectors.map((connector) => (
-                    <div
-                      key={connector.id}
-                      className="rounded-lg border border-emerald-300/15 bg-emerald-300/[0.04] p-3 text-sm text-white/60"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <p>Account: {connector.externalAccountId || "profile discovery pending"}</p>
-                          <p className="mt-1">State: {label(connector.state)}</p>
-                          <p className="mt-1">
-                            Granted scopes: {connector.grantedScopes.join(", ") || "not returned by provider"}
-                          </p>
-                          <p className="mt-1">
-                            Last health record: {connector.lastHealthAt ? new Date(connector.lastHealthAt).toLocaleString() : "not recorded"}
-                          </p>
+                  {providerConnectors.map((connector) => {
+                    const lifecycle = metadataText(connector, "tokenLifecycle");
+                    const username = metadataText(connector, "username");
+                    const expiresAt = metadataText(connector, "expiresAt");
+                    const refreshTokenPresent = metadataBoolean(connector, "refreshTokenPresent");
+                    return (
+                      <div
+                        key={connector.id}
+                        className="rounded-lg border border-emerald-300/15 bg-emerald-300/[0.04] p-3 text-sm text-white/60"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 text-white/80">
+                              {connector.state === "CONNECTED" ? (
+                                <CircleCheck className="h-4 w-4 text-emerald-300" />
+                              ) : (
+                                <TriangleAlert className="h-4 w-4 text-amber-200" />
+                              )}
+                              <p className="truncate font-semibold">{connector.displayName}</p>
+                            </div>
+                            <p className="mt-2">Account ID: {connector.externalAccountId || "discovery incomplete"}</p>
+                            {username ? <p className="mt-1">Username: {username}</p> : null}
+                            <p className="mt-1">State: {label(connector.state)}</p>
+                            <p className={`mt-1 ${lifecycleTone(lifecycle)}`}>
+                              Credential lifecycle: {lifecycle ? label(lifecycle) : "Not evaluated"}
+                            </p>
+                            <p className="mt-1">
+                              Expires: {expiresAt ? new Date(expiresAt).toLocaleString() : "provider did not report expiry"}
+                            </p>
+                            <p className="mt-1">
+                              Refresh credential: {refreshTokenPresent === true ? "stored encrypted" : "not available"}
+                            </p>
+                            <p className="mt-1">
+                              Granted scopes: {connector.grantedScopes.join(", ") || "not returned by provider"}
+                            </p>
+                            <p className="mt-1">
+                              Last health record: {connector.lastHealthAt ? new Date(connector.lastHealthAt).toLocaleString() : "not recorded"}
+                            </p>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <button
+                              type="button"
+                              onClick={() => void checkCredentialHealth(connector)}
+                              disabled={checkingHealth === connector.id}
+                              className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/20 px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-300/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {checkingHealth === connector.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <RefreshCw className="h-3.5 w-3.5" />
+                              )}
+                              Check credential health
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void disconnect(connector)}
+                              disabled={disconnecting === connector.id}
+                              className="inline-flex items-center gap-2 rounded-lg border border-rose-300/20 px-3 py-2 text-xs font-semibold text-rose-200 hover:bg-rose-300/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {disconnecting === connector.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Link2Off className="h-3.5 w-3.5" />
+                              )}
+                              Delete stored authorization
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => void disconnect(connector)}
-                          disabled={disconnecting === connector.id}
-                          className="inline-flex items-center gap-2 rounded-lg border border-rose-300/20 px-3 py-2 text-xs font-semibold text-rose-200 hover:bg-rose-300/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                          {disconnecting === connector.id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Link2Off className="h-3.5 w-3.5" />
-                          )}
-                          Delete stored authorization
-                        </button>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : null}
 
@@ -225,8 +320,9 @@ export function SocialConnectorPanel({ providers }: { providers: SafeSocialOAuth
       </div>
 
       <p className="mt-4 text-xs leading-5 text-white/40">
-        Account authorization stores credentials for later approved operations. It does not enable
-        publishing; all global and provider-specific live gates remain separate and disabled.
+        Account authorization stores credentials for later approved operations. Credential health checks
+        may rotate an expiring access token, but they do not enable publishing; all global and
+        provider-specific live gates remain separate and disabled.
       </p>
     </section>
   );
