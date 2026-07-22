@@ -167,7 +167,15 @@ export function validateSocialOAuthProviderConfig(provider: SocialOAuthProvider)
   if (provider === "X" && !config.scopes.includes("offline.access")) {
     missing.push("OFFLINE_ACCESS_SCOPE");
   }
-  if (provider === "LINKEDIN" && !config.apiVersion) missing.push("LINKEDIN_API_VERSION");
+  if (provider === "LINKEDIN") {
+    if (!config.apiVersion) missing.push("LINKEDIN_API_VERSION");
+    if (
+      !config.scopes.includes("rw_organization_admin") &&
+      !config.scopes.includes("r_organization_admin")
+    ) {
+      missing.push("LINKEDIN_ORGANIZATION_ADMIN_SCOPE");
+    }
+  }
   if (config.platformAccessEnv && !enabled(config.platformAccessEnv)) {
     missing.push(config.platformAccessEnv);
   }
