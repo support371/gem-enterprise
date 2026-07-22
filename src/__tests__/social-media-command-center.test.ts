@@ -13,7 +13,7 @@ function source(path: string) {
 
 describe("GEM cross-platform social media command center", () => {
   it("registers all governed company channels without authorizing writes", () => {
-    const readiness = getSocialMediaProviderReadiness({});
+    const readiness = getSocialMediaProviderReadiness({ NODE_ENV: "test" });
     expect(readiness.map((provider) => provider.id)).toEqual([
       "TIKTOK",
       "FACEBOOK_PAGE",
@@ -30,6 +30,7 @@ describe("GEM cross-platform social media command center", () => {
 
   it("does not expose configured secret values through readiness", () => {
     const readiness = getSocialMediaProviderReadiness({
+      NODE_ENV: "test",
       META_SOCIAL_OAUTH_ENABLED: "true",
       META_APP_ID: "app-id",
       META_APP_SECRET: "never-return-this",
