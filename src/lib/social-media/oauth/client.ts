@@ -13,7 +13,15 @@ interface GenericTokenPayload {
   open_id?: unknown;
   user_id?: unknown;
   sub?: unknown;
+  error?: unknown;
 }
+
+const rejectedRefreshErrors = new Set([
+  "invalid_grant",
+  "invalid_token",
+  "invalid_refresh_token",
+  "access_denied",
+]);
 
 function stringValue(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
@@ -88,12 +96,15 @@ async function requestToken(input: {
     payload = {};
   }
   if (!response.ok) {
+    const oauthError = stringValue(payload.error)?.toLowerCase();
     const temporary = response.status === 429 || response.status >= 500;
-    throw new TokMetricError(
-      temporary ? 503 : 401,
-      temporary ? input.unavailableCode : input.failureCode,
-      temporary ? input.unavailableMessage : input.failureMessage,
-    );
+    const explicitRefreshRejection =
+      input.failureCode === "SOCIAL_TOKEN_REFRESH_REJECTED" &&
+      Boolean(oauthError && rejectedRefreshErrors.has(oauthError));
+    if (temporary || (input.failureCode === "SOCIAL_TOKEN_REFRESH_REJECTED" && !explicitRefreshRejection)) {
+      throw new TokMetricError(503, input.unavailableCode, input.unavailableMessage);
+    }
+    throw new TokMetricError(401, input.failureCode, input.failureMessage);
   }
   return payload;
 }
