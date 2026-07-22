@@ -16,6 +16,8 @@ export interface SocialOAuthProviderConfig {
   usePkce: boolean;
   tokenClientAuthentication: "BODY" | "BASIC";
   additionalAuthorizationParameters: Record<string, string>;
+  apiVersion?: string;
+  platformAccessEnv?: string;
 }
 
 function value(name: string) {
@@ -60,6 +62,7 @@ export function getSocialOAuthProviderConfig(
       usePkce: false,
       tokenClientAuthentication: "BODY",
       additionalAuthorizationParameters: {},
+      apiVersion: value("META_GRAPH_API_VERSION"),
     },
     X: {
       provider: "X",
@@ -88,6 +91,8 @@ export function getSocialOAuthProviderConfig(
       usePkce: false,
       tokenClientAuthentication: "BODY",
       additionalAuthorizationParameters: {},
+      apiVersion: value("LINKEDIN_API_VERSION"),
+      platformAccessEnv: "LINKEDIN_COMMUNITY_MANAGEMENT_ACCESS_APPROVED",
     },
     YOUTUBE: {
       provider: "YOUTUBE",
@@ -120,6 +125,7 @@ export function getSocialOAuthProviderConfig(
       usePkce: false,
       tokenClientAuthentication: "BASIC",
       additionalAuthorizationParameters: {},
+      platformAccessEnv: "NEXTDOOR_PUBLISH_API_ACCESS_APPROVED",
     },
   };
 
@@ -137,6 +143,10 @@ export function validateSocialOAuthProviderConfig(provider: SocialOAuthProvider)
   if (!config.authorizationUrl) missing.push("AUTHORIZATION_URL");
   if (!config.tokenUrl) missing.push("TOKEN_URL");
   if (config.scopes.length === 0) missing.push("SCOPES");
+  if (provider === "LINKEDIN" && !config.apiVersion) missing.push("LINKEDIN_API_VERSION");
+  if (config.platformAccessEnv && !enabled(config.platformAccessEnv)) {
+    missing.push(config.platformAccessEnv);
+  }
   if (!value("SOCIAL_TOKEN_ENCRYPTION_KEY")) missing.push("SOCIAL_TOKEN_ENCRYPTION_KEY");
 
   return { config, missing, ok: missing.length === 0 };
