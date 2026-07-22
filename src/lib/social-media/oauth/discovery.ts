@@ -4,6 +4,12 @@ import type { StoredSocialCredential } from "./store";
 
 const DISCOVERY_TIMEOUT_MS = 15_000;
 const MAX_DISCOVERED_ACCOUNTS = 100;
+const LINKEDIN_PUBLISH_ROLES = new Set([
+  "ADMINISTRATOR",
+  "CONTENT_ADMINISTRATOR",
+  "DIRECT_SPONSORED_CONTENT_POSTER",
+  "RECRUITING_POSTER",
+]);
 
 type JsonRecord = Record<string, unknown>;
 
@@ -98,7 +104,6 @@ async function fetchDiscoveryJson(
       `${config.displayName} did not return an authorized account inventory.`,
     );
   }
-
   return payload;
 }
 
@@ -146,10 +151,7 @@ async function discoverXAccount(
   credential: StoredSocialCredential,
 ): Promise<DiscoveredSocialAccount[]> {
   const url = new URL(config.accountDiscoveryUrl);
-  url.searchParams.set(
-    "user.fields",
-    "username,name,verified,protected,profile_image_url",
-  );
+  url.searchParams.set("user.fields", "username,name,verified,protected,profile_image_url");
   const payload = object(await fetchDiscoveryJson(config, credential, url));
   const data = object(payload?.data);
   const id = stringValue(data?.id);
@@ -189,7 +191,8 @@ async function discoverLinkedInOrganizations(
   return elements.flatMap((entry) => {
     const acl = object(entry);
     const state = stringValue(acl?.state);
-    const organizationTarget = stringValue(acl?.organizationTarget);
+    const organizationTarget =
+      stringValue(acl?.organizationTarget) || stringValue(acl?.organization);
     if (!organizationTarget || state !== "APPROVED") return [];
     const organizationId = organizationTarget.split(":").at(-1)?.trim();
     if (!organizationId) return [];
@@ -203,6 +206,7 @@ async function discoverLinkedInOrganizations(
           organizationUrn: organizationTarget,
           approvedRole: role || null,
           roleState: state,
+          publishRoleEligible: role ? LINKEDIN_PUBLISH_ROLES.has(role) : false,
         },
         credential: accountCredential(credential, organizationId),
       },
@@ -236,8 +240,7 @@ async function discoverYouTubeChannels(
         safeMetadata: {
           customUrl: stringValue(snippet?.customUrl) || null,
           privacyStatus: stringValue(status?.privacyStatus) || null,
-          madeForKids:
-            typeof status?.madeForKids === "boolean" ? status.madeForKids : null,
+          madeForKids: typeof status?.madeForKids === "boolean" ? status.madeForKids : null,
         },
         credential: accountCredential(credential, id),
       },
@@ -295,9 +298,7 @@ async function discoverNextdoorProfiles(
 function deduplicateAccounts(accounts: DiscoveredSocialAccount[]) {
   const unique = new Map<string, DiscoveredSocialAccount>();
   for (const account of accounts) {
-    if (!unique.has(account.externalAccountId)) {
-      unique.set(account.externalAccountId, account);
-    }
+    if (!unique.has(account.externalAccountId)) unique.set(account.externalAccountId, account);
   }
   return [...unique.values()]
     .sort((left, right) => left.externalAccountId.localeCompare(right.externalAccountId))
