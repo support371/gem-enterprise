@@ -140,9 +140,12 @@ describe("cross-platform social OAuth foundation", () => {
     expect(decryptSocialCredential<typeof credential>(encrypted)).toEqual(credential);
   });
 
-  it("creates additive durable tables with RLS and safe deletion semantics", () => {
+  it("creates additive durable tables with RLS, safe deletion, and covering indexes", () => {
     const migration = source(
       "prisma/migrations/20260722013500_social_provider_oauth_foundation/migration.sql",
+    );
+    const actorIndexMigration = source(
+      "prisma/migrations/20260722024500_social_oauth_attempt_actor_index/migration.sql",
     );
     expect(migration).toContain('CREATE TABLE "social_connectors"');
     expect(migration).toContain('CREATE TABLE "social_connector_credentials"');
@@ -163,6 +166,12 @@ describe("cross-platform social OAuth foundation", () => {
     );
     expect(migration).toMatch(
       /FOREIGN KEY \("actor_id"\) REFERENCES "users"\("id"\)\s+ON DELETE CASCADE/,
+    );
+    expect(actorIndexMigration).toContain(
+      'CREATE INDEX "social_oauth_authorization_attempts_actor_id_idx"',
+    );
+    expect(actorIndexMigration).toContain(
+      'ON "social_oauth_authorization_attempts"("actor_id")',
     );
     expect(migration).not.toContain("publish_enabled");
     expect(migration).not.toContain("external_write_allowed");
