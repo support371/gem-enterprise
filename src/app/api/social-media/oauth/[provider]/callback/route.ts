@@ -4,6 +4,7 @@ import {
   correlationId,
   emitTokMetricAudit,
   enforceEmergencyLocks,
+  requirePermission,
   requireWorkspaceAccess,
   TokMetricError,
   tokMetricErrorResponse,
@@ -83,7 +84,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
     workspaceId = state.workspaceId;
     actorId = state.actorId;
     const session = await sessionFromStateActor(request, state.actorId);
-    await requireWorkspaceAccess(state.workspaceId, session);
+    const membership = await requireWorkspaceAccess(state.workspaceId, session);
+    requirePermission(membership, "manage", "connectors");
     await enforceEmergencyLocks(state.workspaceId, "connector");
     const consumed = await consumeSocialOAuthAuthorizationAttempt(state);
 
@@ -127,9 +129,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
       },
     });
 
-    return NextResponse.redirect(
+    const response = NextResponse.redirect(
       safeCallbackRedirect(request, consumed.attempt.redirectAfter, provider, "connected"),
     );
+    response.headers.set("Cache-Control", "no-store, max-age=0");
+    response.headers.set("Pragma", "no-cache");
+    return response;
   } catch (error) {
     if (workspaceId) {
       await emitTokMetricAudit({
