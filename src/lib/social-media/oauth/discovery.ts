@@ -43,9 +43,17 @@ function accountCredential(
   externalAccountId: string,
   accessToken?: string,
 ): StoredSocialCredential {
+  if (accessToken) {
+    return {
+      provider: credential.provider,
+      accessToken,
+      tokenType: credential.tokenType,
+      grantedScopes: credential.grantedScopes,
+      externalAccountId,
+    };
+  }
   return {
     ...credential,
-    accessToken: accessToken || credential.accessToken,
     externalAccountId,
   };
 }
