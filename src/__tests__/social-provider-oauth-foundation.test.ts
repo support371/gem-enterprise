@@ -62,6 +62,25 @@ describe("cross-platform social OAuth foundation", () => {
     );
   });
 
+  it("requires YouTube API audit evidence before upload-scope authorization", () => {
+    vi.stubEnv("YOUTUBE_SOCIAL_OAUTH_ENABLED", "true");
+    vi.stubEnv("GOOGLE_SOCIAL_CLIENT_ID", "google-client");
+    vi.stubEnv("GOOGLE_SOCIAL_CLIENT_SECRET", "google-secret");
+    vi.stubEnv("YOUTUBE_SOCIAL_SCOPES", "https://www.googleapis.com/auth/youtube.upload");
+    vi.stubEnv(
+      "YOUTUBE_OAUTH_REDIRECT_URI",
+      "https://gemcybersecurityassist.com/api/social-media/oauth/youtube/callback",
+    );
+    vi.stubEnv("SOCIAL_TOKEN_ENCRYPTION_KEY", Buffer.alloc(32, 5).toString("base64"));
+
+    const blocked = validateSocialOAuthProviderConfig("YOUTUBE");
+    expect(blocked.ok).toBe(false);
+    expect(blocked.missing).toContain("YOUTUBE_DATA_API_AUDIT_APPROVED");
+
+    vi.stubEnv("YOUTUBE_DATA_API_AUDIT_APPROVED", "true");
+    expect(validateSocialOAuthProviderConfig("YOUTUBE").ok).toBe(true);
+  });
+
   it("returns secret-safe readiness metadata", () => {
     configureX();
     const readiness = getSafeSocialOAuthReadiness();
@@ -121,7 +140,7 @@ describe("cross-platform social OAuth foundation", () => {
     expect(decryptSocialCredential<typeof credential>(encrypted)).toEqual(credential);
   });
 
-  it("creates additive durable tables with RLS and no publishing capability", () => {
+  it("creates additive durable tables with RLS and safe deletion semantics", () => {
     const migration = source(
       "prisma/migrations/20260722013500_social_provider_oauth_foundation/migration.sql",
     );
@@ -139,23 +158,34 @@ describe("cross-platform social OAuth foundation", () => {
     expect(migration).toContain(
       'REVOKE ALL PRIVILEGES ON TABLE "social_connector_credentials" FROM PUBLIC',
     );
+    expect(migration).toContain(
+      'CONSTRAINT "social_oauth_authorization_attempts_actor_id_fkey"',
+    );
+    expect(migration).toMatch(
+      /FOREIGN KEY \("actor_id"\) REFERENCES "users"\("id"\)\s+ON DELETE CASCADE/,
+    );
     expect(migration).not.toContain("publish_enabled");
     expect(migration).not.toContain("external_write_allowed");
   });
 
-  it("protects start, callback, inventory, and disconnect routes", () => {
+  it("protects start, callback, persistence, inventory, and disconnect routes", () => {
     const start = source("src/app/api/social-media/oauth/[provider]/start/route.ts");
     const callback = source("src/app/api/social-media/oauth/[provider]/callback/route.ts");
     const connectors = source("src/app/api/social-media/connectors/route.ts");
+    const store = source("src/lib/social-media/oauth/store.ts");
     expect(start).toContain("requireTokMetricSession");
     expect(start).toContain('requirePermission(membership, "manage", "connectors")');
     expect(start).toContain('enforceEmergencyLocks(params.workspaceId, "connector")');
     expect(start).toContain("createSocialOAuthAuthorizationAttempt");
+    expect(start).toContain('response.headers.set("Cache-Control", "no-store, max-age=0")');
     expect(callback).toContain("getSessionFromRequest(request)");
     expect(callback).toContain("session.userId !== actorId");
+    expect(callback).toContain('requirePermission(membership, "manage", "connectors")');
     expect(callback).toContain('enforceEmergencyLocks(state.workspaceId, "connector")');
     expect(callback).toContain("consumeSocialOAuthAuthorizationAttempt");
+    expect(callback).toContain('response.headers.set("Cache-Control", "no-store, max-age=0")');
     expect(callback).toContain("externalPublishingEnabled: false");
+    expect(store).toContain('await enforceEmergencyLocks(input.workspaceId, "connector")');
     expect(connectors).toContain("requireWorkspaceAccess");
     expect(connectors).toContain("requireSameOrigin(request)");
     expect(connectors).toContain("CROSS_ORIGIN_REQUEST_BLOCKED");
@@ -165,8 +195,12 @@ describe("cross-platform social OAuth foundation", () => {
     expect(connectors).not.toContain("refreshToken");
   });
 
-  it("keeps the operator panel explicit about authorization versus publishing", () => {
+  it("preserves multiple accounts and allows reauthorization after disconnect", () => {
     const panel = source("src/components/social-media/SocialConnectorPanel.tsx");
+    expect(panel).toContain("connectorsByProvider");
+    expect(panel).toContain('connector.state === "DISCONNECTED"');
+    expect(panel).toContain("providerConnectors.map");
+    expect(panel).toContain("Authorize another account");
     expect(panel).toContain("Authorize account");
     expect(panel).toContain("Delete stored authorization");
     expect(panel).toContain("does not enable");
