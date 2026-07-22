@@ -11,6 +11,8 @@ export interface SafeSocialOAuthReadiness {
   missing: string[];
   requestedScopes: string[];
   pkce: boolean;
+  credentialStoragePolicy: "ENCRYPTED_SERVER_ONLY";
+  authorizationStatePolicy: "SIGNED_SINGLE_USE";
   externalPublishingEnabled: false;
 }
 
@@ -24,6 +26,8 @@ export function getSafeSocialOAuthReadiness(): SafeSocialOAuthReadiness[] {
       missing,
       requestedScopes: config.scopes,
       pkce: config.usePkce,
+      credentialStoragePolicy: "ENCRYPTED_SERVER_ONLY",
+      authorizationStatePolicy: "SIGNED_SINGLE_USE",
       externalPublishingEnabled: false,
     };
   });
