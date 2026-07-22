@@ -45,6 +45,8 @@ export async function POST(request: NextRequest) {
   let provider: string | undefined;
   let actorId: string | undefined;
   let refreshAttempted = false;
+  let refreshSucceeded = false;
+  let concurrentRotationObserved = false;
 
   try {
     requireSameOrigin(request);
@@ -70,7 +72,6 @@ export async function POST(request: NextRequest) {
 
     let credential = stored.credential;
     let lifecycle = evaluateSocialCredentialLifecycle(config, credential);
-    let refreshSucceeded = false;
 
     if (lifecycle.shouldRefresh) {
       refreshAttempted = true;
@@ -80,31 +81,60 @@ export async function POST(request: NextRequest) {
         lifecycle = evaluateSocialCredentialLifecycle(config, credential);
         refreshSucceeded = true;
       } catch (error) {
-        const reauthorization = {
-          ...lifecycle,
-          lifecycle: "REAUTHORIZATION_REQUIRED" as const,
-          connectorState: "REAUTHORIZATION_REQUIRED" as const,
-          shouldRefresh: false,
-        };
-        await recordSocialConnectorLifecycle({
-          workspaceId,
-          connectorId,
-          lifecycle: reauthorization,
-          refreshAttempted: true,
-          refreshSucceeded: false,
-        });
-        throw error;
+        const latest = await loadSocialConnectorCredential({ workspaceId, connectorId });
+        if (latest.credentialRotatedAt !== stored.credentialRotatedAt) {
+          credential = latest.credential;
+          lifecycle = evaluateSocialCredentialLifecycle(config, credential);
+          concurrentRotationObserved = true;
+        } else {
+          const reauthorization = {
+            ...lifecycle,
+            lifecycle: "REAUTHORIZATION_REQUIRED" as const,
+            connectorState: "REAUTHORIZATION_REQUIRED" as const,
+            shouldRefresh: false,
+          };
+          await recordSocialConnectorLifecycle({
+            workspaceId,
+            connectorId,
+            lifecycle: reauthorization,
+            refreshAttempted: true,
+            refreshSucceeded: false,
+          });
+          throw error;
+        }
       }
     }
 
-    const connector = await recordSocialConnectorLifecycle({
-      workspaceId,
-      connectorId,
-      lifecycle,
-      credential: refreshSucceeded ? credential : undefined,
-      refreshAttempted,
-      refreshSucceeded,
-    });
+    let connector;
+    try {
+      connector = await recordSocialConnectorLifecycle({
+        workspaceId,
+        connectorId,
+        lifecycle,
+        credential: refreshSucceeded ? credential : undefined,
+        expectedCredentialRotatedAt: refreshSucceeded ? stored.credentialRotatedAt : undefined,
+        refreshAttempted,
+        refreshSucceeded,
+        concurrentRotationObserved,
+      });
+    } catch (error) {
+      if (!(error instanceof TokMetricError) || error.code !== "SOCIAL_CREDENTIAL_ROTATION_CONFLICT") {
+        throw error;
+      }
+      const latest = await loadSocialConnectorCredential({ workspaceId, connectorId });
+      credential = latest.credential;
+      lifecycle = evaluateSocialCredentialLifecycle(config, credential);
+      refreshSucceeded = false;
+      concurrentRotationObserved = true;
+      connector = await recordSocialConnectorLifecycle({
+        workspaceId,
+        connectorId,
+        lifecycle,
+        refreshAttempted,
+        refreshSucceeded: false,
+        concurrentRotationObserved: true,
+      });
+    }
 
     await emitTokMetricAudit({
       workspaceId,
@@ -120,6 +150,7 @@ export async function POST(request: NextRequest) {
         lifecycle: lifecycle.lifecycle,
         tokenRefreshAttempted: refreshAttempted,
         tokenRefreshSucceeded: refreshSucceeded,
+        concurrentRotationObserved,
         providerAccountProbePerformed: false,
         externalPublishingEnabled: false,
       },
@@ -133,6 +164,7 @@ export async function POST(request: NextRequest) {
         credentialHealth: lifecycle,
         tokenRefreshAttempted: refreshAttempted,
         tokenRefreshSucceeded: refreshSucceeded,
+        concurrentRotationObserved,
         providerAccountProbePerformed: false,
         externalPublishingActionTaken: false,
       },
@@ -152,6 +184,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           provider,
           tokenRefreshAttempted: refreshAttempted,
+          concurrentRotationObserved,
           externalPublishingEnabled: false,
         },
       }).catch(() => undefined);
