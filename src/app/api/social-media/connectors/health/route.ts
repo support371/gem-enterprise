@@ -18,8 +18,10 @@ import {
 import { refreshSocialAccessToken } from "@/lib/social-media/oauth/client";
 import { evaluateSocialCredentialLifecycle } from "@/lib/social-media/oauth/lifecycle";
 import {
+  claimSocialConnectorCredentialRefresh,
   loadSocialConnectorCredential,
   recordSocialConnectorLifecycle,
+  releaseSocialConnectorCredentialRefreshClaim,
 } from "@/lib/social-media/oauth/lifecycle-store";
 
 const healthSchema = z.object({
@@ -55,9 +57,11 @@ function isTransientRefreshFailure(error: unknown) {
 export async function POST(request: NextRequest) {
   const cid = correlationId(request);
   let workspaceId: string | undefined;
+  let auditableWorkspaceId: string | undefined;
   let connectorId: string | undefined;
   let provider: string | undefined;
   let actorId: string | undefined;
+  let refreshClaimId: string | undefined;
   let refreshAttempted = false;
   let refreshSucceeded = false;
   let concurrentRotationObserved = false;
@@ -70,6 +74,7 @@ export async function POST(request: NextRequest) {
     workspaceId = parsed.workspaceId!;
     connectorId = parsed.connectorId!;
     const membership = await requireWorkspaceAccess(workspaceId, session);
+    auditableWorkspaceId = workspaceId;
     requirePermission(membership, "manage", "connectors");
     await enforceEmergencyLocks(workspaceId, "connector");
 
@@ -88,7 +93,14 @@ export async function POST(request: NextRequest) {
     let lifecycle = evaluateSocialCredentialLifecycle(config, credential);
 
     if (lifecycle.shouldRefresh) {
+      const claim = await claimSocialConnectorCredentialRefresh({
+        workspaceId,
+        connectorId,
+        expectedCredentialRotatedAt: stored.credentialRotatedAt,
+      });
+      refreshClaimId = claim.claimId;
       refreshAttempted = true;
+
       try {
         const refreshed = await refreshSocialAccessToken({ config, credential });
         credential = refreshed.credential;
@@ -111,6 +123,7 @@ export async function POST(request: NextRequest) {
             workspaceId,
             connectorId,
             lifecycle: reauthorization,
+            refreshClaimId,
             refreshAttempted: true,
             refreshSucceeded: false,
           });
@@ -125,11 +138,28 @@ export async function POST(request: NextRequest) {
             workspaceId,
             connectorId,
             lifecycle: degraded,
+            refreshClaimId,
             refreshAttempted: true,
             refreshSucceeded: false,
           });
           throw error;
         } else {
+          const closed = {
+            ...lifecycle,
+            connectorState:
+              lifecycle.lifecycle === "EXPIRED_REFRESHABLE"
+                ? ("TOKEN_EXPIRED" as const)
+                : ("DEGRADED" as const),
+            shouldRefresh: false,
+          };
+          await recordSocialConnectorLifecycle({
+            workspaceId,
+            connectorId,
+            lifecycle: closed,
+            refreshClaimId,
+            refreshAttempted: true,
+            refreshSucceeded: false,
+          });
           throw error;
         }
       }
@@ -143,6 +173,7 @@ export async function POST(request: NextRequest) {
         lifecycle,
         credential: refreshSucceeded ? credential : undefined,
         expectedCredentialRotatedAt: refreshSucceeded ? stored.credentialRotatedAt : undefined,
+        refreshClaimId,
         refreshAttempted,
         refreshSucceeded,
         concurrentRotationObserved,
@@ -160,6 +191,7 @@ export async function POST(request: NextRequest) {
         workspaceId,
         connectorId,
         lifecycle,
+        refreshClaimId,
         refreshAttempted,
         refreshSucceeded: false,
         concurrentRotationObserved: true,
@@ -201,9 +233,9 @@ export async function POST(request: NextRequest) {
       { headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
-    if (workspaceId) {
+    if (auditableWorkspaceId) {
       await emitTokMetricAudit({
-        workspaceId,
+        workspaceId: auditableWorkspaceId,
         actorId,
         action: "social.connector.credential_health_failed",
         entityType: "connector",
@@ -220,6 +252,16 @@ export async function POST(request: NextRequest) {
         },
       }).catch(() => undefined);
     }
-    return tokMetricErrorResponse(error, cid);
+    const response = tokMetricErrorResponse(error, cid);
+    response.headers.set("Cache-Control", "no-store");
+    return response;
+  } finally {
+    if (auditableWorkspaceId && connectorId && refreshClaimId) {
+      await releaseSocialConnectorCredentialRefreshClaim({
+        workspaceId: auditableWorkspaceId,
+        connectorId,
+        claimId: refreshClaimId,
+      }).catch(() => undefined);
+    }
   }
 }
