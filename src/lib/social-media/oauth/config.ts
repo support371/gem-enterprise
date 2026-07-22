@@ -143,7 +143,7 @@ export function getSocialOAuthProviderConfig(
       scopes: scopes("NEXTDOOR_SOCIAL_SCOPES"),
       usePkce: false,
       tokenClientAuthentication: "BASIC",
-      refreshMode: "NONE",
+      refreshMode: "STANDARD",
       additionalAuthorizationParameters: {},
       platformAccessEnv: "NEXTDOOR_PUBLISH_API_ACCESS_APPROVED",
     },
@@ -181,6 +181,9 @@ export function validateSocialOAuthProviderConfig(provider: SocialOAuthProvider)
     !config.scopes.includes("https://www.googleapis.com/auth/youtube.readonly")
   ) {
     missing.push("YOUTUBE_CHANNEL_DISCOVERY_SCOPE");
+  }
+  if (provider === "NEXTDOOR" && !config.scopes.includes("profile")) {
+    missing.push("NEXTDOOR_PROFILE_DISCOVERY_SCOPE");
   }
   if (config.platformAccessEnv && !enabled(config.platformAccessEnv)) {
     missing.push(config.platformAccessEnv);
