@@ -39,6 +39,13 @@ export function FacebookDashboard({ workspaceId, connectorId }: FacebookDashboar
     let cancelled = false;
 
     async function loadConnectors() {
+      if (!workspaceId) {
+        setConnectors([]);
+        setError("A workspace is required to manage Facebook Pages.");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         const response = await fetch(
@@ -77,10 +84,12 @@ export function FacebookDashboard({ workspaceId, connectorId }: FacebookDashboar
   }, [workspaceId, connectorId]);
 
   function handleConnectFacebook() {
-    const params = new URLSearchParams({
-      workspaceId,
-      redirectAfter: "/facebook/operations",
-    });
+    if (!workspaceId) {
+      setError("A workspace is required to connect Meta Business.");
+      return;
+    }
+    const redirectAfter = `/facebook/operations?workspace=${encodeURIComponent(workspaceId)}`;
+    const params = new URLSearchParams({ workspaceId, redirectAfter });
     window.location.assign(`/api/social-media/oauth/META/start?${params.toString()}`);
   }
 
@@ -104,7 +113,9 @@ export function FacebookDashboard({ workspaceId, connectorId }: FacebookDashboar
             Manage approved Facebook Page content through the shared Social Media Command Center.
           </p>
         </div>
-        <Button onClick={handleConnectFacebook}>Connect another Page</Button>
+        <Button onClick={handleConnectFacebook} disabled={!workspaceId}>
+          Connect another Page
+        </Button>
       </div>
 
       {error && (
@@ -126,7 +137,7 @@ export function FacebookDashboard({ workspaceId, connectorId }: FacebookDashboar
               <p className="text-gray-600">
                 Connect Meta Business to discover every authorized Facebook Page and linked Instagram professional account.
               </p>
-              <Button onClick={handleConnectFacebook} size="lg">
+              <Button onClick={handleConnectFacebook} size="lg" disabled={!workspaceId}>
                 Connect Meta Business
               </Button>
             </div>
