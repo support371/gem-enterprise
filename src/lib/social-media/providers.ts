@@ -49,7 +49,7 @@ export interface SocialMediaProviderReadiness {
 
 const sharedTokenEncryptionVariable = "SOCIAL_TOKEN_ENCRYPTION_KEY";
 
-export const socialMediaProviderDefinitions = [
+export const socialMediaProviderDefinitions: readonly SocialMediaProviderDefinition[] = [
   {
     id: "TIKTOK",
     label: "TikTok",
@@ -208,7 +208,7 @@ export const socialMediaProviderDefinitions = [
       "Public uploads require the applicable Google project verification or audit.",
     ],
   },
-] as const satisfies readonly SocialMediaProviderDefinition[];
+];
 
 function enabled(env: NodeJS.ProcessEnv, name: string) {
   return env[name] === "true";
