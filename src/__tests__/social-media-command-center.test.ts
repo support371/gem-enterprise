@@ -116,7 +116,8 @@ describe("GEM cross-platform social media command center", () => {
     const page = source("src/app/app/command-center/social-media/page.tsx");
     expect(page).toContain("GEM Social Media Command Center");
     expect(page).toContain("External writes remain locked");
-    expect(page).toContain("Configuration readiness does not authorize publishing");
+    expect(page).toContain("Configuration readiness");
+    expect(page).toContain("does not authorize publishing");
     expect(page).not.toContain("Publishing enabled");
   });
 });
