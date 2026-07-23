@@ -1,37 +1,34 @@
-/**
- * Facebook Content Management API Routes
- */
+import { NextRequest, NextResponse } from "next/server";
+import { getLegacyFacebookSupabase } from "@/lib/facebook/legacy-supabase";
+import {
+  correlationId,
+  requireTokMetricSession,
+  requireWorkspaceAccess,
+  TokMetricError,
+  tokMetricErrorResponse,
+} from "@/lib/tokmetric/security";
 
-import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'crypto';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-  { auth: { persistSession: false } }
-);
-
-/**
- * GET /api/facebook/content/calendar
- */
 export async function GET(request: NextRequest) {
+  const cid = correlationId(request);
   try {
-    const workspaceId = request.nextUrl.searchParams.get('workspaceId');
-    const connectorId = request.nextUrl.searchParams.get('connectorId');
-
+    const session = await requireTokMetricSession(request);
+    const workspaceId = request.nextUrl.searchParams.get("workspaceId")?.trim();
+    const connectorId = request.nextUrl.searchParams.get("connectorId")?.trim();
     if (!workspaceId || !connectorId) {
-      return NextResponse.json(
-        { error: 'Missing workspaceId or connectorId' },
-        { status: 400 }
+      throw new TokMetricError(
+        400,
+        "VALIDATION_ERROR",
+        "workspaceId and connectorId are required.",
       );
     }
-
+    await requireWorkspaceAccess(workspaceId, session);
+    const supabase = getLegacyFacebookSupabase();
     const today = new Date();
-    const thirtyDaysLater = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-
+    const thirtyDaysLater = new Date(
+      today.getTime() + 30 * 24 * 60 * 60 * 1000,
+    );
     const { data: content, error } = await supabase
-      .from('facebook_content_items')
+      .from("facebook_content_items")
       .select(`
         id,
         content_type,
@@ -40,130 +37,48 @@ export async function GET(request: NextRequest) {
         scheduled_publish_time,
         current_version_id
       `)
-      .eq('workspace_id', workspaceId)
-      .eq('connector_id', connectorId)
-      .gte('scheduled_publish_time', today.toISOString())
-      .lte('scheduled_publish_time', thirtyDaysLater.toISOString())
-      .order('scheduled_publish_time', { ascending: true });
-
-    if (error) {
-      throw error;
-    }
-
-    return NextResponse.json({
-      calendar: content || [],
-      period: {
-        start: today.toISOString(),
-        end: thirtyDaysLater.toISOString()
-      }
-    });
-  } catch (error) {
-    console.error('Calendar fetch error:', error);
+      .eq("workspace_id", workspaceId)
+      .eq("social_connector_id", connectorId)
+      .gte("scheduled_publish_time", today.toISOString())
+      .lte("scheduled_publish_time", thirtyDaysLater.toISOString())
+      .order("scheduled_publish_time", { ascending: true });
+    if (error) throw error;
     return NextResponse.json(
-      { error: 'Failed to fetch calendar' },
-      { status: 500 }
+      {
+        ok: true,
+        correlationId: cid,
+        calendar: content || [],
+        period: {
+          start: today.toISOString(),
+          end: thirtyDaysLater.toISOString(),
+        },
+        legacyReadOnly: true,
+      },
+      { headers: { "Cache-Control": "no-store, max-age=0" } },
     );
+  } catch (error) {
+    return tokMetricErrorResponse(error, cid);
   }
 }
 
 /**
- * POST /api/facebook/content/create
+ * New content must be created and versioned in the shared TokMetric content
+ * workflow so compliance and exact-version approvals can be bound to it.
  */
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const {
-      workspaceId,
-      connectorId,
-      contentType,
-      category,
-      caption,
-      hashtags,
-      destinationUrl,
-      accessibilityText,
-      videoCaptions,
-      mediaIds,
-      scheduledPublishTime,
-      timezone
-    } = body;
-
-    if (!workspaceId || !connectorId || !contentType || !category || !caption) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    const contentHash = crypto
-      .createHash('sha256')
-      .update(`${caption}${JSON.stringify(mediaIds)}${destinationUrl}`)
-      .digest('hex');
-
-    const { data: contentItem, error: itemError } = await supabase
-      .from('facebook_content_items')
-      .insert({
-        workspace_id: workspaceId,
-        connector_id: connectorId,
-        content_type: contentType,
-        category,
-        status: 'DRAFT',
-        scheduled_publish_time: scheduledPublishTime,
-        timezone: timezone || 'America/New_York',
-        created_by: 'system'
-      })
-      .select()
-      .single();
-
-    if (itemError) {
-      throw itemError;
-    }
-
-    const { data: version, error: versionError } = await supabase
-      .from('facebook_content_versions')
-      .insert({
-        content_item_id: contentItem.id,
-        caption,
-        hashtags: hashtags || [],
-        destination_url: destinationUrl,
-        accessibility_text: accessibilityText,
-        video_captions: videoCaptions,
-        media_ids: mediaIds || [],
-        version_number: 1,
-        content_hash: contentHash,
-        approval_status: 'PENDING',
-        approval_required_reason: 'Initial version - requires approval',
-        created_by: 'system'
-      })
-      .select()
-      .single();
-
-    if (versionError) {
-      throw versionError;
-    }
-
-    await supabase
-      .from('facebook_content_items')
-      .update({ current_version_id: version.id })
-      .eq('id', contentItem.id);
-
-    return NextResponse.json({
-      contentItem: {
-        id: contentItem.id,
-        status: contentItem.status,
-        category: contentItem.category,
-        contentType: contentItem.content_type,
-        version: {
-          id: version.id,
-          versionNumber: version.version_number,
-          approvalStatus: version.approval_status
-        }
-      }
-    }, { status: 201 });
-  } catch (error) {
-    console.error('Content creation error:', error);
-    return NextResponse.json(
-      { error: 'Failed to create content' },
-      { status: 500 }
-    );
-  }
+export async function POST(_request: NextRequest) {
+  return NextResponse.json(
+    {
+      ok: false,
+      error: {
+        code: "LEGACY_FACEBOOK_CONTENT_AUTHORING_DISABLED",
+        message:
+          "Create Facebook content through the shared Content Studio and approval workflow.",
+      },
+      externalActionTaken: false,
+    },
+    {
+      status: 409,
+      headers: { "Cache-Control": "no-store, max-age=0" },
+    },
+  );
 }
