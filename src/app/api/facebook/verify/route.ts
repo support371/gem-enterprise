@@ -13,33 +13,70 @@ export async function GET(request: NextRequest) {
   try {
     const session = await requireTokMetricSession(request);
     const workspaceId = request.nextUrl.searchParams.get("workspaceId")?.trim();
+    const connectorId = request.nextUrl.searchParams.get("connectorId")?.trim();
     const pageId = request.nextUrl.searchParams.get("pageId")?.trim();
     if (!workspaceId) {
       throw new TokMetricError(400, "VALIDATION_ERROR", "workspaceId is required.");
     }
     await requireWorkspaceAccess(workspaceId, session);
     const connectors = (await listSocialConnectors(workspaceId)).filter(
-      (connector) => connector.provider === "META",
+      (connector) => connector.provider === "META" && !connector.disabledAt,
     );
-    const connector = pageId
-      ? connectors.find(
-          (item) =>
-            item.externalAccountId === pageId ||
-            item.safeMetadata.facebookPageId === pageId,
-        )
-      : connectors[0];
-    if (!connector) {
+    if (connectors.length === 0) {
       return NextResponse.json(
         {
           ok: true,
           correlationId: cid,
           status: "NOT_CONNECTED",
           connectorStatus: "MISSING",
+          destinations: [],
           externalPublishingEnabled: false,
         },
         { headers: { "Cache-Control": "no-store, max-age=0" } },
       );
     }
+
+    if (!connectorId && !pageId) {
+      return NextResponse.json(
+        {
+          ok: false,
+          correlationId: cid,
+          error: {
+            code: "EXPLICIT_META_DESTINATION_REQUIRED",
+            message:
+              "Select an explicit Facebook Page or Instagram professional account before verification.",
+          },
+          destinations: connectors.map((connector) => ({
+            id: connector.id,
+            displayName: connector.displayName,
+            externalAccountId: connector.externalAccountId,
+            accountType: connector.safeMetadata.accountType || null,
+            state: connector.state,
+          })),
+          externalPublishingEnabled: false,
+        },
+        {
+          status: 409,
+          headers: { "Cache-Control": "no-store, max-age=0" },
+        },
+      );
+    }
+
+    const connector = connectors.find(
+      (item) =>
+        (connectorId && item.id === connectorId) ||
+        (pageId &&
+          (item.externalAccountId === pageId ||
+            item.safeMetadata.facebookPageId === pageId)),
+    );
+    if (!connector) {
+      throw new TokMetricError(
+        404,
+        "META_DESTINATION_NOT_FOUND",
+        "The selected Meta destination was not found in this workspace.",
+      );
+    }
+
     return NextResponse.json(
       {
         ok: true,
@@ -64,7 +101,9 @@ export async function GET(request: NextRequest) {
       { headers: { "Cache-Control": "no-store, max-age=0" } },
     );
   } catch (error) {
-    return tokMetricErrorResponse(error, cid);
+    const response = tokMetricErrorResponse(error, cid);
+    response.headers.set("Cache-Control", "no-store, max-age=0");
+    return response;
   }
 }
 
