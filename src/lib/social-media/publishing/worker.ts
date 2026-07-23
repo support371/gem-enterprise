@@ -26,6 +26,12 @@ import {
 } from "./store";
 import type { SocialPublishingJobRecord } from "./types";
 
+function object(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
 async function governanceEvidence(job: SocialPublishingJobRecord) {
   const [approval, complianceReview] = await Promise.all([
     db.approvalRequest.findFirst({
@@ -36,6 +42,8 @@ async function governanceEvidence(job: SocialPublishingJobRecord) {
         state: "APPROVED",
       },
       include: {
+        content: true,
+        contentVersion: true,
         decisions: {
           orderBy: { createdAt: "desc" },
           take: 1,
@@ -52,17 +60,33 @@ async function governanceEvidence(job: SocialPublishingJobRecord) {
   ]);
 
   const decision = approval?.decisions[0];
+  const versionId = approval?.contentVersionId || null;
+  const activeVersionMatches =
+    Boolean(versionId) && approval?.content?.currentVersionId === versionId;
+  const versionHashMatches =
+    approval?.contentVersion?.objectHash === job.contentVersionHash &&
+    approval?.objectHash === job.approvedVersionHash &&
+    job.contentVersionHash === job.approvedVersionHash;
   const approvalValid =
     Boolean(approval) &&
-    decision?.decision === "APPROVED" &&
+    decision?.decision.toLowerCase() === "approve" &&
     decision.objectHash === job.approvedVersionHash &&
     Boolean(decision.actorId) &&
-    decision.actorId !== job.requestedById;
+    decision.actorId !== approval?.requestedById &&
+    activeVersionMatches &&
+    versionHashMatches;
+  const complianceValid =
+    Boolean(complianceReview) &&
+    Boolean(versionId) &&
+    complianceReview?.contentVersionId === versionId &&
+    complianceReview?.contentId === approval?.contentId &&
+    job.compliancePassed;
 
   return {
     approvalValid,
-    complianceValid: Boolean(complianceReview) && job.compliancePassed,
+    complianceValid,
     approvalDecisionId: decision?.id || null,
+    contentVersionId: versionId,
   };
 }
 
@@ -73,6 +97,10 @@ function connectorPolicyState(state: string) {
     return "DISABLED" as const;
   }
   return "AUTHORIZATION_REQUIRED" as const;
+}
+
+async function audit(input: Parameters<typeof emitTokMetricAudit>[0]) {
+  await emitTokMetricAudit(input).catch(() => undefined);
 }
 
 async function block(
@@ -87,7 +115,7 @@ async function block(
     errorMessage: message,
     metadata,
   });
-  await emitTokMetricAudit({
+  await audit({
     workspaceId: job.workspaceId,
     actorId: job.requestedById || undefined,
     action: "SOCIAL_PUBLISH_BLOCKED",
@@ -96,7 +124,7 @@ async function block(
     correlationId: job.id,
     outcome: "BLOCKED",
     sourceChannel: "social-publishing-worker",
-    metadata: { provider: job.provider, code, ...((metadata || {}) as object) },
+    metadata: { provider: job.provider, code, ...object(metadata) },
   });
   return updated;
 }
@@ -156,7 +184,12 @@ async function processJob(job: SocialPublishingJobRecord) {
       job,
       "SOCIAL_PUBLISHING_NOT_AUTHORIZED",
       "Shared governance blocked the external publishing action.",
-      { reasons, missingScopes },
+      {
+        reasons,
+        missingScopes,
+        contentVersionId: evidence.contentVersionId,
+        approvalDecisionId: evidence.approvalDecisionId,
+      },
     );
   }
 
@@ -184,7 +217,7 @@ async function processJob(job: SocialPublishingJobRecord) {
       providerStatusCode: result.providerStatusCode,
       safeMetadata: result.safeMetadata,
     });
-    await emitTokMetricAudit({
+    await audit({
       workspaceId: job.workspaceId,
       actorId: job.requestedById || undefined,
       action: "SOCIAL_PUBLISH_COMPLETED",
@@ -223,7 +256,7 @@ async function processJob(job: SocialPublishingJobRecord) {
       providerStatusCode: adapterError.options.providerStatusCode,
       metadata: adapterError.options.safeMetadata,
     });
-    await emitTokMetricAudit({
+    await audit({
       workspaceId: job.workspaceId,
       actorId: job.requestedById || undefined,
       action: "SOCIAL_PUBLISH_FAILED",
@@ -250,7 +283,30 @@ export async function processSocialPublishingBatch(limit = 10) {
   const claimed = await claimSocialPublishingJobs(limit);
   const completed: SocialPublishingJobRecord[] = [];
   for (const job of claimed) {
-    completed.push(await processJob(job));
+    try {
+      completed.push(await processJob(job));
+    } catch (error) {
+      const safe =
+        error instanceof TokMetricError
+          ? error
+          : new TokMetricError(
+              500,
+              "SOCIAL_PUBLISHING_JOB_FAILED",
+              "The publishing job could not be evaluated.",
+            );
+      try {
+        completed.push(
+          await markSocialPublishingJobFailed({
+            job,
+            errorCode: safe.code,
+            errorMessage: safe.message,
+            retryable: safe.status >= 500,
+          }),
+        );
+      } catch {
+        // The claim will expire and become eligible for safe recovery.
+      }
+    }
   }
   return {
     claimed: claimed.length,
