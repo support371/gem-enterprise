@@ -23,6 +23,10 @@ describe("governed cross-platform social publishing", () => {
   const legacyPublishing = source(
     "src/app/api/facebook/publishing/route.ts",
   );
+  const legacyVerify = source("src/app/api/facebook/verify/route.ts");
+  const permissionsVerifier = source(
+    "src/components/FacebookOperations/PermissionsVerifier.tsx",
+  );
   const accountStore = source(
     "src/lib/social-media/oauth/account-store.ts",
   );
@@ -66,6 +70,18 @@ describe("governed cross-platform social publishing", () => {
     expect(accountStore).toContain('accountType: "INSTAGRAM_PROFESSIONAL"');
     expect(accountStore).toContain("instagramBusinessAccountId");
     expect(accountStore).toContain("externalAccountId: instagramId");
+  });
+
+  it("never auto-selects the first Meta account", () => {
+    expect(legacyVerify).toContain("EXPLICIT_META_DESTINATION_REQUIRED");
+    expect(legacyVerify).not.toContain("connectors[0]");
+    expect(permissionsVerifier).toContain("Choose a destination");
+    expect(permissionsVerifier).toContain(
+      "The system never selects the first discovered account automatically.",
+    );
+    expect(permissionsVerifier).toContain("/api/social-media/connectors?workspaceId=");
+    expect(permissionsVerifier).not.toContain("NEXT_PUBLIC_META_APP_ID");
+    expect(permissionsVerifier).not.toContain("facebook.com/v18.0/dialog/oauth");
   });
 
   it("removes the legacy Facebook token and publishing bypasses", () => {
