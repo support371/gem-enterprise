@@ -1,134 +1,121 @@
-/**
- * Facebook Emergency Controls API Routes
- */
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { db } from "@/lib/db";
+import {
+  correlationId,
+  emitTokMetricAudit,
+  parseJson,
+  requirePermission,
+  requireTokMetricSession,
+  requireWorkspaceAccess,
+  TokMetricError,
+  tokMetricErrorResponse,
+} from "@/lib/tokmetric/security";
 
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+const controlSchema = z.object({
+  workspaceId: z.string().trim().min(1),
+  connectorId: z.string().trim().min(1).optional(),
+  reason: z.string().trim().max(1000).optional(),
+});
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || '',
-  { auth: { persistSession: false } }
-);
-
-/**
- * GET /api/facebook/emergency/status
- */
-export async function GET(request: NextRequest) {
-  try {
-    const workspaceId = request.nextUrl.searchParams.get('workspaceId');
-    const connectorId = request.nextUrl.searchParams.get('connectorId');
-
-    if (!workspaceId || !connectorId) {
-      return NextResponse.json(
-        { error: 'Missing workspaceId or connectorId' },
-        { status: 400 }
-      );
-    }
-
-    const { data: connector, error } = await supabase
-      .from('meta_connectors')
-      .select('emergency_locked, emergency_locked_at, emergency_lock_reason')
-      .eq('id', connectorId)
-      .eq('workspace_id', workspaceId)
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    return NextResponse.json({
-      emergencyStatus: {
-        isLocked: connector?.emergency_locked || false,
-        lockedAt: connector?.emergency_locked_at,
-        lockReason: connector?.emergency_lock_reason
-      }
-    });
-  } catch (error) {
-    console.error('Emergency status error:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch emergency status' },
-      { status: 500 }
+function requireSameOrigin(request: NextRequest) {
+  const origin = request.headers.get("origin");
+  if (!origin || origin !== request.nextUrl.origin) {
+    throw new TokMetricError(
+      403,
+      "CROSS_ORIGIN_REQUEST_BLOCKED",
+      "Emergency controls require a same-origin request.",
     );
   }
 }
 
-/**
- * POST /api/facebook/emergency/lock
- * POST /api/facebook/emergency/unlock
- */
-export async function POST(request: NextRequest) {
+export async function GET(request: NextRequest) {
+  const cid = correlationId(request);
   try {
-    const body = await request.json();
-    const { workspaceId, connectorId, reason } = body;
-
-    if (!workspaceId || !connectorId) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
+    const session = await requireTokMetricSession(request);
+    const workspaceId = request.nextUrl.searchParams.get("workspaceId")?.trim();
+    if (!workspaceId) {
+      throw new TokMetricError(400, "VALIDATION_ERROR", "workspaceId is required.");
     }
-
-    const isLock = request.nextUrl.pathname.includes('lock') && !request.nextUrl.pathname.includes('unlock');
-
-    if (isLock) {
-      // Lock endpoint
-      const { data: connector, error: updateError } = await supabase
-        .from('meta_connectors')
-        .update({
-          emergency_locked: true,
-          emergency_locked_at: new Date(),
-          emergency_locked_by: 'system',
-          emergency_lock_reason: reason || 'Manual emergency lock'
-        })
-        .eq('id', connectorId)
-        .eq('workspace_id', workspaceId)
-        .select()
-        .single();
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      return NextResponse.json({
-        connector: {
-          id: connector.id,
-          emergencyLocked: connector.emergency_locked,
-          emergencyLockedAt: connector.emergency_locked_at,
-          emergencyLockReason: connector.emergency_lock_reason
-        }
-      });
-    } else {
-      // Unlock endpoint
-      const { data: connector, error: updateError } = await supabase
-        .from('meta_connectors')
-        .update({
-          emergency_locked: false,
-          emergency_locked_at: null,
-          emergency_locked_by: null,
-          emergency_lock_reason: null
-        })
-        .eq('id', connectorId)
-        .eq('workspace_id', workspaceId)
-        .select()
-        .single();
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      return NextResponse.json({
-        connector: {
-          id: connector.id,
-          emergencyLocked: connector.emergency_locked
-        }
-      });
+    await requireWorkspaceAccess(workspaceId, session);
+    const workspace = await db.workspace.findUnique({
+      where: { id: workspaceId },
+      select: {
+        connectorEmergencyStop: true,
+        publishingEmergencyStop: true,
+        globalEmergencyStop: true,
+        updatedAt: true,
+      },
+    });
+    if (!workspace) {
+      throw new TokMetricError(404, "WORKSPACE_NOT_FOUND", "Workspace not found.");
     }
-  } catch (error) {
-    console.error('Emergency control error:', error);
     return NextResponse.json(
-      { error: 'Failed to process emergency control' },
-      { status: 500 }
+      {
+        ok: true,
+        correlationId: cid,
+        emergencyStatus: {
+          isLocked:
+            workspace.globalEmergencyStop || workspace.publishingEmergencyStop,
+          globalLocked: workspace.globalEmergencyStop,
+          publishingLocked: workspace.publishingEmergencyStop,
+          connectorLocked: workspace.connectorEmergencyStop,
+          updatedAt: workspace.updatedAt,
+        },
+      },
+      { headers: { "Cache-Control": "no-store, max-age=0" } },
     );
+  } catch (error) {
+    return tokMetricErrorResponse(error, cid);
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const cid = correlationId(request);
+  try {
+    requireSameOrigin(request);
+    const session = await requireTokMetricSession(request);
+    const input = await parseJson(request, controlSchema);
+    const membership = await requireWorkspaceAccess(input.workspaceId, session);
+    requirePermission(membership, "manage", "workspace");
+    const isUnlock = request.nextUrl.pathname.includes("unlock");
+    const isLock = request.nextUrl.pathname.includes("lock") && !isUnlock;
+    if (!isLock && !isUnlock) {
+      throw new TokMetricError(400, "VALIDATION_ERROR", "Unknown emergency action.");
+    }
+    const workspace = await db.workspace.update({
+      where: { id: input.workspaceId },
+      data: { publishingEmergencyStop: isLock },
+      select: { id: true, publishingEmergencyStop: true, updatedAt: true },
+    });
+    await emitTokMetricAudit({
+      workspaceId: input.workspaceId,
+      actorId: session.userId,
+      action: isLock
+        ? "SOCIAL_PUBLISHING_EMERGENCY_LOCKED"
+        : "SOCIAL_PUBLISHING_EMERGENCY_UNLOCKED",
+      entityType: "WORKSPACE",
+      entityId: input.workspaceId,
+      correlationId: cid,
+      outcome: isLock ? "LOCKED" : "UNLOCKED",
+      sourceChannel: "facebook-operations-compatibility",
+      metadata: {
+        connectorId: input.connectorId || null,
+        reason: input.reason || null,
+      },
+    });
+    return NextResponse.json(
+      {
+        ok: true,
+        correlationId: cid,
+        emergencyStatus: {
+          isLocked: workspace.publishingEmergencyStop,
+          updatedAt: workspace.updatedAt,
+        },
+      },
+      { headers: { "Cache-Control": "no-store, max-age=0" } },
+    );
+  } catch (error) {
+    return tokMetricErrorResponse(error, cid);
   }
 }
