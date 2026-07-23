@@ -28,6 +28,52 @@ function storeUnavailable(error: unknown): never {
   throw error;
 }
 
+function metadataString(
+  metadata: Record<string, unknown>,
+  key: string,
+) {
+  const value = metadata[key];
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function expandExplicitMetaDestinations(
+  provider: SocialOAuthProvider,
+  accounts: DiscoveredSocialAccount[],
+) {
+  if (provider !== "META") return accounts;
+  const expanded: DiscoveredSocialAccount[] = [];
+  for (const account of accounts) {
+    expanded.push(account);
+    if (account.accountType !== "META_PAGE") continue;
+    const instagramId = metadataString(
+      account.safeMetadata,
+      "instagramBusinessAccountId",
+    );
+    if (!instagramId) continue;
+    const username = metadataString(account.safeMetadata, "instagramUsername");
+    expanded.push({
+      externalAccountId: instagramId,
+      displayName: username
+        ? `Instagram @${username}`
+        : `${account.displayName} Instagram`,
+      accountType: "INSTAGRAM_PROFESSIONAL",
+      username,
+      safeMetadata: {
+        facebookPageId: account.externalAccountId,
+        instagramBusinessAccountId: instagramId,
+        instagramUsername: username || null,
+        linkedFacebookPageName: account.displayName,
+        linkedFacebookPagePresent: true,
+      },
+      credential: {
+        ...account.credential,
+        externalAccountId: instagramId,
+      },
+    });
+  }
+  return expanded;
+}
+
 export async function persistDiscoveredSocialConnectors(input: {
   workspaceId: string;
   provider: SocialOAuthProvider;
@@ -35,7 +81,11 @@ export async function persistDiscoveredSocialConnectors(input: {
   accounts: DiscoveredSocialAccount[];
 }) {
   await enforceEmergencyLocks(input.workspaceId, "connector");
-  if (input.accounts.length === 0) {
+  const accounts = expandExplicitMetaDestinations(
+    input.provider,
+    input.accounts,
+  );
+  if (accounts.length === 0) {
     throw new TokMetricError(
       422,
       "SOCIAL_ACCOUNT_DISCOVERY_EMPTY",
@@ -47,7 +97,7 @@ export async function persistDiscoveredSocialConnectors(input: {
   try {
     return await db.$transaction(async (transaction) => {
       const persisted: SocialConnectorRecord[] = [];
-      for (const account of input.accounts) {
+      for (const account of accounts) {
         const connectorId = randomUUID();
         const credentialId = randomUUID();
         const encrypted = encryptSocialCredential(account.credential);
