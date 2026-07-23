@@ -12,9 +12,13 @@ export async function POST(request: NextRequest) {
     event: request.headers.get("x-github-event"),
   });
 
-  if (!verification.ok) {
+  if ("error" in verification) {
     return NextResponse.json(
-      { accepted: false, error: verification.error, externalActionTaken: false },
+      {
+        accepted: false,
+        error: verification.error,
+        externalActionTaken: false,
+      },
       { status: verification.status },
     );
   }
@@ -24,19 +28,28 @@ export async function POST(request: NextRequest) {
     payload = JSON.parse(rawBody);
   } catch {
     return NextResponse.json(
-      { accepted: false, error: "Malformed GitHub webhook JSON.", externalActionTaken: false },
+      {
+        accepted: false,
+        error: "Malformed GitHub webhook JSON.",
+        externalActionTaken: false,
+      },
       { status: 400 },
     );
   }
 
   const repository =
     typeof payload === "object" && payload !== null && "repository" in payload
-      ? (payload as { repository?: { full_name?: unknown } }).repository?.full_name
+      ? (payload as { repository?: { full_name?: unknown } }).repository
+          ?.full_name
       : undefined;
 
   if (repository && repository !== "support371/gem-enterprise") {
     return NextResponse.json(
-      { accepted: false, error: "Webhook repository is not authorized.", externalActionTaken: false },
+      {
+        accepted: false,
+        error: "Webhook repository is not authorized.",
+        externalActionTaken: false,
+      },
       { status: 403 },
     );
   }
