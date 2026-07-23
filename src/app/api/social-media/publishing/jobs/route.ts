@@ -6,7 +6,10 @@ import {
   createSocialPublishingJob,
   listSocialPublishingJobs,
 } from "@/lib/social-media/publishing/store";
-import { sharedSocialPublishingProviders } from "@/lib/social-media/publishing/types";
+import {
+  sharedSocialPublishingProviders,
+  type SocialPublishingPayload,
+} from "@/lib/social-media/publishing/types";
 import {
   correlationId,
   emitTokMetricAudit,
@@ -194,7 +197,13 @@ export async function POST(request: NextRequest) {
     const mediaUrls = configuredMediaUrls.length > 0
       ? configuredMediaUrls
       : mediaAssets.map((asset) => asset.storageRef);
-    const payload = {
+    const visibility: SocialPublishingPayload["visibility"] =
+      settings.visibility === "PUBLIC" ||
+      settings.visibility === "UNLISTED" ||
+      settings.visibility === "PRIVATE"
+        ? settings.visibility
+        : undefined;
+    const payload: SocialPublishingPayload = {
       text: caption || version.script?.trim() || undefined,
       title:
         typeof settings.title === "string" ? settings.title.trim() : undefined,
@@ -213,12 +222,7 @@ export async function POST(request: NextRequest) {
           : undefined,
       thread: strings(settings.thread),
       localContext: input.localContext,
-      visibility:
-        settings.visibility === "PUBLIC" ||
-        settings.visibility === "UNLISTED" ||
-        settings.visibility === "PRIVATE"
-          ? settings.visibility
-          : undefined,
+      visibility,
       metadata: {
         contentId: content.id,
         contentVersionId: version.id,
