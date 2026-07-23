@@ -41,9 +41,9 @@ export async function GET(request: NextRequest) {
     const workspace = await db.workspace.findUnique({
       where: { id: workspaceId },
       select: {
-        connectorEmergencyStop: true,
-        publishingEmergencyStop: true,
-        globalEmergencyStop: true,
+        connectorDisabled: true,
+        publishingDisabled: true,
+        globalEmergencyLock: true,
         updatedAt: true,
       },
     });
@@ -56,10 +56,10 @@ export async function GET(request: NextRequest) {
         correlationId: cid,
         emergencyStatus: {
           isLocked:
-            workspace.globalEmergencyStop || workspace.publishingEmergencyStop,
-          globalLocked: workspace.globalEmergencyStop,
-          publishingLocked: workspace.publishingEmergencyStop,
-          connectorLocked: workspace.connectorEmergencyStop,
+            workspace.globalEmergencyLock || workspace.publishingDisabled,
+          globalLocked: workspace.globalEmergencyLock,
+          publishingLocked: workspace.publishingDisabled,
+          connectorLocked: workspace.connectorDisabled,
           updatedAt: workspace.updatedAt,
         },
       },
@@ -85,8 +85,8 @@ export async function POST(request: NextRequest) {
     }
     const workspace = await db.workspace.update({
       where: { id: input.workspaceId },
-      data: { publishingEmergencyStop: isLock },
-      select: { id: true, publishingEmergencyStop: true, updatedAt: true },
+      data: { publishingDisabled: isLock },
+      select: { id: true, publishingDisabled: true, updatedAt: true },
     });
     await emitTokMetricAudit({
       workspaceId: input.workspaceId,
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
         ok: true,
         correlationId: cid,
         emergencyStatus: {
-          isLocked: workspace.publishingEmergencyStop,
+          isLocked: workspace.publishingDisabled,
           updatedAt: workspace.updatedAt,
         },
       },
