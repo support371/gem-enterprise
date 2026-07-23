@@ -34,7 +34,7 @@ describe("governed cross-platform social publishing", () => {
     expect(migration).toContain('CREATE TABLE "social_publishing_jobs"');
     expect(migration).toContain('CREATE TABLE "social_publishing_attempts"');
     expect(store).toContain("FOR UPDATE SKIP LOCKED");
-    expect(store).toContain('state = "DEAD_LETTER"');
+    expect(store).toContain('? "DEAD_LETTER"');
     expect(store).toContain("attemptCount < input.job.maxAttempts");
     expect(store).toContain("SOCIAL_PUBLISHING_IDEMPOTENCY_CONFLICT");
   });
