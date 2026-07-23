@@ -65,19 +65,22 @@ describe("Facebook automation governance", () => {
 
   it("uses the shared workspace emergency stop", () => {
     const emergency = source("src/app/api/facebook/emergency/route.ts");
-    expect(emergency).toContain("publishingEmergencyStop");
+    expect(emergency).toContain("publishingDisabled");
+    expect(emergency).toContain("globalEmergencyLock");
     expect(emergency).toContain("requireWorkspaceAccess");
     expect(emergency).not.toContain("meta_connectors");
     expect(emergency).not.toContain("emergency_locked_by: 'system'");
   });
 
   it("keeps every live publishing gate explicitly disabled", () => {
-    const vercel = source("vercel.json");
-    expect(vercel).toContain('"SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED": "false"');
-    expect(vercel).toContain('"META_SOCIAL_PUBLISHING_ENABLED": "false"');
-    expect(vercel).toContain('"X_SOCIAL_PUBLISHING_ENABLED": "false"');
-    expect(vercel).toContain('"LINKEDIN_SOCIAL_PUBLISHING_ENABLED": "false"');
-    expect(vercel).toContain('"YOUTUBE_PUBLISHING_ENABLED": "false"');
-    expect(vercel).toContain('"NEXTDOOR_PUBLISHING_ENABLED": "false"');
+    const config = JSON.parse(source("vercel.json")) as {
+      env?: Record<string, string>;
+    };
+    expect(config.env?.SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED).toBe("false");
+    expect(config.env?.META_SOCIAL_PUBLISHING_ENABLED).toBe("false");
+    expect(config.env?.X_SOCIAL_PUBLISHING_ENABLED).toBe("false");
+    expect(config.env?.LINKEDIN_SOCIAL_PUBLISHING_ENABLED).toBe("false");
+    expect(config.env?.YOUTUBE_PUBLISHING_ENABLED).toBe("false");
+    expect(config.env?.NEXTDOOR_PUBLISHING_ENABLED).toBe("false");
   });
 });
