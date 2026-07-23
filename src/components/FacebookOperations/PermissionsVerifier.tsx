@@ -1,180 +1,261 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, Check, Loader2, X } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { AlertCircle, Check, Loader2, X } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Permission {
   name: string;
   description: string;
   required: boolean;
-  granted?: boolean;
 }
 
-const REQUIRED_PERMISSIONS: Permission[] = [
+interface MetaConnector {
+  id: string;
+  provider: "META";
+  state: string;
+  displayName: string;
+  externalAccountId: string | null;
+  grantedScopes: string[];
+  safeMetadata: Record<string, unknown>;
+  disabledAt: string | null;
+}
+
+interface ConnectorInventoryResponse {
+  ok: boolean;
+  connectors?: MetaConnector[];
+  error?: { message?: string };
+}
+
+const FACEBOOK_PERMISSIONS: Permission[] = [
   {
-    name: 'pages_manage_posts',
-    description: 'Publish approved content to an explicitly selected Facebook Page.',
+    name: "pages_manage_posts",
+    description: "Publish approved content to the selected Facebook Page.",
     required: true,
   },
   {
-    name: 'pages_read_engagement',
-    description: 'Read Page engagement data for approved analytics workflows.',
+    name: "pages_read_engagement",
+    description: "Read Page engagement data for approved analytics workflows.",
     required: true,
   },
   {
-    name: 'pages_show_list',
-    description: 'Discover every Facebook Page the operator can manage.',
+    name: "pages_show_list",
+    description: "Discover every Facebook Page the operator can manage.",
     required: true,
-  },
-  {
-    name: 'instagram_basic',
-    description: 'Discover linked Instagram professional accounts.',
-    required: false,
-  },
-  {
-    name: 'instagram_content_publish',
-    description: 'Publish approved media to a selected Instagram professional account.',
-    required: false,
   },
 ];
 
-type ConnectorStatus = 'checking' | 'connected' | 'not-connected' | 'error';
+const INSTAGRAM_PERMISSIONS: Permission[] = [
+  {
+    name: "instagram_basic",
+    description: "Identify the selected Instagram professional account.",
+    required: true,
+  },
+  {
+    name: "instagram_content_publish",
+    description: "Publish approved media to the selected professional account.",
+    required: true,
+  },
+];
+
+function workspaceFromBrowser() {
+  const params = new URLSearchParams(window.location.search);
+  return (
+    params.get("workspace")?.trim() ||
+    params.get("workspaceId")?.trim() ||
+    localStorage.getItem("workspaceId")?.trim() ||
+    ""
+  );
+}
+
+function connectorFromBrowser() {
+  return new URLSearchParams(window.location.search).get("connector")?.trim() || "";
+}
 
 export default function PermissionsVerifier() {
-  const [permissions, setPermissions] = useState<Permission[]>(REQUIRED_PERMISSIONS);
+  const [workspaceId, setWorkspaceId] = useState("");
+  const [connectors, setConnectors] = useState<MetaConnector[]>([]);
+  const [selectedConnectorId, setSelectedConnectorId] = useState("");
   const [loading, setLoading] = useState(true);
-  const [connectorStatus, setConnectorStatus] = useState<ConnectorStatus>('checking');
-  const [verificationMessage, setVerificationMessage] = useState('');
-  const [connectorId, setConnectorId] = useState<string | null>(null);
+  const [verificationMessage, setVerificationMessage] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
-  const verifyPermissions = useCallback(async () => {
+  const loadConnectors = useCallback(async () => {
+    const resolvedWorkspaceId = workspaceFromBrowser();
+    setWorkspaceId(resolvedWorkspaceId);
+    if (!resolvedWorkspaceId) {
+      setConnectors([]);
+      setSelectedConnectorId("");
+      setVerificationMessage("A workspace is required to verify Meta permissions.");
+      setError("Open Facebook Operations from a workspace-scoped command center.");
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const workspaceId = localStorage.getItem('workspaceId')?.trim();
-      if (!workspaceId) {
-        setConnectorStatus('not-connected');
-        setVerificationMessage('Select a workspace before connecting Meta.');
-        setConnectorId(null);
-        return;
-      }
-
       const response = await fetch(
-        `/api/facebook/verify?workspaceId=${encodeURIComponent(workspaceId)}`,
-        { cache: 'no-store' },
+        `/api/social-media/connectors?workspaceId=${encodeURIComponent(resolvedWorkspaceId)}`,
+        { cache: "no-store" },
       );
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.error?.message || 'Unable to verify Meta connector.');
+      const data = (await response.json()) as ConnectorInventoryResponse;
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error?.message || "Unable to load Meta connectors.");
       }
 
-      if (data.status === 'CONNECTED') {
-        const grantedScopes: string[] = Array.isArray(data.connector?.grantedScopes)
-          ? data.connector.grantedScopes
-          : [];
-        setConnectorId(data.connector?.id || null);
-        setConnectorStatus('connected');
-        setVerificationMessage('Meta account is connected to the shared provider hub.');
-        setPermissions((current) =>
-          current.map((permission) => ({
-            ...permission,
-            granted: grantedScopes.includes(permission.name),
-          })),
-        );
-      } else if (data.status === 'NOT_CONNECTED') {
-        setConnectorId(null);
-        setConnectorStatus('not-connected');
-        setVerificationMessage('Meta is not connected for this workspace.');
-      } else {
-        setConnectorId(data.connector?.id || null);
-        setConnectorStatus('error');
-        setVerificationMessage(
-          `Meta connector requires attention: ${String(data.status || 'unknown state')}.`,
-        );
-      }
-    } catch (error) {
-      setConnectorStatus('error');
-      setVerificationMessage(
-        `Unable to verify Meta permissions: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      const metaConnectors = (data.connectors || []).filter(
+        (connector) => connector.provider === "META" && !connector.disabledAt,
       );
+      const explicitConnectorId = connectorFromBrowser();
+      setConnectors(metaConnectors);
+      setSelectedConnectorId((current) => {
+        if (current && metaConnectors.some((connector) => connector.id === current)) {
+          return current;
+        }
+        return metaConnectors.some((connector) => connector.id === explicitConnectorId)
+          ? explicitConnectorId
+          : "";
+      });
+      setVerificationMessage(
+        metaConnectors.length === 0
+          ? "No authorized Meta destination is connected."
+          : "Select an authorized Page or Instagram professional account to verify its scopes.",
+      );
+      setError(null);
+    } catch (caught) {
+      setConnectors([]);
+      setSelectedConnectorId("");
+      setVerificationMessage("Meta connector verification could not be completed.");
+      setError(caught instanceof Error ? caught.message : "Unexpected verification error.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void verifyPermissions();
-  }, [verifyPermissions]);
+    void loadConnectors();
+  }, [loadConnectors]);
 
-  const handleConnect = () => {
-    const workspaceId = localStorage.getItem('workspaceId')?.trim();
+  const selectedConnector = useMemo(
+    () => connectors.find((connector) => connector.id === selectedConnectorId),
+    [connectors, selectedConnectorId],
+  );
+  const accountType =
+    typeof selectedConnector?.safeMetadata.accountType === "string"
+      ? selectedConnector.safeMetadata.accountType
+      : "";
+  const permissions =
+    accountType === "INSTAGRAM_PROFESSIONAL"
+      ? [...FACEBOOK_PERMISSIONS, ...INSTAGRAM_PERMISSIONS]
+      : FACEBOOK_PERMISSIONS;
+  const granted = useMemo(
+    () => new Set(selectedConnector?.grantedScopes || []),
+    [selectedConnector],
+  );
+  const allRequiredGranted =
+    Boolean(selectedConnector) &&
+    selectedConnector?.state === "CONNECTED" &&
+    permissions
+      .filter((permission) => permission.required)
+      .every((permission) => granted.has(permission.name));
+
+  function handleConnect() {
     if (!workspaceId) {
-      setConnectorStatus('error');
-      setVerificationMessage('Select a workspace before connecting Meta.');
+      setError("A workspace is required before Meta authorization can begin.");
       return;
     }
-    const params = new URLSearchParams({
-      workspaceId,
-      returnTo: '/app/command-center/tokmetric',
-    });
+    const redirectAfter = `/facebook/operations?workspace=${encodeURIComponent(workspaceId)}`;
+    const params = new URLSearchParams({ workspaceId, redirectAfter });
     window.location.assign(`/api/social-media/oauth/META/start?${params.toString()}`);
-  };
+  }
 
-  const handleTestConnection = async () => {
+  async function handleTestConnection() {
+    if (!workspaceId || !selectedConnector) {
+      setError("Select an explicit Meta destination before running a health check.");
+      return;
+    }
     try {
       setLoading(true);
-      const workspaceId = localStorage.getItem('workspaceId')?.trim();
-      if (!workspaceId || !connectorId) {
-        throw new Error('Select a connected Meta destination first.');
-      }
-      const response = await fetch('/api/social-media/connectors/health', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workspaceId, connectorId }),
+      setError(null);
+      const response = await fetch("/api/social-media/connectors/health", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          workspaceId,
+          connectorId: selectedConnector.id,
+        }),
       });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.error?.message || 'Connector health check failed.');
+      const data = (await response.json()) as {
+        ok?: boolean;
+        connector?: { state?: string };
+        error?: { message?: string };
+      };
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error?.message || "Connector health check failed.");
       }
-      setVerificationMessage('Meta connector health check passed.');
-      await verifyPermissions();
-    } catch (error) {
-      setConnectorStatus('error');
       setVerificationMessage(
-        `Connection check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Credential health checked. Connector state: ${data.connector?.state || "UNKNOWN"}.`,
       );
+      await loadConnectors();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Connector health check failed.");
     } finally {
       setLoading(false);
     }
-  };
+  }
 
-  const allRequiredGranted = permissions
-    .filter((permission) => permission.required)
-    .every((permission) => permission.granted);
-
-  const alertClass =
-    connectorStatus === 'connected'
-      ? 'border-green-200 bg-green-50'
-      : connectorStatus === 'not-connected'
-        ? 'border-yellow-200 bg-yellow-50'
-        : 'border-red-200 bg-red-50';
-  const alertTextClass =
-    connectorStatus === 'connected'
-      ? 'text-green-800'
-      : connectorStatus === 'not-connected'
-        ? 'text-yellow-800'
-        : 'text-red-800';
+  const alertClass = error
+    ? "border-red-200 bg-red-50"
+    : allRequiredGranted
+      ? "border-green-200 bg-green-50"
+      : "border-yellow-200 bg-yellow-50";
+  const alertTextClass = error
+    ? "text-red-800"
+    : allRequiredGranted
+      ? "text-green-800"
+      : "text-yellow-800";
 
   return (
     <div className="space-y-6">
       <Alert className={alertClass}>
         <AlertCircle className={alertTextClass} />
         <AlertDescription className={alertTextClass}>
-          {verificationMessage}
+          {error || verificationMessage}
         </AlertDescription>
       </Alert>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Authorized Meta destination</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <label htmlFor="meta-destination" className="text-sm font-medium">
+            Select the Page or professional account to verify
+          </label>
+          <select
+            id="meta-destination"
+            value={selectedConnectorId}
+            onChange={(event) => {
+              setSelectedConnectorId(event.target.value);
+              setError(null);
+            }}
+            disabled={loading || connectors.length === 0}
+            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+          >
+            <option value="">Choose a destination</option>
+            {connectors.map((connector) => (
+              <option key={connector.id} value={connector.id}>
+                {connector.displayName} — {connector.state}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-muted-foreground">
+            The system never selects the first discovered account automatically.
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -186,58 +267,66 @@ export default function PermissionsVerifier() {
             ) : (
               <X className="h-5 w-5 text-red-600" />
             )}
-            Meta permissions
+            Required permissions
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {permissions.map((permission) => (
-            <div
-              key={permission.name}
-              className="flex items-start gap-3 border-b pb-3 last:border-0"
-            >
-              <div className="mt-1">
-                {permission.granted ? (
-                  <Check className="h-5 w-5 text-green-600" />
-                ) : permission.required ? (
-                  <X className="h-5 w-5 text-red-600" />
-                ) : (
-                  <AlertCircle className="h-5 w-5 text-yellow-600" />
-                )}
+          {permissions.map((permission) => {
+            const isGranted = granted.has(permission.name);
+            return (
+              <div
+                key={permission.name}
+                className="flex items-start gap-3 border-b pb-3 last:border-0"
+              >
+                <div className="mt-1">
+                  {isGranted ? (
+                    <Check className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <X className="h-5 w-5 text-red-600" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{permission.name}</p>
+                  <p className="text-sm text-gray-600">{permission.description}</p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium">
-                  {permission.name}
-                  {permission.required && <span className="ml-1 text-red-600">*</span>}
-                </p>
-                <p className="text-sm text-gray-600">{permission.description}</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
 
-      <div className="flex gap-3">
-        {connectorStatus === 'not-connected' ? (
-          <Button onClick={handleConnect} disabled={loading}>
-            Connect Meta
-          </Button>
-        ) : (
-          <>
-            <Button onClick={handleTestConnection} disabled={loading || !connectorId} variant="outline">
-              Test connection
-            </Button>
-            <Button onClick={() => void verifyPermissions()} disabled={loading} variant="outline">
-              Refresh status
-            </Button>
-          </>
-        )}
+      <div className="flex flex-wrap gap-3">
+        <Button onClick={handleConnect} disabled={loading || !workspaceId}>
+          Connect another Meta destination
+        </Button>
+        <Button
+          onClick={() => void handleTestConnection()}
+          disabled={loading || !selectedConnector}
+          variant="outline"
+        >
+          {loading ? "Checking..." : "Run credential health check"}
+        </Button>
+        <Button onClick={() => void loadConnectors()} disabled={loading} variant="outline">
+          Refresh inventory
+        </Button>
       </div>
 
-      <Card className="border-blue-200 bg-blue-50">
-        <CardContent className="pt-6 text-sm text-blue-900">
-          Meta authorization is stored in the shared connector lifecycle. Publishing remains disabled until content, compliance, human approval, workspace locks, scopes, and both live gates pass.
-        </CardContent>
-      </Card>
+      {selectedConnector && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="space-y-2 pt-6 text-sm text-blue-900">
+            <p>
+              <strong>Destination:</strong> {selectedConnector.displayName}
+            </p>
+            <p>
+              <strong>External account ID:</strong>{" "}
+              {selectedConnector.externalAccountId || "Unavailable"}
+            </p>
+            <p>
+              <strong>Connector state:</strong> {selectedConnector.state}
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
