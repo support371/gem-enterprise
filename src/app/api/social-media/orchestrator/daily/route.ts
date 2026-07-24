@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     const planDate = input.planDate ? new Date(input.planDate) : new Date();
     const normalizedInput = {
       ...input,
-      planDate: planDate.toISOString(),
+      planDate: planDate.toISOString().slice(0, 10),
     };
     const result = await withIdempotency(
       input.workspaceId,
