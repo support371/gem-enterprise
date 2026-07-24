@@ -11,6 +11,12 @@
       "main": true
     }
   },
+  "crons": [
+    {
+      "path": "/api/social-media/orchestrator/daily/process",
+      "schedule": "0 12 * * *"
+    }
+  ],
   "env": {
     "NEXT_PUBLIC_APP_NAME": "GEM Enterprise",
     "NEXT_PUBLIC_APP_URL": "https://www.gemcybersecurityassist.com",
@@ -35,7 +41,10 @@
     "X_SOCIAL_PUBLISHING_ENABLED": "false",
     "LINKEDIN_SOCIAL_PUBLISHING_ENABLED": "false",
     "YOUTUBE_PUBLISHING_ENABLED": "false",
-    "NEXTDOOR_PUBLISHING_ENABLED": "false"
+    "NEXTDOOR_PUBLISHING_ENABLED": "false",
+    "CONTENT_ORCHESTRATOR_PROVIDERS": "TIKTOK,FACEBOOK_PAGE,INSTAGRAM_PROFESSIONAL,X,NEXTDOOR",
+    "CONTENT_ORCHESTRATOR_MINIMUM_TIKTOK_ITEMS": "20",
+    "CONTENT_ORCHESTRATOR_OTHER_PROVIDER_ITEMS": "3"
   },
   "headers": [
     {
