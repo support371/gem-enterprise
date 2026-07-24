@@ -138,6 +138,24 @@ enum MeetingStatus {
   COMPLETED
 }
 
+
+enum IntakeKind {
+  ENTERPRISE
+  COMMUNITY
+  PRODUCT_REQUEST
+}
+
+enum IntakeSubmissionStatus {
+  RECEIVED
+  TRIAGE
+  NEEDS_INFORMATION
+  QUALIFIED
+  APPROVED
+  DECLINED
+  CONVERTED
+  CLOSED
+}
+
 // ─── Core Models ──────────────────────────────────────────────────────────────
 
 model User {
@@ -150,6 +168,7 @@ model User {
   lastLoginAt     DateTime?
   isActive        Boolean    @default(true)
   isEmailVerified Boolean    @default(false)
+  sessionVersion  Int        @default(0)
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
@@ -176,6 +195,9 @@ model User {
   PublishJob                PublishJob[]
   AuditEvent                AuditEvent[]
   OAuthAuthorizationAttempt OAuthAuthorizationAttempt[]
+  intakeSubmissions         IntakeSubmission[] @relation("IntakeApplicant")
+  assignedIntakeSubmissions IntakeSubmission[] @relation("IntakeAssignee")
+  intakeStatusEvents        IntakeStatusEvent[] @relation("IntakeEventActor")
 
   @@map("users")
 }
@@ -343,9 +365,11 @@ model SupportTicket {
   @@map("support_tickets")
 }
 
+// ─── Scoped Service Requests ───────────────────────────────────────────────
 model ServiceRequest {
   id          String          @id @default(cuid())
   userId      String
+  workspaceId String?
   type        String
   subject     String
   description String
@@ -356,8 +380,10 @@ model ServiceRequest {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
 
+  @@index([workspaceId, createdAt])
   @@map("requests")
 }
 
@@ -723,6 +749,7 @@ model Workspace {
   notifications              Notification[]
   idempotencyRecords         IdempotencyRecord[]
   oauthAuthorizationAttempts OAuthAuthorizationAttempt[]
+  serviceRequests             ServiceRequest[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -1177,3 +1204,68 @@ model OAuthAuthorizationAttempt {
   @@index([consumedAt])
   @@map("tokmetric_oauth_authorization_attempts")
 }
+
+// ─── Separated Intake Models ────────────────────────────────────────────────
+
+model IntakeSubmission {
+  id                String                  @id
+  publicId          String                  @unique @map("public_id")
+  kind              IntakeKind
+  status            IntakeSubmissionStatus @default(RECEIVED)
+  queue             String
+  userId            String?                 @map("user_id")
+  assignedToId      String?                 @map("assigned_to_id")
+  productSlug       String?                 @map("product_slug")
+  productName       String?                 @map("product_name")
+  productSku        String?                 @map("product_sku")
+  productCategory   String?                 @map("product_category")
+  name              String
+  email             String
+  phone             String?
+  organization      String?
+  title             String?
+  jurisdiction      String?
+  subject           String
+  message           String
+  payload           Json                    @default("{}")
+  consentVersion    String                  @map("consent_version")
+  consentGivenAt    DateTime                @map("consent_given_at")
+  privacyVersion    String                  @map("privacy_version")
+  privacyAcceptedAt DateTime                @map("privacy_accepted_at")
+  source            String                  @default("web")
+  ipHash            String?                 @map("ip_hash")
+  userAgentHash     String?                 @map("user_agent_hash")
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+
+  user       User?               @relation("IntakeApplicant", fields: [userId], references: [id], onDelete: SetNull)
+  assignedTo User?               @relation("IntakeAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  events     IntakeStatusEvent[]
+
+  @@index([kind, status, createdAt])
+  @@index([queue, status, createdAt])
+  @@index([email, createdAt])
+  @@index([productSlug, createdAt])
+  @@index([userId])
+  @@index([assignedToId, status])
+  @@map("intake_submissions")
+}
+
+model IntakeStatusEvent {
+  id           String                  @id
+  submissionId String                  @map("submission_id")
+  fromStatus   IntakeSubmissionStatus? @map("from_status")
+  toStatus     IntakeSubmissionStatus  @map("to_status")
+  actorId      String?                 @map("actor_id")
+  reason       String?
+  metadata     Json                    @default("{}")
+  createdAt    DateTime                @default(now()) @map("created_at")
+
+  submission IntakeSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  actor      User?            @relation("IntakeEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([submissionId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("intake_status_events")
+}
+

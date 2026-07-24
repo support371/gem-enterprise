@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { orchestrateDailyContent } from "@/lib/social-media/orchestration/orchestrator";
+import type { ApprovedSourceMaterial, MarketSignal } from "@/lib/social-media/planning/daily-flow";
 import { socialMediaProviderIds } from "@/lib/social-media/providers";
 import {
   correlationId,
@@ -156,13 +157,27 @@ export async function POST(request: NextRequest) {
           correlationId: cid,
           planDate,
           enabledProviders: input.enabledProviders,
-          marketSignals: input.marketSignals?.map((signal) => ({
-            ...signal,
+          marketSignals: input.marketSignals?.map((signal): MarketSignal => ({
+            id: signal.id,
+            topic: signal.topic,
+            summary: signal.summary,
+            relevance: signal.relevance,
+            momentum: signal.momentum,
             observedAt: new Date(signal.observedAt),
+            sourceReference: signal.sourceReference,
+            providers: signal.providers,
           })),
-          approvedSources: input.approvedSources?.map((source) => ({
-            ...source,
+          approvedSources: input.approvedSources?.map((source): ApprovedSourceMaterial => ({
+            id: source.id,
+            title: source.title,
+            summary: source.summary,
+            callToAction: source.callToAction,
+            sourceReference: source.sourceReference,
             approvedAt: new Date(source.approvedAt),
+            approved: source.approved,
+            providers: source.providers,
+            vacancyId: source.vacancyId,
+            employerUpdateApproved: source.employerUpdateApproved,
           })),
           useGemCatalog: input.useGemCatalog,
           gemProductSlugs: input.gemProductSlugs,
