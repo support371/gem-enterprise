@@ -22,6 +22,8 @@ export interface ApprovedSourceMaterial {
   approvedAt: Date;
   approved: boolean;
   providers?: readonly SocialMediaProviderId[];
+  vacancyId?: string;
+  employerUpdateApproved?: boolean;
 }
 
 export interface RecentPublishedContent {
@@ -38,7 +40,11 @@ export interface DailyContentPlanningInput {
   enabledProviders: readonly SocialMediaProviderId[];
   minimumTikTokItems?: number;
   maxItemsPerOtherProvider?: number;
-  freshnessWindowDays?: number;
+  /**
+   * Defaults to lifetime uniqueness. Set a positive number only when an
+   * operator has approved a bounded reuse window.
+   */
+  freshnessWindowDays?: number | null;
 }
 
 export interface DailyContentDraft {
@@ -51,6 +57,7 @@ export interface DailyContentDraft {
   sourceReference: string;
   signalId: string;
   fingerprint: string;
+  vacancyId?: string;
   approvalRequired: true;
   complianceReviewRequired: true;
   externalActionTaken: false;
@@ -115,7 +122,14 @@ function compatible(
   return !providers?.length || providers.includes(provider);
 }
 
-function formatFor(provider: SocialMediaProviderId, sequence: number) {
+function formatFor(
+  provider: SocialMediaProviderId,
+  sequence: number,
+  source: ApprovedSourceMaterial,
+) {
+  if (provider === "INDEED_EMPLOYER") {
+    return source.vacancyId ? "JOB_POSTING" : "EMPLOYER_UPDATE";
+  }
   const formats = providerFormats[provider];
   return formats[(sequence - 1) % formats.length];
 }
@@ -139,16 +153,30 @@ function angleFor(sequence: number, signal: MarketSignal, source: ApprovedSource
 
 function dailyTarget(provider: SocialMediaProviderId, input: DailyContentPlanningInput) {
   if (provider === "TIKTOK") return Math.max(20, input.minimumTikTokItems ?? 20);
+  if (provider === "INDEED_EMPLOYER") return 1;
   return Math.max(1, input.maxItemsPerOtherProvider ?? 3);
+}
+
+function sourceEligibleForProvider(
+  provider: SocialMediaProviderId,
+  source: ApprovedSourceMaterial,
+) {
+  if (!compatible(provider, source.providers)) return false;
+  if (provider !== "INDEED_EMPLOYER") return true;
+  return Boolean(source.vacancyId?.trim() || source.employerUpdateApproved);
 }
 
 export function buildAdaptiveDailyContentPlan(
   input: DailyContentPlanningInput,
 ): DailyContentPlan {
   const rejectedReasons: string[] = [];
-  const freshnessWindowDays = Math.max(1, input.freshnessWindowDays ?? 30);
-  const cutoff = new Date(input.planDate);
-  cutoff.setUTCDate(cutoff.getUTCDate() - freshnessWindowDays);
+  const cutoff =
+    typeof input.freshnessWindowDays === "number"
+      ? new Date(
+          input.planDate.getTime() -
+            Math.max(1, input.freshnessWindowDays) * 24 * 60 * 60 * 1000,
+        )
+      : null;
 
   const approvedSources = input.approvedSources.filter((source) => source.approved);
   if (!approvedSources.length) rejectedReasons.push("APPROVED_SOURCE_MATERIAL_REQUIRED");
@@ -165,18 +193,30 @@ export function buildAdaptiveDailyContentPlan(
 
   const blockedFingerprints = new Set(
     input.recentPublishedContent
-      .filter((item) => item.publishedAt >= cutoff)
+      .filter((item) => !cutoff || item.publishedAt >= cutoff)
       .map((item) => item.fingerprint),
   );
   const planFingerprints = new Set<string>();
   const drafts: DailyContentDraft[] = [];
 
   for (const provider of [...new Set(input.enabledProviders)]) {
-    if (provider === "INDEED_EMPLOYER") continue;
-
-    const providerSignals = rankedSignals.filter((signal) => compatible(provider, signal.providers));
-    const providerSources = approvedSources.filter((source) => compatible(provider, source.providers));
+    const providerSignals = rankedSignals.filter((signal) =>
+      compatible(provider, signal.providers),
+    );
+    const providerSources = approvedSources.filter((source) =>
+      sourceEligibleForProvider(provider, source),
+    );
     const target = dailyTarget(provider, input);
+
+    if (
+      provider === "INDEED_EMPLOYER" &&
+      !providerSources.some(
+        (source) => source.vacancyId?.trim() || source.employerUpdateApproved,
+      )
+    ) {
+      rejectedReasons.push("INDEED_GENUINE_ROLE_OR_EMPLOYER_UPDATE_REQUIRED");
+      continue;
+    }
 
     if (!providerSignals.length || !providerSources.length) {
       rejectedReasons.push(`${provider}_PLANNING_INPUTS_UNAVAILABLE`);
@@ -186,17 +226,20 @@ export function buildAdaptiveDailyContentPlan(
     let attempts = 0;
     while (drafts.filter((draft) => draft.provider === provider).length < target) {
       attempts += 1;
-      if (attempts > target * providerSignals.length * providerSources.length * 4) {
+      if (attempts > target * providerSignals.length * providerSources.length * 8) {
         rejectedReasons.push(`${provider}_UNIQUE_CONTENT_TARGET_NOT_REACHED`);
         break;
       }
 
-      const providerSequence = drafts.filter((draft) => draft.provider === provider).length + 1;
+      const providerSequence =
+        drafts.filter((draft) => draft.provider === provider).length + 1;
       const signal = providerSignals[(attempts - 1) % providerSignals.length];
-      const source = providerSources[
-        Math.floor((attempts - 1) / providerSignals.length) % providerSources.length
-      ];
-      const contentType = formatFor(provider, providerSequence);
+      const source =
+        providerSources[
+          Math.floor((attempts - 1) / providerSignals.length) %
+            providerSources.length
+        ];
+      const contentType = formatFor(provider, providerSequence, source);
       const angle = angleFor(attempts, signal, source);
       const fingerprint = contentFingerprint({
         provider,
@@ -206,7 +249,9 @@ export function buildAdaptiveDailyContentPlan(
         contentType,
       });
 
-      if (blockedFingerprints.has(fingerprint) || planFingerprints.has(fingerprint)) continue;
+      if (blockedFingerprints.has(fingerprint) || planFingerprints.has(fingerprint)) {
+        continue;
+      }
       planFingerprints.add(fingerprint);
 
       drafts.push({
@@ -219,6 +264,7 @@ export function buildAdaptiveDailyContentPlan(
         sourceReference: source.sourceReference,
         signalId: signal.id,
         fingerprint,
+        vacancyId: source.vacancyId,
         approvalRequired: true,
         complianceReviewRequired: true,
         externalActionTaken: false,
