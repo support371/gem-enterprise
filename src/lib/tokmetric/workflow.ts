@@ -54,6 +54,23 @@ function orchestratorRiskFindings(settings: unknown): ReviewFinding[] {
   });
 }
 
+function dedupeFindings(findings: readonly ReviewFinding[]) {
+  const severityRank: Record<ReviewFinding["severity"], number> = {
+    info: 0,
+    warning: 1,
+    block: 2,
+  };
+  const unique = new Map<string, ReviewFinding>();
+  for (const finding of findings) {
+    const key = `${finding.code}|${finding.message}`;
+    const existing = unique.get(key);
+    if (!existing || severityRank[finding.severity] > severityRank[existing.severity]) {
+      unique.set(key, finding);
+    }
+  }
+  return [...unique.values()];
+}
+
 function normalizeDraftPayload(
   input: Omit<DraftInput, "workspaceId" | "title" | "campaignId">,
 ) {
@@ -256,14 +273,7 @@ export async function runComplianceReview(input: {
     });
   }
 
-  const uniqueFindings = [
-    ...new Map(
-      findings.map((finding) => [
-        `${finding.code}|${finding.message}`,
-        finding,
-      ]),
-    ).values(),
-  ];
+  const uniqueFindings = dedupeFindings(findings);
   const hasBlock = uniqueFindings.some(
     (finding) => finding.severity === "block",
   );
