@@ -29,17 +29,50 @@ function toInputJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value ?? {})) as Prisma.InputJsonValue;
 }
 
-function normalizeDraftPayload(input: Omit<DraftInput, "workspaceId" | "title" | "campaignId">) {
+function object(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function orchestratorRiskFindings(settings: unknown): ReviewFinding[] {
+  const riskFlags = object(settings).riskFlags;
+  if (!Array.isArray(riskFlags)) return [];
+  return riskFlags.flatMap((entry) => {
+    const flag = object(entry);
+    const code = typeof flag.code === "string" ? flag.code : undefined;
+    const message = typeof flag.message === "string" ? flag.message : undefined;
+    const severity =
+      flag.severity === "BLOCK"
+        ? "block"
+        : flag.severity === "WARNING"
+          ? "warning"
+          : flag.severity === "INFO"
+            ? "info"
+            : undefined;
+    return code && message && severity ? [{ code, message, severity }] : [];
+  });
+}
+
+function normalizeDraftPayload(
+  input: Omit<DraftInput, "workspaceId" | "title" | "campaignId">,
+) {
   return {
     script: input.script?.trim() || null,
     caption: input.caption?.trim() || null,
-    hashtags: [...new Set((input.hashtags ?? []).map((tag) => tag.trim()).filter(Boolean))],
+    hashtags: [
+      ...new Set((input.hashtags ?? []).map((tag) => tag.trim()).filter(Boolean)),
+    ],
     settings: input.settings ?? {},
     mediaAssetIds: [...new Set(input.mediaAssetIds ?? [])],
   };
 }
 
-export async function createContentDraft(input: DraftInput, actorId: string, correlationId: string) {
+export async function createContentDraft(
+  input: DraftInput,
+  actorId: string,
+  correlationId: string,
+) {
   const payload = normalizeDraftPayload(input);
   const objectHash = contentHash(payload);
 
@@ -104,19 +137,32 @@ export async function createContentVersion(
   correlationId: string,
   payload: Omit<DraftInput, "workspaceId" | "title" | "campaignId">,
 ) {
-  const content = await db.content.findFirst({ where: { id: contentId, workspaceId } });
-  if (!content) throw new TokMetricError(404, "CONTENT_NOT_FOUND", "Content was not found.");
+  const content = await db.content.findFirst({
+    where: { id: contentId, workspaceId },
+  });
+  if (!content) {
+    throw new TokMetricError(404, "CONTENT_NOT_FOUND", "Content was not found.");
+  }
   if (["APPROVED", "ARCHIVED"].includes(content.state)) {
-    throw new TokMetricError(409, "CONTENT_IMMUTABLE", "Approved or archived content cannot be edited directly.");
+    throw new TokMetricError(
+      409,
+      "CONTENT_IMMUTABLE",
+      "Approved or archived content cannot be edited directly.",
+    );
   }
 
   const normalized = normalizeDraftPayload(payload);
   const objectHash = contentHash(normalized);
 
-  const existing = await db.contentVersion.findFirst({ where: { contentId, objectHash } });
+  const existing = await db.contentVersion.findFirst({
+    where: { contentId, objectHash },
+  });
   if (existing) return { content, version: existing, reused: true };
 
-  const latest = await db.contentVersion.aggregate({ where: { contentId }, _max: { version: true } });
+  const latest = await db.contentVersion.aggregate({
+    where: { contentId },
+    _max: { version: true },
+  });
   const version = await db.contentVersion.create({
     data: {
       contentId,
@@ -157,26 +203,78 @@ export async function runComplianceReview(input: {
     where: { id: input.contentId, workspaceId: input.workspaceId },
     include: { versions: { orderBy: { version: "desc" }, take: 1 } },
   });
-  if (!content || !content.currentVersionId) throw new TokMetricError(404, "CONTENT_NOT_FOUND", "Content or its active version was not found.");
+  if (!content || !content.currentVersionId) {
+    throw new TokMetricError(
+      404,
+      "CONTENT_NOT_FOUND",
+      "Content or its active version was not found.",
+    );
+  }
   const version = content.versions[0];
-  if (!version) throw new TokMetricError(409, "CONTENT_VERSION_MISSING", "Content has no reviewable version.");
+  if (!version) {
+    throw new TokMetricError(
+      409,
+      "CONTENT_VERSION_MISSING",
+      "Content has no reviewable version.",
+    );
+  }
 
-  const findings: ReviewFinding[] = [];
+  const findings: ReviewFinding[] = [
+    ...orchestratorRiskFindings(version.settings),
+  ];
   const combined = `${version.script ?? ""}\n${version.caption ?? ""}`.toLowerCase();
-  if (!combined.trim()) findings.push({ code: "EMPTY_CONTENT", severity: "block", message: "Content script and caption are empty." });
-  if (combined.includes("guaranteed profit") || combined.includes("risk-free return")) {
-    findings.push({ code: "MISLEADING_FINANCIAL_CLAIM", severity: "block", message: "Unsupported guaranteed or risk-free financial claim detected." });
+  if (!combined.trim()) {
+    findings.push({
+      code: "EMPTY_CONTENT",
+      severity: "block",
+      message: "Content script and caption are empty.",
+    });
+  }
+  if (
+    combined.includes("guaranteed profit") ||
+    combined.includes("risk-free return")
+  ) {
+    findings.push({
+      code: "MISLEADING_FINANCIAL_CLAIM",
+      severity: "block",
+      message: "Unsupported guaranteed or risk-free financial claim detected.",
+    });
   }
   if (combined.includes("100% secure") || combined.includes("unhackable")) {
-    findings.push({ code: "ABSOLUTE_SECURITY_CLAIM", severity: "warning", message: "Absolute cybersecurity claims require substantiation or revision." });
+    findings.push({
+      code: "ABSOLUTE_SECURITY_CLAIM",
+      severity: "warning",
+      message:
+        "Absolute cybersecurity claims require substantiation or revision.",
+    });
   }
   if ((version.hashtags ?? []).length > 30) {
-    findings.push({ code: "HASHTAG_LIMIT", severity: "warning", message: "Hashtag count exceeds the configured review threshold." });
+    findings.push({
+      code: "HASHTAG_LIMIT",
+      severity: "warning",
+      message: "Hashtag count exceeds the configured review threshold.",
+    });
   }
 
-  const hasBlock = findings.some((finding) => finding.severity === "block");
-  const hasWarning = findings.some((finding) => finding.severity === "warning");
-  const result = hasBlock ? "BLOCKED" : hasWarning ? "HUMAN_REVIEW_REQUIRED" : "PASS";
+  const uniqueFindings = [
+    ...new Map(
+      findings.map((finding) => [
+        `${finding.code}|${finding.message}`,
+        finding,
+      ]),
+    ).values(),
+  ];
+  const hasBlock = uniqueFindings.some(
+    (finding) => finding.severity === "block",
+  );
+  const hasWarning = uniqueFindings.some(
+    (finding) => finding.severity === "warning",
+  );
+  const result = hasBlock
+    ? "BLOCKED"
+    : hasWarning
+      ? "HUMAN_REVIEW_REQUIRED"
+      : "PASS";
 
   const review = await db.complianceReview.create({
     data: {
@@ -185,13 +283,19 @@ export async function runComplianceReview(input: {
       contentVersionId: version.id,
       policyVersionId: input.policyVersionId,
       result,
-      findings: toInputJson(findings),
+      findings: toInputJson(uniqueFindings),
       reviewerId: input.actorId,
     },
   });
   await db.content.update({
     where: { id: content.id },
-    data: { state: hasBlock ? "BLOCKED" : hasWarning ? "REVIEW_READY" : "APPROVAL_REQUIRED" },
+    data: {
+      state: hasBlock
+        ? "BLOCKED"
+        : hasWarning
+          ? "REVIEW_READY"
+          : "APPROVAL_REQUIRED",
+    },
   });
   await emitTokMetricAudit({
     workspaceId: input.workspaceId,
@@ -202,7 +306,12 @@ export async function runComplianceReview(input: {
     correlationId: input.correlationId,
     outcome: hasBlock ? "blocked" : "success",
     sourceChannel: "website",
-    metadata: { contentId: content.id, contentVersionId: version.id, result, findings },
+    metadata: {
+      contentId: content.id,
+      contentVersionId: version.id,
+      result,
+      findings: uniqueFindings,
+    },
   });
   return review;
 }
@@ -212,18 +321,54 @@ export async function requestContentApproval(input: {
   contentId: string;
   actorId: string;
   requiredRole?: string;
+  action?: string;
   expiresAt?: Date;
   correlationId: string;
 }) {
-  const content = await db.content.findFirst({ where: { id: input.contentId, workspaceId: input.workspaceId } });
-  if (!content?.currentVersionId) throw new TokMetricError(404, "CONTENT_NOT_FOUND", "Content or its active version was not found.");
-  const version = await db.contentVersion.findUnique({ where: { id: content.currentVersionId } });
-  if (!version) throw new TokMetricError(409, "CONTENT_VERSION_MISSING", "Content has no active version.");
-  const blockingReview = await db.complianceReview.findFirst({
-    where: { contentVersionId: version.id, result: { in: ["BLOCKED", "CHANGES_REQUIRED"] } },
+  const content = await db.content.findFirst({
+    where: { id: input.contentId, workspaceId: input.workspaceId },
+  });
+  if (!content?.currentVersionId) {
+    throw new TokMetricError(
+      404,
+      "CONTENT_NOT_FOUND",
+      "Content or its active version was not found.",
+    );
+  }
+  const version = await db.contentVersion.findUnique({
+    where: { id: content.currentVersionId },
+  });
+  if (!version) {
+    throw new TokMetricError(
+      409,
+      "CONTENT_VERSION_MISSING",
+      "Content has no active version.",
+    );
+  }
+  const latestReview = await db.complianceReview.findFirst({
+    where: { contentVersionId: version.id },
     orderBy: { createdAt: "desc" },
   });
-  if (blockingReview) throw new TokMetricError(409, "COMPLIANCE_BLOCKED", "Content cannot be approved until compliance findings are resolved.");
+  if (!latestReview || !["PASS", "PASS_WITH_DISCLOSURE"].includes(latestReview.result)) {
+    throw new TokMetricError(
+      409,
+      "COMPLIANCE_APPROVAL_NOT_READY",
+      "A passing compliance review for the exact content version is required before requesting approval.",
+    );
+  }
+
+  const existing = await db.approvalRequest.findFirst({
+    where: {
+      workspaceId: input.workspaceId,
+      contentId: content.id,
+      contentVersionId: version.id,
+      objectHash: version.objectHash,
+      action: input.action?.trim() || "publish_content",
+      state: { in: ["APPROVAL_REQUIRED", "APPROVED"] },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  if (existing) return existing;
 
   const approval = await db.approvalRequest.create({
     data: {
@@ -232,13 +377,16 @@ export async function requestContentApproval(input: {
       contentVersionId: version.id,
       requestedById: input.actorId,
       requiredRole: input.requiredRole ?? "approver",
-      action: "publish_tiktok_content",
+      action: input.action?.trim() || "publish_content",
       objectHash: version.objectHash,
       state: "APPROVAL_REQUIRED",
       expiresAt: input.expiresAt,
     },
   });
-  await db.content.update({ where: { id: content.id }, data: { state: "APPROVAL_REQUIRED" } });
+  await db.content.update({
+    where: { id: content.id },
+    data: { state: "APPROVAL_REQUIRED" },
+  });
   return approval;
 }
 
@@ -254,17 +402,49 @@ export async function decideApproval(input: {
     where: { id: input.approvalId, workspaceId: input.workspaceId },
     include: { contentVersion: true },
   });
-  if (!approval || !approval.contentVersion) throw new TokMetricError(404, "APPROVAL_NOT_FOUND", "Approval request was not found.");
+  if (!approval || !approval.contentVersion) {
+    throw new TokMetricError(
+      404,
+      "APPROVAL_NOT_FOUND",
+      "Approval request was not found.",
+    );
+  }
   if (approval.expiresAt && approval.expiresAt.getTime() <= Date.now()) {
-    await db.approvalRequest.update({ where: { id: approval.id }, data: { state: "EXPIRED" } });
-    throw new TokMetricError(409, "APPROVAL_EXPIRED", "Approval request has expired.");
+    await db.approvalRequest.update({
+      where: { id: approval.id },
+      data: { state: "EXPIRED" },
+    });
+    throw new TokMetricError(
+      409,
+      "APPROVAL_EXPIRED",
+      "Approval request has expired.",
+    );
   }
   if (approval.objectHash !== approval.contentVersion.objectHash) {
-    await db.approvalRequest.update({ where: { id: approval.id }, data: { state: "REVOKED" } });
-    throw new TokMetricError(409, "APPROVAL_VERSION_MISMATCH", "Approval no longer matches the active content version.");
+    await db.approvalRequest.update({
+      where: { id: approval.id },
+      data: { state: "REVOKED" },
+    });
+    throw new TokMetricError(
+      409,
+      "APPROVAL_VERSION_MISMATCH",
+      "Approval no longer matches the active content version.",
+    );
+  }
+  if (input.decision === "approve" && approval.requestedById === input.actorId) {
+    throw new TokMetricError(
+      409,
+      "SEPARATE_APPROVER_REQUIRED",
+      "The operator who requested publication cannot approve the same content version.",
+    );
   }
 
-  const nextState = input.decision === "approve" ? "APPROVED" : input.decision === "reject" ? "REJECTED" : "REVOKED";
+  const nextState =
+    input.decision === "approve"
+      ? "APPROVED"
+      : input.decision === "reject"
+        ? "REJECTED"
+        : "REVOKED";
   await db.$transaction([
     db.approvalDecision.create({
       data: {
@@ -275,8 +455,18 @@ export async function decideApproval(input: {
         reason: input.reason,
       },
     }),
-    db.approvalRequest.update({ where: { id: approval.id }, data: { state: nextState } }),
-    ...(approval.contentId ? [db.content.update({ where: { id: approval.contentId }, data: { state: nextState } })] : []),
+    db.approvalRequest.update({
+      where: { id: approval.id },
+      data: { state: nextState },
+    }),
+    ...(approval.contentId
+      ? [
+          db.content.update({
+            where: { id: approval.contentId },
+            data: { state: nextState },
+          }),
+        ]
+      : []),
   ]);
 
   await emitDomainEvent({
@@ -285,7 +475,10 @@ export async function decideApproval(input: {
     aggregateId: approval.id,
     eventType: `APPROVAL_${input.decision.toUpperCase()}`,
     correlationId: input.correlationId,
-    metadata: { contentId: approval.contentId, contentVersionId: approval.contentVersionId },
+    metadata: {
+      contentId: approval.contentId,
+      contentVersionId: approval.contentVersionId,
+    },
   });
   return { approvalId: approval.id, state: nextState };
 }
@@ -300,13 +493,28 @@ export async function registerMediaAsset(input: {
   storageRef: string;
   metadata?: Record<string, unknown>;
 }) {
-  if (!/^(video|image)\//.test(input.mimeType)) throw new TokMetricError(400, "UNSUPPORTED_MEDIA_TYPE", "Only image and video assets are supported.");
-  if (input.fileSize <= 0 || input.fileSize > 1024 * 1024 * 1024) throw new TokMetricError(400, "INVALID_MEDIA_SIZE", "Media size is outside the accepted range.");
+  if (!/^(video|image)\//.test(input.mimeType)) {
+    throw new TokMetricError(
+      400,
+      "UNSUPPORTED_MEDIA_TYPE",
+      "Only image and video assets are supported.",
+    );
+  }
+  if (input.fileSize <= 0 || input.fileSize > 1024 * 1024 * 1024) {
+    throw new TokMetricError(
+      400,
+      "INVALID_MEDIA_SIZE",
+      "Media size is outside the accepted range.",
+    );
+  }
   return db.mediaAsset.create({
     data: {
       workspaceId: input.workspaceId,
       ownerId: input.actorId,
-      objectHash: contentHash({ checksum: input.checksum, storageRef: input.storageRef }),
+      objectHash: contentHash({
+        checksum: input.checksum,
+        storageRef: input.storageRef,
+      }),
       fileName: input.fileName,
       mimeType: input.mimeType,
       fileSize: input.fileSize,
@@ -328,21 +536,61 @@ export async function queuePublishJob(input: {
 }) {
   await enforceEmergencyLocks(input.workspaceId, "publish");
   if (process.env.TOKMETRIC_LIVE_PUBLISHING_ENABLED !== "true") {
-    throw new TokMetricError(423, "LIVE_PUBLISHING_DISABLED", "Live TikTok publishing is disabled by the production activation gate.");
+    throw new TokMetricError(
+      423,
+      "LIVE_PUBLISHING_DISABLED",
+      "Live TikTok publishing is disabled by the production activation gate.",
+    );
   }
-  const content = await db.content.findFirst({ where: { id: input.contentId, workspaceId: input.workspaceId } });
+  const content = await db.content.findFirst({
+    where: { id: input.contentId, workspaceId: input.workspaceId },
+  });
   if (!content?.currentVersionId || content.state !== "APPROVED") {
-    throw new TokMetricError(409, "CONTENT_NOT_APPROVED", "Only an approved active content version can be queued.");
+    throw new TokMetricError(
+      409,
+      "CONTENT_NOT_APPROVED",
+      "Only an approved active content version can be queued.",
+    );
   }
-  const version = await db.contentVersion.findUnique({ where: { id: content.currentVersionId } });
-  if (!version) throw new TokMetricError(409, "CONTENT_VERSION_MISSING", "Approved content version was not found.");
-  const connector = await db.connector.findFirst({ where: { id: input.connectorId, workspaceId: input.workspaceId, state: "CONNECTED" } });
-  if (!connector) throw new TokMetricError(409, "CONNECTOR_NOT_READY", "A connected TikTok publishing connector is required.");
+  const version = await db.contentVersion.findUnique({
+    where: { id: content.currentVersionId },
+  });
+  if (!version) {
+    throw new TokMetricError(
+      409,
+      "CONTENT_VERSION_MISSING",
+      "Approved content version was not found.",
+    );
+  }
+  const connector = await db.connector.findFirst({
+    where: {
+      id: input.connectorId,
+      workspaceId: input.workspaceId,
+      state: "CONNECTED",
+    },
+  });
+  if (!connector) {
+    throw new TokMetricError(
+      409,
+      "CONNECTOR_NOT_READY",
+      "A connected TikTok publishing connector is required.",
+    );
+  }
   const approval = await db.approvalRequest.findFirst({
-    where: { contentVersionId: version.id, objectHash: version.objectHash, state: "APPROVED" },
+    where: {
+      contentVersionId: version.id,
+      objectHash: version.objectHash,
+      state: "APPROVED",
+    },
     orderBy: { updatedAt: "desc" },
   });
-  if (!approval) throw new TokMetricError(409, "APPROVAL_REQUIRED", "A valid approval bound to this exact content version is required.");
+  if (!approval) {
+    throw new TokMetricError(
+      409,
+      "APPROVAL_REQUIRED",
+      "A valid approval bound to this exact content version is required.",
+    );
+  }
 
   return db.publishJob.create({
     data: {
