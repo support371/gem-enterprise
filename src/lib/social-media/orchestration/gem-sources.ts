@@ -17,10 +17,7 @@ export function getGemApprovedSourceMaterial(input?: {
     .map((product) => ({
       id: `gem-catalog:${product.slug}`,
       title: product.name,
-      summary: [
-        product.shortDescription,
-        product.complianceNote,
-      ]
+      summary: [product.shortDescription, product.complianceNote]
         .filter(Boolean)
         .join(" "),
       callToAction: `${product.primaryCtaLabel}: ${canonicalStoreOrigin}/store/${product.slug}`,
@@ -35,6 +32,6 @@ export function getGemApprovedSourceMaterial(input?: {
         "NEXTDOOR",
         "LINKEDIN_COMPANY",
         "YOUTUBE",
-      ],
+      ] as const,
     }));
 }
