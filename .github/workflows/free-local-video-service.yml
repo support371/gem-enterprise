@@ -1,0 +1,35 @@
+name: Free Local Video Service
+
+on:
+  pull_request:
+    paths:
+      - "src/lib/video/**"
+      - "src/app/api/video/**"
+      - "docs/free-local-video-service.md"
+      - ".github/workflows/free-local-video-service.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/lib/video/**"
+      - "src/app/api/video/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
