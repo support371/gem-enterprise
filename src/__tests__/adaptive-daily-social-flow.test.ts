@@ -13,7 +13,8 @@ function baseInput() {
       {
         id: "signal-1",
         topic: "identity protection for small businesses",
-        summary: "Buyer attention is increasing around account takeover prevention.",
+        summary:
+          "Buyer attention is increasing around account takeover prevention.",
         relevance: 0.95,
         momentum: 0.9,
         observedAt: new Date("2026-07-23T10:00:00.000Z"),
@@ -22,7 +23,8 @@ function baseInput() {
       {
         id: "signal-2",
         topic: "phishing-resistant authentication",
-        summary: "Passkeys and phishing-resistant MFA are receiving renewed attention.",
+        summary:
+          "Passkeys and phishing-resistant MFA are receiving renewed attention.",
         relevance: 0.9,
         momentum: 0.85,
         observedAt: new Date("2026-07-23T09:00:00.000Z"),
@@ -62,7 +64,9 @@ describe("adaptive daily social flow", () => {
     expect(tiktok).toHaveLength(20);
     expect(new Set(tiktok.map((draft) => draft.fingerprint)).size).toBe(20);
     expect(plan.externalActionTaken).toBe(false);
-    expect(tiktok.every((draft) => draft.externalActionTaken === false)).toBe(true);
+    expect(tiktok.every((draft) => draft.externalActionTaken === false)).toBe(
+      true,
+    );
   });
 
   it("keeps every draft approval-bound and requires real-time human interaction", () => {
@@ -80,25 +84,42 @@ describe("adaptive daily social flow", () => {
     ).toBe(true);
   });
 
-  it("blocks content fingerprints published inside the freshness window", () => {
+  it("blocks historical content fingerprints by default without an expiry window", () => {
     const initial = buildAdaptiveDailyContentPlan(baseInput());
     const blocked = initial.drafts[0];
-    const input = baseInput();
-
     const next = buildAdaptiveDailyContentPlan({
-      ...input,
+      ...baseInput(),
       recentPublishedContent: [
         {
           fingerprint: blocked.fingerprint,
           provider: blocked.provider,
-          publishedAt: new Date("2026-07-22T12:00:00.000Z"),
+          publishedAt: new Date("2020-01-01T00:00:00.000Z"),
         },
       ],
     });
 
-    expect(next.drafts.map((draft) => draft.fingerprint)).not.toContain(blocked.fingerprint);
-    expect(new Set(next.drafts.map((draft) => draft.fingerprint)).size).toBe(
-      next.drafts.length,
+    expect(next.drafts.map((draft) => draft.fingerprint)).not.toContain(
+      blocked.fingerprint,
+    );
+  });
+
+  it("permits an explicitly approved bounded freshness window", () => {
+    const initial = buildAdaptiveDailyContentPlan(baseInput());
+    const old = initial.drafts[0];
+    const next = buildAdaptiveDailyContentPlan({
+      ...baseInput(),
+      freshnessWindowDays: 30,
+      recentPublishedContent: [
+        {
+          fingerprint: old.fingerprint,
+          provider: old.provider,
+          publishedAt: new Date("2020-01-01T00:00:00.000Z"),
+        },
+      ],
+    });
+
+    expect(next.drafts.map((draft) => draft.fingerprint)).toContain(
+      old.fingerprint,
     );
   });
 
@@ -114,7 +135,39 @@ describe("adaptive daily social flow", () => {
     });
 
     expect(plan.drafts).toHaveLength(0);
-    expect(plan.rejectedReasons).toContain("APPROVED_SOURCE_MATERIAL_REQUIRED");
+    expect(plan.rejectedReasons).toContain(
+      "APPROVED_SOURCE_MATERIAL_REQUIRED",
+    );
+  });
+
+  it("excludes Indeed unless there is a genuine role or approved employer update", () => {
+    const plan = buildAdaptiveDailyContentPlan({
+      ...baseInput(),
+      enabledProviders: ["INDEED_EMPLOYER"],
+    });
+
+    expect(plan.drafts).toHaveLength(0);
+    expect(plan.rejectedReasons).toContain(
+      "INDEED_GENUINE_ROLE_OR_EMPLOYER_UPDATE_REQUIRED",
+    );
+  });
+
+  it("creates an Indeed job posting only when a vacancy identifier is present", () => {
+    const plan = buildAdaptiveDailyContentPlan({
+      ...baseInput(),
+      enabledProviders: ["INDEED_EMPLOYER"],
+      approvedSources: [
+        {
+          ...baseInput().approvedSources[0],
+          vacancyId: "vacancy-123",
+          providers: ["INDEED_EMPLOYER"],
+        },
+      ],
+    });
+
+    expect(plan.drafts).toHaveLength(1);
+    expect(plan.drafts[0].contentType).toBe("JOB_POSTING");
+    expect(plan.drafts[0].vacancyId).toBe("vacancy-123");
   });
 
   it("creates stable fingerprints from normalized content inputs", () => {
