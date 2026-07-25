@@ -8,7 +8,7 @@ import {
 
 const MANUS_API_BASE_URL = "https://api.manus.ai/v2";
 const MANUS_TIMEOUT_MS = 30_000;
-const ALLOWED_PROFILES = new Set(["manus-1.6", "manus-1.6-lite", "manus-1.6-max"]);
+const FREE_TIER_AGENT_PROFILE = "manus-1.6-lite";
 
 export class ManusConfigurationError extends Error {
   constructor(message: string) {
@@ -35,15 +35,10 @@ function getConfig() {
     throw new ManusConfigurationError("Manus is not configured. Add MANUS_API_KEY to the server environment.");
   }
 
-  const configuredProfile = process.env.MANUS_AGENT_PROFILE?.trim() || "manus-1.6-lite";
-  const agentProfile = ALLOWED_PROFILES.has(configuredProfile)
-    ? configuredProfile
-    : "manus-1.6-lite";
-
   return {
     apiKey,
     projectId: process.env.MANUS_PROJECT_ID?.trim() || undefined,
-    agentProfile,
+    agentProfile: FREE_TIER_AGENT_PROFILE,
   };
 }
 
@@ -78,7 +73,7 @@ export async function createManusCampaignTask(input: ManusCampaignBrief) {
   const config = getConfig();
   const body: Record<string, unknown> = {
     message: {
-      content: buildManusCampaignPrompt(input),
+      content: `${buildManusCampaignPrompt(input)}\n\nFree-tier execution constraint: complete this as one concise generation task. Do not browse the web, open a virtual machine, execute code, manipulate files, call premium data sources, or perform exploratory research. Use only the supplied brief and general writing capability. Keep the result compact while satisfying the structured output schema.`,
     },
     locale: "en-US",
     interactive_mode: false,
@@ -112,6 +107,7 @@ export async function createManusCampaignTask(input: ManusCampaignBrief) {
     taskId,
     taskTitle: typeof payload.task_title === "string" ? payload.task_title : `GEM campaign draft: ${input.service}`,
     taskUrl: typeof payload.task_url === "string" ? payload.task_url : undefined,
+    agentProfile: config.agentProfile,
   };
 }
 
