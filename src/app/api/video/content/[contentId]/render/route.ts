@@ -7,17 +7,22 @@ import {
 import {
   correlationId,
   parseJson,
+  requireActiveTokMetricSession,
   requirePermission,
-  requireTokMetricSession,
   requireWorkspaceAccess,
   TokMetricError,
   tokMetricErrorResponse,
   withIdempotency,
 } from "@/lib/tokmetric/security";
 
+type RenderPayload = {
+  workspaceId: string;
+  seed?: number;
+};
+
 const requestSchema = z.object({
   workspaceId: z.string().trim().min(1),
-  seed: z.number().int().nonnegative().optional(),
+  seed: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
 });
 
 type RouteContext = { params: Promise<{ contentId: string }> };
@@ -36,7 +41,7 @@ function requireSameOrigin(request: NextRequest) {
 export async function GET(request: NextRequest, context: RouteContext) {
   const cid = correlationId(request);
   try {
-    const session = await requireTokMetricSession(request);
+    const session = await requireActiveTokMetricSession(request);
     const workspaceId = request.nextUrl.searchParams.get("workspaceId")?.trim();
     if (!workspaceId) {
       throw new TokMetricError(400, "VALIDATION_ERROR", "workspaceId is required.");
@@ -62,8 +67,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const cid = correlationId(request);
   try {
     requireSameOrigin(request);
-    const session = await requireTokMetricSession(request);
-    const input = await parseJson(request, requestSchema);
+    const session = await requireActiveTokMetricSession(request);
+    const input = (await parseJson(request, requestSchema)) as RenderPayload;
     const membership = await requireWorkspaceAccess(input.workspaceId, session);
     requirePermission(membership, "create", "media");
     const idempotencyKey = request.headers.get("idempotency-key")?.trim();
@@ -91,6 +96,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           contentId,
           actorId: session.userId,
           correlationId: cid,
+          idempotencyKey,
           seed: input.seed,
         }),
       }),
