@@ -62,6 +62,7 @@ export default function ManusCampaignPage() {
   const [channels, setChannels] = useState<Channel[]>(["EMAIL", "LINKEDIN", "FACEBOOK"]);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [taskUrl, setTaskUrl] = useState<string | null>(null);
+  const [pollCount, setPollCount] = useState(0);
   const [status, setStatus] = useState<"idle" | "starting" | "running" | "waiting" | "complete" | "error">("idle");
   const [result, setResult] = useState<CampaignResult | null>(null);
   const [error, setError] = useState("");
@@ -84,6 +85,7 @@ export default function ManusCampaignPage() {
     setError("");
     setResult(null);
     setSaved(false);
+    setPollCount(0);
 
     try {
       const response = await fetch("/api/admin/manus/campaigns", {
@@ -107,8 +109,14 @@ export default function ManusCampaignPage() {
         return;
       }
 
-      setTaskId(payload.task?.taskId ?? null);
-      setTaskUrl(payload.task?.taskUrl ?? null);
+      const nextTaskId = typeof payload.task?.taskId === "string" ? payload.task.taskId : null;
+      if (!nextTaskId) {
+        setStatus("error");
+        setError("Manus did not return a task identifier.");
+        return;
+      }
+      setTaskId(nextTaskId);
+      setTaskUrl(typeof payload.task?.taskUrl === "string" ? payload.task.taskUrl : null);
       setStatus("running");
     } catch {
       setStatus("error");
@@ -147,7 +155,7 @@ export default function ManusCampaignPage() {
           setError(payload.message || "The Manus task failed.");
           return;
         }
-        setStatus("running");
+        setPollCount((current) => current + 1);
       } catch {
         if (!cancelled) {
           setStatus("error");
@@ -160,7 +168,7 @@ export default function ManusCampaignPage() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [status, taskId]);
+  }, [pollCount, status, taskId]);
 
   async function saveDraft() {
     if (!result) return;
