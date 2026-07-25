@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
+const DEFAULT_QUEUE_LIMIT = 4;
+const MAX_QUEUE_LIMIT = 20;
 
 export const videoJobInputSchema = z.object({
   prompt: z.string().trim().min(10).max(4_000),
@@ -13,8 +15,15 @@ export const videoJobInputSchema = z.object({
 });
 
 export type VideoJobInput = z.infer<typeof videoJobInputSchema>;
+export type VideoJobState = "queued" | "running" | "completed" | "failed" | "unknown";
 
-type ComfyHistory = Record<string, unknown>;
+type JsonRecord = Record<string, unknown>;
+type ComfyRequestResult<T> = {
+  ok: boolean;
+  status: number;
+  text: string;
+  json: T | null;
+};
 
 function getBaseUrl(): string | null {
   const raw = process.env.COMFYUI_BASE_URL?.trim();
@@ -26,17 +35,30 @@ function getHeaders(): HeadersInit {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-async function comfyFetch(path: string, init?: RequestInit): Promise<Response> {
-  const baseUrl = getBaseUrl();
-  if (!baseUrl) {
-    throw new Error("COMFYUI_NOT_CONFIGURED");
+function getQueueLimit() {
+  const parsed = Number.parseInt(process.env.COMFYUI_MAX_QUEUE_ITEMS ?? "", 10);
+  if (!Number.isFinite(parsed)) return DEFAULT_QUEUE_LIMIT;
+  return Math.min(MAX_QUEUE_LIMIT, Math.max(1, parsed));
+}
+
+function parseJson<T>(text: string): T | null {
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
   }
+}
+
+async function comfyRequest<T>(path: string, init?: RequestInit): Promise<ComfyRequestResult<T>> {
+  const baseUrl = getBaseUrl();
+  if (!baseUrl) throw new Error("COMFYUI_NOT_CONFIGURED");
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
 
   try {
-    return await fetch(`${baseUrl}${path}`, {
+    const response = await fetch(`${baseUrl}${path}`, {
       ...init,
       cache: "no-store",
       headers: {
@@ -45,6 +67,18 @@ async function comfyFetch(path: string, init?: RequestInit): Promise<Response> {
       },
       signal: controller.signal,
     });
+    const text = await response.text();
+    return {
+      ok: response.ok,
+      status: response.status,
+      text,
+      json: parseJson<T>(text),
+    };
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("COMFYUI_TIMEOUT");
+    }
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
@@ -70,6 +104,48 @@ function setNodeSeed(workflow: Record<string, unknown>, nodeId: string, seed: nu
   node.inputs.seed = seed;
 }
 
+function queuePromptIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    if (typeof entry === "string") return [entry];
+    if (Array.isArray(entry) && typeof entry[1] === "string") return [entry[1]];
+    return [];
+  });
+}
+
+function object(value: unknown): JsonRecord {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as JsonRecord)
+    : {};
+}
+
+function executionFailure(entry: JsonRecord) {
+  const status = object(entry.status);
+  const messages = Array.isArray(status.messages) ? status.messages : [];
+  const errorEvent = messages.find(
+    (message) => Array.isArray(message) && message[0] === "execution_error",
+  );
+  const details = Array.isArray(errorEvent) ? object(errorEvent[1]) : {};
+  const statusString = typeof status.status_str === "string" ? status.status_str : "";
+  const failed = statusString === "error" || Boolean(errorEvent);
+  return {
+    failed,
+    error: failed
+      ? {
+          type:
+            typeof details.exception_type === "string"
+              ? details.exception_type
+              : "EXECUTION_ERROR",
+          message:
+            typeof details.exception_message === "string"
+              ? details.exception_message.slice(0, 500)
+              : "The render failed during execution.",
+          nodeId: typeof details.node_id === "string" ? details.node_id : undefined,
+        }
+      : undefined,
+  };
+}
+
 export function getVideoReadiness() {
   const baseUrl = getBaseUrl();
   return {
@@ -78,17 +154,38 @@ export function getVideoReadiness() {
     costModel: "self-hosted-no-api-fee",
     baseUrlConfigured: Boolean(baseUrl),
     bearerTokenConfigured: Boolean(process.env.COMFYUI_BEARER_TOKEN?.trim()),
+    queueLimit: getQueueLimit(),
   };
 }
 
 export async function probeComfyUi() {
-  const response = await comfyFetch("/system_stats");
-  const body = await response.text();
+  const result = await comfyRequest<JsonRecord>("/system_stats");
   return {
-    ok: response.ok,
-    status: response.status,
-    body: body ? JSON.parse(body) : null,
+    ok: result.ok,
+    status: result.status,
+    responseFormat: result.json ? "json" : result.text ? "text" : "empty",
+    diagnostic: result.ok ? undefined : result.text.slice(0, 300) || undefined,
   };
+}
+
+export async function getVideoQueue() {
+  const result = await comfyRequest<JsonRecord>("/queue");
+  if (!result.ok) throw new Error(`COMFYUI_QUEUE_STATUS_FAILED:${result.status}`);
+  const payload = object(result.json);
+  const running = queuePromptIds(payload.queue_running);
+  const pending = queuePromptIds(payload.queue_pending);
+  return {
+    running,
+    pending,
+    total: running.length + pending.length,
+    limit: getQueueLimit(),
+  };
+}
+
+async function enforceQueueCapacity() {
+  const queue = await getVideoQueue();
+  if (queue.total >= queue.limit) throw new Error("COMFYUI_QUEUE_FULL");
+  return queue;
 }
 
 export async function queueVideoJob(input: VideoJobInput) {
@@ -103,54 +200,91 @@ export async function queueVideoJob(input: VideoJobInput) {
     setNodeSeed(workflow, parsed.seedNodeId, parsed.seed);
   }
 
+  const queue = await enforceQueueCapacity();
   const clientId = crypto.randomUUID();
-  const response = await comfyFetch("/prompt", {
+  const result = await comfyRequest<{ prompt_id?: string; error?: string }>("/prompt", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ prompt: workflow, client_id: clientId }),
   });
 
-  const body = await response.json().catch(() => null) as
-    | { prompt_id?: string; error?: string }
-    | null;
-
-  if (!response.ok || !body?.prompt_id) {
-    throw new Error(body?.error || `COMFYUI_QUEUE_FAILED:${response.status}`);
+  if (!result.ok || !result.json?.prompt_id) {
+    throw new Error(
+      result.json?.error || result.text.slice(0, 300) || `COMFYUI_QUEUE_FAILED:${result.status}`,
+    );
   }
 
   return {
-    promptId: body.prompt_id,
+    promptId: result.json.prompt_id,
     clientId,
     status: "queued" as const,
+    queueDepthBeforeSubmission: queue.total,
+    queueLimit: queue.limit,
   };
 }
 
 export async function getVideoJob(promptId: string) {
-  const response = await comfyFetch(`/history/${encodeURIComponent(promptId)}`);
-  const body = await response.json().catch(() => null) as ComfyHistory | null;
+  const [history, queue] = await Promise.all([
+    comfyRequest<JsonRecord>(`/history/${encodeURIComponent(promptId)}`),
+    getVideoQueue(),
+  ]);
+  if (!history.ok) throw new Error(`COMFYUI_HISTORY_FAILED:${history.status}`);
 
-  if (!response.ok) {
-    throw new Error(`COMFYUI_HISTORY_FAILED:${response.status}`);
-  }
+  const entry = object(object(history.json)[promptId]);
+  const hasEntry = Object.keys(entry).length > 0;
+  const failure = executionFailure(entry);
+  const statusRecord = object(entry.status);
+  const completed = statusRecord.completed === true || statusRecord.status_str === "success";
 
-  const job = body?.[promptId] as Record<string, unknown> | undefined;
+  let status: VideoJobState = "unknown";
+  if (failure.failed) status = "failed";
+  else if (completed) status = "completed";
+  else if (queue.running.includes(promptId)) status = "running";
+  else if (queue.pending.includes(promptId)) status = "queued";
+  else if (!hasEntry) status = "unknown";
+
   return {
     promptId,
-    status: job ? "completed" as const : "pending" as const,
-    result: job ?? null,
+    status,
+    outputs: hasEntry ? object(entry.outputs) : {},
+    error: failure.error,
+    queue: {
+      position: queue.pending.indexOf(promptId),
+      running: queue.running.includes(promptId),
+    },
   };
 }
 
-export async function cancelVideoJobs() {
-  const response = await comfyFetch("/queue", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ clear: true }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`COMFYUI_CANCEL_FAILED:${response.status}`);
+export async function cancelVideoJob(promptId: string) {
+  const queue = await getVideoQueue();
+  if (queue.running.includes(promptId)) {
+    return {
+      promptId,
+      cancelled: false,
+      status: "running" as const,
+      reason: "CURRENT_EXECUTION_NOT_INTERRUPTED",
+    };
+  }
+  if (!queue.pending.includes(promptId)) {
+    const job = await getVideoJob(promptId);
+    return {
+      promptId,
+      cancelled: false,
+      status: job.status,
+      reason: "JOB_NOT_PENDING",
+    };
   }
 
-  return { cancelled: true };
+  const result = await comfyRequest<JsonRecord>("/queue", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ delete: [promptId] }),
+  });
+  if (!result.ok) throw new Error(`COMFYUI_CANCEL_FAILED:${result.status}`);
+
+  return {
+    promptId,
+    cancelled: true,
+    status: "cancelled" as const,
+  };
 }
