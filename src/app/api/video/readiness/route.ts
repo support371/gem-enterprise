@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { requireAdmin } from "@/lib/api/auth-helpers";
 import { getVideoReadiness, probeComfyUi } from "@/lib/video/comfyui";
 
 export async function GET() {
-  const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const gate = await requireAdmin();
+  if (!gate.ok) return gate.response;
 
   const readiness = getVideoReadiness();
   if (!readiness.configured) {
@@ -27,19 +25,27 @@ export async function GET() {
         ok: probe.ok,
         ...readiness,
         providerStatus: probe.status,
-        system: probe.body,
+        responseFormat: probe.responseFormat,
+        diagnostic: probe.diagnostic,
       },
-      { status: probe.ok ? 200 : 502, headers: { "Cache-Control": "no-store" } },
+      {
+        status: probe.ok ? 200 : 502,
+        headers: { "Cache-Control": "no-store" },
+      },
     );
   } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
       {
         ok: false,
         ...readiness,
-        code: "COMFYUI_UNREACHABLE",
-        error: error instanceof Error ? error.message : "Unknown error",
+        code: message === "COMFYUI_TIMEOUT" ? "COMFYUI_TIMEOUT" : "COMFYUI_UNREACHABLE",
+        error: message,
       },
-      { status: 502, headers: { "Cache-Control": "no-store" } },
+      {
+        status: message === "COMFYUI_TIMEOUT" ? 504 : 502,
+        headers: { "Cache-Control": "no-store" },
+      },
     );
   }
 }
