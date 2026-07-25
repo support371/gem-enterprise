@@ -1,0 +1,248 @@
+name: Canonical recovery readiness watch
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  APP_URL: https://www.gemcybersecurityassist.com
+  ISSUE_NUMBER: "200"
+
+concurrency:
+  group: canonical-recovery-readiness-watch
+  cancel-in-progress: false
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Stop after issue is closed
+        id: issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          state="$(gh api repos/${GITHUB_REPOSITORY}/issues/${ISSUE_NUMBER} --jq .state)"
+          echo "state=$state" >> "$GITHUB_OUTPUT"
+
+      - name: Read public mail readiness
+        if: steps.issue.outputs.state == 'open'
+        id: readiness
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            --retry 3 --retry-delay 5 \
+            -H 'Accept: application/json' \
+            "$APP_URL/api/auth/recovery-readiness" > readiness.json
+          jq . readiness.json
+          configured="$(jq -r '.emailDeliveryConfigured // false' readiness.json)"
+          echo "configured=$configured" >> "$GITHUB_OUTPUT"
+
+      # A false result is intentionally a successful, silent no-op. No issue comment,
+      # notification, deployment inspection, email request, or privileged check occurs.
+      - name: Silent no-op while mail is unavailable
+        if: steps.issue.outputs.state == 'open' && steps.readiness.outputs.configured != 'true'
+        run: echo 'Canonical recovery mail delivery is not ready; exiting silently.'
+
+      - name: Check required verification secrets
+        if: steps.issue.outputs.state == 'open' && steps.readiness.outputs.configured == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          for name in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID SUPABASE_DB_URL SUPABASE_ACCESS_TOKEN SUPABASE_PROJECT_REF SUPABASE_ANON_KEY; do
+            test -n "${!name:-}" || { echo "Missing required Actions secret: $name" >&2; exit 1; }
+          done
+
+      - name: Verify canonical READY deployment is current GitHub main
+        if: steps.issue.outputs.state == 'open' && steps.readiness.outputs.configured == 'true'
+        id: deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          main_sha="$(gh api repos/${GITHUB_REPOSITORY}/commits/main --jq .sha)"
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&teamId=$VERCEL_ORG_ID&target=production&limit=20" \
+            > deployments.json
+
+          jq -e --arg sha "$main_sha" '
+            .deployments
+            | map(select(.state == "READY" and (.meta.githubCommitSha // "") == $sha))
+            | first
+          ' deployments.json > deployment.json
+
+          deployment_id="$(jq -r .uid deployment.json)"
+          deployment_url="https://$(jq -r .url deployment.json)"
+          deployment_sha="$(jq -r .meta.githubCommitSha deployment.json)"
+          test "$deployment_sha" = "$main_sha"
+          echo "id=$deployment_id" >> "$GITHUB_OUTPUT"
+          echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
+          echo "sha=$deployment_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Smoke-test public pages and authentication boundaries
+        if: steps.issue.outputs.state == 'open' && steps.readiness.outputs.configured == 'true'
+        run: |
+          set -euo pipefail
+          for path in /forgot-password /reset-password /client-login; do
+            code="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' "$APP_URL$path")"
+            test "$code" = 200 || { echo "$path returned $code" >&2; exit 1; }
+          done
+
+          session_code="$(curl --silent --show-error --output session.json --write-out '%{http_code}' "$APP_URL/api/auth/session")"
+          case "$session_code" in 401|403) ;; *) echo "/api/auth/session returned $session_code" >&2; cat session.json; exit 1;; esac
+
+          protected_code="$(curl --silent --show-error --output protected.json --write-out '%{http_code}' "$APP_URL/api/admin/users")"
+          case "$protected_code" in 401|403|404) ;; *) echo "Protected API returned $protected_code" >&2; cat protected.json; exit 1;; esac
+
+      - name: Confirm unknown-email recovery is non-enumerating and perform controlled delivery request
+        if: steps.issue.outputs.state == 'open' && steps.readiness.outputs.configured == 'true'
+        run: |
+          set -euo pipefail
+          unknown="recovery-watch-${GITHUB_RUN_ID}@example.invalid"
+          curl --fail --silent --show-error \
+            -H 'Content-Type: application/json' \
+            --data "{\"email\":\"$unknown\"}" \
+            "$APP_URL/api/auth/forgot-password" > unknown.json
+          curl --fail --silent --show-error \
+            -H 'Content-Type: application/json' \
+            --data '{"email":"admin@gemcybersecurityassist.com"}' \
+            "$APP_URL/api/auth/forgot-password" > known.json
+
+          jq -e '.success == true and .delivery == "requested"' unknown.json
+          jq -e '.success == true and .delivery == "requested"' known.json
+          jq -S 'del(.requestId, .timestamp)' unknown.json > unknown.normalized.json
+          jq -S 'del(.requestId, .timestamp)' known.json > known.normalized.json
+          diff -u unknown.normalized.json known.normalized.json
+
+      - name: Verify Supabase schema, triggers, and revoked direct privileges
+        if: steps.issue.outputs.state == 'open' && steps.readiness.outputs.configured == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          DECLARE
+            trigger_count integer;
+          BEGIN
+            IF NOT EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_schema = 'public' AND table_name = 'users'
+                AND column_name = 'sessionVersion' AND data_type = 'integer'
+            ) THEN
+              RAISE EXCEPTION 'public.users.sessionVersion is missing or invalid';
+            END IF;
+
+            SELECT count(*) INTO trigger_count
+            FROM pg_trigger t
+            JOIN pg_class c ON c.oid = t.tgrelid
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = 'public' AND c.relname = 'users'
+              AND NOT t.tgisinternal
+              AND t.tgname IN (
+                'gem_increment_session_version_on_password_change',
+                'gem_audit_session_revocation_on_password_change'
+              );
+            IF trigger_count <> 2 THEN
+              RAISE EXCEPTION 'Expected both password-change revocation triggers; found %', trigger_count;
+            END IF;
+
+            IF has_function_privilege('anon', 'public.gem_increment_session_version_on_password_change()', 'EXECUTE')
+               OR has_function_privilege('authenticated', 'public.gem_increment_session_version_on_password_change()', 'EXECUTE')
+               OR has_function_privilege('anon', 'public.gem_audit_session_revocation_on_password_change()', 'EXECUTE')
+               OR has_function_privilege('authenticated', 'public.gem_audit_session_revocation_on_password_change()', 'EXECUTE') THEN
+              RAISE EXCEPTION 'Direct trigger-function EXECUTE privileges were restored';
+            END IF;
+          END $$;
+          SQL
+
+      - name: Verify retired Supabase recovery gateway
+        if: steps.issue.outputs.state == 'open' && steps.readiness.outputs.configured == 'true'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/functions" > functions.json
+          version="$(jq -r '[.[] | select(.slug == "gem-password-recovery")][0].version // 0' functions.json)"
+          test "$version" -ge 10 || { echo "gem-password-recovery version is $version" >&2; exit 1; }
+
+          status="$(curl --silent --show-error --output gateway.json --write-out '%{http_code}' \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H 'Content-Type: application/json' \
+            --data '{}' \
+            "https://$SUPABASE_PROJECT_REF.supabase.co/functions/v1/gem-password-recovery")"
+          test "$status" = 410 || { echo "Gateway returned HTTP $status" >&2; cat gateway.json; exit 1; }
+          jq -e '.code == "RECOVERY_GATEWAY_DISABLED"' gateway.json
+          jq -e '.recoveryUrl == "https://www.gemcybersecurityassist.com/forgot-password"' gateway.json
+          test "$(jq 'keys - ["code","error","message","recoveryUrl"] | length' gateway.json)" -eq 0
+
+      - name: Inspect production runtime errors
+        if: steps.issue.outputs.state == 'open' && steps.readiness.outputs.configured == 'true'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          DEPLOYMENT_URL: ${{ steps.deployment.outputs.url }}
+        run: |
+          set -euo pipefail
+          npx --yes vercel@latest inspect "$DEPLOYMENT_URL" --logs --token "$VERCEL_TOKEN" --scope "$VERCEL_ORG_ID" > vercel-inspect.log 2>&1
+          if grep -Eiq '(^|[^a-z])(fatal|uncaught|unhandled|runtime error)([^a-z]|$)' vercel-inspect.log; then
+            cat vercel-inspect.log
+            exit 1
+          fi
+
+      - name: Close issue and publish exact verification evidence
+        if: steps.issue.outputs.state == 'open' && steps.readiness.outputs.configured == 'true' && success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOYMENT_SHA: ${{ steps.deployment.outputs.sha }}
+          DEPLOYMENT_ID: ${{ steps.deployment.outputs.id }}
+        run: |
+          set -euo pipefail
+          readiness="$(jq -c . readiness.json)"
+          body=$(cat <<EOF
+          Canonical password-recovery activation verification passed.
+
+          - Deployment SHA: \`$DEPLOYMENT_SHA\`
+          - Deployment ID: \`$DEPLOYMENT_ID\`
+          - Mail readiness: \`$readiness\`
+          - Canonical production deployment: READY and matched GitHub \`main\`
+          - Public pages: \`/forgot-password\`, \`/reset-password\`, and \`/client-login\` passed
+          - Authentication boundaries: \`/api/auth/session\` and an unauthenticated protected API passed
+          - Unknown-email recovery: non-enumerating
+          - Controlled admin recovery request: accepted
+          - Production runtime inspection: no fatal/runtime error signature found
+          - Supabase \`users.sessionVersion\`: intact
+          - Password-change revocation triggers: intact
+          - Direct trigger-function privileges: still revoked
+          - \`gem-password-recovery\`: version 10 or later
+          - Retired gateway: returned only \`RECOVERY_GATEWAY_DISABLED\` through the canonical recovery URL
+
+          Workflow run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          EOF
+          )
+          gh issue comment "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --body "$body"
+          gh issue close "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --reason completed
