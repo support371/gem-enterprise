@@ -1,19 +1,33 @@
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { getVideoJob, queueVideoJob } from "@/lib/video/comfyui";
 import {
-  createContentVersion,
-  registerMediaAsset,
-  requestContentApproval,
-  runComplianceReview,
-} from "@/lib/tokmetric/workflow";
+  cancelVideoJob,
+  getVideoJob,
+  queueVideoJob,
+} from "@/lib/video/comfyui";
 import {
+  createVideoRenderJob,
+  getVerifiedVideoUpload,
+  getVideoRenderJobById,
+  getVideoRenderJobByPromptId,
+  latestVideoRenderJobForContent,
+  markVideoRenderQueued,
+  recordVerifiedVideoUpload,
+  updateVideoRenderState,
+  type VideoRenderJobRecord,
+  type VideoRenderJobState,
+} from "@/lib/video/store";
+import {
+  contentHash,
   emitDomainEvent,
   emitTokMetricAudit,
+  redactSecrets,
   TokMetricError,
 } from "@/lib/tokmetric/security";
 
 const VIDEO_CONTENT_TYPES = new Set(["SHORT_VIDEO", "LONG_VIDEO", "REEL"]);
 const VIDEO_MIME_TYPES = new Set(["video/mp4", "video/webm", "video/quicktime"]);
+const STORAGE_VERIFY_TIMEOUT_MS = 15_000;
 
 type JsonObject = Record<string, unknown>;
 
@@ -31,17 +45,26 @@ export type FinalizeContentRenderInput = {
   promptId: string;
   actorId: string;
   correlationId: string;
+};
+
+export type VerifyRenderedUploadInput = {
+  renderJobId: string;
+  storageRef: string;
   fileName: string;
   mimeType: string;
   fileSize: number;
-  checksum: string;
-  storageRef: string;
+  checksumSha256: string;
+  correlationId: string;
 };
 
 function object(value: unknown): JsonObject {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as JsonObject)
     : {};
+}
+
+function toInputJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value ?? {})) as Prisma.InputJsonValue;
 }
 
 function configured(name: string) {
@@ -203,8 +226,93 @@ function assertStorageRefAllowed(storageRef: string) {
     throw new TokMetricError(
       409,
       "VIDEO_STORAGE_ORIGIN_NOT_APPROVED",
-      "The rendered video must be uploaded to an approved storage origin before finalization.",
+      "The rendered video must be uploaded to an approved storage origin.",
     );
+  }
+}
+
+function outputFileNames(value: unknown, names = new Set<string>()) {
+  if (Array.isArray(value)) {
+    for (const entry of value) outputFileNames(entry, names);
+    return names;
+  }
+  if (!value || typeof value !== "object") return names;
+  for (const [key, entry] of Object.entries(value)) {
+    if (key === "filename" && typeof entry === "string") names.add(entry);
+    else outputFileNames(entry, names);
+  }
+  return names;
+}
+
+async function verifyStorageObject(input: {
+  storageRef: string;
+  mimeType: string;
+  fileSize: number;
+}) {
+  assertStorageRefAllowed(input.storageRef);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), STORAGE_VERIFY_TIMEOUT_MS);
+  try {
+    const response = await fetch(input.storageRef, {
+      method: "HEAD",
+      cache: "no-store",
+      redirect: "follow",
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      throw new TokMetricError(
+        409,
+        "VIDEO_STORAGE_OBJECT_UNAVAILABLE",
+        "The uploaded video could not be verified at the approved storage origin.",
+      );
+    }
+    assertStorageRefAllowed(response.url || input.storageRef);
+    const contentLength = Number(response.headers.get("content-length"));
+    const contentType = response.headers.get("content-type")?.split(";")[0]?.trim();
+    if (!Number.isFinite(contentLength) || contentLength <= 0) {
+      throw new TokMetricError(
+        409,
+        "VIDEO_STORAGE_SIZE_UNVERIFIED",
+        "The storage origin did not provide a verifiable video size.",
+      );
+    }
+    if (contentLength !== input.fileSize) {
+      throw new TokMetricError(
+        409,
+        "VIDEO_STORAGE_SIZE_MISMATCH",
+        "The stored video's size does not match the trusted worker manifest.",
+      );
+    }
+    if (!contentType || contentType !== input.mimeType) {
+      throw new TokMetricError(
+        409,
+        "VIDEO_STORAGE_TYPE_MISMATCH",
+        "The stored video's content type does not match the trusted worker manifest.",
+      );
+    }
+    return {
+      contentLength,
+      contentType,
+      etag: response.headers.get("etag"),
+      lastModified: response.headers.get("last-modified"),
+      resolvedOrigin: new URL(response.url || input.storageRef).origin,
+    };
+  } catch (error) {
+    if (error instanceof TokMetricError) throw error;
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new TokMetricError(
+        504,
+        "VIDEO_STORAGE_VERIFY_TIMEOUT",
+        "The uploaded video verification request timed out.",
+      );
+    }
+    throw new TokMetricError(
+      502,
+      "VIDEO_STORAGE_VERIFY_FAILED",
+      "The uploaded video could not be verified.",
+    );
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -217,6 +325,13 @@ async function reviewableContent(workspaceId: string, contentId: string) {
       404,
       "CONTENT_NOT_FOUND",
       "The content or active version was not found.",
+    );
+  }
+  if (["APPROVED", "ARCHIVED"].includes(content.state)) {
+    throw new TokMetricError(
+      409,
+      "CONTENT_RENDER_IMMUTABLE",
+      "Approved or archived content cannot enter the render workflow.",
     );
   }
   const version = await db.contentVersion.findUnique({
@@ -254,11 +369,37 @@ async function reviewableContent(workspaceId: string, contentId: string) {
   return { content, version, review };
 }
 
+function storedState(status: string): VideoRenderJobState {
+  if (status === "queued") return "QUEUED";
+  if (status === "running") return "RUNNING";
+  if (status === "completed") return "COMPLETED";
+  if (status === "failed") return "FAILED";
+  return "QUEUED";
+}
+
+async function syncRenderJob(record: VideoRenderJobRecord) {
+  if (!record.externalPromptId || record.state === "FINALIZED") return record;
+  try {
+    const providerJob = await getVideoJob(record.externalPromptId);
+    const state = storedState(providerJob.status);
+    return await updateVideoRenderState({
+      id: record.id,
+      state,
+      outputManifest: providerJob.outputs,
+      errorCode: providerJob.error?.type,
+      errorMessage: providerJob.error?.message,
+    });
+  } catch (error) {
+    providerFailure(error);
+  }
+}
+
 export async function queueContentRender(input: {
   workspaceId: string;
   contentId: string;
   actorId: string;
   correlationId: string;
+  idempotencyKey: string;
   seed?: number;
 }) {
   const { content, version, review } = await reviewableContent(
@@ -266,28 +407,88 @@ export async function queueContentRender(input: {
     input.contentId,
   );
   const config = workflowConfig();
+  const prompt = rendererPrompt(version);
+  const durable = await createVideoRenderJob({
+    workspaceId: input.workspaceId,
+    contentId: content.id,
+    contentVersionId: version.id,
+    complianceReviewId: review.id,
+    requestedById: input.actorId,
+    idempotencyKey: input.idempotencyKey,
+    request: {
+      contentVersionId: version.id,
+      seed: input.seed ?? null,
+      promptHash: contentHash(prompt),
+      workflowHash: contentHash(config.workflow),
+    },
+  });
 
-  let job: Awaited<ReturnType<typeof queueVideoJob>>;
+  if (durable.reused && durable.record.externalPromptId) {
+    const current = await syncRenderJob(durable.record);
+    return {
+      renderJobId: current.id,
+      promptId: current.externalPromptId,
+      clientId: current.clientId,
+      status: current.state.toLowerCase(),
+      contentId: current.contentId,
+      contentVersionId: current.contentVersionId,
+      complianceReviewId: current.complianceReviewId,
+      reused: true,
+      externalActionTaken: false,
+      externalPublicationTaken: false,
+    };
+  }
+
+  let providerJob: Awaited<ReturnType<typeof queueVideoJob>>;
   try {
-    job = await queueVideoJob({
-      prompt: rendererPrompt(version),
-      negativePrompt: config.defaultNegativePrompt,
-      workflow: config.workflow,
-      promptNodeId: config.promptNodeId,
-      negativePromptNodeId: config.negativePromptNodeId,
-      seedNodeId: config.seedNodeId,
-      seed: input.seed,
-    });
+    providerJob = await queueVideoJob(
+      {
+        prompt,
+        negativePrompt: config.defaultNegativePrompt,
+        workflow: config.workflow,
+        promptNodeId: config.promptNodeId,
+        negativePromptNodeId: config.negativePromptNodeId,
+        seedNodeId: config.seedNodeId,
+        seed: input.seed,
+      },
+      {
+        clientId: durable.record.clientId,
+        extraData: {
+          gemRenderJobId: durable.record.id,
+          workspaceId: input.workspaceId,
+          contentId: content.id,
+          contentVersionId: version.id,
+        },
+      },
+    );
   } catch (error) {
+    await updateVideoRenderState({
+      id: durable.record.id,
+      state: "FAILED",
+      errorCode: error instanceof Error ? error.message.slice(0, 100) : "PROVIDER_FAILED",
+      errorMessage: "The render dispatch failed before a provider prompt was recorded.",
+    }).catch(() => undefined);
     providerFailure(error);
   }
 
+  let queued: VideoRenderJobRecord;
+  try {
+    queued = await markVideoRenderQueued({
+      id: durable.record.id,
+      promptId: providerJob.promptId,
+    });
+  } catch (error) {
+    await cancelVideoJob(providerJob.promptId).catch(() => undefined);
+    throw error;
+  }
+
   const metadata = {
+    renderJobId: queued.id,
     contentId: content.id,
     contentVersionId: version.id,
     complianceReviewId: review.id,
     provider: "comfyui-local",
-    promptId: job.promptId,
+    promptId: queued.externalPromptId,
     externalPublicationTaken: false,
   };
   await emitTokMetricAudit({
@@ -295,7 +496,7 @@ export async function queueContentRender(input: {
     actorId: input.actorId,
     action: "video.render.queued",
     entityType: "video_render_job",
-    entityId: job.promptId,
+    entityId: queued.id,
     correlationId: input.correlationId,
     outcome: "queued",
     sourceChannel: "social-media-command-center",
@@ -311,10 +512,16 @@ export async function queueContentRender(input: {
   });
 
   return {
-    ...job,
+    renderJobId: queued.id,
+    promptId: providerJob.promptId,
+    clientId: queued.clientId,
+    status: "queued" as const,
+    queueDepthBeforeSubmission: providerJob.queueDepthBeforeSubmission,
+    queueLimit: providerJob.queueLimit,
     contentId: content.id,
     contentVersionId: version.id,
     complianceReviewId: review.id,
+    reused: false,
     externalActionTaken: true,
     externalPublicationTaken: false,
   };
@@ -324,25 +531,24 @@ export async function latestContentRender(input: {
   workspaceId: string;
   contentId: string;
 }) {
-  const event = await db.auditEvent.findFirst({
-    where: {
-      workspaceId: input.workspaceId,
-      action: "video.render.queued",
-      entityType: "video_render_job",
-      safeMetadata: { path: ["contentId"], equals: input.contentId },
-    },
-    orderBy: { createdAt: "desc" },
-  });
-  if (!event?.entityId) return null;
-  try {
-    const job = await getVideoJob(event.entityId);
-    return { ...job, queuedAt: event.createdAt };
-  } catch (error) {
-    providerFailure(error);
-  }
+  const record = await latestVideoRenderJobForContent(input);
+  if (!record) return null;
+  const current = await syncRenderJob(record);
+  return {
+    renderJobId: current.id,
+    promptId: current.externalPromptId,
+    status: current.state.toLowerCase(),
+    outputs: current.outputManifest,
+    error:
+      current.errorCode || current.errorMessage
+        ? { type: current.errorCode, message: current.errorMessage }
+        : undefined,
+    queuedAt: current.createdAt,
+    finalizedAt: current.finalizedAt,
+  };
 }
 
-export async function finalizeContentRender(input: FinalizeContentRenderInput) {
+export async function verifyRenderedUpload(input: VerifyRenderedUploadInput) {
   if (!VIDEO_MIME_TYPES.has(input.mimeType)) {
     throw new TokMetricError(
       400,
@@ -357,52 +563,117 @@ export async function finalizeContentRender(input: FinalizeContentRenderInput) {
       "The rendered video size is outside the approved range.",
     );
   }
-  if (!/^[a-f0-9]{64}$/i.test(input.checksum)) {
+  if (!/^[a-f0-9]{64}$/i.test(input.checksumSha256)) {
     throw new TokMetricError(
       400,
       "VIDEO_CHECKSUM_INVALID",
       "A SHA-256 checksum is required.",
     );
   }
-  assertStorageRefAllowed(input.storageRef);
 
-  const queuedEvent = await db.auditEvent.findFirst({
-    where: {
-      workspaceId: input.workspaceId,
-      action: "video.render.queued",
-      entityType: "video_render_job",
-      entityId: input.promptId,
+  const record = await getVideoRenderJobById(input.renderJobId);
+  if (!record || !record.externalPromptId) {
+    throw new TokMetricError(
+      404,
+      "VIDEO_RENDER_JOB_NOT_FOUND",
+      "The durable video render job was not found.",
+    );
+  }
+  const current = await syncRenderJob(record);
+  if (current.state !== "COMPLETED") {
+    throw new TokMetricError(
+      409,
+      "VIDEO_RENDER_NOT_COMPLETE",
+      "Only a completed render can register an uploaded output.",
+    );
+  }
+  const names = outputFileNames(current.outputManifest);
+  if (!names.has(input.fileName)) {
+    throw new TokMetricError(
+      409,
+      "VIDEO_OUTPUT_BINDING_INVALID",
+      "The uploaded file is not present in the completed render output manifest.",
+    );
+  }
+
+  const verifiedObject = await verifyStorageObject(input);
+  const upload = await recordVerifiedVideoUpload({
+    renderJobId: current.id,
+    storageRef: input.storageRef,
+    fileName: input.fileName,
+    mimeType: input.mimeType,
+    fileSize: input.fileSize,
+    checksumSha256: input.checksumSha256,
+    safeMetadata: {
+      provider: "trusted-render-worker",
+      externalPromptId: current.externalPromptId,
+      etag: verifiedObject.etag,
+      lastModified: verifiedObject.lastModified,
+      resolvedOrigin: verifiedObject.resolvedOrigin,
     },
-    orderBy: { createdAt: "desc" },
   });
-  const queuedMetadata = object(queuedEvent?.safeMetadata);
-  if (!queuedEvent || queuedMetadata.contentId !== input.contentId) {
+
+  await emitTokMetricAudit({
+    workspaceId: current.workspaceId,
+    action: "video.upload.verified",
+    entityType: "video_render_upload",
+    entityId: upload.id,
+    correlationId: input.correlationId,
+    outcome: "verified",
+    sourceChannel: "video-render-worker",
+    metadata: {
+      renderJobId: current.id,
+      contentId: current.contentId,
+      contentVersionId: current.contentVersionId,
+      storageRefOrigin: new URL(upload.storageRef).origin,
+      checksumSha256: upload.checksumSha256,
+    },
+  });
+
+  return {
+    renderJobId: current.id,
+    uploadId: upload.id,
+    verifiedAt: upload.verifiedAt,
+    contentId: current.contentId,
+    contentVersionId: current.contentVersionId,
+  };
+}
+
+export async function finalizeContentRender(input: FinalizeContentRenderInput) {
+  const record = await getVideoRenderJobByPromptId(input.promptId);
+  if (
+    !record ||
+    record.workspaceId !== input.workspaceId ||
+    record.contentId !== input.contentId
+  ) {
     throw new TokMetricError(
       409,
       "VIDEO_RENDER_OWNERSHIP_INVALID",
       "The render job is not bound to this workspace and content item.",
     );
   }
-
-  let job: Awaited<ReturnType<typeof getVideoJob>>;
-  try {
-    job = await getVideoJob(input.promptId);
-  } catch (error) {
-    providerFailure(error);
-  }
-  if (job.status !== "completed") {
+  const current = await syncRenderJob(record);
+  if (current.state !== "COMPLETED" && current.state !== "FINALIZED") {
     throw new TokMetricError(
       409,
       "VIDEO_RENDER_NOT_COMPLETE",
-      "Only a successfully completed render can be finalized.",
+      "Only a completed render can be finalized.",
+    );
+  }
+  const upload = await getVerifiedVideoUpload(current.id);
+  if (!upload) {
+    throw new TokMetricError(
+      409,
+      "VIDEO_UPLOAD_VERIFICATION_REQUIRED",
+      "The trusted render worker must verify the uploaded file before finalization.",
     );
   }
 
-  const { content, version } = await reviewableContent(
+  const { content, version, review } = await reviewableContent(
     input.workspaceId,
     input.contentId,
   );
-  if (queuedMetadata.contentVersionId !== version.id) {
+  if (current.contentVersionId !== version.id) {
     throw new TokMetricError(
       409,
       "VIDEO_RENDER_VERSION_MISMATCH",
@@ -410,95 +681,210 @@ export async function finalizeContentRender(input: FinalizeContentRenderInput) {
     );
   }
 
-  const mediaAsset = await registerMediaAsset({
-    workspaceId: input.workspaceId,
-    actorId: input.actorId,
-    fileName: input.fileName,
-    mimeType: input.mimeType,
-    fileSize: input.fileSize,
-    checksum: input.checksum.toLowerCase(),
-    storageRef: input.storageRef,
-    metadata: {
-      provider: "comfyui-local",
-      promptId: input.promptId,
-      sourceContentId: content.id,
-      sourceContentVersionId: version.id,
-      outputDescriptors: job.outputs,
-      humanApprovalRequired: true,
-    },
-  });
-
   const settings = object(version.settings);
-  const nextVersion = await createContentVersion(
-    content.id,
-    input.workspaceId,
-    input.actorId,
-    input.correlationId,
-    {
-      script: version.script ?? undefined,
-      caption: version.caption ?? undefined,
-      hashtags: version.hashtags,
-      settings: {
-        ...settings,
-        render: {
-          provider: "comfyui-local",
-          promptId: input.promptId,
-          mediaAssetId: mediaAsset.id,
-          finalizedAt: new Date().toISOString(),
-          humanApprovalRequired: true,
-        },
+  const mediaAssetIds = [...new Set([...version.mediaAssetIds])];
+  const result = await db.$transaction(async (transaction) => {
+    let mediaAsset = await transaction.mediaAsset.findFirst({
+      where: {
+        workspaceId: input.workspaceId,
+        checksum: upload.checksumSha256,
+        version: 1,
       },
-      mediaAssetIds: [...new Set([...version.mediaAssetIds, mediaAsset.id])],
-    },
-  );
-  const review = await runComplianceReview({
-    workspaceId: input.workspaceId,
-    contentId: content.id,
-    actorId: input.actorId,
-    correlationId: input.correlationId,
-  });
-
-  let approvalRequestId: string | undefined;
-  if (["PASS", "PASS_WITH_DISCLOSURE"].includes(review.result)) {
-    const approval = await requestContentApproval({
-      workspaceId: input.workspaceId,
-      contentId: content.id,
-      actorId: input.actorId,
-      action: approvalAction(settings),
-      correlationId: input.correlationId,
     });
-    approvalRequestId = approval.id;
-  }
+    if (mediaAsset && mediaAsset.storageRef !== upload.storageRef) {
+      throw new TokMetricError(
+        409,
+        "VIDEO_MEDIA_ASSET_CONFLICT",
+        "The verified checksum is already bound to a different media reference.",
+      );
+    }
+    if (!mediaAsset) {
+      mediaAsset = await transaction.mediaAsset.create({
+        data: {
+          workspaceId: input.workspaceId,
+          ownerId: input.actorId,
+          objectHash: contentHash({
+            checksum: upload.checksumSha256,
+            storageRef: upload.storageRef,
+          }),
+          fileName: upload.fileName,
+          mimeType: upload.mimeType,
+          fileSize: upload.fileSize,
+          checksum: upload.checksumSha256,
+          storageRef: upload.storageRef,
+          metadata: toInputJson({
+            provider: "comfyui-local",
+            renderJobId: current.id,
+            promptId: current.externalPromptId,
+            verifiedUploadId: upload.id,
+            sourceContentId: content.id,
+            sourceContentVersionId: version.id,
+            outputDescriptors: current.outputManifest,
+            humanApprovalRequired: true,
+          }),
+        },
+      });
+    }
 
-  await emitTokMetricAudit({
-    workspaceId: input.workspaceId,
-    actorId: input.actorId,
-    action: "video.render.finalized",
-    entityType: "media_asset",
-    entityId: mediaAsset.id,
-    correlationId: input.correlationId,
-    outcome: review.result,
-    sourceChannel: "social-media-command-center",
-    metadata: {
+    const nextMediaAssetIds = [...new Set([...mediaAssetIds, mediaAsset.id])];
+    const nextSettings = {
+      ...settings,
+      render: {
+        provider: "comfyui-local",
+        renderJobId: current.id,
+        promptId: current.externalPromptId,
+        mediaAssetId: mediaAsset.id,
+        verifiedUploadId: upload.id,
+        finalizedAt: new Date().toISOString(),
+        humanApprovalRequired: true,
+      },
+    };
+    const normalized = {
+      script: version.script,
+      caption: version.caption,
+      hashtags: [...new Set(version.hashtags)],
+      settings: nextSettings,
+      mediaAssetIds: nextMediaAssetIds,
+    };
+    const objectHash = contentHash(normalized);
+    let nextVersion = await transaction.contentVersion.findFirst({
+      where: { contentId: content.id, objectHash },
+    });
+    if (!nextVersion) {
+      const latest = await transaction.contentVersion.aggregate({
+        where: { contentId: content.id },
+        _max: { version: true },
+      });
+      nextVersion = await transaction.contentVersion.create({
+        data: {
+          contentId: content.id,
+          version: (latest._max.version ?? 0) + 1,
+          objectHash,
+          script: normalized.script,
+          caption: normalized.caption,
+          hashtags: normalized.hashtags,
+          settings: toInputJson(normalized.settings),
+          mediaAssetIds: normalized.mediaAssetIds,
+          createdById: input.actorId,
+        },
+      });
+    }
+
+    const previousFindings = Array.isArray(review.findings) ? review.findings : [];
+    let exactReview = await transaction.complianceReview.findFirst({
+      where: { contentVersionId: nextVersion.id },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!exactReview) {
+      exactReview = await transaction.complianceReview.create({
+        data: {
+          workspaceId: input.workspaceId,
+          contentId: content.id,
+          contentVersionId: nextVersion.id,
+          policyVersionId: review.policyVersionId,
+          result: review.result,
+          findings: toInputJson([
+            ...previousFindings,
+            {
+              code: "VERIFIED_RENDERED_MEDIA",
+              severity: "info",
+              message:
+                "The rendered file was bound to the completed provider output and a trusted worker upload verification record.",
+            },
+          ]),
+          reviewerId: input.actorId,
+        },
+      });
+    }
+
+    const action = approvalAction(settings);
+    let approval = await transaction.approvalRequest.findFirst({
+      where: {
+        workspaceId: input.workspaceId,
+        contentId: content.id,
+        contentVersionId: nextVersion.id,
+        objectHash: nextVersion.objectHash,
+        action,
+        state: { in: ["APPROVAL_REQUIRED", "APPROVED"] },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!approval) {
+      approval = await transaction.approvalRequest.create({
+        data: {
+          workspaceId: input.workspaceId,
+          contentId: content.id,
+          contentVersionId: nextVersion.id,
+          requestedById: input.actorId,
+          requiredRole: "approver",
+          action,
+          objectHash: nextVersion.objectHash,
+          state: "APPROVAL_REQUIRED",
+        },
+      });
+    }
+
+    await transaction.content.update({
+      where: { id: content.id },
+      data: {
+        currentVersionId: nextVersion.id,
+        state: "APPROVAL_REQUIRED",
+      },
+    });
+    await transaction.$executeRaw(Prisma.sql`
+      UPDATE video_render_jobs
+      SET state = 'FINALIZED',
+          finalized_at = COALESCE(finalized_at, CURRENT_TIMESTAMP),
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${current.id}
+    `);
+
+    const safeMetadata = redactSecrets({
+      renderJobId: current.id,
       contentId: content.id,
       previousContentVersionId: version.id,
-      contentVersionId: nextVersion.version.id,
-      promptId: input.promptId,
-      approvalRequestId,
-      storageRefOrigin: new URL(input.storageRef).origin,
-    },
+      contentVersionId: nextVersion.id,
+      mediaAssetId: mediaAsset.id,
+      complianceReviewId: exactReview.id,
+      approvalRequestId: approval.id,
+      storageRefOrigin: new URL(upload.storageRef).origin,
+    }) as object;
+    await transaction.auditEvent.create({
+      data: {
+        workspaceId: input.workspaceId,
+        actorId: input.actorId,
+        action: "video.render.finalized",
+        entityType: "video_render_job",
+        entityId: current.id,
+        correlationId: input.correlationId,
+        outcome: "approval_required",
+        sourceChannel: "social-media-command-center",
+        safeMetadata,
+      },
+    });
+    await transaction.domainEvent.create({
+      data: {
+        workspaceId: input.workspaceId,
+        aggregateType: "content",
+        aggregateId: content.id,
+        eventType: "VIDEO_RENDER_FINALIZED",
+        correlationId: input.correlationId,
+        safeMetadata,
+      },
+    });
+
+    return { mediaAsset, nextVersion, exactReview, approval };
   });
 
   return {
-    mediaAssetId: mediaAsset.id,
+    renderJobId: current.id,
+    mediaAssetId: result.mediaAsset.id,
     contentId: content.id,
-    contentVersionId: nextVersion.version.id,
-    complianceReviewId: review.id,
-    complianceResult: review.result,
-    approvalRequestId,
-    state: approvalRequestId
-      ? "AWAITING_HUMAN_APPROVAL"
-      : "COMPLIANCE_REVIEW_REQUIRED",
+    contentVersionId: result.nextVersion.id,
+    complianceReviewId: result.exactReview.id,
+    complianceResult: result.exactReview.result,
+    approvalRequestId: result.approval.id,
+    state: "AWAITING_HUMAN_APPROVAL",
     externalPublicationTaken: false,
   };
 }
