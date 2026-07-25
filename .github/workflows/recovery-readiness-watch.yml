@@ -2,6 +2,7 @@ name: Canonical recovery readiness watch
 
 on:
   schedule:
+    # Offset from the top of the hour to avoid peak scheduler contention.
     - cron: "17 * * * *"
   workflow_dispatch:
 
