@@ -7,7 +7,7 @@ export async function GET() {
   if (!gate.ok) return gate.response;
 
   const readiness = getVideoReadiness();
-  if (!readiness.configured) {
+  if (!readiness.directWorkerReady) {
     return NextResponse.json(
       {
         ok: false,
@@ -20,16 +20,22 @@ export async function GET() {
 
   try {
     const probe = await probeComfyUi();
+    const contentReady = probe.ok && readiness.contentRenderingReady;
     return NextResponse.json(
       {
-        ok: probe.ok,
+        ok: contentReady,
         ...readiness,
         providerStatus: probe.status,
         responseFormat: probe.responseFormat,
         diagnostic: probe.diagnostic,
+        code: !probe.ok
+          ? "COMFYUI_UNHEALTHY"
+          : readiness.contentRenderingReady
+            ? undefined
+            : "VIDEO_RENDER_WORKFLOW_NOT_CONFIGURED",
       },
       {
-        status: probe.ok ? 200 : 502,
+        status: !probe.ok ? 502 : contentReady ? 200 : 503,
         headers: { "Cache-Control": "no-store" },
       },
     );
