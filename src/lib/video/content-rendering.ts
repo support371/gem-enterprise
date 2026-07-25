@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { queueVideoJob, getVideoJob } from "@/lib/video/comfyui";
+import { getVideoJob, queueVideoJob } from "@/lib/video/comfyui";
 import {
   createContentVersion,
   registerMediaAsset,
@@ -22,7 +22,7 @@ type RenderWorkflowConfig = {
   promptNodeId: string;
   negativePromptNodeId?: string;
   seedNodeId?: string;
-  defaultNegativePrompt?: string;
+  defaultNegativePrompt: string;
 };
 
 export type FinalizeContentRenderInput = {
@@ -44,14 +44,34 @@ function object(value: unknown): JsonObject {
     : {};
 }
 
-function strings(value: unknown) {
-  return Array.isArray(value)
-    ? value.filter((entry): entry is string => typeof entry === "string")
-    : [];
-}
-
 function configured(name: string) {
   return process.env[name]?.trim() ?? "";
+}
+
+function providerFailure(error: unknown): never {
+  if (error instanceof TokMetricError) throw error;
+  const message = error instanceof Error ? error.message : "COMFYUI_REQUEST_FAILED";
+  if (message === "COMFYUI_NOT_CONFIGURED") {
+    throw new TokMetricError(503, message, "The local video worker is not configured.");
+  }
+  if (message === "COMFYUI_QUEUE_FULL") {
+    throw new TokMetricError(429, message, "The local video render queue is full.");
+  }
+  if (message === "COMFYUI_TIMEOUT") {
+    throw new TokMetricError(504, message, "The local video worker timed out.");
+  }
+  if (message.startsWith("WORKFLOW_NODE_NOT_FOUND:")) {
+    throw new TokMetricError(
+      503,
+      "VIDEO_RENDER_WORKFLOW_NODE_MISSING",
+      "The configured ComfyUI workflow does not contain a required input node.",
+    );
+  }
+  throw new TokMetricError(
+    502,
+    "VIDEO_RENDER_PROVIDER_FAILED",
+    "The local video worker could not complete the requested operation.",
+  );
 }
 
 function workflowConfig(): RenderWorkflowConfig {
@@ -94,10 +114,7 @@ function workflowConfig(): RenderWorkflowConfig {
   };
 }
 
-function rendererPrompt(version: {
-  script: string | null;
-  settings: unknown;
-}) {
+function rendererPrompt(version: { script: string | null; settings: unknown }) {
   const settings = object(version.settings);
   const recipe = object(settings.videoRecipe);
   const scenes = Array.isArray(recipe.scenes) ? recipe.scenes : [];
@@ -164,7 +181,7 @@ function allowedStorageOrigins() {
     try {
       values.push(new URL(supabase).origin);
     } catch {
-      // The configuration remains fail-closed below.
+      // Invalid configuration remains fail-closed.
     }
   }
   return new Set(values);
@@ -175,7 +192,11 @@ function assertStorageRefAllowed(storageRef: string) {
   try {
     url = new URL(storageRef);
   } catch {
-    throw new TokMetricError(400, "VIDEO_STORAGE_REF_INVALID", "The video storage reference is invalid.");
+    throw new TokMetricError(
+      400,
+      "VIDEO_STORAGE_REF_INVALID",
+      "The video storage reference is invalid.",
+    );
   }
   const allowed = allowedStorageOrigins();
   if (!allowed.size || !allowed.has(url.origin)) {
@@ -192,16 +213,27 @@ async function reviewableContent(workspaceId: string, contentId: string) {
     where: { id: contentId, workspaceId },
   });
   if (!content?.currentVersionId) {
-    throw new TokMetricError(404, "CONTENT_NOT_FOUND", "The content or active version was not found.");
+    throw new TokMetricError(
+      404,
+      "CONTENT_NOT_FOUND",
+      "The content or active version was not found.",
+    );
   }
   const version = await db.contentVersion.findUnique({
     where: { id: content.currentVersionId },
   });
   if (!version) {
-    throw new TokMetricError(409, "CONTENT_VERSION_MISSING", "The active content version was not found.");
+    throw new TokMetricError(
+      409,
+      "CONTENT_VERSION_MISSING",
+      "The active content version was not found.",
+    );
   }
   const metadata = orchestratorMetadata(version.settings);
-  if (typeof metadata.contentType !== "string" || !VIDEO_CONTENT_TYPES.has(metadata.contentType)) {
+  if (
+    typeof metadata.contentType !== "string" ||
+    !VIDEO_CONTENT_TYPES.has(metadata.contentType)
+  ) {
     throw new TokMetricError(
       409,
       "CONTENT_NOT_VIDEO_RENDERABLE",
@@ -234,15 +266,21 @@ export async function queueContentRender(input: {
     input.contentId,
   );
   const config = workflowConfig();
-  const job = await queueVideoJob({
-    prompt: rendererPrompt(version),
-    negativePrompt: config.defaultNegativePrompt,
-    workflow: config.workflow,
-    promptNodeId: config.promptNodeId,
-    negativePromptNodeId: config.negativePromptNodeId,
-    seedNodeId: config.seedNodeId,
-    seed: input.seed,
-  });
+
+  let job: Awaited<ReturnType<typeof queueVideoJob>>;
+  try {
+    job = await queueVideoJob({
+      prompt: rendererPrompt(version),
+      negativePrompt: config.defaultNegativePrompt,
+      workflow: config.workflow,
+      promptNodeId: config.promptNodeId,
+      negativePromptNodeId: config.negativePromptNodeId,
+      seedNodeId: config.seedNodeId,
+      seed: input.seed,
+    });
+  } catch (error) {
+    providerFailure(error);
+  }
 
   const metadata = {
     contentId: content.id,
@@ -296,22 +334,35 @@ export async function latestContentRender(input: {
     orderBy: { createdAt: "desc" },
   });
   if (!event?.entityId) return null;
-  const job = await getVideoJob(event.entityId);
-  return {
-    ...job,
-    queuedAt: event.createdAt,
-  };
+  try {
+    const job = await getVideoJob(event.entityId);
+    return { ...job, queuedAt: event.createdAt };
+  } catch (error) {
+    providerFailure(error);
+  }
 }
 
 export async function finalizeContentRender(input: FinalizeContentRenderInput) {
   if (!VIDEO_MIME_TYPES.has(input.mimeType)) {
-    throw new TokMetricError(400, "VIDEO_MIME_TYPE_INVALID", "The rendered asset must be an approved video type.");
+    throw new TokMetricError(
+      400,
+      "VIDEO_MIME_TYPE_INVALID",
+      "The rendered asset must be an approved video type.",
+    );
   }
   if (input.fileSize <= 0 || input.fileSize > 1024 * 1024 * 1024) {
-    throw new TokMetricError(400, "VIDEO_FILE_SIZE_INVALID", "The rendered video size is outside the approved range.");
+    throw new TokMetricError(
+      400,
+      "VIDEO_FILE_SIZE_INVALID",
+      "The rendered video size is outside the approved range.",
+    );
   }
   if (!/^[a-f0-9]{64}$/i.test(input.checksum)) {
-    throw new TokMetricError(400, "VIDEO_CHECKSUM_INVALID", "A SHA-256 checksum is required.");
+    throw new TokMetricError(
+      400,
+      "VIDEO_CHECKSUM_INVALID",
+      "A SHA-256 checksum is required.",
+    );
   }
   assertStorageRefAllowed(input.storageRef);
 
@@ -333,7 +384,12 @@ export async function finalizeContentRender(input: FinalizeContentRenderInput) {
     );
   }
 
-  const job = await getVideoJob(input.promptId);
+  let job: Awaited<ReturnType<typeof getVideoJob>>;
+  try {
+    job = await getVideoJob(input.promptId);
+  } catch (error) {
+    providerFailure(error);
+  }
   if (job.status !== "completed") {
     throw new TokMetricError(
       409,
@@ -342,7 +398,10 @@ export async function finalizeContentRender(input: FinalizeContentRenderInput) {
     );
   }
 
-  const { content, version } = await reviewableContent(input.workspaceId, input.contentId);
+  const { content, version } = await reviewableContent(
+    input.workspaceId,
+    input.contentId,
+  );
   if (queuedMetadata.contentVersionId !== version.id) {
     throw new TokMetricError(
       409,
