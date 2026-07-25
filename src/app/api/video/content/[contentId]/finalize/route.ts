@@ -4,8 +4,8 @@ import { finalizeContentRender } from "@/lib/video/content-rendering";
 import {
   correlationId,
   parseJson,
+  requireActiveTokMetricSession,
   requirePermission,
-  requireTokMetricSession,
   requireWorkspaceAccess,
   TokMetricError,
   tokMetricErrorResponse,
@@ -15,21 +15,11 @@ import {
 type FinalizePayload = {
   workspaceId: string;
   promptId: string;
-  fileName: string;
-  mimeType: "video/mp4" | "video/webm" | "video/quicktime";
-  fileSize: number;
-  checksum: string;
-  storageRef: string;
 };
 
 const requestSchema = z.object({
   workspaceId: z.string().trim().min(1),
   promptId: z.string().trim().min(1).max(200),
-  fileName: z.string().trim().min(1).max(255),
-  mimeType: z.enum(["video/mp4", "video/webm", "video/quicktime"]),
-  fileSize: z.number().int().positive().max(1024 * 1024 * 1024),
-  checksum: z.string().regex(/^[a-f0-9]{64}$/i),
-  storageRef: z.string().url().max(2000),
 });
 
 type RouteContext = { params: Promise<{ contentId: string }> };
@@ -49,7 +39,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   const cid = correlationId(request);
   try {
     requireSameOrigin(request);
-    const session = await requireTokMetricSession(request);
+    const session = await requireActiveTokMetricSession(request);
     const input = (await parseJson(request, requestSchema)) as FinalizePayload;
     const membership = await requireWorkspaceAccess(input.workspaceId, session);
     requirePermission(membership, "create", "media");
@@ -79,11 +69,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
           promptId: input.promptId,
           actorId: session.userId,
           correlationId: cid,
-          fileName: input.fileName,
-          mimeType: input.mimeType,
-          fileSize: input.fileSize,
-          checksum: input.checksum,
-          storageRef: input.storageRef,
         }),
       }),
       normalized,
