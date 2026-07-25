@@ -11,11 +11,15 @@ export const videoJobInputSchema = z.object({
   promptNodeId: z.string().trim().min(1).default("6"),
   negativePromptNodeId: z.string().trim().min(1).optional(),
   seedNodeId: z.string().trim().min(1).optional(),
-  seed: z.number().int().nonnegative().optional(),
+  seed: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER).optional(),
 });
 
 export type VideoJobInput = z.infer<typeof videoJobInputSchema>;
 export type VideoJobState = "queued" | "running" | "completed" | "failed" | "unknown";
+export type VideoQueueOptions = {
+  clientId?: string;
+  extraData?: Record<string, unknown>;
+};
 
 type JsonRecord = Record<string, unknown>;
 type ComfyRequestResult<T> = {
@@ -148,13 +152,26 @@ function executionFailure(entry: JsonRecord) {
 
 export function getVideoReadiness() {
   const baseUrl = getBaseUrl();
+  const workflowJsonConfigured = Boolean(process.env.COMFYUI_WORKFLOW_JSON?.trim());
+  const promptNodeConfigured = Boolean(process.env.COMFYUI_PROMPT_NODE_ID?.trim());
+  const missingConfiguration = [
+    !baseUrl && "COMFYUI_BASE_URL",
+    !workflowJsonConfigured && "COMFYUI_WORKFLOW_JSON",
+    !promptNodeConfigured && "COMFYUI_PROMPT_NODE_ID",
+  ].filter((value): value is string => Boolean(value));
   return {
     configured: Boolean(baseUrl),
+    directWorkerReady: Boolean(baseUrl),
+    contentRenderingReady:
+      Boolean(baseUrl) && workflowJsonConfigured && promptNodeConfigured,
     provider: "comfyui-local",
     costModel: "self-hosted-no-api-fee",
     baseUrlConfigured: Boolean(baseUrl),
+    workflowJsonConfigured,
+    promptNodeConfigured,
     bearerTokenConfigured: Boolean(process.env.COMFYUI_BEARER_TOKEN?.trim()),
     queueLimit: getQueueLimit(),
+    missingConfiguration,
   };
 }
 
@@ -188,7 +205,10 @@ async function enforceQueueCapacity() {
   return queue;
 }
 
-export async function queueVideoJob(input: VideoJobInput) {
+export async function queueVideoJob(
+  input: VideoJobInput,
+  options: VideoQueueOptions = {},
+) {
   const parsed = videoJobInputSchema.parse(input);
   const workflow = cloneWorkflow(parsed.workflow);
 
@@ -201,11 +221,15 @@ export async function queueVideoJob(input: VideoJobInput) {
   }
 
   const queue = await enforceQueueCapacity();
-  const clientId = crypto.randomUUID();
+  const clientId = options.clientId ?? crypto.randomUUID();
   const result = await comfyRequest<{ prompt_id?: string; error?: string }>("/prompt", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: workflow, client_id: clientId }),
+    body: JSON.stringify({
+      prompt: workflow,
+      client_id: clientId,
+      extra_data: options.extraData ?? {},
+    }),
   });
 
   if (!result.ok || !result.json?.prompt_id) {
