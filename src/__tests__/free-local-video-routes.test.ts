@@ -74,8 +74,11 @@ describe("free local video routes", () => {
     authMocks.requireAdmin.mockResolvedValue(activeAdmin());
     videoMocks.getVideoReadiness.mockReturnValue({
       configured: true,
+      directWorkerReady: true,
+      contentRenderingReady: true,
       provider: "comfyui-local",
       queueLimit: 4,
+      missingConfiguration: [],
     });
   });
 
@@ -167,5 +170,30 @@ describe("free local video routes", () => {
       diagnostic: "authentication failed",
     });
     expect(payload.system).toBeUndefined();
+  });
+
+  it("reports missing content workflow configuration even when the worker is reachable", async () => {
+    videoMocks.getVideoReadiness.mockReturnValue({
+      configured: true,
+      directWorkerReady: true,
+      contentRenderingReady: false,
+      provider: "comfyui-local",
+      queueLimit: 4,
+      missingConfiguration: ["COMFYUI_WORKFLOW_JSON"],
+    });
+    videoMocks.probeComfyUi.mockResolvedValue({
+      ok: true,
+      status: 200,
+      responseFormat: "json",
+    });
+
+    const response = await readinessGet();
+    const payload = await response.json();
+    expect(response.status).toBe(503);
+    expect(payload).toMatchObject({
+      ok: false,
+      code: "VIDEO_RENDER_WORKFLOW_NOT_CONFIGURED",
+      contentRenderingReady: false,
+    });
   });
 });
