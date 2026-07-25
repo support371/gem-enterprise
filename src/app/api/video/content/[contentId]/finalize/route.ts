@@ -12,6 +12,16 @@ import {
   withIdempotency,
 } from "@/lib/tokmetric/security";
 
+type FinalizePayload = {
+  workspaceId: string;
+  promptId: string;
+  fileName: string;
+  mimeType: "video/mp4" | "video/webm" | "video/quicktime";
+  fileSize: number;
+  checksum: string;
+  storageRef: string;
+};
+
 const requestSchema = z.object({
   workspaceId: z.string().trim().min(1),
   promptId: z.string().trim().min(1).max(200),
@@ -40,7 +50,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     requireSameOrigin(request);
     const session = await requireTokMetricSession(request);
-    const input = await parseJson(request, requestSchema);
+    const input = (await parseJson(request, requestSchema)) as FinalizePayload;
     const membership = await requireWorkspaceAccess(input.workspaceId, session);
     requirePermission(membership, "create", "media");
     requirePermission(membership, "edit", "content");
@@ -64,10 +74,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
       async () => ({
         statusCode: 201,
         response: await finalizeContentRender({
-          ...input,
+          workspaceId: input.workspaceId,
           contentId,
+          promptId: input.promptId,
           actorId: session.userId,
           correlationId: cid,
+          fileName: input.fileName,
+          mimeType: input.mimeType,
+          fileSize: input.fileSize,
+          checksum: input.checksum,
+          storageRef: input.storageRef,
         }),
       }),
       normalized,
