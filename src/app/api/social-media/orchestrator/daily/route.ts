@@ -15,6 +15,45 @@ import {
   withIdempotency,
 } from "@/lib/tokmetric/security";
 
+type ProviderId = (typeof socialMediaProviderIds)[number];
+type SignalPayload = {
+  id: string;
+  topic: string;
+  summary: string;
+  relevance: number;
+  momentum: number;
+  observedAt: string;
+  sourceReference: string;
+  providers?: ProviderId[];
+};
+type SourcePayload = {
+  id: string;
+  title: string;
+  summary: string;
+  callToAction: string;
+  sourceReference: string;
+  approvedAt: string;
+  approved: true;
+  providers?: ProviderId[];
+  vacancyId?: string;
+  employerUpdateApproved?: boolean;
+};
+type RequestPayload = {
+  workspaceId: string;
+  planDate?: string;
+  enabledProviders: ProviderId[];
+  marketSignals?: SignalPayload[];
+  approvedSources?: SourcePayload[];
+  useGemCatalog: boolean;
+  gemProductSlugs?: string[];
+  localContext?: string;
+  minimumTikTokItems: number;
+  maxItemsPerOtherProvider: number;
+  freshnessWindowDays?: number | null;
+  requestApprovals: boolean;
+  forceRegenerate: boolean;
+};
+
 const providerSchema = z.enum(socialMediaProviderIds);
 const signalSchema = z.object({
   id: z.string().trim().min(1).max(300),
@@ -124,7 +163,7 @@ export async function POST(request: NextRequest) {
   try {
     requireSameOrigin(request);
     const session = await requireTokMetricSession(request);
-    const input = await parseJson(request, requestSchema);
+    const input = (await parseJson(request, requestSchema)) as RequestPayload;
     const membership = await requireWorkspaceAccess(input.workspaceId, session);
     requirePermission(membership, "create", "content");
     requirePermission(membership, "review", "content");

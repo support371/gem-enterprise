@@ -1,0 +1,32 @@
+[Unit]
+Description=GEM trusted local video render worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gem-video
+Group=gem-video
+WorkingDirectory=/opt/gem-enterprise
+EnvironmentFile=/etc/gem-video-render-worker.env
+ExecStart=/usr/bin/env pnpm run video:worker
+Restart=on-failure
+RestartSec=10
+TimeoutStopSec=30
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=false
+ReadWritePaths=/tmp
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

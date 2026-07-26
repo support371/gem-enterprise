@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Bot,
   CheckCircle2,
+  Film,
   KeyRound,
   Megaphone,
   Plug,
@@ -28,6 +29,14 @@ export default function IntegrationsCommandCenterPage() {
         "TikTok, Facebook Pages, Instagram professional accounts, X, Nextdoor, Indeed Employer, LinkedIn, and YouTube readiness.",
       icon: Megaphone,
       status: `${configured}/${socialProviders.length} configured`,
+    },
+    {
+      href: "/app/command-center/social-media/content-studio",
+      title: "Content and Video Studio",
+      description:
+        "Generate governed daily content, queue realistic videos on the free local renderer, register completed media, and return exact versions to compliance and approval.",
+      icon: Film,
+      status: "Local renderer fail-closed",
     },
     {
       href: "/app/command-center/tokmetric",
@@ -60,7 +69,7 @@ export default function IntegrationsCommandCenterPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
+      <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
         {integrationCards.map(({ href, title, description, icon: Icon, status }) => (
           <Link
             key={href}

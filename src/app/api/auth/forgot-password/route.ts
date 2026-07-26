@@ -10,6 +10,7 @@ import { createPasswordResetToken } from "@/lib/passwordReset";
 
 const DEFAULT_APP_URL = "https://www.gemcybersecurityassist.com";
 const COMMAND_CENTER_RECOVERY_URL = "https://admin.gemcybersecurityassist.com";
+const MIN_RECOVERY_RESPONSE_MS = process.env.NODE_ENV === "test" ? 0 : 2_000;
 
 const forgotPasswordSchema = z.object({
   email: z.string().trim().email("Enter a valid email address.").max(254),
@@ -47,10 +48,20 @@ function appBaseUrl(): string {
   if (process.env.NODE_ENV === "production" && parsed.protocol !== "https:") {
     throw new Error("NEXT_PUBLIC_APP_URL must use HTTPS in production.");
   }
-  if (process.env.NODE_ENV === "production" && parsed.hostname !== "www.gemcybersecurityassist.com") {
+  if (
+    process.env.NODE_ENV === "production" &&
+    parsed.hostname !== "www.gemcybersecurityassist.com"
+  ) {
     throw new Error("Password recovery must use the canonical GEM domain in production.");
   }
   return parsed.toString().replace(/\/$/, "");
+}
+
+async function waitForMinimumRecoveryDuration(startedAt: number) {
+  const remaining = MIN_RECOVERY_RESPONSE_MS - (Date.now() - startedAt);
+  if (remaining > 0) {
+    await new Promise<void>((resolve) => setTimeout(resolve, remaining));
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -96,6 +107,7 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  const responseStartedAt = Date.now();
   const user = await db.user.findUnique({
     where: { email },
     select: {
@@ -148,11 +160,13 @@ export async function POST(request: NextRequest) {
       delivery,
       canonicalOrigin: DEFAULT_APP_URL,
       gatewayRecoveryDisabled: true,
+      responseTimingFloorMs: MIN_RECOVERY_RESPONSE_MS,
     },
     ipAddress,
     userAgent,
   });
 
+  await waitForMinimumRecoveryDuration(responseStartedAt);
   return NextResponse.json(EMAIL_REQUESTED_RESPONSE, {
     headers: { "Cache-Control": "no-store" },
   });
