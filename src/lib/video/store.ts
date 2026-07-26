@@ -25,6 +25,11 @@ export type VideoRenderJobRecord = {
   externalPromptId: string | null;
   idempotencyKey: string;
   requestHash: string;
+  dispatchPayload: Record<string, unknown>;
+  dispatchAttemptCount: number;
+  dispatchClaimId: string | null;
+  dispatchClaimExpiresAt: Date | null;
+  dispatchedAt: Date | null;
   state: VideoRenderJobState;
   errorCode: string | null;
   errorMessage: string | null;
@@ -47,7 +52,11 @@ export type VideoRenderUploadRecord = {
   verifiedAt: Date;
 };
 
-type VideoRenderJobRow = Omit<VideoRenderJobRecord, "outputManifest"> & {
+type VideoRenderJobRow = Omit<
+  VideoRenderJobRecord,
+  "dispatchPayload" | "outputManifest"
+> & {
+  dispatchPayload: unknown;
   outputManifest: unknown;
 };
 type VideoRenderUploadRow = Omit<
@@ -70,6 +79,11 @@ const jobSelection = Prisma.sql`
   external_prompt_id AS "externalPromptId",
   idempotency_key AS "idempotencyKey",
   request_hash AS "requestHash",
+  dispatch_payload AS "dispatchPayload",
+  dispatch_attempt_count AS "dispatchAttemptCount",
+  dispatch_claim_id AS "dispatchClaimId",
+  dispatch_claim_expires_at AS "dispatchClaimExpiresAt",
+  dispatched_at AS "dispatchedAt",
   state,
   error_code AS "errorCode",
   error_message AS "errorMessage",
@@ -99,7 +113,11 @@ function object(value: unknown): Record<string, unknown> {
 }
 
 function job(row: VideoRenderJobRow): VideoRenderJobRecord {
-  return { ...row, outputManifest: object(row.outputManifest) };
+  return {
+    ...row,
+    dispatchPayload: object(row.dispatchPayload),
+    outputManifest: object(row.outputManifest),
+  };
 }
 
 function upload(row: VideoRenderUploadRow): VideoRenderUploadRecord {
@@ -110,6 +128,14 @@ function upload(row: VideoRenderUploadRow): VideoRenderUploadRecord {
   };
 }
 
+function boundedLimit(value: number, maximum = 20) {
+  return Math.min(Math.max(Math.trunc(value), 1), maximum);
+}
+
+function boundedLeaseMs(value: number) {
+  return Math.min(Math.max(Math.trunc(value), 30_000), 15 * 60_000);
+}
+
 function isMissingStore(error: unknown) {
   if (!(error instanceof Error)) return false;
   const text = `${error.name} ${error.message}`.toLowerCase();
@@ -117,7 +143,8 @@ function isMissingStore(error: unknown) {
     (text.includes("video_render_jobs") || text.includes("video_render_uploads")) &&
     (text.includes("does not exist") ||
       text.includes("42p01") ||
-      text.includes("p2010"))
+      text.includes("p2010") ||
+      text.includes("dispatch_payload"))
   );
 }
 
@@ -140,6 +167,7 @@ export async function createVideoRenderJob(input: {
   requestedById: string;
   idempotencyKey: string;
   request: unknown;
+  dispatchPayload?: Record<string, unknown>;
 }) {
   const requestHash = contentHash(input.request);
   try {
@@ -176,6 +204,7 @@ export async function createVideoRenderJob(input: {
           client_id,
           idempotency_key,
           request_hash,
+          dispatch_payload,
           state
         ) VALUES (
           ${id},
@@ -188,6 +217,7 @@ export async function createVideoRenderJob(input: {
           ${id},
           ${input.idempotencyKey},
           ${requestHash},
+          CAST(${JSON.stringify(input.dispatchPayload ?? {})} AS jsonb),
           'DISPATCHING'
         )
         RETURNING ${jobSelection}
@@ -263,6 +293,128 @@ export async function latestVideoRenderJobForContent(input: {
   }
 }
 
+export async function claimVideoRenderDispatchJobs(input: {
+  limit?: number;
+  leaseMs?: number;
+  maximumAttempts?: number;
+}) {
+  const limit = boundedLimit(input.limit ?? 5);
+  const claimId = randomUUID();
+  const claimExpiresAt = new Date(Date.now() + boundedLeaseMs(input.leaseMs ?? 120_000));
+  const maximumAttempts = Math.min(Math.max(input.maximumAttempts ?? 5, 1), 20);
+  try {
+    const rows = await db.$transaction(async (transaction) =>
+      transaction.$queryRaw<VideoRenderJobRow[]>(Prisma.sql`
+        WITH candidates AS (
+          SELECT id
+          FROM video_render_jobs
+          WHERE state = 'DISPATCHING'
+            AND external_prompt_id IS NULL
+            AND dispatch_attempt_count < ${maximumAttempts}
+            AND (
+              dispatch_claim_expires_at IS NULL
+              OR dispatch_claim_expires_at <= CURRENT_TIMESTAMP
+            )
+          ORDER BY created_at ASC
+          FOR UPDATE SKIP LOCKED
+          LIMIT ${limit}
+        )
+        UPDATE video_render_jobs jobs
+        SET dispatch_claim_id = ${claimId},
+            dispatch_claim_expires_at = ${claimExpiresAt},
+            updated_at = CURRENT_TIMESTAMP
+        FROM candidates
+        WHERE jobs.id = candidates.id
+        RETURNING ${jobSelection}
+      `),
+    );
+    return rows.map(job);
+  } catch (error) {
+    return storeUnavailable(error);
+  }
+}
+
+export async function bindVideoRenderPrompt(input: {
+  id: string;
+  claimId: string;
+  promptId: string;
+}) {
+  try {
+    const rows = await db.$queryRaw<VideoRenderJobRow[]>(Prisma.sql`
+      UPDATE video_render_jobs
+      SET external_prompt_id = ${input.promptId},
+          state = 'QUEUED',
+          dispatch_attempt_count = dispatch_attempt_count + 1,
+          dispatch_claim_id = NULL,
+          dispatch_claim_expires_at = NULL,
+          dispatched_at = COALESCE(dispatched_at, CURRENT_TIMESTAMP),
+          error_code = NULL,
+          error_message = NULL,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${input.id}
+        AND state = 'DISPATCHING'
+        AND external_prompt_id IS NULL
+        AND dispatch_claim_id = ${input.claimId}
+        AND dispatch_claim_expires_at > CURRENT_TIMESTAMP
+      RETURNING ${jobSelection}
+    `);
+    if (!rows[0]) {
+      throw new TokMetricError(
+        409,
+        "VIDEO_RENDER_DISPATCH_CLAIM_INVALID",
+        "The video render dispatch claim is missing, expired, or already completed.",
+      );
+    }
+    return job(rows[0]);
+  } catch (error) {
+    if (error instanceof TokMetricError) throw error;
+    return storeUnavailable(error);
+  }
+}
+
+export async function releaseVideoRenderDispatchClaim(input: {
+  id: string;
+  claimId: string;
+  retryable: boolean;
+  errorCode: string;
+  errorMessage: string;
+  maximumAttempts?: number;
+}) {
+  const maximumAttempts = Math.min(Math.max(input.maximumAttempts ?? 5, 1), 20);
+  try {
+    const rows = await db.$queryRaw<VideoRenderJobRow[]>(Prisma.sql`
+      UPDATE video_render_jobs
+      SET dispatch_attempt_count = dispatch_attempt_count + 1,
+          state = CASE
+            WHEN ${input.retryable}
+              AND dispatch_attempt_count + 1 < ${maximumAttempts}
+            THEN 'DISPATCHING'
+            ELSE 'FAILED'
+          END,
+          dispatch_claim_id = NULL,
+          dispatch_claim_expires_at = NULL,
+          error_code = ${input.errorCode.slice(0, 100)},
+          error_message = ${input.errorMessage.slice(0, 500)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${input.id}
+        AND state = 'DISPATCHING'
+        AND dispatch_claim_id = ${input.claimId}
+      RETURNING ${jobSelection}
+    `);
+    if (!rows[0]) {
+      throw new TokMetricError(
+        409,
+        "VIDEO_RENDER_DISPATCH_CLAIM_INVALID",
+        "The video render dispatch claim is missing or already completed.",
+      );
+    }
+    return job(rows[0]);
+  } catch (error) {
+    if (error instanceof TokMetricError) throw error;
+    return storeUnavailable(error);
+  }
+}
+
 export async function markVideoRenderQueued(input: {
   id: string;
   promptId: string;
@@ -272,6 +424,10 @@ export async function markVideoRenderQueued(input: {
       UPDATE video_render_jobs
       SET external_prompt_id = ${input.promptId},
           state = 'QUEUED',
+          dispatch_attempt_count = dispatch_attempt_count + 1,
+          dispatched_at = COALESCE(dispatched_at, CURRENT_TIMESTAMP),
+          dispatch_claim_id = NULL,
+          dispatch_claim_expires_at = NULL,
           error_code = NULL,
           error_message = NULL,
           updated_at = CURRENT_TIMESTAMP
@@ -314,6 +470,74 @@ export async function updateVideoRenderState(input: {
     return job(rows[0]);
   } catch (error) {
     if (error instanceof TokMetricError) throw error;
+    return storeUnavailable(error);
+  }
+}
+
+export async function claimVerifiedVideoRendersForFinalization(input: {
+  limit?: number;
+  leaseMs?: number;
+}) {
+  const limit = boundedLimit(input.limit ?? 5);
+  const claimId = randomUUID();
+  const claimExpiresAt = new Date(Date.now() + boundedLeaseMs(input.leaseMs ?? 180_000));
+  try {
+    const rows = await db.$transaction(async (transaction) =>
+      transaction.$queryRaw<VideoRenderJobRow[]>(Prisma.sql`
+        WITH candidates AS (
+          SELECT jobs.id
+          FROM video_render_jobs jobs
+          INNER JOIN video_render_uploads uploads
+            ON uploads.render_job_id = jobs.id
+          WHERE jobs.state IN ('COMPLETED', 'FINALIZING')
+            AND jobs.requested_by_id IS NOT NULL
+            AND (
+              jobs.state = 'COMPLETED'
+              OR jobs.dispatch_claim_expires_at IS NULL
+              OR jobs.dispatch_claim_expires_at <= CURRENT_TIMESTAMP
+            )
+          ORDER BY jobs.completed_at ASC NULLS LAST, jobs.created_at ASC
+          FOR UPDATE OF jobs SKIP LOCKED
+          LIMIT ${limit}
+        )
+        UPDATE video_render_jobs jobs
+        SET state = 'FINALIZING',
+            dispatch_claim_id = ${claimId},
+            dispatch_claim_expires_at = ${claimExpiresAt},
+            updated_at = CURRENT_TIMESTAMP
+        FROM candidates
+        WHERE jobs.id = candidates.id
+        RETURNING ${jobSelection}
+      `),
+    );
+    return rows.map(job);
+  } catch (error) {
+    return storeUnavailable(error);
+  }
+}
+
+export async function releaseVideoRenderFinalizationClaim(input: {
+  id: string;
+  claimId: string;
+  errorCode: string;
+  errorMessage: string;
+}) {
+  try {
+    const rows = await db.$queryRaw<VideoRenderJobRow[]>(Prisma.sql`
+      UPDATE video_render_jobs
+      SET state = 'COMPLETED',
+          dispatch_claim_id = NULL,
+          dispatch_claim_expires_at = NULL,
+          error_code = ${input.errorCode.slice(0, 100)},
+          error_message = ${input.errorMessage.slice(0, 500)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${input.id}
+        AND state = 'FINALIZING'
+        AND dispatch_claim_id = ${input.claimId}
+      RETURNING ${jobSelection}
+    `);
+    return rows[0] ? job(rows[0]) : null;
+  } catch (error) {
     return storeUnavailable(error);
   }
 }
