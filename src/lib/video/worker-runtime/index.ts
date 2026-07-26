@@ -15,7 +15,6 @@ export {
   fetchWorkerDispatchReadiness,
   fetchWorkerJobs,
   finalizeVerifiedRenders,
-  verifyUploadedVideo,
 } from "./network";
 export {
   buildComfyOutputUrl,
@@ -27,6 +26,7 @@ export {
   selectVideoOutput,
 } from "./outputs";
 export { processVideoWorkerJob } from "./processor";
+export { verifyUploadedVideo } from "./upload-callback";
 export { VideoWorkerError } from "./types";
 export type {
   DownloadedVideo,
