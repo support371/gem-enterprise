@@ -5,6 +5,10 @@ import {
   queueContentRender,
 } from "@/lib/video/content-rendering";
 import {
+  queueContentRenderForWorker,
+  videoRenderDispatchMode,
+} from "@/lib/video/worker-dispatch";
+import {
   correlationId,
   parseJson,
   requireActiveTokMetricSession,
@@ -84,6 +88,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       workspaceId: input.workspaceId,
       contentId,
       seed: input.seed ?? null,
+      dispatchMode: videoRenderDispatchMode(),
     };
     const result = await withIdempotency(
       input.workspaceId,
@@ -91,14 +96,24 @@ export async function POST(request: NextRequest, context: RouteContext) {
       normalized,
       async () => ({
         statusCode: 202,
-        response: await queueContentRender({
-          workspaceId: input.workspaceId,
-          contentId,
-          actorId: session.userId,
-          correlationId: cid,
-          idempotencyKey,
-          seed: input.seed,
-        }),
+        response:
+          normalized.dispatchMode === "worker"
+            ? await queueContentRenderForWorker({
+                workspaceId: input.workspaceId,
+                contentId,
+                actorId: session.userId,
+                correlationId: cid,
+                idempotencyKey,
+                seed: input.seed,
+              })
+            : await queueContentRender({
+                workspaceId: input.workspaceId,
+                contentId,
+                actorId: session.userId,
+                correlationId: cid,
+                idempotencyKey,
+                seed: input.seed,
+              }),
       }),
       normalized,
     );
