@@ -55,6 +55,9 @@ describe("Manus governed campaign agent", () => {
 
   it("keeps the API key server-side and tasks private", () => {
     expect(client).toContain("process.env.MANUS_API_KEY");
+    expect(client).toContain("process.env.MANUS_TASK_CREATION_ENABLED");
+    expect(client).toContain("process.env.MANUS_BILLING_APPROVED");
+    expect(client).toContain("assertManusTaskCreationApproved()");
     expect(client).toContain('"x-manus-api-key": config.apiKey');
     expect(client).toContain('share_visibility: "private"');
     expect(client).toContain('interactive_mode: false');
@@ -64,9 +67,13 @@ describe("Manus governed campaign agent", () => {
   it("requires admin access and same-origin creation", () => {
     expect(createRoute).toContain("requireAdmin()");
     expect(createRoute).toContain("requireSameOrigin(request)");
-    expect(createRoute).toContain("externalActionTaken: false");
+    expect(createRoute).toContain("manus_campaign_task_reservation");
+    expect(createRoute).toContain("pg_advisory_xact_lock");
+    expect(createRoute).toContain("externalActionTaken: true");
     expect(createRoute).toContain("publicationAllowed: false");
     expect(taskRoute).toContain("requireAdmin()");
+    expect(taskRoute).toContain("userId: gate.session.userId");
+    expect(taskRoute).toContain('resource: "manus_campaign_task_reservation"');
     expect(taskRoute).toContain("externalActionTaken: false");
   });
 });

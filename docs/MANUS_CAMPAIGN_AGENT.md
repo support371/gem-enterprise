@@ -19,6 +19,11 @@ Create an API key in Manus Open API settings. Store it only as a server-side dep
 
 ```dotenv
 MANUS_API_KEY=
+
+# Both must remain false unless the owner has explicitly approved creating
+# external Manus tasks and confirmed the account's billing exposure.
+MANUS_TASK_CREATION_ENABLED=false
+MANUS_BILLING_APPROVED=false
 ```
 
 Optional settings:
@@ -27,9 +32,7 @@ Optional settings:
 # Optional Manus project containing shared GEM instructions/knowledge.
 MANUS_PROJECT_ID=
 
-# Defaults to the lower-cost/free-plan-compatible profile.
-# Allowed: manus-1.6-lite, manus-1.6, manus-1.6-max
-MANUS_AGENT_PROFILE=manus-1.6-lite
+# The integration is pinned to the conservative manus-1.6-lite profile.
 ```
 
 Never create a `NEXT_PUBLIC_MANUS_API_KEY` variable and never place a Manus key in source code, browser storage, client components, screenshots, or GitHub.
@@ -38,14 +41,15 @@ Never create a `NEXT_PUBLIC_MANUS_API_KEY` variable and never place a Manus key 
 
 1. Open the canonical GEM Enterprise Vercel project.
 2. Go to **Settings → Environment Variables**.
-3. Add `MANUS_API_KEY` for Preview and Production.
-4. Optionally add `MANUS_PROJECT_ID` and `MANUS_AGENT_PROFILE`.
-5. Redeploy the exact reviewed commit.
-6. Sign in with an active GEM administrator account.
-7. Open `/app/admin/campaigns` and select **Generate with Manus**.
-8. Submit a controlled test brief.
-9. Confirm that the private Manus task completes and returns structured output.
-10. Save the output as a GEM draft and verify that no send or publishing action occurred.
+3. Add `MANUS_API_KEY` only after the owner has reviewed the current provider terms and account billing state.
+4. Optionally add `MANUS_PROJECT_ID`.
+5. Keep `MANUS_TASK_CREATION_ENABLED=false` and `MANUS_BILLING_APPROVED=false` until the owner explicitly approves both gates.
+6. Redeploy the exact reviewed commit.
+7. Sign in with an active GEM administrator account.
+8. Confirm task creation fails closed while either approval gate is false.
+9. After explicit owner approval, enable both gates and submit one controlled test brief.
+10. Confirm that the private Manus task completes and returns structured output.
+11. Save the output as a GEM draft and verify that no send or publishing action occurred.
 
 ## Recommended Manus project instructions
 
@@ -65,6 +69,7 @@ Set the resulting Manus project identifier as `MANUS_PROJECT_ID`.
 
 - Administrator authentication is required.
 - Task creation rejects cross-origin POST requests.
+- External task creation remains disabled unless both owner-controlled approval gates are true.
 - The Manus key is never returned to the browser.
 - Manus tasks use `share_visibility: private`.
 - Interactive mode is disabled for unattended task execution.
@@ -72,8 +77,10 @@ Set the resulting Manus project identifier as `MANUS_PROJECT_ID`.
 - Generated output is labelled and handled as an unapproved draft.
 - Saving creates a draft campaign only.
 - No email send, provider publish, ad purchase, or prospect contact occurs.
-- Audit metadata records task creation with `externalActionTaken: false`.
+- A durable, quota-counted reservation is recorded before the provider call.
+- Audit metadata truthfully records successful Manus task creation with `externalActionTaken: true`.
+- Polling is restricted to task identifiers reserved by the current administrator.
 
 ## Rollback
 
-Remove the three Manus environment variables and revert the integration commit. Without `MANUS_API_KEY`, the integration fails closed with a service-unavailable response and does not affect existing campaigns.
+Set `MANUS_TASK_CREATION_ENABLED=false` and `MANUS_BILLING_APPROVED=false`, then remove the Manus API key and revert the integration commit. Either disabled gate fails closed before a provider task can be created.

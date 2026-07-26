@@ -8,7 +8,7 @@ import {
 
 const MANUS_API_BASE_URL = "https://api.manus.ai/v2";
 const MANUS_TIMEOUT_MS = 30_000;
-const FREE_TIER_AGENT_PROFILE = "manus-1.6-lite";
+const CONSERVATIVE_AGENT_PROFILE = "manus-1.6-lite";
 
 export class ManusConfigurationError extends Error {
   constructor(message: string) {
@@ -38,8 +38,23 @@ function getConfig() {
   return {
     apiKey,
     projectId: process.env.MANUS_PROJECT_ID?.trim() || undefined,
-    agentProfile: FREE_TIER_AGENT_PROFILE,
+    agentProfile: CONSERVATIVE_AGENT_PROFILE,
   };
+}
+
+function taskCreationIsApproved() {
+  return (
+    process.env.MANUS_TASK_CREATION_ENABLED?.trim().toLowerCase() === "true" &&
+    process.env.MANUS_BILLING_APPROVED?.trim().toLowerCase() === "true"
+  );
+}
+
+export function assertManusTaskCreationApproved() {
+  if (!taskCreationIsApproved()) {
+    throw new ManusConfigurationError(
+      "Manus task creation is disabled. An owner must explicitly approve both external task creation and its billing exposure.",
+    );
+  }
 }
 
 async function parseApiResponse(response: Response): Promise<Record<string, unknown>> {
@@ -70,10 +85,11 @@ async function parseApiResponse(response: Response): Promise<Record<string, unkn
 }
 
 export async function createManusCampaignTask(input: ManusCampaignBrief) {
+  assertManusTaskCreationApproved();
   const config = getConfig();
   const body: Record<string, unknown> = {
     message: {
-      content: `${buildManusCampaignPrompt(input)}\n\nFree-tier execution constraint: complete this as one concise generation task. Do not browse the web, open a virtual machine, execute code, manipulate files, call premium data sources, or perform exploratory research. Use only the supplied brief and general writing capability. Keep the result compact while satisfying the structured output schema.`,
+      content: `${buildManusCampaignPrompt(input)}\n\nConservative execution constraint: complete this as one concise generation task. Do not browse the web, open a virtual machine, execute code, manipulate files, call premium data sources, or perform exploratory research. Use only the supplied brief and general writing capability. Keep the result compact while satisfying the structured output schema.`,
     },
     locale: "en-US",
     interactive_mode: false,

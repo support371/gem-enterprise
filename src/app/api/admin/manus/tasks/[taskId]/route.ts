@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/lib/db";
 import { requireAdmin, serviceUnavailable, serverError } from "@/lib/api/auth-helpers";
 import {
   getManusCampaignTask,
@@ -23,6 +24,21 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   }
 
   try {
+    const reservation = await db.auditLog.findFirst({
+      where: {
+        userId: gate.session.userId,
+        resource: "manus_campaign_task_reservation",
+        resourceId: taskId,
+      },
+      select: { id: true },
+    });
+    if (!reservation) {
+      return NextResponse.json(
+        { error: "Manus task not found." },
+        { status: 404, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+
     const task = await getManusCampaignTask(taskId);
     return NextResponse.json(
       {

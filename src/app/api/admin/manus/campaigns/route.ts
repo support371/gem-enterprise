@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { emitAuditLog } from "@/lib/audit";
 import { db } from "@/lib/db";
 import {
   badRequest,
@@ -10,6 +9,7 @@ import {
 } from "@/lib/api/auth-helpers";
 import { ManusCampaignBriefSchema } from "@/lib/manus/campaign";
 import {
+  assertManusTaskCreationApproved,
   createManusCampaignTask,
   ManusApiError,
   ManusConfigurationError,
@@ -17,6 +17,7 @@ import {
 
 const FREE_TIER_DAILY_TASK_LIMIT = 1;
 const FREE_TIER_MONTHLY_TASK_LIMIT = 5;
+const TASK_RESERVATION_RESOURCE = "manus_campaign_task_reservation";
 
 function requireSameOrigin(request: NextRequest) {
   const origin = request.headers.get("origin");
@@ -31,56 +32,80 @@ function utcPeriodBoundaries(now = new Date()) {
   return { dayStart, nextDay, monthStart, nextMonth };
 }
 
-async function enforceFreeTierQuota(userId: string) {
+async function reserveTaskQuota(
+  userId: string,
+  ipAddress?: string,
+  userAgent?: string,
+) {
   const { dayStart, nextDay, monthStart, nextMonth } = utcPeriodBoundaries();
-  const [dailyTasks, monthlyTasks] = await Promise.all([
-    db.auditLog.count({
-      where: {
-        userId,
-        resource: "manus_campaign_task",
-        createdAt: { gte: dayStart, lt: nextDay },
-      },
-    }),
-    db.auditLog.count({
-      where: {
-        userId,
-        resource: "manus_campaign_task",
-        createdAt: { gte: monthStart, lt: nextMonth },
-      },
-    }),
-  ]);
 
-  if (monthlyTasks >= FREE_TIER_MONTHLY_TASK_LIMIT) {
-    return NextResponse.json(
-      {
-        error: "The conservative Manus free-tier monthly limit has been reached. Wait for the next UTC month or use GEM's local campaign drafting tools.",
-        code: "MANUS_FREE_MONTHLY_LIMIT_REACHED",
-        limits: {
-          dailyTasks: FREE_TIER_DAILY_TASK_LIMIT,
-          monthlyTasks: FREE_TIER_MONTHLY_TASK_LIMIT,
+  return db.$transaction(async (tx) => {
+    const lockKey = `manus_campaign_task:${userId}`;
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
+
+    const [dailyTasks, monthlyTasks] = await Promise.all([
+      tx.auditLog.count({
+        where: {
+          userId,
+          resource: TASK_RESERVATION_RESOURCE,
+          createdAt: { gte: dayStart, lt: nextDay },
+        },
+      }),
+      tx.auditLog.count({
+        where: {
+          userId,
+          resource: TASK_RESERVATION_RESOURCE,
+          createdAt: { gte: monthStart, lt: nextMonth },
+        },
+      }),
+    ]);
+
+    if (monthlyTasks >= FREE_TIER_MONTHLY_TASK_LIMIT) {
+      return { ok: false as const, period: "monthly" as const };
+    }
+    if (dailyTasks >= FREE_TIER_DAILY_TASK_LIMIT) {
+      return { ok: false as const, period: "daily" as const };
+    }
+
+    const reservation = await tx.auditLog.create({
+      data: {
+        userId,
+        action: "admin_action",
+        resource: TASK_RESERVATION_RESOURCE,
+        metadata: {
+          kind: "manus_campaign_task_reserved",
+          status: "reserved",
+          externalActionTaken: false,
+          dailyTaskLimit: FREE_TIER_DAILY_TASK_LIMIT,
+          monthlyTaskLimit: FREE_TIER_MONTHLY_TASK_LIMIT,
           resetTimezone: "UTC",
         },
+        ipAddress,
+        userAgent,
       },
-      { status: 429, headers: { "Cache-Control": "no-store" } },
-    );
-  }
+      select: { id: true },
+    });
 
-  if (dailyTasks >= FREE_TIER_DAILY_TASK_LIMIT) {
-    return NextResponse.json(
-      {
-        error: "Today's conservative Manus free-tier task has already been used. Wait until 00:00 UTC before starting another Manus campaign task.",
-        code: "MANUS_FREE_DAILY_LIMIT_REACHED",
-        limits: {
-          dailyTasks: FREE_TIER_DAILY_TASK_LIMIT,
-          monthlyTasks: FREE_TIER_MONTHLY_TASK_LIMIT,
-          resetTimezone: "UTC",
-        },
+    return { ok: true as const, reservationId: reservation.id };
+  });
+}
+
+function quotaLimitResponse(period: "daily" | "monthly") {
+  const daily = period === "daily";
+  return NextResponse.json(
+    {
+      error: daily
+        ? "Today's conservative Manus task limit has been reached. Wait until 00:00 UTC before starting another task."
+        : "The conservative Manus monthly task limit has been reached. Wait for the next UTC month or use GEM's local campaign drafting tools.",
+      code: daily ? "MANUS_DAILY_LIMIT_REACHED" : "MANUS_MONTHLY_LIMIT_REACHED",
+      limits: {
+        dailyTasks: FREE_TIER_DAILY_TASK_LIMIT,
+        monthlyTasks: FREE_TIER_MONTHLY_TASK_LIMIT,
+        resetTimezone: "UTC",
       },
-      { status: 429, headers: { "Cache-Control": "no-store" } },
-    );
-  }
-
-  return null;
+    },
+    { status: 429, headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -106,32 +131,43 @@ export async function POST(request: NextRequest) {
   }
 
   const { ipAddress, userAgent } = getRequestContext(request);
+  let reservationId: string | undefined;
+  let createdTask:
+    | Awaited<ReturnType<typeof createManusCampaignTask>>
+    | undefined;
 
   try {
-    const quotaResponse = await enforceFreeTierQuota(gate.session.userId);
-    if (quotaResponse) return quotaResponse;
-
-    const task = await createManusCampaignTask(parsed.data);
-    await emitAuditLog({
-      userId: gate.session.userId,
-      action: "admin_action",
-      resource: "manus_campaign_task",
-      resourceId: task.taskId,
-      metadata: {
-        kind: "manus_campaign_task_created",
-        service: parsed.data.service,
-        channels: parsed.data.channels,
-        shareVisibility: "private",
-        agentProfile: task.agentProfile,
-        freeTierPolicy: {
-          dailyTaskLimit: FREE_TIER_DAILY_TASK_LIMIT,
-          monthlyTaskLimit: FREE_TIER_MONTHLY_TASK_LIMIT,
-          resetTimezone: "UTC",
-        },
-        externalActionTaken: false,
-      },
+    assertManusTaskCreationApproved();
+    const reservation = await reserveTaskQuota(
+      gate.session.userId,
       ipAddress,
       userAgent,
+    );
+    if (!reservation.ok) return quotaLimitResponse(reservation.period);
+    reservationId = reservation.reservationId;
+
+    const task = await createManusCampaignTask(parsed.data);
+    createdTask = task;
+    await db.auditLog.update({
+      where: { id: reservationId },
+      data: {
+        resourceId: task.taskId,
+        metadata: {
+          kind: "manus_campaign_task_created",
+          status: "created",
+          service: parsed.data.service,
+          channels: parsed.data.channels,
+          shareVisibility: "private",
+          agentProfile: task.agentProfile,
+          quotaPolicy: {
+            dailyTaskLimit: FREE_TIER_DAILY_TASK_LIMIT,
+            monthlyTaskLimit: FREE_TIER_MONTHLY_TASK_LIMIT,
+            resetTimezone: "UTC",
+          },
+          externalActionTaken: true,
+          publicationAllowed: false,
+        },
+      },
     });
 
     return NextResponse.json(
@@ -143,12 +179,45 @@ export async function POST(request: NextRequest) {
           monthlyTasks: FREE_TIER_MONTHLY_TASK_LIMIT,
           resetTimezone: "UTC",
         },
-        externalActionTaken: false,
+        externalActionTaken: true,
         publicationAllowed: false,
+        auditRecorded: true,
       },
       { status: 202, headers: { "Cache-Control": "no-store" } },
     );
   } catch (error) {
+    if (reservationId && !createdTask) {
+      await db.auditLog.update({
+        where: { id: reservationId },
+        data: {
+          metadata: {
+            kind: "manus_campaign_task_failed",
+            status: "failed_before_task_confirmation",
+            externalActionTaken: false,
+            publicationAllowed: false,
+          },
+        },
+      }).catch((auditError) => {
+        console.error("[POST /api/admin/manus/campaigns] failed to update reservation", auditError);
+      });
+    }
+    if (reservationId && createdTask) {
+      console.error(
+        "[POST /api/admin/manus/campaigns] external task created but audit binding failed",
+        error,
+      );
+      return NextResponse.json(
+        {
+          error: "A private Manus task was created, but GEM could not complete its audit binding. Do not retry this request; review the returned task directly.",
+          code: "MANUS_AUDIT_BINDING_FAILED",
+          task: createdTask,
+          externalActionTaken: true,
+          publicationAllowed: false,
+          auditRecorded: false,
+        },
+        { status: 502, headers: { "Cache-Control": "no-store" } },
+      );
+    }
     if (error instanceof ManusConfigurationError) {
       return serviceUnavailable(error.message);
     }
