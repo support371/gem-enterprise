@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   CircleOff,
   Film,
+  Layers3,
   Loader2,
   Play,
   RefreshCw,
@@ -94,6 +95,11 @@ export function ContentOrchestratorPanel() {
     [campaign, selectedContentId],
   );
 
+  const renderableCount = useMemo(
+    () => campaign?.contents.filter((content) => videoTypes.has(contentType(content))).length ?? 0,
+    [campaign],
+  );
+
   async function loadPlan() {
     if (!workspaceId || !planDate) {
       setMessage("Enter the workspace ID and plan date.");
@@ -175,6 +181,55 @@ export function ContentOrchestratorPanel() {
     }
   }
 
+  async function queueCampaignRenders() {
+    if (!workspaceId || !campaign) {
+      setMessage("Load or generate a daily campaign before starting batch production.");
+      return;
+    }
+    setLoading("batch-render");
+    setMessage("");
+    try {
+      const response = await fetch(`/api/video/campaign/${campaign.id}/render`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": `campaign-video:${workspaceId}:${campaign.id}:${planDate}`,
+        },
+        body: JSON.stringify({ workspaceId, limit: 100 }),
+      });
+      const payload = (await response.json()) as {
+        data?: {
+          dispatchMode?: string;
+          inspected?: number;
+          queued?: number;
+          reused?: number;
+          skipped?: number;
+          failed?: number;
+        };
+        error?: { message?: string };
+      };
+      if (!response.ok) {
+        throw new Error(payload.error?.message || "Campaign video production could not be queued.");
+      }
+      setMessage(
+        [
+          `Batch production accepted in ${payload.data?.dispatchMode ?? "worker"} mode.`,
+          `${payload.data?.queued ?? 0} queued,`,
+          `${payload.data?.reused ?? 0} already present,`,
+          `${payload.data?.skipped ?? 0} skipped,`,
+          `${payload.data?.failed ?? 0} failed.`,
+        ].join(" "),
+      );
+      await loadPlan();
+    } catch (error) {
+      setMessage(
+        error instanceof Error ? error.message : "Campaign video production could not be queued.",
+      );
+    } finally {
+      setLoading(null);
+    }
+  }
+
   async function queueRender() {
     if (!workspaceId || !selectedContentId) return;
     setLoading("render");
@@ -189,7 +244,7 @@ export function ContentOrchestratorPanel() {
         body: JSON.stringify({ workspaceId }),
       });
       const payload = (await response.json()) as {
-        data?: RenderState;
+        data?: RenderState & { dispatchMode?: string };
         error?: { message?: string };
       };
       if (!response.ok) {
@@ -197,7 +252,9 @@ export function ContentOrchestratorPanel() {
       }
       setRender(payload.data ?? null);
       setMessage(
-        `Render queued${payload.data?.promptId ? `: ${payload.data.promptId}` : "."}`,
+        payload.data?.promptId
+          ? `Render queued: ${payload.data.promptId}`
+          : `Render work accepted for ${payload.data?.dispatchMode ?? "trusted-worker"} dispatch.`,
       );
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "The render could not be queued.");
@@ -284,15 +341,15 @@ export function ContentOrchestratorPanel() {
             </h2>
           </div>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-            Generate the governed daily plan, queue an exact reviewed video version, and return the trusted worker output to compliance and approval.
+            Generate the governed daily plan, queue all eligible video drafts, and let the trusted local worker dispatch, upload, verify, and finalize each exact version for fresh human approval.
           </p>
         </div>
         <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-3 py-2 text-xs text-amber-100/80">
-          Rendering does not publish. Final media still requires approval by another authorized operator.
+          Automated production does not publish. Final media still requires approval by another authorized operator.
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-[1fr_190px_auto_auto]">
+      <div className="mt-5 grid gap-3 md:grid-cols-[1fr_190px_auto_auto_auto]">
         <input
           value={workspaceId}
           onChange={(event) => setWorkspaceId(event.target.value)}
@@ -329,7 +386,20 @@ export function ContentOrchestratorPanel() {
           ) : (
             <Play className="h-4 w-4" />
           )}
-          Generate daily plan
+          Generate plan
+        </button>
+        <button
+          type="button"
+          onClick={queueCampaignRenders}
+          disabled={Boolean(loading) || !campaign || renderableCount === 0}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-400 px-4 py-2.5 text-sm font-semibold text-black hover:bg-violet-300 disabled:opacity-40"
+        >
+          {loading === "batch-render" ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Layers3 className="h-4 w-4" />
+          )}
+          Produce {renderableCount || "all"} videos
         </button>
       </div>
 
@@ -403,7 +473,7 @@ export function ContentOrchestratorPanel() {
                       ) : (
                         <Film className="h-3.5 w-3.5" />
                       )}
-                      Queue render
+                      Queue one
                     </button>
                     <button
                       type="button"
@@ -440,10 +510,10 @@ export function ContentOrchestratorPanel() {
                   <div className="mt-5 space-y-3 border-t border-white/8 pt-5">
                     <div className="flex items-center gap-2 text-sm font-semibold text-white">
                       <ShieldCheck className="h-4 w-4 text-emerald-300" />
-                      Trusted upload handoff
+                      Trusted upload and finalization
                     </div>
                     <p className="text-xs leading-5 text-slate-400">
-                      The render worker must upload the exact provider output, calculate its SHA-256 checksum, and call the protected upload-verification endpoint. The browser cannot supply or override that evidence.
+                      The trusted worker uploads the exact provider output, verifies its immutable manifest, and normally finalizes it automatically. The manual button remains as a recovery control.
                     </p>
                     <div className="rounded-lg border border-white/8 bg-white/[0.02] p-3 text-xs text-slate-400">
                       <div>
@@ -453,7 +523,7 @@ export function ContentOrchestratorPanel() {
                         Provider prompt: <code className="text-slate-200">{render.promptId}</code>
                       </div>
                       <div className="mt-1">
-                        Worker callback: <code className="text-slate-200">POST /api/video/uploads/verify</code>
+                        Worker callbacks: <code className="text-slate-200">upload verification + automatic finalization</code>
                       </div>
                     </div>
                     <button
@@ -467,7 +537,7 @@ export function ContentOrchestratorPanel() {
                       ) : (
                         <CheckCircle2 className="h-3.5 w-3.5" />
                       )}
-                      Finalize verified upload
+                      Finalize now (fallback)
                     </button>
                   </div>
                 ) : null}
