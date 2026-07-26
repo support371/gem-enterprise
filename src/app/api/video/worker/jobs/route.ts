@@ -4,6 +4,7 @@ import { requireTrustedVideoWorker } from "@/lib/video/worker-auth";
 import { listTrustedWorkerRenderJobs } from "@/lib/video/worker-store";
 import {
   correlationId,
+  TokMetricError,
   tokMetricErrorResponse,
 } from "@/lib/tokmetric/security";
 
@@ -13,10 +14,17 @@ export async function GET(request: NextRequest) {
   const cid = correlationId(request);
   try {
     requireTrustedVideoWorker(request);
-    const limit = querySchema.parse(
+    const parsed = querySchema.safeParse(
       request.nextUrl.searchParams.get("limit") ?? undefined,
     );
-    const jobs = await listTrustedWorkerRenderJobs(limit);
+    if (!parsed.success) {
+      throw new TokMetricError(
+        400,
+        "VIDEO_WORKER_QUERY_INVALID",
+        "The worker batch limit must be an integer from 1 to 20.",
+      );
+    }
+    const jobs = await listTrustedWorkerRenderJobs(parsed.data);
     return NextResponse.json(
       {
         ok: true,
