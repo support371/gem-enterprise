@@ -670,4 +670,17 @@ export const capitalCommandSchema = z.union([
   recordAgentRun,
 ]);
 
-export type CapitalCommandInput = z.infer<typeof capitalCommandSchema>;
+/**
+ * Runtime requests are parsed by capitalCommandSchema before execution.
+ * This repository intentionally compiles with strictNullChecks disabled, which
+ * makes Zod's inferred object properties optional. Use an explicit
+ * post-validation contract so required fields stay required at the executor
+ * boundary; payload shape remains owned by the discriminated runtime schema.
+ */
+export interface CapitalCommandInput {
+  workspaceId: string;
+  idempotencyKey: string;
+  approvalRequestId?: string;
+  command: CapitalCommandName;
+  payload: any;
+}

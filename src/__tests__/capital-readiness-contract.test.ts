@@ -4,7 +4,10 @@ import { NextRequest } from "next/server";
 import { capitalObjectHash } from "@/lib/capital-readiness/approvals";
 import { capitalCommandSchema } from "@/lib/capital-readiness/command-schemas";
 import { authorizeCapitalClosingSchema } from "@/lib/capital-readiness/closing";
-import { capitalLifecycleSchema } from "@/lib/capital-readiness/lifecycle";
+import {
+  capitalLifecycleSchema,
+  type CapitalLifecycleInput,
+} from "@/lib/capital-readiness/lifecycle";
 import { capitalMutationGate } from "@/lib/capital-readiness/security";
 
 const workspaceId = "ws_test_capital";
@@ -206,7 +209,9 @@ describe("capital lifecycle validation", () => {
         rationale: "Counsel approved the documented waiver after reviewing the closing condition.",
       },
     });
-    expect(parsed.approvalRequestId).toBe("approval_waiver");
+    expect((parsed as CapitalLifecycleInput).approvalRequestId).toBe(
+      "approval_waiver",
+    );
   });
 });
 

@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/api/auth-helpers";
 import { requireCapitalWorkspaceAccess } from "@/lib/capital-readiness/access";
 import {
   CapitalLifecycleError,
+  type CapitalLifecycleInput,
   capitalLifecycleSchema,
   executeCapitalLifecycle,
 } from "@/lib/capital-readiness/lifecycle";
@@ -44,13 +45,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await executeCapitalLifecycle(parsed.data, {
+    const validated = parsed.data as CapitalLifecycleInput;
+    const result = await executeCapitalLifecycle(validated, {
       id: gate.session.userId,
       workspaceRole: access.workspace.role.name,
     });
     return json({
       ok: true,
-      action: parsed.data.action,
+      action: validated.action,
       workspaceId: access.workspace.id,
       result,
     });

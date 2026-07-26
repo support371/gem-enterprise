@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireStaff } from "@/lib/api/auth-helpers";
-import { evaluateTransactionAction } from "@/lib/capital-readiness/policy";
+import {
+  evaluateTransactionAction,
+  type TransactionPolicyInput,
+} from "@/lib/capital-readiness/policy";
 import { capitalPolicyRequestSchema } from "@/lib/capital-readiness/validation";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +31,9 @@ export async function POST(request: NextRequest) {
     return json({ error: "Validation failed", fields: parsed.error.flatten().fieldErrors }, 400);
   }
 
-  const decision = evaluateTransactionAction(parsed.data);
+  const decision = evaluateTransactionAction(
+    parsed.data as TransactionPolicyInput,
+  );
   return json({
     evaluationOnly: true,
     evaluatedBy: gate.session.userId,

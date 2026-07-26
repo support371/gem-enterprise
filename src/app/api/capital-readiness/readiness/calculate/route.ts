@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireStaff } from "@/lib/api/auth-helpers";
-import { calculateCapitalReadiness } from "@/lib/capital-readiness/workflow";
+import {
+  calculateCapitalReadiness,
+  type CapitalWorkstreamScore,
+} from "@/lib/capital-readiness/workflow";
 import { capitalReadinessCalculationSchema } from "@/lib/capital-readiness/validation";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +34,8 @@ export async function POST(request: NextRequest) {
   return json({
     methodologyVersion: "1.0",
     calculatedBy: gate.session.userId,
-    decision: calculateCapitalReadiness(parsed.data.workstreams),
+    decision: calculateCapitalReadiness(
+      parsed.data.workstreams as CapitalWorkstreamScore[],
+    ),
   });
 }

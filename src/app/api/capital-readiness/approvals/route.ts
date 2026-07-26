@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireStaff } from "@/lib/api/auth-helpers";
 import { requireCapitalWorkspaceAccess } from "@/lib/capital-readiness/access";
-import { requestCapitalApproval } from "@/lib/capital-readiness/approvals";
+import {
+  requestCapitalApproval,
+  type RequestCapitalApprovalInput,
+} from "@/lib/capital-readiness/approvals";
 import { requestCapitalApprovalSchema } from "@/lib/capital-readiness/approval-validation";
 import { capitalMutationGate } from "@/lib/capital-readiness/security";
 import { db } from "@/lib/db";
@@ -56,8 +59,12 @@ export async function POST(request: NextRequest) {
   if (!access.allowed || !access.workspace) return json({ error: access.reason, code: access.code }, access.code === "WORKSPACE_LOCKED" ? 423 : 403);
 
   try {
+    const validated = parsed.data as Omit<
+      RequestCapitalApprovalInput,
+      "actorId"
+    >;
     const result = await requestCapitalApproval({
-      ...parsed.data,
+      ...validated,
       workspaceId: access.workspace.id,
       actorId: gate.session.userId,
     });
