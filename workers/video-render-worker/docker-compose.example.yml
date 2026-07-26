@@ -1,0 +1,19 @@
+services:
+  gem-video-render-worker:
+    build:
+      context: ../..
+      dockerfile: workers/video-render-worker/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ${COMFYUI_HOST_OUTPUT_DIR:?Set COMFYUI_HOST_OUTPUT_DIR}:/comfy-output:ro
+    ports:
+      - "127.0.0.1:${VIDEO_WORKER_HEALTH_PORT:-8787}:${VIDEO_WORKER_HEALTH_PORT:-8787}"
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
