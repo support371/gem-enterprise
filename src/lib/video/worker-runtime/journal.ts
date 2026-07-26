@@ -52,7 +52,7 @@ export async function readDispatchJournal(
         409,
       );
     }
-    return parsed.data;
+    return parsed.data as VideoWorkerDispatchJournal;
   } catch (error) {
     if (error instanceof VideoWorkerError) throw error;
     if (
@@ -76,7 +76,7 @@ export async function writeDispatchJournal(
   entry: VideoWorkerDispatchJournal,
 ) {
   await ensureWorkerStateDirectory(config);
-  const parsed = journalSchema.parse(entry);
+  const parsed = journalSchema.parse(entry) as VideoWorkerDispatchJournal;
   const path = journalPath(config, parsed.renderJobId);
   const temporaryPath = `${path}.${process.pid}.${Date.now()}.tmp`;
   try {
