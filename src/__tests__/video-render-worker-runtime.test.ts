@@ -222,6 +222,7 @@ describe("trusted video render worker runtime", () => {
         job,
         downloaded,
         "https://project.supabase.co/storage/v1/object/gem-video-renders/render.mp4",
+        {},
       ),
     ).rejects.toMatchObject({
       code: "VIDEO_UPLOAD_CALLBACK_FAILED",

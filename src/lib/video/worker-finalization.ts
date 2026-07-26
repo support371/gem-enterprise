@@ -134,14 +134,15 @@ export async function finalizeTrustedWorkerContentRender(input: {
   }
 
   if (current.state === "FINALIZED") {
-    const existingVersion = await db.contentVersion.findFirst({
-      where: {
-        contentId: content.id,
-        mediaAssetIds: { has: upload.id },
-      },
-      orderBy: { version: "desc" },
-    });
-    if (!existingVersion) {
+    const renderMetadata = object(object(version.settings).render);
+    const mediaAssetId =
+      typeof renderMetadata.mediaAssetId === "string"
+        ? renderMetadata.mediaAssetId
+        : null;
+    if (
+      renderMetadata.renderJobId !== current.id ||
+      !mediaAssetId
+    ) {
       throw new TokMetricError(
         409,
         "VIDEO_FINALIZATION_STATE_INCONSISTENT",
@@ -149,17 +150,17 @@ export async function finalizeTrustedWorkerContentRender(input: {
       );
     }
     const existingReview = await db.complianceReview.findFirst({
-      where: { contentVersionId: existingVersion.id },
+      where: { contentVersionId: version.id },
       orderBy: { createdAt: "desc" },
     });
     const existingApproval = await db.approvalRequest.findFirst({
-      where: { contentVersionId: existingVersion.id },
+      where: { contentVersionId: version.id },
       orderBy: { createdAt: "desc" },
     });
     return {
-      mediaAssetId: upload.id,
+      mediaAssetId,
       contentId: content.id,
-      contentVersionId: existingVersion.id,
+      contentVersionId: version.id,
       complianceReviewId: existingReview?.id,
       complianceResult: existingReview?.result ?? "HUMAN_REVIEW_REQUIRED",
       approvalRequestId: existingApproval?.id,
@@ -253,10 +254,22 @@ export async function finalizeTrustedWorkerContentRender(input: {
           version: 1,
         },
       });
+      if (mediaAsset && mediaAsset.storageRef !== upload.storageRef) {
+        throw new TokMetricError(
+          409,
+          "VIDEO_MEDIA_ASSET_CONFLICT",
+          "The verified checksum is already bound to a different media reference.",
+        );
+      }
       if (!mediaAsset) {
         mediaAsset = await transaction.mediaAsset.create({
           data: {
             workspaceId: input.workspaceId,
+            ownerId: input.actorId,
+            objectHash: contentHash({
+              checksum: upload.checksumSha256,
+              storageRef: upload.storageRef,
+            }),
             fileName: upload.fileName,
             mimeType: upload.mimeType,
             fileSize: upload.fileSize,
@@ -273,7 +286,6 @@ export async function finalizeTrustedWorkerContentRender(input: {
               uploadVerifiedAt: upload.verifiedAt,
               humanApprovalRequired: true,
             }),
-            uploadedById: input.actorId,
           },
         });
       }
@@ -302,13 +314,6 @@ export async function finalizeTrustedWorkerContentRender(input: {
         });
       }
 
-      await transaction.content.update({
-        where: { id: content.id },
-        data: {
-          currentVersionId: nextVersion.id,
-          state: "COMPLIANCE_REVIEW",
-        },
-      });
       await transaction.approvalRequest.updateMany({
         where: {
           workspaceId: input.workspaceId,
@@ -323,32 +328,35 @@ export async function finalizeTrustedWorkerContentRender(input: {
         orderBy: { createdAt: "desc" },
       });
       if (!review) {
+        const previousFindings = Array.isArray(sourceReview.findings)
+          ? sourceReview.findings
+          : [];
         review = await transaction.complianceReview.create({
           data: {
             workspaceId: input.workspaceId,
             contentId: content.id,
             contentVersionId: nextVersion.id,
+            policyVersionId: sourceReview.policyVersionId,
             result: sourceReview.result,
-            riskFlags: toInputJson([
-              "RENDERED_MEDIA_ATTACHED",
-              "FRESH_HUMAN_APPROVAL_REQUIRED",
-              ...(sourceReview.result === "PASS_WITH_DISCLOSURE"
-                ? ["SOURCE_VERSION_DISCLOSURE_REQUIRED"]
-                : []),
+            findings: toInputJson([
+              ...previousFindings,
+              {
+                code: "VERIFIED_RENDERED_MEDIA",
+                severity: "info",
+                message:
+                  "The rendered file was bound to the completed provider output and a trusted worker upload verification record.",
+              },
+              {
+                code: "FRESH_HUMAN_APPROVAL_REQUIRED",
+                severity: "info",
+                message:
+                  "The exact rendered content version requires a new human approval before publishing.",
+              },
             ]),
-            disclosures: sourceReview.disclosures,
             reviewerId: input.actorId,
           },
         });
       }
-      await transaction.content.update({
-        where: { id: content.id },
-        data: {
-          state: ["PASS", "PASS_WITH_DISCLOSURE"].includes(review.result)
-            ? "APPROVAL_REQUIRED"
-            : "COMPLIANCE_REVIEW",
-        },
-      });
 
       let approvalRequestId: string | undefined;
       if (["PASS", "PASS_WITH_DISCLOSURE"].includes(review.result)) {
@@ -369,13 +377,23 @@ export async function finalizeTrustedWorkerContentRender(input: {
               contentId: content.id,
               contentVersionId: nextVersion.id,
               requestedById: input.actorId,
+              requiredRole: "approver",
               action,
               objectHash,
+              state: "APPROVAL_REQUIRED",
             },
           });
         }
         approvalRequestId = approval.id;
       }
+
+      await transaction.content.update({
+        where: { id: content.id },
+        data: {
+          currentVersionId: nextVersion.id,
+          state: "APPROVAL_REQUIRED",
+        },
+      });
 
       await transaction.$executeRaw(Prisma.sql`
         UPDATE video_render_jobs
