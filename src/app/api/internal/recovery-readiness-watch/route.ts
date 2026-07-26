@@ -21,11 +21,7 @@ const TIMING_DELTA_LIMIT_MS = 1_000;
 const TIMING_RATIO_LIMIT = 4;
 
 type JsonObject = Record<string, unknown>;
-
-type RecoveryReadiness = JsonObject & {
-  emailDeliveryConfigured?: boolean;
-};
-
+type RecoveryReadiness = JsonObject & { emailDeliveryConfigured?: boolean };
 type VercelDeployment = {
   id?: string;
   uid?: string;
@@ -34,24 +30,15 @@ type VercelDeployment = {
   readyState?: string;
   target?: string;
   alias?: string[];
-  project?: {
-    id?: string;
-  };
-  meta?: {
-    githubCommitSha?: string;
-    githubCommitRef?: string;
-  };
+  project?: { id?: string };
+  meta?: { githubCommitSha?: string; githubCommitRef?: string };
 };
-
 type DatabaseIntegrityRow = {
   sessionVersionPresent: boolean;
   triggerCount: number;
   privilegesRevoked: boolean;
 };
-
-type LockRow = {
-  locked: boolean;
-};
+type LockRow = { locked: boolean };
 
 class VerificationError extends Error {
   constructor(
@@ -88,12 +75,8 @@ function secureEqual(left: string, right: string): boolean {
 function isAuthorized(request: NextRequest): boolean {
   const supplied = bearer(request);
   if (!supplied) return false;
-
-  const acceptedSecrets = [
-    configured("RECOVERY_WATCH_SECRET"),
-    configured("CRON_SECRET"),
-  ].filter((secret) => secret.length >= 32);
-
+  const acceptedSecrets = [configured("RECOVERY_WATCH_SECRET"), configured("CRON_SECRET")]
+    .filter((secret) => secret.length >= 32);
   return acceptedSecrets.some((secret) => secureEqual(supplied, secret));
 }
 
@@ -110,28 +93,23 @@ function json(body: unknown, status = 200) {
 function requireEnvironment(names: string[]): Record<string, string> {
   const values: Record<string, string> = {};
   const missing: string[] = [];
-
   for (const name of names) {
-    const value = configured(name);
-    if (!value) missing.push(name);
-    values[name] = value;
+    values[name] = configured(name);
+    if (!values[name]) missing.push(name);
   }
-
-  if (missing.length > 0) {
+  if (missing.length) {
     throw new VerificationError(
       "RECOVERY_WATCH_CONFIGURATION_MISSING",
       "Required recovery-watch configuration is missing.",
       { missing },
     );
   }
-
   return values;
 }
 
 async function responseBody(response: Response): Promise<unknown> {
   const text = await response.text();
   if (!text) return null;
-
   try {
     return JSON.parse(text) as unknown;
   } catch {
@@ -150,18 +128,13 @@ async function fetchJson<T>(
     signal: AbortSignal.timeout(30_000),
   });
   const body = await responseBody(response);
-
   if (!allowedStatuses.includes(response.status)) {
     throw new VerificationError(
       "UPSTREAM_REQUEST_FAILED",
       `Upstream request returned HTTP ${response.status}.`,
-      {
-        url: new URL(url).origin + new URL(url).pathname,
-        status: response.status,
-      },
+      { url: new URL(url).origin + new URL(url).pathname, status: response.status },
     );
   }
-
   return { status: response.status, body: body as T };
 }
 
@@ -177,7 +150,6 @@ async function githubJson<T>(
       "The GitHub recovery-watch token is not configured.",
     );
   }
-
   return fetchJson<T>(
     `https://api.github.com/repos/${REPOSITORY}${path}`,
     {
@@ -195,53 +167,37 @@ async function githubJson<T>(
 }
 
 async function readPublicReadiness(): Promise<RecoveryReadiness> {
-  const { body } = await fetchJson<RecoveryReadiness>(
-    `${APP_URL}/api/auth/recovery-readiness`,
-  );
+  const { body } = await fetchJson<RecoveryReadiness>(`${APP_URL}/api/auth/recovery-readiness`);
   if (!isJsonObject(body)) {
-    throw new VerificationError(
-      "INVALID_READINESS_RESPONSE",
-      "Recovery readiness did not return JSON.",
-    );
+    throw new VerificationError("INVALID_READINESS_RESPONSE", "Recovery readiness did not return JSON.");
   }
   return body;
 }
 
 async function readIssueState(): Promise<string> {
-  const { body } = await githubJson<{ state?: string }>(
-    `/issues/${ISSUE_NUMBER}`,
-  );
+  const { body } = await githubJson<{ state?: string }>(`/issues/${ISSUE_NUMBER}`);
   return body.state ?? "unknown";
 }
 
 async function readMainSha(): Promise<string> {
   const { body } = await githubJson<{ sha?: string }>("/commits/main");
   if (!body.sha) {
-    throw new VerificationError(
-      "MAIN_SHA_UNAVAILABLE",
-      "GitHub main did not return a commit SHA.",
-    );
+    throw new VerificationError("MAIN_SHA_UNAVAILABLE", "GitHub main did not return a commit SHA.");
   }
   return body.sha;
 }
 
-async function verifyActiveCanonicalDeployment(
-  mainSha: string,
-  env: Record<string, string>,
-) {
+async function verifyActiveCanonicalDeployment(mainSha: string, env: Record<string, string>) {
   const url = new URL(
     `https://api.vercel.com/v13/deployments/${encodeURIComponent(APP_HOSTNAME)}`,
   );
   url.searchParams.set("teamId", env.VERCEL_ORG_ID);
-
   const { body } = await fetchJson<VercelDeployment>(url.toString(), {
     headers: { Authorization: `Bearer ${env.VERCEL_TOKEN}` },
   });
-
   const deploymentId = body.id ?? body.uid;
   const state = body.state ?? body.readyState;
   const aliases = body.alias ?? [];
-
   if (
     !deploymentId ||
     !body.url ||
@@ -267,37 +223,43 @@ async function verifyActiveCanonicalDeployment(
       },
     );
   }
-
-  return {
-    id: deploymentId,
-    url: `https://${body.url}`,
-    sha: mainSha,
-    canonicalAlias: APP_HOSTNAME,
-  };
+  return { id: deploymentId, url: `https://${body.url}`, sha: mainSha, canonicalAlias: APP_HOSTNAME };
 }
 
 async function verifyPublicSurfaces() {
   const pages = ["/forgot-password", "/reset-password", "/client-login"];
   const results: Record<string, number> = {};
-
   for (const path of pages) {
-    const response = await fetch(`${APP_URL}${path}`, {
+    const expected = new URL(path, APP_URL);
+    const response = await fetch(expected, {
       cache: "no-store",
-      redirect: "follow",
+      redirect: "manual",
       signal: AbortSignal.timeout(30_000),
     });
+    const actual = new URL(response.url);
     results[path] = response.status;
-    if (response.status !== 200) {
+    if (
+      response.status !== 200 ||
+      response.redirected ||
+      actual.origin !== expected.origin ||
+      actual.pathname !== expected.pathname
+    ) {
       throw new VerificationError(
         "PUBLIC_SURFACE_SMOKE_FAILED",
-        `${path} returned HTTP ${response.status}.`,
-        { path, status: response.status },
+        `${path} did not serve directly from its canonical path.`,
+        {
+          path,
+          status: response.status,
+          redirected: response.redirected,
+          canonicalPathMatched: actual.origin === expected.origin && actual.pathname === expected.pathname,
+        },
       );
     }
   }
 
   const session = await fetch(`${APP_URL}/api/auth/session`, {
     cache: "no-store",
+    redirect: "manual",
     signal: AbortSignal.timeout(30_000),
   });
   results["/api/auth/session"] = session.status;
@@ -310,6 +272,7 @@ async function verifyPublicSurfaces() {
 
   const protectedApi = await fetch(`${APP_URL}/api/admin/users`, {
     cache: "no-store",
+    redirect: "manual",
     signal: AbortSignal.timeout(30_000),
   });
   results["/api/admin/users"] = protectedApi.status;
@@ -319,7 +282,6 @@ async function verifyPublicSurfaces() {
       `Protected API returned HTTP ${protectedApi.status} without authentication.`,
     );
   }
-
   return results;
 }
 
@@ -329,14 +291,12 @@ function verifyDatabaseBinding(supabaseProjectRef: string) {
     configured("DATABASE_URL") ||
     configured("POSTGRES_URL") ||
     configured("NEON_DATABASE_URL");
-
   if (!databaseUrl) {
     throw new VerificationError(
       "PRODUCTION_DATABASE_URL_MISSING",
       "The production database URL is not configured.",
     );
   }
-
   let parsed: URL;
   try {
     parsed = new URL(databaseUrl);
@@ -346,17 +306,14 @@ function verifyDatabaseBinding(supabaseProjectRef: string) {
       "The production database URL is invalid.",
     );
   }
-
   const identity = `${parsed.hostname} ${decodeURIComponent(parsed.username)}`.toLowerCase();
-  const matched = identity.includes(supabaseProjectRef.toLowerCase());
-  if (!matched) {
+  if (!identity.includes(supabaseProjectRef.toLowerCase())) {
     throw new VerificationError(
       "PRODUCTION_DATABASE_PROJECT_MISMATCH",
       "The database used by the production runtime is not bound to the configured Supabase project.",
       { projectRefMatched: false },
     );
   }
-
   return { projectRefMatched: true };
 }
 
@@ -364,8 +321,7 @@ async function verifyDatabaseIntegrity() {
   const rows = await db.$queryRaw<DatabaseIntegrityRow[]>`
     SELECT
       EXISTS (
-        SELECT 1
-        FROM information_schema.columns
+        SELECT 1 FROM information_schema.columns
         WHERE table_schema = 'public'
           AND table_name = 'users'
           AND column_name = 'sessionVersion'
@@ -386,42 +342,35 @@ async function verifyDatabaseIntegrity() {
               t.tgname = 'gem_increment_session_version_on_password_change'
               AND p.proname = 'gem_increment_session_version_on_password_change'
               AND pg_get_triggerdef(t.oid) ~* 'BEFORE UPDATE OF "passwordHash"'
-            )
-            OR
-            (
+            ) OR (
               t.tgname = 'gem_audit_session_revocation_on_password_change'
               AND p.proname = 'gem_audit_session_revocation_on_password_change'
               AND pg_get_triggerdef(t.oid) ~* 'AFTER UPDATE OF "passwordHash"'
             )
           )
       ) AS "triggerCount",
-      NOT EXISTS (
-        SELECT 1
-        FROM pg_proc p
-        JOIN pg_namespace n ON n.oid = p.pronamespace
-        CROSS JOIN LATERAL aclexplode(
-          COALESCE(p.proacl, acldefault('f', p.proowner))
-        ) privilege
-        LEFT JOIN pg_roles role ON role.oid = privilege.grantee
-        WHERE n.nspname = 'public'
-          AND p.proname IN (
-            'gem_increment_session_version_on_password_change',
-            'gem_audit_session_revocation_on_password_change'
-          )
-          AND privilege.privilege_type = 'EXECUTE'
-          AND (
-            privilege.grantee = 0
-            OR role.rolname IN ('anon', 'authenticated')
-          )
+      NOT (
+        has_function_privilege(
+          'anon',
+          'public.gem_increment_session_version_on_password_change()',
+          'EXECUTE'
+        ) OR has_function_privilege(
+          'authenticated',
+          'public.gem_increment_session_version_on_password_change()',
+          'EXECUTE'
+        ) OR has_function_privilege(
+          'anon',
+          'public.gem_audit_session_revocation_on_password_change()',
+          'EXECUTE'
+        ) OR has_function_privilege(
+          'authenticated',
+          'public.gem_audit_session_revocation_on_password_change()',
+          'EXECUTE'
+        )
       ) AS "privilegesRevoked"
   `;
-
   const row = rows[0];
-  if (
-    !row?.sessionVersionPresent ||
-    Number(row.triggerCount) !== 2 ||
-    !row.privilegesRevoked
-  ) {
+  if (!row?.sessionVersionPresent || Number(row.triggerCount) !== 2 || !row.privilegesRevoked) {
     throw new VerificationError(
       "DATABASE_RECOVERY_INTEGRITY_FAILED",
       "Password-change session revocation integrity checks did not pass.",
@@ -432,7 +381,6 @@ async function verifyDatabaseIntegrity() {
       },
     );
   }
-
   return {
     sessionVersionPresent: true,
     operationalTriggerCount: 2,
@@ -443,16 +391,11 @@ async function verifyDatabaseIntegrity() {
 }
 
 async function verifyRetiredGateway(env: Record<string, string>) {
-  const { body: functions } = await fetchJson<
-    Array<{ slug?: string; version?: number | string }>
-  >(
+  const { body: functions } = await fetchJson<Array<{ slug?: string; version?: number | string }>>(
     `https://api.supabase.com/v1/projects/${env.SUPABASE_PROJECT_REF}/functions`,
     { headers: { Authorization: `Bearer ${env.SUPABASE_ACCESS_TOKEN}` } },
   );
-
-  const recoveryFunction = functions.find(
-    (candidate) => candidate.slug === "gem-password-recovery",
-  );
+  const recoveryFunction = functions.find((candidate) => candidate.slug === "gem-password-recovery");
   const version = Number(recoveryFunction?.version ?? 0);
   if (!Number.isFinite(version) || version < 10) {
     throw new VerificationError(
@@ -460,7 +403,6 @@ async function verifyRetiredGateway(env: Record<string, string>) {
       `gem-password-recovery version ${version} is below 10.`,
     );
   }
-
   const { status, body } = await fetchJson<JsonObject>(
     `https://${env.SUPABASE_PROJECT_REF}.supabase.co/functions/v1/gem-password-recovery`,
     {
@@ -474,16 +416,13 @@ async function verifyRetiredGateway(env: Record<string, string>) {
     },
     [410],
   );
-
   const allowedKeys = new Set(["code", "error", "message", "recoveryUrl"]);
-  const unexpectedKeys = Object.keys(body).filter(
-    (key) => !allowedKeys.has(key),
-  );
+  const unexpectedKeys = Object.keys(body).filter((key) => !allowedKeys.has(key));
   if (
     status !== 410 ||
     body.code !== "RECOVERY_GATEWAY_DISABLED" ||
     body.recoveryUrl !== CANONICAL_RECOVERY_URL ||
-    unexpectedKeys.length > 0
+    unexpectedKeys.length
   ) {
     throw new VerificationError(
       "RECOVERY_GATEWAY_RETIREMENT_FAILED",
@@ -491,54 +430,65 @@ async function verifyRetiredGateway(env: Record<string, string>) {
       { status, unexpectedKeys },
     );
   }
+  return { version, status, code: body.code, recoveryUrl: body.recoveryUrl };
+}
 
-  return {
-    version,
-    status,
-    code: body.code,
-    recoveryUrl: body.recoveryUrl,
-  };
+function validateRuntimeLogEntry(value: unknown, index: number): JsonObject {
+  if (!isJsonObject(value)) {
+    throw new VerificationError(
+      "RUNTIME_LOG_RESPONSE_UNPARSEABLE",
+      "Vercel returned a non-object runtime-log record.",
+      { recordIndex: index },
+    );
+  }
+  const timestamp = Number(value.timestampInMs);
+  if (
+    !Number.isFinite(timestamp) ||
+    typeof value.level !== "string" ||
+    typeof value.source !== "string" ||
+    typeof value.message !== "string"
+  ) {
+    throw new VerificationError(
+      "RUNTIME_LOG_RESPONSE_INVALID",
+      "Vercel returned a runtime-log record with an unexpected schema.",
+      { recordIndex: index },
+    );
+  }
+  return value;
 }
 
 function parseRuntimeLogEntries(text: string): JsonObject[] {
   if (!text.trim()) return [];
-
   try {
     const parsed = JSON.parse(text) as unknown;
-    if (Array.isArray(parsed)) {
-      return parsed.filter(isJsonObject);
-    }
-    if (isJsonObject(parsed)) return [parsed];
-  } catch {
-    // The runtime-log endpoint normally returns newline-delimited JSON.
+    if (Array.isArray(parsed)) return parsed.map(validateRuntimeLogEntry);
+    return [validateRuntimeLogEntry(parsed, 0)];
+  } catch (error) {
+    if (error instanceof VerificationError) throw error;
   }
 
-  return text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .flatMap((line) => {
-      const candidate = line.startsWith("data:")
-        ? line.slice("data:".length).trim()
-        : line;
-      try {
-        const parsed = JSON.parse(candidate) as unknown;
-        return isJsonObject(parsed) ? [parsed] : [];
-      } catch {
-        return [];
-      }
-    });
+  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+  return lines.map((line, index) => {
+    const candidate = line.startsWith("data:") ? line.slice("data:".length).trim() : line;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(candidate) as unknown;
+    } catch {
+      throw new VerificationError(
+        "RUNTIME_LOG_RESPONSE_UNPARSEABLE",
+        "Vercel returned a malformed runtime-log record.",
+        { recordIndex: index },
+      );
+    }
+    return validateRuntimeLogEntry(parsed, index);
+  });
 }
 
-async function verifyRuntimeLogs(
-  deploymentId: string,
-  env: Record<string, string>,
-) {
+async function verifyRuntimeLogs(deploymentId: string, env: Record<string, string>) {
   const url = new URL(
     `https://api.vercel.com/v1/projects/${env.VERCEL_PROJECT_ID}/deployments/${deploymentId}/runtime-logs`,
   );
   url.searchParams.set("teamId", env.VERCEL_ORG_ID);
-
   const response = await fetch(url.toString(), {
     headers: { Authorization: `Bearer ${env.VERCEL_TOKEN}` },
     cache: "no-store",
@@ -551,36 +501,28 @@ async function verifyRuntimeLogs(
       `Vercel runtime-log inspection returned HTTP ${response.status}.`,
     );
   }
-
   const windowStart = Date.now() - RUNTIME_LOG_WINDOW_MS;
-  const entries = parseRuntimeLogEntries(text).filter((entry) => {
-    const timestamp = Number(entry.timestampInMs ?? entry.timestamp ?? 0);
-    return !Number.isFinite(timestamp) || timestamp === 0 || timestamp >= windowStart;
-  });
+  const entries = parseRuntimeLogEntries(text).filter(
+    (entry) => Number(entry.timestampInMs) >= windowStart,
+  );
   const errors = entries.filter((entry) => {
-    const level = String(entry.level ?? entry.type ?? "").toLowerCase();
-    const status = Number(
-      entry.responseStatusCode ?? entry.statusCode ?? entry.status ?? 0,
-    );
-    const message = String(entry.message ?? entry.text ?? "");
+    const level = String(entry.level).toLowerCase();
+    const status = Number(entry.responseStatusCode ?? 0);
+    const message = String(entry.message);
     return (
       level === "error" ||
       level === "fatal" ||
       status >= 500 ||
-      /(^|[^a-z])(fatal|uncaught|unhandled|runtime error)([^a-z]|$)/i.test(
-        message,
-      )
+      /(^|[^a-z])(fatal|uncaught|unhandled|runtime error)([^a-z]|$)/i.test(message)
     );
   });
-
-  if (errors.length > 0) {
+  if (errors.length) {
     throw new VerificationError(
       "PRODUCTION_RUNTIME_ERRORS_FOUND",
       "Production runtime errors were found in the inspected window.",
       { count: errors.length },
     );
   }
-
   return {
     windowMinutes: RUNTIME_LOG_WINDOW_MS / 60_000,
     entriesInspected: entries.length,
@@ -606,19 +548,13 @@ async function requestRecovery(email: string) {
       body: JSON.stringify({ email }),
     },
   );
-
   if (!isJsonObject(body)) {
     throw new VerificationError(
       "INVALID_RECOVERY_RESPONSE",
       "Canonical recovery did not return a JSON object.",
     );
   }
-
-  return {
-    status,
-    body,
-    elapsedMs: Math.round(performance.now() - startedAt),
-  };
+  return { status, body, elapsedMs: Math.round(performance.now() - startedAt) };
 }
 
 function auditMetadata(value: Prisma.JsonValue | null): JsonObject {
@@ -637,9 +573,7 @@ function timingIsComparable(unknownMs: number, knownMs: number) {
   };
 }
 
-async function verifyControlledRecovery(
-  tx: Prisma.TransactionClient,
-): Promise<JsonObject> {
+async function verifyControlledRecovery(tx: Prisma.TransactionClient): Promise<JsonObject> {
   const transport = await verifyMailTransport();
   if (!transport.ok) {
     throw new VerificationError(
@@ -648,7 +582,6 @@ async function verifyControlledRecovery(
       { code: transport.code },
     );
   }
-
   const admin = await tx.user.findUnique({
     where: { email: ADMIN_RECOVERY_EMAIL },
     select: { id: true, isActive: true, status: true },
@@ -660,12 +593,9 @@ async function verifyControlledRecovery(
     );
   }
 
-  const unknown = await requestRecovery(
-    `recovery-watch-${Date.now()}@example.invalid`,
-  );
+  const unknown = await requestRecovery(`recovery-watch-${Date.now()}@example.invalid`);
   const deliveryStartedAt = new Date();
   const known = await requestRecovery(ADMIN_RECOVERY_EMAIL);
-
   for (const response of [unknown, known]) {
     if (
       response.status !== 200 ||
@@ -678,16 +608,15 @@ async function verifyControlledRecovery(
       );
     }
   }
-
-  const unknownNormalized = normalizeRecoveryResponse(unknown.body);
-  const knownNormalized = normalizeRecoveryResponse(known.body);
-  if (JSON.stringify(unknownNormalized) !== JSON.stringify(knownNormalized)) {
+  if (
+    JSON.stringify(normalizeRecoveryResponse(unknown.body)) !==
+    JSON.stringify(normalizeRecoveryResponse(known.body))
+  ) {
     throw new VerificationError(
       "RECOVERY_ENUMERATION_DETECTED",
       "Known and unknown recovery responses were distinguishable.",
     );
   }
-
   const timing = timingIsComparable(unknown.elapsedMs, known.elapsedMs);
   if (!timing.passed) {
     throw new VerificationError(
@@ -728,7 +657,6 @@ async function verifyControlledRecovery(
       },
     );
   }
-
   return {
     responseBodiesMatched: true,
     responseStatusesMatched: true,
@@ -743,24 +671,18 @@ async function verifyControlledRecovery(
   };
 }
 
-async function prepareAuditedEvidence(
-  mainSha: string,
-  baseEvidence: JsonObject,
-) {
+async function prepareAuditedEvidence(mainSha: string, baseEvidence: JsonObject) {
   return db.$transaction(
     async (tx) => {
       const lockRows = await tx.$queryRaw<LockRow[]>`
         SELECT pg_try_advisory_xact_lock(${ACTIVATION_LOCK_KEY}) AS locked
       `;
       if (!lockRows[0]?.locked) {
-        return { busy: true as const };
+        return { busy: true as const, issueClosed: false as const, evidence: null };
       }
-
-      const currentIssueState = await readIssueState();
-      if (currentIssueState !== "open") {
-        return { issueClosed: true as const };
+      if ((await readIssueState()) !== "open") {
+        return { busy: false as const, issueClosed: true as const, evidence: null };
       }
-
       const currentMainSha = await readMainSha();
       if (currentMainSha !== mainSha) {
         throw new VerificationError(
@@ -782,17 +704,11 @@ async function prepareAuditedEvidence(
       const existingRecovery = isJsonObject(existingMetadata.recovery)
         ? existingMetadata.recovery
         : null;
-
       const recovery =
-        existingMetadata.decision === "ready_to_close" &&
-        existingRecovery?.providerAccepted === true
+        existingMetadata.decision === "ready_to_close" && existingRecovery?.providerAccepted === true
           ? existingRecovery
           : await verifyControlledRecovery(tx);
-
-      const evidence: JsonObject = {
-        ...baseEvidence,
-        recovery,
-      };
+      const evidence: JsonObject = { ...baseEvidence, recovery };
 
       if (!existingDecision || existingMetadata.decision !== "ready_to_close") {
         await tx.auditLog.create({
@@ -803,19 +719,16 @@ async function prepareAuditedEvidence(
             metadata: {
               flow: "canonical_password_recovery_activation",
               decision: "ready_to_close",
+              recovery,
               evidence,
             } as Prisma.InputJsonValue,
             userAgent: "gem-enterprise-recovery-watch",
           },
         });
       }
-
       return { evidence, busy: false as const, issueClosed: false as const };
     },
-    {
-      maxWait: 5_000,
-      timeout: 90_000,
-    },
+    { maxWait: 5_000, timeout: 90_000 },
   );
 }
 
@@ -829,19 +742,11 @@ async function publishEvidenceAndCloseIssue(evidence: JsonObject) {
   const { body: comments } = await githubJson<Array<{ body?: string }>>(
     `/issues/${ISSUE_NUMBER}/comments?per_page=100&sort=created&direction=desc`,
   );
-
-  const alreadyPublished = comments.some((comment) =>
-    comment.body?.includes(marker),
-  );
-
-  if (!alreadyPublished) {
+  if (!comments.some((comment) => comment.body?.includes(marker))) {
     const recovery = isJsonObject(evidence.recovery) ? evidence.recovery : {};
     const database = isJsonObject(evidence.database) ? evidence.database : {};
     const gateway = isJsonObject(evidence.gateway) ? evidence.gateway : {};
-    const runtimeLogs = isJsonObject(evidence.runtimeLogs)
-      ? evidence.runtimeLogs
-      : {};
-
+    const runtimeLogs = isJsonObject(evidence.runtimeLogs) ? evidence.runtimeLogs : {};
     const body = [
       marker,
       "Canonical password-recovery activation verification passed.",
@@ -850,20 +755,19 @@ async function publishEvidenceAndCloseIssue(evidence: JsonObject) {
       `- Deployment ID: \`${String(evidence.deploymentId)}\``,
       `- Mail readiness: \`${JSON.stringify(evidence.mailReadiness)}\``,
       "- Canonical production alias: READY, serving GitHub `main`, and bound to the configured Vercel project",
-      "- Public pages: `/forgot-password`, `/reset-password`, and `/client-login` passed",
+      "- Public pages: `/forgot-password`, `/reset-password`, and `/client-login` served directly from their canonical paths",
       "- Authentication boundaries: `/api/auth/session` and `/api/admin/users` rejected unauthenticated access",
       `- Unknown-email recovery: body/status matched and timing threshold passed (delta ${String(recovery.timingDeltaMs)} ms; ratio ${String(recovery.timingRatio)})`,
       `- SMTP transport: \`${String(recovery.smtpTransport)}\``,
       "- Controlled admin recovery request: provider accepted, with database audit evidence",
-      `- Production runtime inspection: ${String(runtimeLogs.entriesInspected)} entries inspected; no error or fatal entry found`,
+      `- Production runtime inspection: ${String(runtimeLogs.entriesInspected)} valid records inspected; no error or fatal entry found`,
       `- Supabase \`users.sessionVersion\`: ${String(database.sessionVersionPresent)}`,
       `- Password-change revocation triggers: ${String(database.operationalTriggerCount)} operational origin/always triggers bound to passwordHash updates`,
-      `- Direct trigger-function privileges revoked: ${String(database.privilegesRevoked)}`,
+      `- Effective trigger-function privileges revoked: ${String(database.privilegesRevoked)}`,
       `- \`gem-password-recovery\`: version ${String(gateway.version)}`,
       "- Retired gateway: returned only `RECOVERY_GATEWAY_DISABLED` through the canonical recovery URL",
       "- Activation decision: written to the production audit log before issue closure",
     ].join("\n");
-
     await githubJson(
       `/issues/${ISSUE_NUMBER}/comments`,
       {
@@ -874,7 +778,6 @@ async function publishEvidenceAndCloseIssue(evidence: JsonObject) {
       [201],
     );
   }
-
   await githubJson(`/issues/${ISSUE_NUMBER}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
@@ -883,10 +786,7 @@ async function publishEvidenceAndCloseIssue(evidence: JsonObject) {
 }
 
 async function handle(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return json({ error: "Unauthorized internal job." }, 401);
-  }
-
+  if (!isAuthorized(request)) return json({ error: "Unauthorized internal job." }, 401);
   try {
     const readiness = await readPublicReadiness();
     if (readiness.emailDeliveryConfigured !== true) {
@@ -897,7 +797,6 @@ async function handle(request: NextRequest) {
         reason: "EMAIL_DELIVERY_NOT_READY",
       });
     }
-
     const env = requireEnvironment([
       "GITHUB_RECOVERY_WATCH_TOKEN",
       "VERCEL_TOKEN",
@@ -907,9 +806,7 @@ async function handle(request: NextRequest) {
       "SUPABASE_PROJECT_REF",
       "SUPABASE_ANON_KEY",
     ]);
-
-    const issueState = await readIssueState();
-    if (issueState !== "open") {
+    if ((await readIssueState()) !== "open") {
       return json({
         ok: true,
         notified: false,
@@ -925,7 +822,6 @@ async function handle(request: NextRequest) {
     const database = await verifyDatabaseIntegrity();
     const gateway = await verifyRetiredGateway(env);
     const runtimeLogs = await verifyRuntimeLogs(deployment.id, env);
-
     const baseEvidence: JsonObject = {
       deploymentSha: deployment.sha,
       deploymentId: deployment.id,
@@ -950,7 +846,7 @@ async function handle(request: NextRequest) {
         202,
       );
     }
-    if (prepared.issueClosed) {
+    if (prepared.issueClosed || !prepared.evidence) {
       return json({
         ok: true,
         notified: false,
@@ -960,7 +856,6 @@ async function handle(request: NextRequest) {
     }
 
     await publishEvidenceAndCloseIssue(prepared.evidence);
-
     return json({
       ok: true,
       notified: true,
@@ -974,7 +869,6 @@ async function handle(request: NextRequest) {
       message: error instanceof Error ? error.message : "Unknown error",
       details: verification?.details ?? {},
     });
-
     return json(
       {
         ok: false,
@@ -995,3 +889,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return handle(request);
 }
+
+export const recoveryWatchTestables = {
+  isAuthorized,
+  parseRuntimeLogEntries,
+  verifyControlledRecovery,
+  publishEvidenceAndCloseIssue,
+};
