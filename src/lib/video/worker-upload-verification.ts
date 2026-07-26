@@ -80,7 +80,7 @@ function assertStorageRefAllowed(storageRef: string) {
   }
 }
 
-function storageHeaders(storageRef: string): HeadersInit {
+function storageHeaders(storageRef: string): Record<string, string> {
   const key =
     configured("VIDEO_RENDER_STORAGE_KEY") ||
     configured("SUPABASE_SERVICE_ROLE_KEY");
@@ -141,11 +141,12 @@ async function verifyStorageObject(input: {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), STORAGE_VERIFY_TIMEOUT_MS);
   try {
+    const headers = storageHeaders(input.storageRef);
     const response = await fetch(input.storageRef, {
       method: "HEAD",
       cache: "no-store",
       redirect: "follow",
-      headers: storageHeaders(input.storageRef),
+      headers,
       signal: controller.signal,
     });
     if (!response.ok) {
@@ -183,6 +184,8 @@ async function verifyStorageObject(input: {
       etag: response.headers.get("etag"),
       lastModified: response.headers.get("last-modified"),
       resolvedOrigin: new URL(response.url || input.storageRef).origin,
+      authenticatedStorageVerification:
+        Object.keys(headers).length > 0,
     };
   } catch (error) {
     if (error instanceof TokMetricError) throw error;
@@ -277,6 +280,8 @@ export async function verifyTrustedWorkerUpload(input: TrustedWorkerUploadInput)
       etag: verifiedObject.etag,
       lastModified: verifiedObject.lastModified,
       resolvedOrigin: verifiedObject.resolvedOrigin,
+      authenticatedStorageVerification:
+        verifiedObject.authenticatedStorageVerification,
     },
   });
 
