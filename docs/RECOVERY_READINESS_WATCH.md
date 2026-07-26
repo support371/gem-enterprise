@@ -14,7 +14,7 @@ This monitor replaces the GitHub-hosted scheduled workflow for issue #200. It ru
 
 Store these only in Vercel Project Settings. Never commit their values.
 
-- `RECOVERY_WATCH_SECRET` — random value of at least 32 characters. The existing `CRON_SECRET` is used as a fallback when this is absent.
+- `CRON_SECRET` — one random value of at least 32 characters, shared by the Vercel fallback and the Supabase Cron request. Vercel automatically sends this value as the cron `Authorization: Bearer` credential.
 - `GITHUB_RECOVERY_WATCH_TOKEN` — fine-grained GitHub token restricted to `support371/gem-enterprise` with Contents read and Issues read/write.
 - `VERCEL_TOKEN`
 - `VERCEL_ORG_ID`
@@ -24,17 +24,19 @@ Store these only in Vercel Project Settings. Never commit their values.
 - `SUPABASE_ANON_KEY`
 - Existing production database variables used by Prisma.
 
-The Vercel access token display name can be `gem-enterprise-recovery-monitor`. The GitHub secret or Vercel variable name must remain `VERCEL_TOKEN`.
+Do not configure a separate `RECOVERY_WATCH_SECRET` while using the Vercel fallback. The current route intentionally prefers that value when present, which would cause Vercel's automatic `CRON_SECRET` credential to be rejected. Using the existing `CRON_SECRET` for both free schedulers keeps the fallback functional.
+
+The Vercel access token display name can be `gem-enterprise-recovery-monitor`. The Vercel variable name must remain `VERCEL_TOKEN`.
 
 ## Free scheduling
 
-The repository includes a once-daily Vercel Hobby fallback at 06:17 UTC. Vercel Hobby does not permit an hourly cron expression.
+The repository includes a once-daily Vercel Hobby fallback at 06:47 UTC. Vercel Hobby does not permit an hourly cron expression.
 
-Use Supabase Cron for the primary hourly check. Supabase Cron and `pg_net` already fit the project’s established scheduler pattern.
+Use Supabase Cron for the primary hourly check. It runs at minute 17, avoiding overlap with the Vercel fallback. Supabase Cron and `pg_net` already fit the project's established scheduler pattern.
 
-### 1. Store the endpoint and secret in Supabase Vault
+### 1. Store the endpoint and shared cron secret in Supabase Vault
 
-Run this in the canonical Supabase SQL editor after replacing the placeholder with the same secret stored in Vercel:
+Run this in the canonical Supabase SQL editor after replacing the placeholder with the same `CRON_SECRET` stored in Vercel:
 
 ```sql
 select vault.create_secret(
@@ -43,7 +45,7 @@ select vault.create_secret(
 );
 
 select vault.create_secret(
-  'REPLACE_WITH_THE_32_PLUS_CHARACTER_RECOVERY_WATCH_SECRET',
+  'REPLACE_WITH_THE_32_PLUS_CHARACTER_CRON_SECRET',
   'gem_recovery_watch_secret'
 );
 ```
@@ -105,7 +107,7 @@ Use a terminal without exposing the secret in shell history where possible:
 
 ```bash
 curl --request POST \
-  --header "Authorization: Bearer $RECOVERY_WATCH_SECRET" \
+  --header "Authorization: Bearer $CRON_SECRET" \
   --header "Content-Type: application/json" \
   --data '{"source":"manual"}' \
   https://www.gemcybersecurityassist.com/api/internal/recovery-readiness-watch
