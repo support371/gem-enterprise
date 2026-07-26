@@ -38,15 +38,14 @@ export function storageHeaders(config: VideoWorkerConfig) {
   };
 }
 
-export async function timedFetch(
-  url: string,
-  init: RequestInit,
+async function withRequestTimeout<T>(
   timeoutMs: number,
+  work: (signal: AbortSignal) => Promise<T>,
 ) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    return await work(controller.signal);
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new VideoWorkerError(
@@ -55,6 +54,7 @@ export async function timedFetch(
         504,
       );
     }
+    if (error instanceof VideoWorkerError) throw error;
     throw new VideoWorkerError(
       "VIDEO_WORKER_REQUEST_FAILED",
       "A worker network request failed.",
@@ -65,12 +65,42 @@ export async function timedFetch(
   }
 }
 
+export async function timedFetch(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+) {
+  return withRequestTimeout(timeoutMs, (signal) =>
+    fetch(url, { ...init, signal }),
+  );
+}
+
+export async function timedJsonFetch(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+) {
+  return withRequestTimeout(timeoutMs, async (signal) => {
+    const response = await fetch(url, { ...init, signal });
+    const text = await response.text();
+    let payload: unknown = null;
+    if (text) {
+      try {
+        payload = JSON.parse(text) as unknown;
+      } catch {
+        payload = null;
+      }
+    }
+    return { response, payload, text };
+  });
+}
+
 export async function fetchWorkerJobs(
   config: VideoWorkerConfig,
 ): Promise<VideoWorkerJob[]> {
   const url = new URL(`${config.gemBaseUrl}/api/video/worker/jobs`);
   url.searchParams.set("limit", String(config.batchSize));
-  const response = await timedFetch(
+  const { response, payload } = await timedJsonFetch(
     url.toString(),
     {
       method: "GET",
@@ -79,7 +109,6 @@ export async function fetchWorkerJobs(
     },
     config.requestTimeoutMs,
   );
-  const payload = await response.json().catch(() => null);
   if (!response.ok) {
     throw new VideoWorkerError(
       "VIDEO_WORKER_JOB_FEED_FAILED",
@@ -104,7 +133,7 @@ export async function verifyUploadedVideo(
   downloaded: DownloadedVideo,
   storageRef: string,
 ) {
-  const response = await timedFetch(
+  const { response, payload } = await timedJsonFetch(
     `${config.gemBaseUrl}/api/video/uploads/verify`,
     {
       method: "POST",
@@ -124,7 +153,6 @@ export async function verifyUploadedVideo(
     },
     config.requestTimeoutMs,
   );
-  const payload = await response.json().catch(() => null);
   if (!response.ok) {
     throw new VideoWorkerError(
       "VIDEO_UPLOAD_CALLBACK_FAILED",
