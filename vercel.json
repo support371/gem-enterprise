@@ -14,7 +14,7 @@
   "crons": [
     {
       "path": "/api/internal/recovery-readiness-watch",
-      "schedule": "17 6 * * *"
+      "schedule": "47 6 * * *"
     },
     {
       "path": "/api/social-media/orchestrator/daily/process",
