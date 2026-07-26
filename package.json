@@ -12,6 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "video:worker": "node workers/video-render-worker/worker.mjs",
     "claims:report": "tsx scripts/generate-public-claims-report.ts",
     "claims:check": "tsx scripts/generate-public-claims-report.ts --check",
     "db:schema:promote:auth": "node scripts/apply-auth-session-prisma.mjs",
@@ -111,7 +112,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.1",
     "@playwright/test": "^1.59.1",
-    "@tailwindcss/typography": "^0.5.16",
+    "@tailwindcss/typography": "^5.0.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
