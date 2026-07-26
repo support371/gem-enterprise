@@ -308,5 +308,6 @@ export async function verifyTrustedWorkerUpload(input: TrustedWorkerUploadInput)
     verifiedAt: upload.verifiedAt,
     contentId: current.contentId,
     contentVersionId: current.contentVersionId,
+    externalPublicationTaken: false as const,
   };
 }
