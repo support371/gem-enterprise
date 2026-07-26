@@ -151,12 +151,11 @@ describe("trusted worker dispatch runtime", () => {
         extraData: expect.objectContaining({ gemRenderJobId: job.renderJobId }),
       }),
     );
-    expect(journalMocks.writeDispatchJournal).toHaveBeenCalledBefore(
-      networkMocks.completeWorkerDispatch,
-    );
-    expect(journalMocks.deleteDispatchJournal).toHaveBeenCalledAfter(
-      networkMocks.completeWorkerDispatch,
-    );
+    const journalOrder = journalMocks.writeDispatchJournal.mock.invocationCallOrder[0];
+    const completionOrder = networkMocks.completeWorkerDispatch.mock.invocationCallOrder[0];
+    const deletionOrder = journalMocks.deleteDispatchJournal.mock.invocationCallOrder[0];
+    expect(journalOrder).toBeLessThan(completionOrder);
+    expect(deletionOrder).toBeGreaterThan(completionOrder);
   });
 
   it("releases a queue-capacity failure for a later bounded retry", async () => {
