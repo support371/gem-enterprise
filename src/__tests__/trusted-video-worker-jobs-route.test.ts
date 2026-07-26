@@ -58,7 +58,9 @@ describe("trusted video worker job feed", () => {
 
   it("validates and bounds the requested batch size", async () => {
     const invalid = await GET(request("worker-secret-123456789", "200"));
-    expect(invalid.status).toBe(500);
+    const invalidPayload = await invalid.json();
+    expect(invalid.status).toBe(400);
+    expect(invalidPayload.error.code).toBe("VIDEO_WORKER_QUERY_INVALID");
     expect(storeMocks.listTrustedWorkerRenderJobs).not.toHaveBeenCalled();
 
     const response = await GET(request("worker-secret-123456789", "20"));
