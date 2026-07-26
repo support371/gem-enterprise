@@ -45,6 +45,12 @@ function getQueueLimit() {
   return Math.min(MAX_QUEUE_LIMIT, Math.max(1, parsed));
 }
 
+function dispatchMode() {
+  return process.env.VIDEO_RENDER_DISPATCH_MODE?.trim().toLowerCase() === "server"
+    ? "server"
+    : "worker";
+}
+
 function parseJson<T>(text: string): T | null {
   if (!text) return null;
   try {
@@ -123,6 +129,34 @@ function object(value: unknown): JsonRecord {
     : {};
 }
 
+function queueItemPromptIdForClient(value: unknown, clientId: string) {
+  if (!Array.isArray(value)) return null;
+  for (const item of value) {
+    if (!Array.isArray(item)) continue;
+    const promptId = typeof item[1] === "string" ? item[1] : null;
+    const extraData = object(item[3]);
+    if (promptId && extraData.client_id === clientId) return promptId;
+  }
+  return null;
+}
+
+function historyPromptIdForClient(value: unknown, clientId: string) {
+  const history = object(value);
+  for (const [promptId, rawEntry] of Object.entries(history)) {
+    const entry = object(rawEntry);
+    const promptTuple = Array.isArray(entry.prompt) ? entry.prompt : [];
+    const tupleExtraData = object(promptTuple[3]);
+    const directExtraData = object(entry.extra_data);
+    if (
+      tupleExtraData.client_id === clientId ||
+      directExtraData.client_id === clientId
+    ) {
+      return promptId;
+    }
+  }
+  return null;
+}
+
 function executionFailure(entry: JsonRecord) {
   const status = object(entry.status);
   const messages = Array.isArray(status.messages) ? status.messages : [];
@@ -152,18 +186,22 @@ function executionFailure(entry: JsonRecord) {
 
 export function getVideoReadiness() {
   const baseUrl = getBaseUrl();
+  const mode = dispatchMode();
   const workflowJsonConfigured = Boolean(process.env.COMFYUI_WORKFLOW_JSON?.trim());
   const promptNodeConfigured = Boolean(process.env.COMFYUI_PROMPT_NODE_ID?.trim());
   const missingConfiguration = [
-    !baseUrl && "COMFYUI_BASE_URL",
+    mode === "server" && !baseUrl && "COMFYUI_BASE_URL",
     !workflowJsonConfigured && "COMFYUI_WORKFLOW_JSON",
     !promptNodeConfigured && "COMFYUI_PROMPT_NODE_ID",
   ].filter((value): value is string => Boolean(value));
   return {
-    configured: Boolean(baseUrl),
+    configured: mode === "worker" ? workflowJsonConfigured && promptNodeConfigured : Boolean(baseUrl),
     directWorkerReady: Boolean(baseUrl),
     contentRenderingReady:
-      Boolean(baseUrl) && workflowJsonConfigured && promptNodeConfigured,
+      workflowJsonConfigured &&
+      promptNodeConfigured &&
+      (mode === "worker" || Boolean(baseUrl)),
+    dispatchMode: mode,
     provider: "comfyui-local",
     costModel: "self-hosted-no-api-fee",
     baseUrlConfigured: Boolean(baseUrl),
@@ -197,6 +235,27 @@ export async function getVideoQueue() {
     total: running.length + pending.length,
     limit: getQueueLimit(),
   };
+}
+
+export async function findVideoPromptIdByClientId(clientId: string) {
+  const normalized = clientId.trim();
+  if (!normalized) throw new Error("COMFYUI_CLIENT_ID_REQUIRED");
+
+  const queueResult = await comfyRequest<JsonRecord>("/queue");
+  if (!queueResult.ok) {
+    throw new Error(`COMFYUI_QUEUE_STATUS_FAILED:${queueResult.status}`);
+  }
+  const queue = object(queueResult.json);
+  const queuedPromptId =
+    queueItemPromptIdForClient(queue.queue_running, normalized) ??
+    queueItemPromptIdForClient(queue.queue_pending, normalized);
+  if (queuedPromptId) return queuedPromptId;
+
+  const historyResult = await comfyRequest<JsonRecord>("/history?max_items=200");
+  if (!historyResult.ok) {
+    throw new Error(`COMFYUI_HISTORY_FAILED:${historyResult.status}`);
+  }
+  return historyPromptIdForClient(historyResult.json, normalized);
 }
 
 async function enforceQueueCapacity() {
