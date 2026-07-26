@@ -1,12 +1,29 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   ManusCampaignBriefSchema,
   ManusCampaignOutputSchema,
   buildManusCampaignPrompt,
   manusCampaignStructuredOutputSchema,
 } from "@/lib/manus/campaign";
+import { assertManusTaskCreationApproved } from "@/lib/manus/client";
+
+const originalCreationEnabled = process.env.MANUS_TASK_CREATION_ENABLED;
+const originalBillingApproved = process.env.MANUS_BILLING_APPROVED;
+
+afterEach(() => {
+  if (originalCreationEnabled === undefined) {
+    delete process.env.MANUS_TASK_CREATION_ENABLED;
+  } else {
+    process.env.MANUS_TASK_CREATION_ENABLED = originalCreationEnabled;
+  }
+  if (originalBillingApproved === undefined) {
+    delete process.env.MANUS_BILLING_APPROVED;
+  } else {
+    process.env.MANUS_BILLING_APPROVED = originalBillingApproved;
+  }
+});
 
 function source(path: string) {
   return readFileSync(join(process.cwd(), path), "utf8");
@@ -62,6 +79,22 @@ describe("Manus governed campaign agent", () => {
     expect(client).toContain('share_visibility: "private"');
     expect(client).toContain('interactive_mode: false');
     expect(client).not.toContain("NEXT_PUBLIC_MANUS_API_KEY");
+  });
+
+  it("fails closed unless task creation and billing are both explicitly approved", () => {
+    delete process.env.MANUS_TASK_CREATION_ENABLED;
+    delete process.env.MANUS_BILLING_APPROVED;
+    expect(() => assertManusTaskCreationApproved()).toThrow("task creation is disabled");
+
+    process.env.MANUS_TASK_CREATION_ENABLED = "true";
+    expect(() => assertManusTaskCreationApproved()).toThrow("task creation is disabled");
+
+    process.env.MANUS_TASK_CREATION_ENABLED = "false";
+    process.env.MANUS_BILLING_APPROVED = "true";
+    expect(() => assertManusTaskCreationApproved()).toThrow("task creation is disabled");
+
+    process.env.MANUS_TASK_CREATION_ENABLED = "true";
+    expect(() => assertManusTaskCreationApproved()).not.toThrow();
   });
 
   it("requires admin access and same-origin creation", () => {
