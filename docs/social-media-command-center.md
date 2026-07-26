@@ -13,24 +13,27 @@ The Social Media Command Center is the canonical governed hub for:
 - LinkedIn Company Pages
 - YouTube
 
-The system is fail-closed. Configuration and account discovery are readiness evidence only; neither grants permission to publish.
+The system is fail-closed. Configuration, content generation, account discovery, and rendering readiness are evidence only; none grants permission to publish.
 
 ## Canonical implementation
 
-All connector work belongs in `support371/gem-enterprise`. Do not create a second repository, OAuth state store, credential store, or publishing pipeline for an individual channel.
+All connector and content-orchestration work belongs in `support371/gem-enterprise`. Do not create a second repository, OAuth state store, credential store, content engine, or publishing pipeline for an individual channel.
 
 Primary paths:
 
 - `src/lib/social-media/providers.ts`
 - `src/lib/social-media/policy.ts`
 - `src/lib/social-media/oauth/`
+- `src/lib/social-media/planning/`
+- `src/lib/social-media/orchestration/`
+- `src/lib/social-media/publishing/`
 - `src/app/api/social-media/`
 - `src/app/app/command-center/social-media/`
 - `src/lib/facebook/`
 - `src/app/api/facebook/`
 - `src/app/app/command-center/tokmetric/`
 
-Cross-platform completion is tracked in GitHub issue #237.
+Cross-platform implementation history is tracked in GitHub issue #237.
 
 ## Implemented layers
 
@@ -56,39 +59,82 @@ The Facebook Operations dashboard must consume this shared Meta connector invent
 
 Account authorization stores a credential and discovered account identity only. It does not authorize an external publishing operation.
 
+### Adaptive content orchestration
+
+The internal Content Orchestrator implements the fixed operational flow:
+
+```text
+Observe
+  ↓
+Plan
+  ↓
+Create
+  ↓
+Review
+  ↓
+Publish
+  ↓
+Engage
+  ↓
+Learn
+  ↓
+Repeat
+```
+
+It:
+
+- reads current cybersecurity, policy, and market signals from the GEM intelligence store;
+- derives approved company source material from the canonical GEM service catalog;
+- applies engagement analytics to future signal ranking;
+- prevents reuse of historical content fingerprints by default;
+- creates at least 20 unique TikTok draft items when TikTok is enabled;
+- creates platform-native packages for Facebook Pages, Instagram, X, Nextdoor, LinkedIn, and YouTube;
+- includes Indeed only for a genuine vacancy with a vacancy identifier or an approved employer update;
+- stores renderer-independent video recipes, visual briefs, captions, hashtags, calls to action, source evidence, risk flags, and publishing checklists;
+- requires real human presence and exact-version human approval;
+- runs compliance review and creates approval requests only for passing exact versions;
+- never invokes a provider adapter or creates an external publishing job directly.
+
+Manual runs use `POST /api/social-media/orchestrator/daily` and require authentication, workspace permissions, same-origin enforcement, and an idempotency key. Scheduled runs use `POST /api/social-media/orchestrator/daily/process` and fail closed unless the dedicated cron secret, workspace ID, and service actor ID are configured.
+
 ### Indeed employer workflow
 
-Indeed is deliberately excluded from generic social OAuth. Direct-employer job publishing must use an approved employer-feed path and a genuine approved vacancy.
+Indeed is deliberately excluded from generic social OAuth. Direct-employer job publishing must use an approved employer-feed path and a genuine approved vacancy or employer update.
+
+### Unified publishing queue
+
+The provider-neutral queue provides atomic claims, bounded retries, dead-letter handling, sanitized provider evidence, explicit connector selection, exact-version hashes, compliance evidence, approval evidence, idempotency, and provider adapter dispatch. Live publishing remains disabled until each provider has completed platform access and operational certification.
 
 ## Required publishing sequence
 
 Every external publishing attempt must pass this sequence:
 
 1. Approved company source material exists.
-2. A versioned content package is created.
-3. Channel-specific policy validation passes.
-4. Compliance review passes.
-5. A different authorized operator approves the exact content version and hash.
-6. The explicitly selected destination connector is connected and healthy.
-7. Required scopes and platform access are present.
-8. The global and provider-specific live gates are enabled.
-9. No emergency lock is active.
-10. A stable idempotency key is present.
-11. A durable worker atomically claims the job.
-12. The registered provider adapter performs the external request.
-13. The result is stored with sanitized provider evidence, external identifier, timestamps, and audit evidence.
-
-The shared governance and credential layers are implemented. A fully shared durable queue and certified provider publishing adapters remain incomplete, so all live gates must remain false.
+2. A current market or operational signal exists.
+3. A unique content fingerprint is generated and checked against history.
+4. A versioned content package is created.
+5. Unsupported claims, security-sensitive details, regulatory claims, media rights, accessibility, and local-context requirements are reviewed.
+6. Channel-specific policy validation passes.
+7. Compliance review passes for the exact content version.
+8. A different authorized operator approves the exact content version and hash.
+9. The explicitly selected destination connector is connected and healthy.
+10. Required scopes and platform access are present.
+11. The global and provider-specific live gates are enabled.
+12. No emergency lock is active.
+13. A stable idempotency key is present.
+14. A durable worker atomically claims the job.
+15. The registered provider adapter performs the external request.
+16. The result is stored with sanitized provider evidence, external identifier, timestamps, analytics dimensions, and audit evidence.
 
 ## Channel restrictions
 
 ### TikTok
 
-TikTok continues through the existing TokMetric OAuth, compliance, approval, publishing-preflight, analytics, and audit modules. Do not bypass TokMetric with a second direct connector.
+TikTok continues through the existing TokMetric OAuth, compliance, approval, publishing-preflight, analytics, and audit modules. Do not bypass TokMetric with a second direct connector. The daily planner enforces a minimum of 20 unique drafts, not 20 automatic external publications.
 
 ### Facebook and Instagram
 
-Only Facebook Pages and Instagram Business or Creator accounts may be connected. Personal-profile automation is outside scope. Account selection must be explicit; never auto-select the first discovered Page.
+Only Facebook Pages and Instagram Business or Creator accounts may be connected. Personal-profile automation is outside scope. Account selection must be explicit; never auto-select the first discovered Page or professional account.
 
 ### X
 
@@ -113,21 +159,21 @@ A connected Brand Account or authorized channel is required. Video rights and di
 ## Secret handling
 
 - Store client secrets and tokens only in managed secret storage.
-- Never expose secret values in readiness responses, URLs, logs, browser data, or provider response archives.
+- Never expose secret values in readiness responses, URLs, logs, browser data, content packages, renderer recipes, or provider response archives.
 - Use `SOCIAL_TOKEN_ENCRYPTION_KEY` for non-TikTok provider credentials.
 - Continue using `TOKMETRIC_TOKEN_ENCRYPTION_KEY` for the existing TikTok connector.
+- Use a dedicated `CONTENT_ORCHESTRATOR_CRON_SECRET` for scheduled generation.
 - Rotate credentials after suspected disclosure.
 - Never commit live credentials to GitHub.
 
 ## Remaining activation sequence
 
-1. Merge the Facebook-to-shared-Meta connection bridge.
-2. Replace the Facebook-specific content connector reference with the canonical shared connector identity.
-3. Add one shared durable publishing queue with atomic claims, bounded retries, dead-letter handling, webhook reconciliation, and analytics ingestion.
-4. Add a provider adapter registry behind the existing policy, approval, lock, idempotency, and live-gate controls.
-5. Certify Meta Page first, followed by Instagram, X, LinkedIn, YouTube, and Nextdoor.
-6. Keep TikTok inside TokMetric and Indeed inside the approved employer-feed workflow.
-7. Run exact-head lint, TypeScript, tests, and canonical Vercel build verification before each merge.
+1. Configure the scheduled orchestrator workspace, service actor, provider list, and Nextdoor local context.
+2. Connect an approved video renderer by consuming the stored renderer-independent recipe; register every rendered asset through the governed media workflow.
+3. Complete provider platform access and operational certification in this order: Meta Page, Instagram, X, LinkedIn, YouTube, and Nextdoor.
+4. Keep TikTok inside TokMetric and Indeed inside the approved employer-feed workflow.
+5. Run exact-head lint, TypeScript, tests, and canonical Vercel build verification before each merge.
+6. Keep global and provider-specific live publishing gates false until the corresponding certification evidence is approved.
 
 ## Production gates
 
