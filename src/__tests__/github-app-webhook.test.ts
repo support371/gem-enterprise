@@ -54,8 +54,11 @@ describe("verifyGitHubWebhook", () => {
       event: "push",
     });
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.status).toBe(401);
+    expect(result).toEqual({
+      ok: false,
+      status: 401,
+      error: "GitHub webhook signature verification failed.",
+    });
   });
 
   it("rejects events outside the explicit allowlist", () => {
@@ -71,7 +74,10 @@ describe("verifyGitHubWebhook", () => {
       event: "unknown_event",
     });
 
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.status).toBe(400);
+    expect(result).toEqual({
+      ok: false,
+      status: 400,
+      error: "Unsupported GitHub event: unknown_event",
+    });
   });
 });
