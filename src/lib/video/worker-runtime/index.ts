@@ -12,6 +12,7 @@ export {
   claimWorkerDispatchJobs,
   completeWorkerDispatch,
   failWorkerDispatch,
+  fetchWorkerDispatchReadiness,
   fetchWorkerJobs,
   finalizeVerifiedRenders,
   verifyUploadedVideo,
