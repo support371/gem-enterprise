@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { verifyRenderedUpload } from "@/lib/video/content-rendering";
 import { requireTrustedVideoWorker } from "@/lib/video/worker-auth";
+import { verifyTrustedWorkerUpload } from "@/lib/video/worker-upload-verification";
 import {
   correlationId,
   parseJson,
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   try {
     requireTrustedVideoWorker(request);
     const input = (await parseJson(request, requestSchema)) as UploadPayload;
-    const result = await verifyRenderedUpload({
+    const result = await verifyTrustedWorkerUpload({
       ...input,
       correlationId: cid,
     });
