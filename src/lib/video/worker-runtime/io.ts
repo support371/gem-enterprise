@@ -90,7 +90,22 @@ export async function downloadVideoOutput(
     const source = Readable.fromWeb(
       response.body as unknown as NodeReadableStream<Uint8Array>,
     );
-    await pipeline(source, meter, createWriteStream(tempPath, { flags: "wx" }));
+    const destination = createWriteStream(tempPath, { flags: "wx" });
+    const transferError = new VideoWorkerError(
+      "VIDEO_OUTPUT_TRANSFER_TIMEOUT",
+      "The completed video download exceeded the configured transfer timeout.",
+      504,
+    );
+    const transferTimeout = setTimeout(() => {
+      source.destroy(transferError);
+      meter.destroy(transferError);
+      destination.destroy(transferError);
+    }, config.transferTimeoutMs);
+    try {
+      await pipeline(source, meter, destination);
+    } finally {
+      clearTimeout(transferTimeout);
+    }
     if (fileSize <= 0) {
       throw new VideoWorkerError(
         "VIDEO_OUTPUT_EMPTY",
@@ -167,7 +182,7 @@ export async function uploadDownloadedVideo(
   const response = await timedFetch(
     storageRef,
     init,
-    Math.max(config.requestTimeoutMs, 120_000),
+    config.transferTimeoutMs,
   );
   if (response.status === 409) {
     await verifyExistingStorageObject(config, storageRef, downloaded);
