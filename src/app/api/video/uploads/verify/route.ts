@@ -1,7 +1,11 @@
-import crypto from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { verifyRenderedUpload } from "@/lib/video/content-rendering";
+import {
+  finalizeContentRender,
+  verifyRenderedUpload,
+} from "@/lib/video/content-rendering";
+import { getVideoRenderJobById } from "@/lib/video/store";
+import { requireVideoRenderWorker } from "@/lib/video/worker-auth";
 import {
   correlationId,
   parseJson,
@@ -27,43 +31,58 @@ type UploadPayload = {
   checksumSha256: string;
 };
 
-function authorized(request: NextRequest) {
-  const configured = process.env.VIDEO_RENDER_CALLBACK_SECRET?.trim();
-  const header = request.headers.get("authorization")?.trim();
-  if (!configured || !header?.startsWith("Bearer ")) return false;
-  const supplied = header.slice("Bearer ".length);
-  const expectedBuffer = Buffer.from(configured);
-  const suppliedBuffer = Buffer.from(supplied);
-  return (
-    expectedBuffer.length === suppliedBuffer.length &&
-    crypto.timingSafeEqual(expectedBuffer, suppliedBuffer)
-  );
+function autoFinalizeEnabled() {
+  return process.env.VIDEO_RENDER_AUTO_FINALIZE?.trim().toLowerCase() === "true";
 }
 
 export async function POST(request: NextRequest) {
   const cid = correlationId(request);
   try {
-    if (!process.env.VIDEO_RENDER_CALLBACK_SECRET?.trim()) {
-      throw new TokMetricError(
-        503,
-        "VIDEO_RENDER_CALLBACK_NOT_CONFIGURED",
-        "Trusted render-worker upload verification is not configured.",
-      );
-    }
-    if (!authorized(request)) {
-      throw new TokMetricError(
-        401,
-        "VIDEO_RENDER_CALLBACK_UNAUTHORIZED",
-        "Render-worker authentication failed.",
-      );
-    }
+    requireVideoRenderWorker(request);
     const input = (await parseJson(request, requestSchema)) as UploadPayload;
-    const result = await verifyRenderedUpload({
+    const verification = await verifyRenderedUpload({
       ...input,
       correlationId: cid,
     });
+
+    let finalization: Awaited<ReturnType<typeof finalizeContentRender>> | null = null;
+    if (autoFinalizeEnabled()) {
+      const actorId = process.env.VIDEO_RENDER_SYSTEM_ACTOR_ID?.trim();
+      if (!actorId) {
+        throw new TokMetricError(
+          503,
+          "VIDEO_RENDER_SYSTEM_ACTOR_NOT_CONFIGURED",
+          "Automatic render finalization requires VIDEO_RENDER_SYSTEM_ACTOR_ID.",
+        );
+      }
+      const job = await getVideoRenderJobById(input.renderJobId);
+      if (!job?.externalPromptId) {
+        throw new TokMetricError(
+          409,
+          "VIDEO_RENDER_JOB_NOT_READY",
+          "The durable render job is missing its provider prompt binding.",
+        );
+      }
+      finalization = await finalizeContentRender({
+        workspaceId: job.workspaceId,
+        contentId: job.contentId,
+        promptId: job.externalPromptId,
+        actorId,
+        correlationId: cid,
+      });
+    }
+
     return NextResponse.json(
-      { ok: true, correlationId: cid, data: result },
+      {
+        ok: true,
+        correlationId: cid,
+        data: {
+          verification,
+          finalization,
+          autoFinalized: Boolean(finalization),
+          externalPublicationTaken: false,
+        },
+      },
       { status: 201, headers: { "Cache-Control": "no-store, max-age=0" } },
     );
   } catch (error) {
