@@ -1,0 +1,122 @@
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
+      - develop
+
+pr:
+  autoCancel: true
+  branches:
+    include:
+      - main
+      - develop
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  NODE_VERSION: '24.x'
+  PNPM_VERSION: '10.28.0'
+  CI: 'true'
+
+stages:
+- stage: Validate
+  displayName: Validate exact repository revision
+  jobs:
+  - job: Verify
+    displayName: Schema, claims, lint, types, tests and build
+    timeoutInMinutes: 30
+    steps:
+    - checkout: self
+      clean: true
+      fetchDepth: 1
+      persistCredentials: false
+
+    - script: |
+        echo "Repository: $(Build.Repository.Name)"
+        echo "Branch: $(Build.SourceBranch)"
+        echo "Commit: $(Build.SourceVersion)"
+      displayName: Record immutable build identity
+
+    - task: NodeTool@0
+      displayName: Use Node.js $(NODE_VERSION)
+      inputs:
+        versionSpec: $(NODE_VERSION)
+
+    - script: |
+        set -euo pipefail
+        corepack enable
+        corepack prepare pnpm@$(PNPM_VERSION) --activate
+        node --version
+        pnpm --version
+      displayName: Configure pinned pnpm
+
+    - script: pnpm install --frozen-lockfile
+      displayName: Install locked dependencies
+
+    - script: pnpm run db:schema:check
+      displayName: Check Prisma schema sources
+
+    - script: pnpm run claims:check
+      displayName: Validate public claims
+
+    - script: pnpm run lint
+      displayName: Run ESLint
+
+    - script: pnpm run typecheck
+      displayName: Run TypeScript checks
+
+    - script: |
+        set -euo pipefail
+        pnpm exec vitest run --reporter=default --reporter=junit --outputFile.junit=test-results.xml
+      displayName: Run Vitest suite
+
+    - task: PublishTestResults@2
+      displayName: Publish test results
+      condition: always()
+      inputs:
+        testResultsFormat: JUnit
+        testResultsFiles: test-results.xml
+        failTaskOnFailedTests: true
+        testRunTitle: gem-enterprise $(Build.SourceVersion)
+
+    - script: pnpm run build
+      displayName: Build production Next.js application
+
+    - script: |
+        set +e
+        pnpm audit --audit-level high
+        status=$?
+        if [ "$status" -ne 0 ]; then
+          echo "##vso[task.logissue type=warning]Dependency audit reported high-severity findings. Review before release."
+        fi
+        exit 0
+      displayName: Report dependency vulnerabilities
+      condition: succeededOrFailed()
+
+    - script: |
+        set -euo pipefail
+        mkdir -p "$(Build.ArtifactStagingDirectory)/evidence"
+        cat > "$(Build.ArtifactStagingDirectory)/evidence/build-identity.json" <<EOF
+        {
+          "repository": "$(Build.Repository.Name)",
+          "branch": "$(Build.SourceBranch)",
+          "commit": "$(Build.SourceVersion)",
+          "buildId": "$(Build.BuildId)",
+          "buildNumber": "$(Build.BuildNumber)"
+        }
+        EOF
+        if [ -f test-results.xml ]; then
+          cp test-results.xml "$(Build.ArtifactStagingDirectory)/evidence/"
+        fi
+      displayName: Create verification evidence
+      condition: always()
+
+    - task: PublishPipelineArtifact@1
+      displayName: Publish verification evidence
+      condition: always()
+      inputs:
+        targetPath: $(Build.ArtifactStagingDirectory)/evidence
+        artifact: verification-evidence
+        publishLocation: pipeline
