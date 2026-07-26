@@ -95,6 +95,12 @@ export function buildStorageObjectPath(input: {
   checksumSha256: string;
   fileName: string;
 }) {
+  if (!/^[a-f0-9]{64}$/i.test(input.checksumSha256)) {
+    throw new VideoWorkerError(
+      "VIDEO_CHECKSUM_INVALID",
+      "A valid SHA-256 checksum is required for the deterministic storage path.",
+    );
+  }
   const safeName = sanitizePathSegment(input.fileName);
   return [
     sanitizePathSegment(input.storagePrefix),
