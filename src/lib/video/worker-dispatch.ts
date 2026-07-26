@@ -194,6 +194,72 @@ async function reviewableContent(workspaceId: string, contentId: string) {
   return { content, version, review };
 }
 
+async function ensureDispatchEvidence(input: {
+  workspaceId: string;
+  actorId: string;
+  correlationId: string;
+  renderJobId: string;
+  contentId: string;
+  contentVersionId: string;
+  complianceReviewId: string;
+  reused: boolean;
+}) {
+  const action = "video.render.dispatch_requested";
+  const eventType = "VIDEO_RENDER_DISPATCH_REQUESTED";
+  const [audit, event] = await Promise.all([
+    db.auditEvent.findFirst({
+      where: {
+        workspaceId: input.workspaceId,
+        action,
+        entityType: "video_render_job",
+        entityId: input.renderJobId,
+      },
+      select: { id: true },
+    }),
+    db.domainEvent.findFirst({
+      where: {
+        workspaceId: input.workspaceId,
+        aggregateType: "content",
+        aggregateId: input.contentId,
+        eventType,
+      },
+      select: { id: true },
+    }),
+  ]);
+  const metadata = {
+    renderJobId: input.renderJobId,
+    contentId: input.contentId,
+    contentVersionId: input.contentVersionId,
+    complianceReviewId: input.complianceReviewId,
+    provider: "comfyui-local",
+    dispatchMode: "trusted-worker",
+    externalPublicationTaken: false,
+  };
+  if (!audit) {
+    await emitTokMetricAudit({
+      workspaceId: input.workspaceId,
+      actorId: input.actorId,
+      action,
+      entityType: "video_render_job",
+      entityId: input.renderJobId,
+      correlationId: input.correlationId,
+      outcome: input.reused ? "recovered" : "dispatching",
+      sourceChannel: "social-media-command-center",
+      metadata,
+    });
+  }
+  if (!event) {
+    await emitDomainEvent({
+      workspaceId: input.workspaceId,
+      aggregateType: "content",
+      aggregateId: input.contentId,
+      eventType,
+      correlationId: input.correlationId,
+      metadata,
+    });
+  }
+}
+
 export async function queueContentRenderForWorker(input: {
   workspaceId: string;
   contentId: string;
@@ -234,36 +300,16 @@ export async function queueContentRenderForWorker(input: {
     dispatchPayload,
   });
 
-  if (!durable.reused) {
-    const metadata = {
-      renderJobId: durable.record.id,
-      contentId: content.id,
-      contentVersionId: version.id,
-      complianceReviewId: review.id,
-      provider: "comfyui-local",
-      dispatchMode: "trusted-worker",
-      externalPublicationTaken: false,
-    };
-    await emitTokMetricAudit({
-      workspaceId: input.workspaceId,
-      actorId: input.actorId,
-      action: "video.render.dispatch_requested",
-      entityType: "video_render_job",
-      entityId: durable.record.id,
-      correlationId: input.correlationId,
-      outcome: "dispatching",
-      sourceChannel: "social-media-command-center",
-      metadata,
-    });
-    await emitDomainEvent({
-      workspaceId: input.workspaceId,
-      aggregateType: "content",
-      aggregateId: content.id,
-      eventType: "VIDEO_RENDER_DISPATCH_REQUESTED",
-      correlationId: input.correlationId,
-      metadata,
-    });
-  }
+  await ensureDispatchEvidence({
+    workspaceId: input.workspaceId,
+    actorId: input.actorId,
+    correlationId: input.correlationId,
+    renderJobId: durable.record.id,
+    contentId: content.id,
+    contentVersionId: version.id,
+    complianceReviewId: review.id,
+    reused: durable.reused,
+  });
 
   return {
     renderJobId: durable.record.id,
@@ -361,6 +407,26 @@ export async function finalizeVerifiedWorkerRenders(input: {
         renderJobId: record.id,
         status: "failed",
         code: "VIDEO_FINALIZATION_ACTOR_OR_PROMPT_MISSING",
+      });
+      continue;
+    }
+
+    const actor = await db.user.findUnique({
+      where: { id: record.requestedById },
+      select: { status: true, isActive: true },
+    });
+    if (!actor?.isActive || actor.status !== "active") {
+      await releaseFinalizationClaim({
+        id: record.id,
+        claimId,
+        errorCode: "VIDEO_FINALIZATION_ACTOR_INACTIVE",
+        errorMessage:
+          "The original authorized operator is no longer active, so automatic finalization is blocked.",
+      });
+      results.push({
+        renderJobId: record.id,
+        status: "failed",
+        code: "VIDEO_FINALIZATION_ACTOR_INACTIVE",
       });
       continue;
     }
