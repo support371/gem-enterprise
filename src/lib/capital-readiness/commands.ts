@@ -92,10 +92,11 @@ async function requireMatter(workspaceId: string, matterId: string) {
 }
 
 async function executeUncached(command: CapitalCommandInput, actorId: string, correlationId: string): Promise<unknown> {
-  const { workspaceId, payload } = command;
+  const { workspaceId } = command;
 
   switch (command.command) {
     case "CREATE_KYB_CASE": {
+      const { payload } = command;
       await requireOpportunity(workspaceId, payload.opportunityId);
       const existing = await db.capitalKybCase.findUnique({ where: { opportunityId: payload.opportunityId } });
       if (existing) return { kybCase: existing, reused: true };
@@ -108,6 +109,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "ADD_BENEFICIAL_OWNER": {
+      const { payload } = command;
       const kybCase = await db.capitalKybCase.findFirst({ where: { id: payload.kybCaseId, workspaceId } });
       if (!kybCase) throw new CapitalCommandError(404, "KYB_CASE_NOT_FOUND", "KYB case was not found.");
       const owner = await db.capitalBeneficialOwner.create({ data: { ...payload } });
@@ -116,6 +118,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "RECORD_SCREENING_RESULT": {
+      const { payload } = command;
       const kybCase = await db.capitalKybCase.findFirst({ where: { id: payload.kybCaseId, workspaceId } });
       if (!kybCase) throw new CapitalCommandError(404, "KYB_CASE_NOT_FOUND", "KYB case was not found.");
       const screening = await db.capitalScreeningResultRecord.create({
@@ -135,6 +138,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "IMPOSE_HOLD": {
+      const { payload } = command;
       if (payload.kybCaseId) {
         const kybCase = await db.capitalKybCase.findFirst({ where: { id: payload.kybCaseId, workspaceId } });
         if (!kybCase) throw new CapitalCommandError(404, "KYB_CASE_NOT_FOUND", "KYB case was not found.");
@@ -149,6 +153,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "RELEASE_HOLD": {
+      const { payload } = command;
       const hold = await db.capitalHold.findFirst({
         where: { id: payload.holdId, status: "ACTIVE", OR: [{ kybCase: { workspaceId } }, { matter: { workspaceId } }] },
       });
@@ -160,6 +165,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "CREATE_ENGAGEMENT": {
+      const { payload } = command;
       await requireOpportunity(workspaceId, payload.opportunityId);
       const engagement = await db.capitalEngagement.create({
         data: {
@@ -180,6 +186,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "ADD_ENGAGEMENT_FEE": {
+      const { payload } = command;
       const engagement = await db.capitalEngagement.findFirst({ where: { id: payload.engagementId, workspaceId } });
       if (!engagement) throw new CapitalCommandError(404, "ENGAGEMENT_NOT_FOUND", "Engagement was not found.");
       let approvalRefs: Record<string, string | undefined> = {};
@@ -206,6 +213,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "ACTIVATE_ENGAGEMENT": {
+      const { payload } = command;
       const engagement = await db.capitalEngagement.findFirst({ where: { id: payload.engagementId, workspaceId } });
       if (!engagement) throw new CapitalCommandError(404, "ENGAGEMENT_NOT_FOUND", "Engagement was not found.");
       if (!engagement.noCustodyAccepted || !engagement.noGuaranteeAccepted) throw new CapitalCommandError(409, "MANDATORY_TERMS_MISSING", "No-custody and no-guarantee provisions must be accepted.");
@@ -215,6 +223,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "CREATE_MATTER": {
+      const { payload } = command;
       const opportunity = await requireOpportunity(workspaceId, payload.opportunityId);
       const engagement = await db.capitalEngagement.findFirst({ where: { id: payload.engagementId, workspaceId, opportunityId: opportunity.id, status: "ACTIVE" } });
       if (!engagement) throw new CapitalCommandError(409, "ACTIVE_ENGAGEMENT_REQUIRED", "An active engagement linked to the opportunity is required.");
@@ -225,6 +234,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "SAVE_READINESS_ASSESSMENT": {
+      const { payload } = command;
       await requireMatter(workspaceId, payload.matterId);
       const decision = calculateCapitalReadiness(payload.workstreams);
       const assessment = await db.capitalReadinessAssessment.create({
@@ -259,6 +269,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "CREATE_FINDING": {
+      const { payload } = command;
       await requireMatter(workspaceId, payload.matterId);
       const finding = await db.capitalFinding.create({ data: { ...payload } });
       if (payload.severity === "CRITICAL") await db.capitalMatter.update({ where: { id: payload.matterId }, data: { status: "REMEDIATION", globalHold: true } });
@@ -267,6 +278,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "RESOLVE_FINDING": {
+      const { payload } = command;
       const finding = await db.capitalFinding.findFirst({ where: { id: payload.findingId, matter: { workspaceId } } });
       if (!finding) throw new CapitalCommandError(404, "FINDING_NOT_FOUND", "Finding was not found.");
       if (finding.severity === "CRITICAL" && payload.resolution === "RISK_ACCEPTED") {
@@ -281,6 +293,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "SUBMIT_COMMITTEE_REVIEW": {
+      const { payload } = command;
       const matter = await requireMatter(workspaceId, payload.matterId);
       const assessment = await db.capitalReadinessAssessment.findFirst({ where: { matterId: matter.id }, orderBy: { createdAt: "desc" } });
       if (!assessment || !["READY", "CONDITIONALLY_READY"].includes(assessment.status)) throw new CapitalCommandError(409, "READINESS_REQUIRED", "A ready or conditionally ready assessment is required.");
@@ -294,6 +307,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "CAST_COMMITTEE_VOTE": {
+      const { payload } = command;
       const review = await db.capitalCommitteeReview.findFirst({ where: { id: payload.reviewId, matter: { workspaceId } }, include: { votes: true } });
       if (!review) throw new CapitalCommandError(404, "COMMITTEE_REVIEW_NOT_FOUND", "Committee review was not found.");
       if (review.submittedById === actorId) throw new CapitalCommandError(409, "SEPARATION_OF_DUTIES_REQUIRED", "The committee package submitter cannot vote on the same package.");
@@ -309,12 +323,14 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "REGISTER_LICENSED_PARTNER": {
+      const { payload } = command;
       const partner = await db.capitalLicensedPartner.create({ data: { workspaceId, ...payload, status: "PENDING_VERIFICATION", verifiedAt: new Date() } });
       await audit({ workspaceId, actorId, action: "CAPITAL_LICENSED_PARTNER_REGISTERED", entityType: "CapitalLicensedPartner", entityId: partner.id, correlationId, metadata: { regulatoryReference: partner.regulatoryReference } });
       return { partner };
     }
 
     case "ADD_PARTNER_LICENSE": {
+      const { payload } = command;
       const partner = await db.capitalLicensedPartner.findFirst({ where: { id: payload.partnerId, workspaceId } });
       if (!partner) throw new CapitalCommandError(404, "PARTNER_NOT_FOUND", "Licensed partner was not found.");
       const license = await db.capitalPartnerLicense.create({ data: { ...payload } });
@@ -326,6 +342,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "ROUTE_TO_PARTNER": {
+      const { payload } = command;
       const matter = await requireMatter(workspaceId, payload.matterId);
       const partner = await db.capitalLicensedPartner.findFirst({ where: { id: payload.partnerId, workspaceId }, include: { licenses: true } });
       if (!partner) throw new CapitalCommandError(404, "PARTNER_NOT_FOUND", "Licensed partner was not found.");
@@ -340,6 +357,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "CREATE_TARGET_UNIVERSE": {
+      const { payload } = command;
       await requireMatter(workspaceId, payload.matterId);
       const universe = await db.capitalTargetUniverse.create({ data: { workspaceId, matterId: payload.matterId, name: payload.name, objective: payload.objective, confidentialityPosture: payload.confidentialityPosture, approvedByClientAt: payload.clientApproved ? new Date() : undefined, createdById: actorId } });
       await audit({ workspaceId, actorId, action: "CAPITAL_TARGET_UNIVERSE_CREATED", entityType: "CapitalTargetUniverse", entityId: universe.id, correlationId });
@@ -347,6 +365,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "ADD_TARGET_ENTRY": {
+      const { payload } = command;
       const universe = await db.capitalTargetUniverse.findFirst({ where: { id: payload.universeId, workspaceId } });
       if (!universe) throw new CapitalCommandError(404, "TARGET_UNIVERSE_NOT_FOUND", "Target universe was not found.");
       const entry = await db.capitalTargetEntry.create({ data: { ...payload, status: "RESEARCH_ONLY" } });
@@ -355,6 +374,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "APPROVE_CONTROLLED_OUTREACH": {
+      const { payload } = command;
       const entry = await db.capitalTargetEntry.findFirst({ where: { id: payload.targetEntryId, universe: { workspaceId } } });
       if (!entry) throw new CapitalCommandError(404, "TARGET_ENTRY_NOT_FOUND", "Target entry was not found.");
       const partner = await db.capitalLicensedPartner.findFirst({ where: { id: payload.licensedPartnerId, workspaceId, status: "ACTIVE" } });
@@ -369,6 +389,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "CREATE_DATA_ROOM": {
+      const { payload } = command;
       await requireMatter(workspaceId, payload.matterId);
       const dataRoom = await db.capitalDataRoom.create({ data: { workspaceId, matterId: payload.matterId, name: payload.name, watermarkRequired: payload.watermarkRequired, downloadDisabledByDefault: payload.downloadDisabledByDefault, createdById: actorId } });
       await audit({ workspaceId, actorId, action: "CAPITAL_DATA_ROOM_CREATED", entityType: "CapitalDataRoom", entityId: dataRoom.id, correlationId });
@@ -376,6 +397,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "REGISTER_DOCUMENT_VERSION": {
+      const { payload } = command;
       const dataRoom = await db.capitalDataRoom.findFirst({ where: { id: payload.dataRoomId, workspaceId } });
       if (!dataRoom) throw new CapitalCommandError(404, "DATA_ROOM_NOT_FOUND", "Data room was not found.");
       let document = payload.documentId ? await db.capitalDocument.findFirst({ where: { id: payload.documentId, dataRoomId: dataRoom.id } }) : null;
@@ -391,6 +413,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "RELEASE_DOCUMENT": {
+      const { payload } = command;
       const document = await db.capitalDocument.findFirst({ where: { id: payload.documentId, dataRoom: { workspaceId } }, include: { versions: { where: { version: payload.version }, take: 1 } } });
       if (!document || document.versions.length === 0) throw new CapitalCommandError(404, "DOCUMENT_VERSION_NOT_FOUND", "Document version was not found.");
       if (document.legalHoldActive) throw new CapitalCommandError(423, "DOCUMENT_LEGAL_HOLD", "A document under legal hold cannot be released.");
@@ -404,6 +427,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "GRANT_DATA_ROOM_ACCESS": {
+      const { payload } = command;
       const dataRoom = await db.capitalDataRoom.findFirst({ where: { id: payload.dataRoomId, workspaceId } });
       if (!dataRoom) throw new CapitalCommandError(404, "DATA_ROOM_NOT_FOUND", "Data room was not found.");
       if (payload.expiresAt <= new Date()) throw new CapitalCommandError(400, "ACCESS_EXPIRY_REQUIRED", "Access expiry must be in the future.");
@@ -414,6 +438,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "CREATE_DILIGENCE_QUESTION": {
+      const { payload } = command;
       await requireMatter(workspaceId, payload.matterId);
       const question = await db.capitalDiligenceQuestion.create({ data: { ...payload, status: "SENT_TO_CLIENT" } });
       await audit({ workspaceId, actorId, action: "CAPITAL_DILIGENCE_QUESTION_CREATED", entityType: "CapitalDiligenceQuestion", entityId: question.id, correlationId });
@@ -421,6 +446,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "ADD_DILIGENCE_RESPONSE": {
+      const { payload } = command;
       const question = await db.capitalDiligenceQuestion.findFirst({ where: { id: payload.questionId, matter: { workspaceId } } });
       if (!question) throw new CapitalCommandError(404, "DILIGENCE_QUESTION_NOT_FOUND", "Diligence question was not found.");
       const latest = await db.capitalDiligenceResponse.aggregate({ where: { questionId: question.id }, _max: { version: true } });
@@ -431,6 +457,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "RECORD_PROPOSAL": {
+      const { payload } = command;
       await requireMatter(workspaceId, payload.matterId);
       if (payload.targetEntryId) {
         const target = await db.capitalTargetEntry.findFirst({ where: { id: payload.targetEntryId, universe: { workspaceId } } });
@@ -442,6 +469,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "ADD_CLOSING_CONDITION": {
+      const { payload } = command;
       await requireMatter(workspaceId, payload.matterId);
       const condition = await db.capitalClosingCondition.create({ data: { ...payload } });
       await audit({ workspaceId, actorId, action: "CAPITAL_CLOSING_CONDITION_ADDED", entityType: "CapitalClosingCondition", entityId: condition.id, correlationId });
@@ -449,6 +477,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "CREATE_CLOSING": {
+      const { payload } = command;
       const matter = await requireMatter(workspaceId, payload.matterId);
       const approvedProposal = await db.capitalProposal.findFirst({ where: { matterId: matter.id, status: { in: ["TERM_SHEET", "APPROVED"] } } });
       if (!approvedProposal) throw new CapitalCommandError(409, "APPROVED_PROPOSAL_REQUIRED", "An approved proposal or term sheet is required.");
@@ -461,6 +490,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "AUTHORIZE_CLOSING": {
+      const { payload } = command;
       const closing = await db.capitalClosing.findFirst({ where: { id: payload.closingId, matter: { workspaceId } }, include: { matter: { include: { closingConditions: true } } } });
       if (!closing) throw new CapitalCommandError(404, "CLOSING_NOT_FOUND", "Closing was not found.");
       const conditionsComplete = closing.matter.closingConditions.length > 0 && closing.matter.closingConditions.every((item) => ["COMPLETE", "VERIFIED", "WAIVED_BY_COUNSEL"].includes(item.status));
@@ -473,6 +503,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "CREATE_SERVICE_CONTRACT": {
+      const { payload } = command;
       if (payload.matterId) await requireMatter(workspaceId, payload.matterId);
       const contract = await db.capitalServiceContract.create({ data: { workspaceId, matterId: payload.matterId, title: payload.title, serviceTypes: payload.serviceTypes, monthlyAmount: payload.monthlyAmount, annualAmount: payload.annualAmount, currency: payload.currency, startAt: payload.startAt, endAt: payload.endAt, approvedById: actorId, status: payload.startAt && payload.startAt <= new Date() ? "ACTIVE" : "APPROVED" } });
       await audit({ workspaceId, actorId, action: "CAPITAL_SERVICE_CONTRACT_CREATED", entityType: "CapitalServiceContract", entityId: contract.id, correlationId, outcome: contract.status });
@@ -480,6 +511,7 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "RECORD_REVENUE_EVENT": {
+      const { payload } = command;
       if (payload.contractId) {
         const contract = await db.capitalServiceContract.findFirst({ where: { id: payload.contractId, workspaceId } });
         if (!contract) throw new CapitalCommandError(404, "SERVICE_CONTRACT_NOT_FOUND", "Service contract was not found.");
@@ -490,12 +522,14 @@ async function executeUncached(command: CapitalCommandInput, actorId: string, co
     }
 
     case "REGISTER_GOVERNED_AGENT": {
+      const { payload } = command;
       const agent = await db.capitalGovernedAgent.create({ data: { workspaceId, name: payload.name, purpose: payload.purpose, status: "ACTIVE", configuration: inputJson(payload.configuration) } });
       await audit({ workspaceId, actorId, action: "CAPITAL_GOVERNED_AGENT_REGISTERED", entityType: "CapitalGovernedAgent", entityId: agent.id, correlationId });
       return { agent };
     }
 
     case "RECORD_GOVERNED_AGENT_RUN": {
+      const { payload } = command;
       const agent = await db.capitalGovernedAgent.findFirst({ where: { id: payload.agentId, workspaceId, status: "ACTIVE" } });
       if (!agent) throw new CapitalCommandError(404, "ACTIVE_AGENT_NOT_FOUND", "Active governed agent was not found.");
       if (payload.matterId) await requireMatter(workspaceId, payload.matterId);
