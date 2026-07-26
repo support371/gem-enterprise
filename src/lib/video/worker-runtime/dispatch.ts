@@ -1,4 +1,7 @@
-import { queueVideoJob } from "@/lib/video/comfyui";
+import {
+  findVideoPromptIdByClientId,
+  queueVideoJob,
+} from "@/lib/video/comfyui";
 import {
   deleteDispatchJournal,
   readDispatchJournal,
@@ -84,6 +87,24 @@ export async function processVideoWorkerDispatchJob(
 
   let acceptedPromptId: string | null = null;
   try {
+    const recoveredPromptId = await findVideoPromptIdByClientId(job.clientId);
+    if (recoveredPromptId) {
+      acceptedPromptId = recoveredPromptId;
+      await writeDispatchJournal(config, {
+        renderJobId: job.renderJobId,
+        claimId: job.claimId,
+        promptId: recoveredPromptId,
+        recordedAt: new Date().toISOString(),
+      });
+      await completeWorkerDispatch(config, job, recoveredPromptId);
+      await deleteDispatchJournal(config, job.renderJobId);
+      return {
+        outcome: "provider_dispatch_recovered" as const,
+        renderJobId: job.renderJobId,
+        promptId: recoveredPromptId,
+      };
+    }
+
     const providerJob = await queueVideoJob(job.dispatch, {
       clientId: job.clientId,
       extraData: {
