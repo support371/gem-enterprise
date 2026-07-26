@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { ArrowLeft, ScanSearch, Scale, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  ScanSearch,
+  Scale,
+  ShieldCheck,
+  UserPlus,
+} from "lucide-react";
 import GemVerifyEvidenceGovernanceClient from "@/components/admin/GemVerifyEvidenceGovernanceClient";
 import GemVerifyEvidenceOperationsClient from "@/components/admin/GemVerifyEvidenceOperationsClient";
 import GemVerifyOperatorCoverageClient from "@/components/admin/GemVerifyOperatorCoverageClient";
@@ -36,6 +42,12 @@ export default function EvidenceGovernancePage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href="/app/admin/gem-verify/operators">
+              <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
+              Invite Operators
+            </Link>
+          </Button>
           <Button asChild variant="outline">
             <Link href="/app/admin/gem-verify/evidence/scanner">
               <ScanSearch className="mr-2 h-4 w-4" aria-hidden="true" />
