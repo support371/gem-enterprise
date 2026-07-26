@@ -10,7 +10,7 @@ The trusted worker completes the operational gap between a governed GEM render j
 2. The worker requests a bounded job list from `GET /api/video/worker/jobs` using `VIDEO_RENDER_CALLBACK_SECRET`.
 3. The worker checks the bound ComfyUI prompt directly.
 4. For a completed prompt, it selects a supported MP4, WebM, or MOV output from the exact provider manifest.
-5. It streams the output into a temporary file, enforcing `VIDEO_RENDER_MAX_FILE_BYTES` while calculating SHA-256.
+5. It streams the output into a temporary file, enforcing `VIDEO_RENDER_MAX_FILE_BYTES` and `VIDEO_RENDER_WORKER_TRANSFER_TIMEOUT_MS` while calculating SHA-256.
 6. It uploads the file to a deterministic private Supabase Storage path with upsert disabled.
 7. It calls `POST /api/video/uploads/verify` with the immutable file manifest.
 8. GEM independently rechecks the ComfyUI output filename and performs an authenticated server-side `HEAD` request against the configured storage origin.
@@ -48,6 +48,8 @@ VIDEO_RENDER_STORAGE_KEY=<restricted storage credential>
 VIDEO_RENDER_STORAGE_BUCKET=gem-video-renders
 ```
 
+GEM and storage URLs must use HTTPS. ComfyUI must also use HTTPS unless it is addressed through `http://localhost`, `http://127.0.0.1`, or the IPv6 loopback address on the same machine.
+
 Optional values:
 
 ```bash
@@ -56,6 +58,7 @@ VIDEO_RENDER_STORAGE_PREFIX=renders
 VIDEO_RENDER_WORKER_BATCH_SIZE=5
 VIDEO_RENDER_WORKER_POLL_MS=15000
 VIDEO_RENDER_WORKER_TIMEOUT_MS=30000
+VIDEO_RENDER_WORKER_TRANSFER_TIMEOUT_MS=900000
 VIDEO_RENDER_MAX_FILE_BYTES=1073741824
 ```
 
@@ -63,7 +66,8 @@ Limits are fail-closed:
 
 - batch size: 1–20
 - poll interval: 5–300 seconds
-- request timeout: 5–120 seconds
+- request and response-header timeout: 5–120 seconds
+- download and upload transfer timeout: 60–3,600 seconds
 - maximum video size: 1 byte–1 GiB
 
 ## Storage provision
@@ -76,7 +80,7 @@ The worker writes deterministic objects under:
 <prefix>/<workspace-id>/<content-id>/<render-job-id>/<sha256>-<safe-file-name>
 ```
 
-Uploads use `x-upsert: false`. A retry may reuse an existing deterministic object only when its server-reported size and MIME type match the file that was just hashed.
+The checksum path requires exactly 64 hexadecimal SHA-256 characters. Uploads use `x-upsert: false`. A retry may reuse an existing deterministic object only when its server-reported size and MIME type match the file that was just hashed.
 
 ## Commands
 
@@ -146,6 +150,7 @@ A missing table, secret, bucket, worker endpoint, or ComfyUI connection returns 
 - queued or running prompts remain pending
 - unsupported or empty outputs fail the job attempt
 - files over the configured maximum are stopped during streaming
+- stalled downloads and uploads are terminated by the transfer timeout
 - retryable HTTP 429 and 5xx failures use bounded exponential delay
 - upload retries use the deterministic checksum path
 - callback retries are safe because the durable upload record is idempotent for the same manifest
