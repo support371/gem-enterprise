@@ -26,6 +26,15 @@ const workerJobsResponseSchema = z.object({
   }),
 });
 
+const workerDispatchReadinessSchema = z.object({
+  ok: z.literal(true),
+  data: z.object({
+    ready: z.literal(true),
+    pending: z.number().int().nonnegative(),
+    leased: z.number().int().nonnegative(),
+  }),
+});
+
 const workerDispatchResponseSchema = z.object({
   ok: z.literal(true),
   data: z.object({
@@ -146,6 +155,34 @@ export async function fetchWorkerJobs(
     );
   }
   return parsed.data.data.jobs as VideoWorkerJob[];
+}
+
+export async function fetchWorkerDispatchReadiness(config: VideoWorkerConfig) {
+  const { response, payload } = await timedJsonFetch(
+    `${config.gemBaseUrl}/api/video/worker/dispatch`,
+    {
+      method: "GET",
+      headers: callbackHeaders(config),
+      cache: "no-store",
+    },
+    config.requestTimeoutMs,
+  );
+  if (!response.ok) {
+    throw new VideoWorkerError(
+      "VIDEO_WORKER_DISPATCH_READINESS_FAILED",
+      `The GEM dispatch readiness endpoint returned HTTP ${response.status}.`,
+      response.status,
+    );
+  }
+  const parsed = workerDispatchReadinessSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new VideoWorkerError(
+      "VIDEO_WORKER_DISPATCH_READINESS_INVALID",
+      "The GEM dispatch readiness endpoint returned an invalid response.",
+      502,
+    );
+  }
+  return parsed.data.data;
 }
 
 export async function claimWorkerDispatchJobs(
@@ -313,8 +350,9 @@ export async function finalizeVerifiedRenders(config: VideoWorkerConfig) {
 }
 
 export async function checkVideoWorkerReadiness(config: VideoWorkerConfig) {
-  const [jobs, comfy, bucket] = await Promise.all([
+  const [jobs, dispatch, comfy, bucket] = await Promise.all([
     fetchWorkerJobs(config),
+    fetchWorkerDispatchReadiness(config),
     probeComfyUi(),
     timedFetch(
       `${config.storageBaseUrl}/storage/v1/bucket/${encodeURIComponent(
@@ -345,6 +383,8 @@ export async function checkVideoWorkerReadiness(config: VideoWorkerConfig) {
   return {
     ready: true,
     pendingJobs: jobs.length,
+    pendingDispatchJobs: dispatch.pending,
+    leasedDispatchJobs: dispatch.leased,
     comfyStatus: comfy.status,
     storageBucket: config.storageBucket,
   };
