@@ -1,0 +1,38 @@
+services:
+  gem-video-render-worker:
+    build:
+      context: ../..
+      dockerfile: deploy/video-worker/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../../.env.video-worker
+    environment:
+      COMFYUI_OUTPUT_DIR: /comfyui-output
+      VIDEO_RENDER_WORKER_STATE_FILE: /app/.gem-video-worker/state.json
+      VIDEO_RENDER_WORKER_HEALTH_HOST: 0.0.0.0
+      VIDEO_RENDER_WORKER_HEALTH_PORT: 8787
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - type: bind
+        source: ${COMFYUI_OUTPUT_DIR_HOST:?Set COMFYUI_OUTPUT_DIR_HOST to the host ComfyUI output directory}
+        target: /comfyui-output
+        read_only: true
+      - gem-video-worker-state:/app/.gem-video-worker
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:8787/ready').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+volumes:
+  gem-video-worker-state:
