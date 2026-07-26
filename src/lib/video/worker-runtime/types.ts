@@ -31,6 +31,7 @@ export type VideoWorkerConfig = {
   pollIntervalMs: number;
   maxFileBytes: number;
   requestTimeoutMs: number;
+  transferTimeoutMs: number;
 };
 
 export type DownloadedVideo = {
