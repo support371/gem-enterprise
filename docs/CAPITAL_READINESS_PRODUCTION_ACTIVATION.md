@@ -182,17 +182,23 @@ Before running any production migration:
 
 1. Database tables and indexes only.
 2. Read-only snapshot and workspace directory.
-3. Opportunity intake.
-4. KYB and hold controls.
-5. Engagement and readiness workflows.
-6. Committee workflow.
-7. Partner registry in verification-only mode.
-8. Data rooms and diligence.
-9. Post-close service contracts and revenue records.
-10. Governed agents in read-only mode.
-11. Partner-controlled outreach only after partner and counsel activation.
+3. Configure both `CAPITAL_READINESS_MUTATIONS_ENABLED=true` and
+   `CAPITAL_READINESS_PRODUCTION_APPROVED=true` only after the production
+   owner records approval. Every state-changing request must also pass the
+   explicit same-origin gate.
+4. Opportunity intake.
+5. KYB and hold controls.
+6. Engagement and readiness workflows.
+7. Committee workflow.
+8. Partner registry in verification-only mode.
+9. Data rooms and diligence.
+10. Post-close service contracts and revenue records.
+11. Governed agents in read-only mode.
+12. Partner-controlled outreach only after partner and counsel activation.
 
 Transaction-based compensation is not part of ordinary platform activation.
+Closing authorization is also excluded: it remains hard-blocked until evidence
+references are resolved and verified against an approved evidence store.
 
 ## Provider credentials
 

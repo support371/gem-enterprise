@@ -73,6 +73,10 @@ Engineering verification is the immediate priority. Provider and legal work may 
 - evidence-required KYB, diligence, document, outreach, and closing actions;
 - transaction-based fees disabled pending external activation;
 - generic closing authorization disabled in favor of the dedicated endpoint;
+- explicit same-origin enforcement and two independent default-off switches for
+  every state-changing endpoint;
+- dedicated closing authorization hard-blocked until evidence references are
+  resolved against an approved evidence store;
 - governed AI read-only defaults and high-impact approval gates.
 
 ### Quality and release assets

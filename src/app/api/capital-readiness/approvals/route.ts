@@ -3,6 +3,7 @@ import { requireStaff } from "@/lib/api/auth-helpers";
 import { requireCapitalWorkspaceAccess } from "@/lib/capital-readiness/access";
 import { requestCapitalApproval } from "@/lib/capital-readiness/approvals";
 import { requestCapitalApprovalSchema } from "@/lib/capital-readiness/approval-validation";
+import { capitalMutationGate } from "@/lib/capital-readiness/security";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +44,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const gate = await requireStaff();
   if (!gate.ok) return gate.response;
+  const mutationGate = capitalMutationGate(request);
+  if (mutationGate) return mutationGate;
 
   let body: unknown;
   try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, 400); }

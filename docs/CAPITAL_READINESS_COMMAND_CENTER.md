@@ -402,3 +402,14 @@ This module must remain in draft and must not be migrated into production until:
 - a green canonical Vercel preview exists;
 - counsel and licensed-partner activation requirements are satisfied where applicable;
 - the production owner explicitly approves the migration and feature activation.
+
+All state-changing routes require an explicit same-origin request and remain
+locked unless both `CAPITAL_READINESS_MUTATIONS_ENABLED=true` and
+`CAPITAL_READINESS_PRODUCTION_APPROVED=true` are configured. Neither variable
+is sufficient by itself.
+
+Closing authorization remains hard-blocked even when ordinary mutations are
+approved. The current closing payload contains evidence-reference labels, not
+verified evidence-store bindings. The closing gate must not be removed until
+each reference is resolved against an approved evidence store, integrity and
+scope are verified, and those checks are covered by executable tests.

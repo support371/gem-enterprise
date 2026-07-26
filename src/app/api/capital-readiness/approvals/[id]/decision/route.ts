@@ -3,6 +3,7 @@ import { requireStaff } from "@/lib/api/auth-helpers";
 import { requireCapitalWorkspaceAccess } from "@/lib/capital-readiness/access";
 import { decideCapitalApproval } from "@/lib/capital-readiness/approvals";
 import { decideCapitalApprovalSchema } from "@/lib/capital-readiness/approval-validation";
+import { capitalMutationGate } from "@/lib/capital-readiness/security";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -13,6 +14,8 @@ function json(body: unknown, status = 200) {
 export async function POST(request: NextRequest, context: RouteContext) {
   const gate = await requireStaff();
   if (!gate.ok) return gate.response;
+  const mutationGate = capitalMutationGate(request);
+  if (mutationGate) return mutationGate;
   const { id } = await context.params;
 
   let body: unknown;

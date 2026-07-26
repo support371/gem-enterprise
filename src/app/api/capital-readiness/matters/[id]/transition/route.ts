@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireStaff } from "@/lib/api/auth-helpers";
 import { requireCapitalWorkspaceAccess } from "@/lib/capital-readiness/access";
 import { transitionCapitalMatter } from "@/lib/capital-readiness/repository";
+import { capitalMutationGate } from "@/lib/capital-readiness/security";
 import { capitalMatterTransitionSchema } from "@/lib/capital-readiness/validation";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,8 @@ function json(body: unknown, status = 200) {
 export async function POST(request: NextRequest, context: RouteContext) {
   const gate = await requireStaff();
   if (!gate.ok) return gate.response;
+  const mutationGate = capitalMutationGate(request);
+  if (mutationGate) return mutationGate;
   const { id } = await context.params;
 
   let body: unknown;

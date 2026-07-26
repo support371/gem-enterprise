@@ -6,6 +6,7 @@ import {
   authorizeCapitalClosingSchema,
   CapitalClosingError,
 } from "@/lib/capital-readiness/closing";
+import { capitalMutationGate } from "@/lib/capital-readiness/security";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
   if (gate.accountStatus !== "active") {
     return json({ error: "An active account is required.", code: "ACTIVE_ACCOUNT_REQUIRED" }, 403);
   }
+  const mutationGate = capitalMutationGate(request, "closing_authorization");
+  if (mutationGate) return mutationGate;
 
   const { id } = await context.params;
   let body: unknown;

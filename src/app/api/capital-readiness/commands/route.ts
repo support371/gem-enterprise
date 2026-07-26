@@ -3,6 +3,7 @@ import { requireStaff } from "@/lib/api/auth-helpers";
 import { requireCapitalWorkspaceAccess } from "@/lib/capital-readiness/access";
 import { capitalCommandSchema } from "@/lib/capital-readiness/command-schemas";
 import { CapitalCommandError, executeCapitalCommand } from "@/lib/capital-readiness/commands";
+import { capitalMutationGate } from "@/lib/capital-readiness/security";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,8 @@ function json(body: unknown, status = 200) {
 export async function POST(request: NextRequest) {
   const gate = await requireStaff();
   if (!gate.ok) return gate.response;
+  const mutationGate = capitalMutationGate(request);
+  if (mutationGate) return mutationGate;
 
   let body: unknown;
   try {

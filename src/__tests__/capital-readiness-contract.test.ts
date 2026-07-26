@@ -1,11 +1,94 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { NextRequest } from "next/server";
 import { capitalObjectHash } from "@/lib/capital-readiness/approvals";
 import { capitalCommandSchema } from "@/lib/capital-readiness/command-schemas";
 import { authorizeCapitalClosingSchema } from "@/lib/capital-readiness/closing";
 import { capitalLifecycleSchema } from "@/lib/capital-readiness/lifecycle";
+import { capitalMutationGate } from "@/lib/capital-readiness/security";
 
 const workspaceId = "ws_test_capital";
 const idempotencyKey = "capital-test-idempotency-key-0001";
+const originalMutationGate = process.env.CAPITAL_READINESS_MUTATIONS_ENABLED;
+const originalProductionApproval = process.env.CAPITAL_READINESS_PRODUCTION_APPROVED;
+
+afterEach(() => {
+  if (originalMutationGate === undefined) {
+    delete process.env.CAPITAL_READINESS_MUTATIONS_ENABLED;
+  } else {
+    process.env.CAPITAL_READINESS_MUTATIONS_ENABLED = originalMutationGate;
+  }
+  if (originalProductionApproval === undefined) {
+    delete process.env.CAPITAL_READINESS_PRODUCTION_APPROVED;
+  } else {
+    process.env.CAPITAL_READINESS_PRODUCTION_APPROVED = originalProductionApproval;
+  }
+});
+
+describe("capital mutation activation boundary", () => {
+  const sameOriginRequest = () =>
+    new NextRequest("https://gem.example/api/capital-readiness/commands", {
+      method: "POST",
+      headers: { origin: "https://gem.example" },
+    });
+
+  it("requires explicit same-origin and both owner-controlled activation gates", async () => {
+    const missingOrigin = capitalMutationGate(
+      new NextRequest("https://gem.example/api/capital-readiness/commands", {
+        method: "POST",
+      }),
+    );
+    expect(missingOrigin?.status).toBe(403);
+
+    delete process.env.CAPITAL_READINESS_MUTATIONS_ENABLED;
+    delete process.env.CAPITAL_READINESS_PRODUCTION_APPROVED;
+    const disabled = capitalMutationGate(sameOriginRequest());
+    expect(disabled).not.toBeNull();
+    expect((await disabled!.json()).code).toBe(
+      "CAPITAL_READINESS_MUTATIONS_NOT_ACTIVATED",
+    );
+
+    process.env.CAPITAL_READINESS_MUTATIONS_ENABLED = "true";
+    const oneGate = capitalMutationGate(sameOriginRequest());
+    expect(oneGate).not.toBeNull();
+    expect((await oneGate!.json()).code).toBe(
+      "CAPITAL_READINESS_MUTATIONS_NOT_ACTIVATED",
+    );
+
+    process.env.CAPITAL_READINESS_PRODUCTION_APPROVED = "true";
+    expect(capitalMutationGate(sameOriginRequest())).toBeNull();
+  });
+
+  it("keeps closing authorization blocked even when ordinary mutations are approved", async () => {
+    process.env.CAPITAL_READINESS_MUTATIONS_ENABLED = "true";
+    process.env.CAPITAL_READINESS_PRODUCTION_APPROVED = "true";
+
+    const response = capitalMutationGate(
+      sameOriginRequest(),
+      "closing_authorization",
+    );
+    expect(response?.status).toBe(423);
+    expect((await response!.json()).code).toBe(
+      "CAPITAL_CLOSING_EVIDENCE_VERIFICATION_REQUIRED",
+    );
+  });
+
+  it("protects every state-changing capital route with the shared mutation gate", () => {
+    const routes = [
+      "src/app/api/capital-readiness/approvals/[id]/decision/route.ts",
+      "src/app/api/capital-readiness/approvals/route.ts",
+      "src/app/api/capital-readiness/closings/[id]/authorize/route.ts",
+      "src/app/api/capital-readiness/commands/route.ts",
+      "src/app/api/capital-readiness/lifecycle/route.ts",
+      "src/app/api/capital-readiness/matters/[id]/transition/route.ts",
+      "src/app/api/capital-readiness/opportunities/route.ts",
+    ];
+
+    for (const route of routes) {
+      expect(readFileSync(route, "utf8")).toContain("capitalMutationGate(request");
+    }
+  });
+});
 
 describe("capital approval object hashing", () => {
   it("is stable across object key ordering", () => {
