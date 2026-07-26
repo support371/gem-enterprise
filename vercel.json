@@ -13,6 +13,10 @@
   },
   "crons": [
     {
+      "path": "/api/internal/recovery-readiness-watch",
+      "schedule": "17 6 * * *"
+    },
+    {
       "path": "/api/social-media/orchestrator/daily/process",
       "schedule": "0 12 * * *"
     }
