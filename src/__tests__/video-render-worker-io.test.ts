@@ -25,6 +25,7 @@ const config: VideoWorkerConfig = {
   pollIntervalMs: 15_000,
   maxFileBytes: 1024,
   requestTimeoutMs: 30_000,
+  transferTimeoutMs: 60_000,
 };
 const output: VideoOutputDescriptor = {
   fileName: "render.mp4",
