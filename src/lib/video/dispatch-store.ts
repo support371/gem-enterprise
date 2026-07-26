@@ -12,6 +12,11 @@ type VideoRenderJobRow = Omit<
   outputManifest: unknown;
 };
 
+type DispatchReadinessRow = {
+  pending: number | bigint;
+  leased: number | bigint;
+};
+
 const qualifiedJobSelection = Prisma.sql`
   jobs.id,
   jobs.workspace_id AS "workspaceId",
@@ -65,6 +70,49 @@ function isMissingStore(error: unknown) {
   );
 }
 
+function storeUnavailable(error: unknown): never {
+  if (isMissingStore(error)) {
+    throw new TokMetricError(
+      503,
+      "VIDEO_RENDER_STORE_NOT_PROVISIONED",
+      "The durable video render dispatch store has not been provisioned.",
+    );
+  }
+  throw error;
+}
+
+export async function getWorkerDispatchReadiness() {
+  try {
+    const rows = await db.$queryRaw<DispatchReadinessRow[]>(Prisma.sql`
+      SELECT
+        COUNT(*) FILTER (
+          WHERE state = 'DISPATCHING'
+            AND external_prompt_id IS NULL
+            AND (
+              dispatch_claim_id IS NULL
+              OR dispatch_claim_expires_at IS NULL
+              OR dispatch_claim_expires_at <= CURRENT_TIMESTAMP
+            )
+        ) AS pending,
+        COUNT(*) FILTER (
+          WHERE state = 'DISPATCHING'
+            AND external_prompt_id IS NULL
+            AND dispatch_claim_id IS NOT NULL
+            AND dispatch_claim_expires_at > CURRENT_TIMESTAMP
+        ) AS leased
+      FROM video_render_jobs
+      WHERE dispatch_payload IS NOT NULL
+    `);
+    return {
+      ready: true,
+      pending: Number(rows[0]?.pending ?? 0),
+      leased: Number(rows[0]?.leased ?? 0),
+    };
+  } catch (error) {
+    return storeUnavailable(error);
+  }
+}
+
 export async function claimWorkerDispatchJobs(input: {
   limit?: number;
   leaseMs?: number;
@@ -107,13 +155,6 @@ export async function claimWorkerDispatchJobs(input: {
     );
     return rows.map(job);
   } catch (error) {
-    if (isMissingStore(error)) {
-      throw new TokMetricError(
-        503,
-        "VIDEO_RENDER_STORE_NOT_PROVISIONED",
-        "The durable video render dispatch store has not been provisioned.",
-      );
-    }
-    throw error;
+    return storeUnavailable(error);
   }
 }
