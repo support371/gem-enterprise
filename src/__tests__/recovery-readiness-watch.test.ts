@@ -122,6 +122,15 @@ describe("canonical recovery readiness watch", () => {
     ).rejects.toMatchObject({ code: "SMTP_TRANSPORT_NOT_VERIFIED" });
   });
 
+  it("requires both tight absolute and relative timing bounds", () => {
+    expect(
+      recoveryWatchTestables.timingIsComparable([100, 110], 1_000),
+    ).toMatchObject({ passed: false });
+    expect(
+      recoveryWatchTestables.timingIsComparable([1_950, 2_010], 2_100),
+    ).toMatchObject({ passed: true });
+  });
+
   it("rejects malformed runtime-log records instead of certifying an empty result", () => {
     expect(() =>
       recoveryWatchTestables.parseRuntimeLogEntries(
@@ -136,10 +145,17 @@ describe("canonical recovery readiness watch", () => {
     ).toThrowError(/malformed runtime-log record/i);
   });
 
-  it("publishes exact evidence and closes the issue only after the success path", async () => {
+  it("ignores spoofed markers, publishes exact evidence, and then closes the issue", async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(jsonResponse([]))
+      .mockResolvedValueOnce(
+        jsonResponse([
+          {
+            body: "<!-- gem-recovery-watch:abc123 -->\nDeployment SHA: `abc123`\nDeployment ID: `dpl_test`",
+            user: { login: "untrusted-commenter" },
+          },
+        ]),
+      )
       .mockResolvedValueOnce(jsonResponse({ id: 1 }, 201))
       .mockResolvedValueOnce(jsonResponse({ state: "closed" }));
     vi.stubGlobal("fetch", fetchMock);
@@ -157,7 +173,8 @@ describe("canonical recovery readiness watch", () => {
       runtimeLogs: { entriesInspected: 4 },
       recovery: {
         timingDeltaMs: 12,
-        timingRatio: 1.1,
+        timingRatio: 1.01,
+        responseTimingFloorMs: 2_000,
         smtpTransport: "SMTP_VERIFIED",
       },
     });
