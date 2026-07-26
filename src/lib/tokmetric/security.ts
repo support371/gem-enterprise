@@ -65,6 +65,24 @@ export async function requireTokMetricSession(request: NextRequest): Promise<Ses
   return session;
 }
 
+export async function requireActiveTokMetricSession(
+  request: NextRequest,
+): Promise<SessionPayload> {
+  const session = await requireTokMetricSession(request);
+  const account = await db.user.findUnique({
+    where: { id: session.userId },
+    select: { status: true, isActive: true },
+  });
+  if (!account || !account.isActive || account.status !== "active") {
+    throw new TokMetricError(
+      403,
+      "ACCOUNT_NOT_ACTIVE",
+      "An active approved account is required for this operation.",
+    );
+  }
+  return session;
+}
+
 export async function requireWorkspaceAccess(workspaceId: string, session: SessionPayload) {
   const membership = await db.workspaceMember.findUnique({ where: { workspaceId_userId: { workspaceId, userId: session.userId } }, include: { role: { include: { permissions: true } } } });
   if (!membership && !["admin", "super_admin", "internal"].includes(session.role)) {

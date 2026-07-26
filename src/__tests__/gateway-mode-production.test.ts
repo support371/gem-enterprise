@@ -21,10 +21,14 @@ describe("Supabase gateway-mode production boundary", () => {
 
   it("issues the authoritative wrapped gateway token without a Prisma lookup", () => {
     const login = source("src/app/api/auth/login/route.ts");
-    const gatewayBlock = login.slice(login.indexOf("try {\n    const result = await loginWithGateway"));
+    const gatewayBlock = login.slice(
+      login.indexOf("try {\n    const result = await loginWithGateway"),
+    );
 
-    expect(gatewayBlock).toContain("issueGatewaySession(result.session, result.token)");
-    expect(gatewayBlock).toContain("wrapGatewayToken(token)");
+    expect(login).toContain("return setSessionCookie(response, wrapGatewayToken(token));");
+    expect(gatewayBlock).toContain(
+      "issueGatewaySession(result.session, result.token)",
+    );
     expect(gatewayBlock).not.toContain("findCanonicalUser(");
     expect(gatewayBlock).not.toContain("db.user.findUnique");
   });
