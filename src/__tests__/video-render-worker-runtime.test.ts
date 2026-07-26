@@ -29,6 +29,7 @@ const config: VideoWorkerConfig = {
   pollIntervalMs: 15_000,
   maxFileBytes: 1024 * 1024,
   requestTimeoutMs: 30_000,
+  transferTimeoutMs: 15 * 60_000,
 };
 
 const job: VideoWorkerJob = {
@@ -74,6 +75,7 @@ describe("trusted video render worker runtime", () => {
       VIDEO_RENDER_WORKER_BATCH_SIZE: "10",
       VIDEO_RENDER_WORKER_POLL_MS: "5000",
       VIDEO_RENDER_MAX_FILE_BYTES: "4096",
+      VIDEO_RENDER_WORKER_TRANSFER_TIMEOUT_MS: "60000",
     });
 
     expect(loaded).toMatchObject({
@@ -84,12 +86,37 @@ describe("trusted video render worker runtime", () => {
       batchSize: 10,
       pollIntervalMs: 5000,
       maxFileBytes: 4096,
+      transferTimeoutMs: 60_000,
     });
+  });
+
+  it("requires HTTPS for GEM and storage but permits localhost ComfyUI", () => {
+    expect(() =>
+      loadVideoWorkerConfig({
+        GEM_VIDEO_WORKER_API_URL: "http://gem.example.com",
+        VIDEO_RENDER_CALLBACK_SECRET: "callback-secret",
+        COMFYUI_BASE_URL: "http://localhost:8188",
+        VIDEO_RENDER_STORAGE_URL: "https://project.supabase.co",
+        VIDEO_RENDER_STORAGE_KEY: "storage-key",
+        VIDEO_RENDER_STORAGE_BUCKET: "gem-video-renders",
+      }),
+    ).toThrowError(expect.objectContaining({ code: "WORKER_CONFIGURATION_INVALID" }));
+
+    expect(
+      loadVideoWorkerConfig({
+        GEM_VIDEO_WORKER_API_URL: "https://www.gemcybersecurityassist.com",
+        VIDEO_RENDER_CALLBACK_SECRET: "callback-secret",
+        COMFYUI_BASE_URL: "http://127.0.0.1:8188",
+        VIDEO_RENDER_STORAGE_URL: "https://project.supabase.co",
+        VIDEO_RENDER_STORAGE_KEY: "storage-key",
+        VIDEO_RENDER_STORAGE_BUCKET: "gem-video-renders",
+      }).comfyBaseUrl,
+    ).toBe("http://127.0.0.1:8188");
   });
 
   it("sanitizes deterministic object path segments", () => {
     expect(sanitizePathSegment(" ../GEM render / 01 ")).toBe("GEM-render-01");
-    expect(() => sanitizePathSegment("../..")) .toThrow(VideoWorkerError);
+    expect(() => sanitizePathSegment("../..")).toThrow(VideoWorkerError);
   });
 
   it("selects a supported output and prefers MP4 output files", () => {
