@@ -14,11 +14,14 @@ const REPOSITORY = "support371/gem-enterprise";
 const ISSUE_NUMBER = 200;
 const CANONICAL_RECOVERY_URL = `${APP_URL}/forgot-password`;
 const ADMIN_RECOVERY_EMAIL = "admin@gemcybersecurityassist.com";
+const EXPECTED_GITHUB_COMMENT_AUTHOR = "support371";
 const RUNTIME_LOG_WINDOW_MS = 60 * 60 * 1000;
 const ACTIVATION_RESOURCE = "password_recovery_activation";
 const ACTIVATION_LOCK_KEY = 371_200;
-const TIMING_DELTA_LIMIT_MS = 1_000;
-const TIMING_RATIO_LIMIT = 4;
+const UNKNOWN_TIMING_SAMPLE_COUNT = 2;
+const TIMING_DELTA_LIMIT_MS = 400;
+const TIMING_RATIO_LIMIT = 1.25;
+const EXPECTED_RESPONSE_TIMING_FLOOR_MS = 2_000;
 
 type JsonObject = Record<string, unknown>;
 type RecoveryReadiness = JsonObject & { emailDeliveryConfigured?: boolean };
@@ -331,10 +334,13 @@ async function verifyDatabaseIntegrity() {
         SELECT count(*)::integer
         FROM pg_trigger t
         JOIN pg_class c ON c.oid = t.tgrelid
-        JOIN pg_namespace n ON n.oid = c.relnamespace
+        JOIN pg_namespace table_ns ON table_ns.oid = c.relnamespace
         JOIN pg_proc p ON p.oid = t.tgfoid
-        WHERE n.nspname = 'public'
+        JOIN pg_namespace function_ns ON function_ns.oid = p.pronamespace
+        WHERE table_ns.nspname = 'public'
           AND c.relname = 'users'
+          AND function_ns.nspname = 'public'
+          AND p.prosecdef
           AND NOT t.tgisinternal
           AND t.tgenabled IN ('O', 'A')
           AND (
@@ -342,10 +348,15 @@ async function verifyDatabaseIntegrity() {
               t.tgname = 'gem_increment_session_version_on_password_change'
               AND p.proname = 'gem_increment_session_version_on_password_change'
               AND pg_get_triggerdef(t.oid) ~* 'BEFORE UPDATE OF "passwordHash"'
+              AND pg_get_functiondef(p.oid) ~* 'IF NEW\."passwordHash" IS DISTINCT FROM OLD\."passwordHash"'
+              AND pg_get_functiondef(p.oid) ~* 'NEW\."sessionVersion" := COALESCE\(OLD\."sessionVersion", 1\) \+ 1'
             ) OR (
               t.tgname = 'gem_audit_session_revocation_on_password_change'
               AND p.proname = 'gem_audit_session_revocation_on_password_change'
               AND pg_get_triggerdef(t.oid) ~* 'AFTER UPDATE OF "passwordHash"'
+              AND pg_get_functiondef(p.oid) ~* 'INSERT INTO public\.audit_logs'
+              AND pg_get_functiondef(p.oid) ~* 'password_change'
+              AND pg_get_functiondef(p.oid) ~* 'sessionRevoked'
             )
           )
       ) AS "triggerCount",
@@ -386,6 +397,7 @@ async function verifyDatabaseIntegrity() {
     operationalTriggerCount: 2,
     triggerModes: "origin_or_always",
     triggerEvents: "passwordHash_update",
+    triggerFunctions: "public_security_definer_expected_semantics",
     privilegesRevoked: true,
   };
 }
@@ -466,7 +478,6 @@ function parseRuntimeLogEntries(text: string): JsonObject[] {
   } catch (error) {
     if (error instanceof VerificationError) throw error;
   }
-
   const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   return lines.map((line, index) => {
     const candidate = line.startsWith("data:") ? line.slice("data:".length).trim() : line;
@@ -561,14 +572,24 @@ function auditMetadata(value: Prisma.JsonValue | null): JsonObject {
   return isJsonObject(value) ? value : {};
 }
 
-function timingIsComparable(unknownMs: number, knownMs: number) {
-  const slower = Math.max(unknownMs, knownMs);
-  const faster = Math.max(1, Math.min(unknownMs, knownMs));
-  const delta = Math.abs(unknownMs - knownMs);
+function median(values: number[]) {
+  const sorted = [...values].sort((left, right) => left - right);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle];
+}
+
+function timingIsComparable(unknownSamplesMs: number[], knownMs: number) {
+  const unknownBaselineMs = median(unknownSamplesMs);
+  const slower = Math.max(unknownBaselineMs, knownMs);
+  const faster = Math.max(1, Math.min(unknownBaselineMs, knownMs));
+  const delta = Math.abs(unknownBaselineMs - knownMs);
   const ratio = slower / faster;
   return {
-    passed: delta <= TIMING_DELTA_LIMIT_MS || ratio <= TIMING_RATIO_LIMIT,
-    deltaMs: delta,
+    passed: delta <= TIMING_DELTA_LIMIT_MS && ratio <= TIMING_RATIO_LIMIT,
+    unknownBaselineMs: Math.round(unknownBaselineMs),
+    deltaMs: Math.round(delta),
     ratio: Number(ratio.toFixed(2)),
   };
 }
@@ -593,10 +614,16 @@ async function verifyControlledRecovery(tx: Prisma.TransactionClient): Promise<J
     );
   }
 
-  const unknown = await requestRecovery(`recovery-watch-${Date.now()}@example.invalid`);
+  const unknownSamples = [];
+  for (let index = 0; index < UNKNOWN_TIMING_SAMPLE_COUNT; index += 1) {
+    unknownSamples.push(
+      await requestRecovery(`recovery-watch-${Date.now()}-${index}@example.invalid`),
+    );
+  }
   const deliveryStartedAt = new Date();
   const known = await requestRecovery(ADMIN_RECOVERY_EMAIL);
-  for (const response of [unknown, known]) {
+  const responses = [...unknownSamples, known];
+  for (const response of responses) {
     if (
       response.status !== 200 ||
       response.body.success !== true ||
@@ -608,23 +635,27 @@ async function verifyControlledRecovery(tx: Prisma.TransactionClient): Promise<J
       );
     }
   }
+  const knownNormalized = JSON.stringify(normalizeRecoveryResponse(known.body));
   if (
-    JSON.stringify(normalizeRecoveryResponse(unknown.body)) !==
-    JSON.stringify(normalizeRecoveryResponse(known.body))
+    unknownSamples.some(
+      (sample) => JSON.stringify(normalizeRecoveryResponse(sample.body)) !== knownNormalized,
+    )
   ) {
     throw new VerificationError(
       "RECOVERY_ENUMERATION_DETECTED",
       "Known and unknown recovery responses were distinguishable.",
     );
   }
-  const timing = timingIsComparable(unknown.elapsedMs, known.elapsedMs);
+  const unknownElapsedMs = unknownSamples.map((sample) => sample.elapsedMs);
+  const timing = timingIsComparable(unknownElapsedMs, known.elapsedMs);
   if (!timing.passed) {
     throw new VerificationError(
       "RECOVERY_TIMING_ENUMERATION_RISK",
-      "Known and unknown recovery timing exceeded the fail-closed comparison threshold.",
+      "Known and unknown recovery timing exceeded the fail-closed comparison thresholds.",
       {
-        unknownElapsedMs: unknown.elapsedMs,
+        unknownElapsedMs,
         knownElapsedMs: known.elapsedMs,
+        unknownBaselineMs: timing.unknownBaselineMs,
         deltaMs: timing.deltaMs,
         ratio: timing.ratio,
       },
@@ -646,14 +677,16 @@ async function verifyControlledRecovery(tx: Prisma.TransactionClient): Promise<J
     deliveryMetadata.flow !== "forgot_password_request" ||
     deliveryMetadata.accountEligible !== true ||
     deliveryMetadata.delivery !== "sent" ||
-    deliveryMetadata.canonicalOrigin !== APP_URL
+    deliveryMetadata.canonicalOrigin !== APP_URL ||
+    Number(deliveryMetadata.responseTimingFloorMs) < EXPECTED_RESPONSE_TIMING_FLOOR_MS
   ) {
     throw new VerificationError(
       "CONTROLLED_RECOVERY_DELIVERY_NOT_ACCEPTED",
-      "The controlled administrator recovery request lacks provider-acceptance audit evidence.",
+      "The controlled administrator recovery request lacks provider-acceptance and timing-floor audit evidence.",
       {
         auditFound: Boolean(deliveryAudit),
         delivery: deliveryMetadata.delivery ?? null,
+        responseTimingFloorMs: deliveryMetadata.responseTimingFloorMs ?? null,
       },
     );
   }
@@ -661,10 +694,12 @@ async function verifyControlledRecovery(tx: Prisma.TransactionClient): Promise<J
     responseBodiesMatched: true,
     responseStatusesMatched: true,
     timingThresholdPassed: true,
-    unknownElapsedMs: unknown.elapsedMs,
+    unknownSamplesMs: unknownElapsedMs,
+    unknownBaselineMs: timing.unknownBaselineMs,
     knownElapsedMs: known.elapsedMs,
     timingDeltaMs: timing.deltaMs,
     timingRatio: timing.ratio,
+    responseTimingFloorMs: deliveryMetadata.responseTimingFloorMs,
     smtpTransport: transport.code,
     providerAccepted: true,
     controlledAdminRequestAccepted: true,
@@ -738,11 +773,21 @@ function issueEvidenceMarker(deploymentSha: string) {
 
 async function publishEvidenceAndCloseIssue(evidence: JsonObject) {
   const deploymentSha = String(evidence.deploymentSha);
+  const deploymentId = String(evidence.deploymentId);
   const marker = issueEvidenceMarker(deploymentSha);
-  const { body: comments } = await githubJson<Array<{ body?: string }>>(
-    `/issues/${ISSUE_NUMBER}/comments?per_page=100&sort=created&direction=desc`,
-  );
-  if (!comments.some((comment) => comment.body?.includes(marker))) {
+  const { body: comments } = await githubJson<
+    Array<{ body?: string; user?: { login?: string } }>
+  >(`/issues/${ISSUE_NUMBER}/comments?per_page=100&sort=created&direction=desc`);
+  const alreadyPublished = comments.some((comment) => {
+    const body = comment.body ?? "";
+    return (
+      comment.user?.login === EXPECTED_GITHUB_COMMENT_AUTHOR &&
+      body.includes(marker) &&
+      body.includes(`Deployment SHA: \`${deploymentSha}\``) &&
+      body.includes(`Deployment ID: \`${deploymentId}\``)
+    );
+  });
+  if (!alreadyPublished) {
     const recovery = isJsonObject(evidence.recovery) ? evidence.recovery : {};
     const database = isJsonObject(evidence.database) ? evidence.database : {};
     const gateway = isJsonObject(evidence.gateway) ? evidence.gateway : {};
@@ -752,17 +797,18 @@ async function publishEvidenceAndCloseIssue(evidence: JsonObject) {
       "Canonical password-recovery activation verification passed.",
       "",
       `- Deployment SHA: \`${deploymentSha}\``,
-      `- Deployment ID: \`${String(evidence.deploymentId)}\``,
+      `- Deployment ID: \`${deploymentId}\``,
       `- Mail readiness: \`${JSON.stringify(evidence.mailReadiness)}\``,
       "- Canonical production alias: READY, serving GitHub `main`, and bound to the configured Vercel project",
       "- Public pages: `/forgot-password`, `/reset-password`, and `/client-login` served directly from their canonical paths",
       "- Authentication boundaries: `/api/auth/session` and `/api/admin/users` rejected unauthenticated access",
-      `- Unknown-email recovery: body/status matched and timing threshold passed (delta ${String(recovery.timingDeltaMs)} ms; ratio ${String(recovery.timingRatio)})`,
+      `- Unknown-email recovery: two unknown samples matched the known response and timing passed both bounds (delta ${String(recovery.timingDeltaMs)} ms; ratio ${String(recovery.timingRatio)})`,
+      `- Canonical response timing floor: ${String(recovery.responseTimingFloorMs)} ms`,
       `- SMTP transport: \`${String(recovery.smtpTransport)}\``,
       "- Controlled admin recovery request: provider accepted, with database audit evidence",
       `- Production runtime inspection: ${String(runtimeLogs.entriesInspected)} valid records inspected; no error or fatal entry found`,
       `- Supabase \`users.sessionVersion\`: ${String(database.sessionVersionPresent)}`,
-      `- Password-change revocation triggers: ${String(database.operationalTriggerCount)} operational origin/always triggers bound to passwordHash updates`,
+      `- Password-change revocation triggers: ${String(database.operationalTriggerCount)} operational public SECURITY DEFINER functions with expected passwordHash semantics`,
       `- Effective trigger-function privileges revoked: ${String(database.privilegesRevoked)}`,
       `- \`gem-password-recovery\`: version ${String(gateway.version)}`,
       "- Retired gateway: returned only `RECOVERY_GATEWAY_DISABLED` through the canonical recovery URL",
@@ -893,6 +939,7 @@ export async function POST(request: NextRequest) {
 export const recoveryWatchTestables = {
   isAuthorized,
   parseRuntimeLogEntries,
+  timingIsComparable,
   verifyControlledRecovery,
   publishEvidenceAndCloseIssue,
 };
