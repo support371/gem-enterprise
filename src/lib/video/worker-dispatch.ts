@@ -222,6 +222,7 @@ async function ensureDispatchEvidence(input: {
         aggregateType: "content",
         aggregateId: input.contentId,
         eventType,
+        safeMetadata: { path: ["renderJobId"], equals: input.renderJobId },
       },
       select: { id: true },
     }),
@@ -370,11 +371,15 @@ async function releaseFinalizationClaim(input: {
   claimId: string;
   errorCode: string;
   errorMessage: string;
+  retryAfterMs?: number;
 }) {
+  const retryAt = new Date(
+    Date.now() + Math.min(Math.max(input.retryAfterMs ?? 5 * 60_000, 60_000), 24 * 60 * 60_000),
+  );
   await db.$executeRaw(Prisma.sql`
     UPDATE video_render_jobs
-    SET dispatch_claim_id = NULL,
-        dispatch_claim_expires_at = NULL,
+    SET dispatch_claim_id = ${input.claimId},
+        dispatch_claim_expires_at = ${retryAt},
         error_code = ${input.errorCode.slice(0, 100)},
         error_message = ${input.errorMessage.slice(0, 500)},
         updated_at = CURRENT_TIMESTAMP
@@ -401,6 +406,7 @@ export async function finalizeVerifiedWorkerRenders(input: {
           errorCode: "VIDEO_FINALIZATION_ACTOR_OR_PROMPT_MISSING",
           errorMessage:
             "The verified render does not have the prompt or original authorized actor required for finalization.",
+          retryAfterMs: 60 * 60_000,
         });
       }
       results.push({
@@ -422,6 +428,7 @@ export async function finalizeVerifiedWorkerRenders(input: {
         errorCode: "VIDEO_FINALIZATION_ACTOR_INACTIVE",
         errorMessage:
           "The original authorized operator is no longer active, so automatic finalization is blocked.",
+        retryAfterMs: 60 * 60_000,
       });
       results.push({
         renderJobId: record.id,
