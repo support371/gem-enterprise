@@ -1,9 +1,10 @@
 import { z } from "zod";
-import { probeComfyUi } from "@/lib/video/comfyui";
+import { probeComfyUi, videoJobInputSchema } from "@/lib/video/comfyui";
 import {
   VideoWorkerError,
   type DownloadedVideo,
   type VideoWorkerConfig,
+  type VideoWorkerDispatchJob,
   type VideoWorkerJob,
 } from "./types";
 
@@ -20,6 +21,26 @@ const workerJobsResponseSchema = z.object({
         state: z.enum(["QUEUED", "RUNNING", "COMPLETED"]),
         createdAt: z.string(),
         updatedAt: z.string(),
+      }),
+    ),
+  }),
+});
+
+const workerDispatchResponseSchema = z.object({
+  ok: z.literal(true),
+  data: z.object({
+    jobs: z.array(
+      z.object({
+        renderJobId: z.string().uuid(),
+        workspaceId: z.string().min(1),
+        contentId: z.string().min(1),
+        contentVersionId: z.string().min(1),
+        complianceReviewId: z.string().min(1),
+        clientId: z.string().uuid(),
+        claimId: z.string().uuid(),
+        claimExpiresAt: z.string(),
+        dispatchAttemptCount: z.number().int().nonnegative(),
+        dispatch: videoJobInputSchema,
       }),
     ),
   }),
@@ -127,6 +148,110 @@ export async function fetchWorkerJobs(
   return parsed.data.data.jobs as VideoWorkerJob[];
 }
 
+export async function claimWorkerDispatchJobs(
+  config: VideoWorkerConfig,
+): Promise<VideoWorkerDispatchJob[]> {
+  const { response, payload } = await timedJsonFetch(
+    `${config.gemBaseUrl}/api/video/worker/dispatch`,
+    {
+      method: "POST",
+      headers: {
+        ...callbackHeaders(config),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        limit: config.batchSize,
+        leaseMs: config.dispatchLeaseMs,
+      }),
+      cache: "no-store",
+    },
+    config.requestTimeoutMs,
+  );
+  if (!response.ok) {
+    throw new VideoWorkerError(
+      "VIDEO_WORKER_DISPATCH_FEED_FAILED",
+      `The GEM dispatch feed returned HTTP ${response.status}.`,
+      response.status,
+    );
+  }
+  const parsed = workerDispatchResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new VideoWorkerError(
+      "VIDEO_WORKER_DISPATCH_FEED_INVALID",
+      "The GEM dispatch feed returned an invalid response.",
+      502,
+    );
+  }
+  return parsed.data.data.jobs as VideoWorkerDispatchJob[];
+}
+
+export async function completeWorkerDispatch(
+  config: VideoWorkerConfig,
+  job: VideoWorkerDispatchJob,
+  promptId: string,
+) {
+  const { response } = await timedJsonFetch(
+    `${config.gemBaseUrl}/api/video/worker/dispatch/${encodeURIComponent(
+      job.renderJobId,
+    )}/complete`,
+    {
+      method: "POST",
+      headers: {
+        ...callbackHeaders(config),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ claimId: job.claimId, promptId }),
+      cache: "no-store",
+    },
+    config.requestTimeoutMs,
+  );
+  if (!response.ok) {
+    throw new VideoWorkerError(
+      "VIDEO_WORKER_DISPATCH_CALLBACK_FAILED",
+      `The GEM dispatch callback returned HTTP ${response.status}.`,
+      response.status,
+    );
+  }
+}
+
+export async function failWorkerDispatch(
+  config: VideoWorkerConfig,
+  job: VideoWorkerDispatchJob,
+  input: {
+    retryable: boolean;
+    errorCode: string;
+    errorMessage: string;
+  },
+) {
+  const { response } = await timedJsonFetch(
+    `${config.gemBaseUrl}/api/video/worker/dispatch/${encodeURIComponent(
+      job.renderJobId,
+    )}/fail`,
+    {
+      method: "POST",
+      headers: {
+        ...callbackHeaders(config),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        claimId: job.claimId,
+        retryable: input.retryable,
+        errorCode: input.errorCode.slice(0, 100),
+        errorMessage: input.errorMessage.slice(0, 500),
+      }),
+      cache: "no-store",
+    },
+    config.requestTimeoutMs,
+  );
+  if (!response.ok) {
+    throw new VideoWorkerError(
+      "VIDEO_WORKER_DISPATCH_FAILURE_CALLBACK_FAILED",
+      `The GEM dispatch-failure callback returned HTTP ${response.status}.`,
+      response.status,
+    );
+  }
+}
+
 export async function verifyUploadedVideo(
   config: VideoWorkerConfig,
   job: VideoWorkerJob,
@@ -157,6 +282,30 @@ export async function verifyUploadedVideo(
     throw new VideoWorkerError(
       "VIDEO_UPLOAD_CALLBACK_FAILED",
       `The GEM upload-verification callback returned HTTP ${response.status}.`,
+      response.status,
+    );
+  }
+  return payload;
+}
+
+export async function finalizeVerifiedRenders(config: VideoWorkerConfig) {
+  const { response, payload } = await timedJsonFetch(
+    `${config.gemBaseUrl}/api/video/worker/finalize`,
+    {
+      method: "POST",
+      headers: {
+        ...callbackHeaders(config),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ limit: config.batchSize }),
+      cache: "no-store",
+    },
+    config.requestTimeoutMs,
+  );
+  if (!response.ok) {
+    throw new VideoWorkerError(
+      "VIDEO_WORKER_FINALIZATION_FAILED",
+      `The GEM finalization endpoint returned HTTP ${response.status}.`,
       response.status,
     );
   }
