@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
@@ -8,6 +9,7 @@ import {
   RefreshCw,
   ShieldCheck,
   UserCog,
+  UserPlus,
   Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -119,19 +121,29 @@ export default function GemVerifyOperatorCoverageClient() {
             does not change any role.
           </p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void load()}
-          disabled={loading}
-        >
-          {loading ? (
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-          ) : (
-            <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
-          )}
-          Refresh coverage
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {!complete ? (
+            <Button asChild>
+              <Link href="/app/admin/gem-verify/operators">
+                <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
+                Invite required operators
+              </Link>
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void load()}
+            disabled={loading}
+          >
+            {loading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" />
+            )}
+            Refresh coverage
+          </Button>
+        </div>
       </div>
 
       {error ? (
