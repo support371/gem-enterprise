@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const comfyMocks = vi.hoisted(() => ({
+  findVideoPromptIdByClientId: vi.fn(),
   queueVideoJob: vi.fn(),
 }));
 const journalMocks = vi.hoisted(() => ({
@@ -14,6 +15,7 @@ const networkMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/video/comfyui", () => ({
+  findVideoPromptIdByClientId: comfyMocks.findVideoPromptIdByClientId,
   queueVideoJob: comfyMocks.queueVideoJob,
 }));
 vi.mock("@/lib/video/worker-runtime/journal", () => journalMocks);
@@ -68,8 +70,9 @@ const job: VideoWorkerDispatchJob = {
 describe("trusted worker dispatch runtime", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    comfyMocks.findVideoPromptIdByClientId.mockResolvedValue(null);
     journalMocks.readDispatchJournal.mockResolvedValue(null);
-    journalMocks.writeDispatchJournal.mockImplementation(async (_config, entry) => entry);
+    journalMocks.writeDispatchJournal.mockResolvedValue(undefined);
     journalMocks.deleteDispatchJournal.mockResolvedValue(undefined);
     networkMocks.completeWorkerDispatch.mockResolvedValue(undefined);
     networkMocks.failWorkerDispatch.mockResolvedValue(undefined);
@@ -89,6 +92,7 @@ describe("trusted worker dispatch runtime", () => {
       outcome: "dispatch_recovered",
       promptId: "provider-prompt-1",
     });
+    expect(comfyMocks.findVideoPromptIdByClientId).not.toHaveBeenCalled();
     expect(comfyMocks.queueVideoJob).not.toHaveBeenCalled();
     expect(networkMocks.completeWorkerDispatch).toHaveBeenCalledWith(
       config,
@@ -98,6 +102,30 @@ describe("trusted worker dispatch runtime", () => {
     expect(journalMocks.deleteDispatchJournal).toHaveBeenCalledWith(
       config,
       job.renderJobId,
+    );
+  });
+
+  it("recovers an accepted prompt from ComfyUI by stable client ID", async () => {
+    comfyMocks.findVideoPromptIdByClientId.mockResolvedValue("provider-prompt-recovered");
+
+    const result = await processVideoWorkerDispatchJob(config, job);
+
+    expect(result).toMatchObject({
+      outcome: "provider_dispatch_recovered",
+      promptId: "provider-prompt-recovered",
+    });
+    expect(comfyMocks.queueVideoJob).not.toHaveBeenCalled();
+    expect(journalMocks.writeDispatchJournal).toHaveBeenCalledWith(
+      config,
+      expect.objectContaining({
+        renderJobId: job.renderJobId,
+        promptId: "provider-prompt-recovered",
+      }),
+    );
+    expect(networkMocks.completeWorkerDispatch).toHaveBeenCalledWith(
+      config,
+      job,
+      "provider-prompt-recovered",
     );
   });
 
