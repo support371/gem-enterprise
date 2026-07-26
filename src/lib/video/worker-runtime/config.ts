@@ -8,6 +8,7 @@ import { sanitizePathSegment } from "./outputs";
 const GIBIBYTE = 1024 * 1024 * 1024;
 const DEFAULT_MAX_FILE_BYTES = GIBIBYTE;
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+const DEFAULT_TRANSFER_TIMEOUT_MS = 15 * 60_000;
 const DEFAULT_POLL_INTERVAL_MS = 15_000;
 const DEFAULT_BATCH_SIZE = 5;
 
@@ -41,15 +42,23 @@ function optionalInteger(
   return parsed;
 }
 
-function normalizedUrl(value: string, name: string) {
+function normalizedUrl(
+  value: string,
+  name: string,
+  options: { allowLoopbackHttp?: boolean } = {},
+) {
   try {
     const url = new URL(value);
-    if (!/^https?:$/.test(url.protocol)) throw new Error("unsupported protocol");
+    const loopback = ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+    const permitted =
+      url.protocol === "https:" ||
+      (url.protocol === "http:" && options.allowLoopbackHttp === true && loopback);
+    if (!permitted) throw new Error("insecure or unsupported protocol");
     return url.toString().replace(/\/$/, "");
   } catch {
     throw new VideoWorkerError(
       "WORKER_CONFIGURATION_INVALID",
-      `${name} must be a valid HTTP or HTTPS URL.`,
+      `${name} must use HTTPS, except that ComfyUI may use HTTP on localhost.`,
     );
   }
 }
@@ -64,6 +73,7 @@ export function loadVideoWorkerConfig(
   const comfyBaseUrl = normalizedUrl(
     required(env, ["COMFYUI_BASE_URL"]),
     "COMFYUI_BASE_URL",
+    { allowLoopbackHttp: true },
   );
   const storageBaseUrl = normalizedUrl(
     required(env, ["VIDEO_RENDER_STORAGE_URL", "SUPABASE_URL"]),
@@ -114,6 +124,13 @@ export function loadVideoWorkerConfig(
       5_000,
       120_000,
     ),
+    transferTimeoutMs: optionalInteger(
+      env,
+      "VIDEO_RENDER_WORKER_TRANSFER_TIMEOUT_MS",
+      DEFAULT_TRANSFER_TIMEOUT_MS,
+      60_000,
+      60 * 60_000,
+    ),
   };
 }
 
@@ -131,5 +148,6 @@ export function redactedWorkerConfig(config: VideoWorkerConfig) {
     pollIntervalMs: config.pollIntervalMs,
     maxFileBytes: config.maxFileBytes,
     requestTimeoutMs: config.requestTimeoutMs,
+    transferTimeoutMs: config.transferTimeoutMs,
   };
 }
