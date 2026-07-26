@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-const renderingMocks = vi.hoisted(() => ({
-  verifyRenderedUpload: vi.fn(),
+const verificationMocks = vi.hoisted(() => ({
+  verifyTrustedWorkerUpload: vi.fn(),
 }));
 
-vi.mock("@/lib/video/content-rendering", () => ({
-  verifyRenderedUpload: renderingMocks.verifyRenderedUpload,
+vi.mock("@/lib/video/worker-upload-verification", () => ({
+  verifyTrustedWorkerUpload: verificationMocks.verifyTrustedWorkerUpload,
 }));
 
 import { POST } from "@/app/api/video/uploads/verify/route";
@@ -35,12 +35,13 @@ describe("trusted video upload callback", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv("VIDEO_RENDER_CALLBACK_SECRET", "worker-secret-123456789");
-    renderingMocks.verifyRenderedUpload.mockResolvedValue({
+    verificationMocks.verifyTrustedWorkerUpload.mockResolvedValue({
       renderJobId: payload.renderJobId,
       uploadId: "upload-1",
       contentId: "content-1",
       contentVersionId: "version-1",
       verifiedAt: new Date("2026-07-25T00:00:00.000Z"),
+      externalPublicationTaken: false,
     });
   });
 
@@ -61,14 +62,14 @@ describe("trusted video upload callback", () => {
     const body = await response.json();
     expect(response.status).toBe(401);
     expect(body.error.code).toBe("VIDEO_RENDER_CALLBACK_UNAUTHORIZED");
-    expect(renderingMocks.verifyRenderedUpload).not.toHaveBeenCalled();
+    expect(verificationMocks.verifyTrustedWorkerUpload).not.toHaveBeenCalled();
   });
 
   it("verifies a valid trusted worker manifest", async () => {
     const response = await POST(request("worker-secret-123456789"));
     const body = await response.json();
     expect(response.status).toBe(201);
-    expect(renderingMocks.verifyRenderedUpload).toHaveBeenCalledWith(
+    expect(verificationMocks.verifyTrustedWorkerUpload).toHaveBeenCalledWith(
       expect.objectContaining({
         renderJobId: payload.renderJobId,
         storageRef: payload.storageRef,
@@ -76,5 +77,6 @@ describe("trusted video upload callback", () => {
       }),
     );
     expect(body.data.uploadId).toBe("upload-1");
+    expect(body.data.externalPublicationTaken).toBe(false);
   });
 });
