@@ -128,14 +128,6 @@ function upload(row: VideoRenderUploadRow): VideoRenderUploadRecord {
   };
 }
 
-function boundedLimit(value: number, maximum = 20) {
-  return Math.min(Math.max(Math.trunc(value), 1), maximum);
-}
-
-function boundedLeaseMs(value: number) {
-  return Math.min(Math.max(Math.trunc(value), 30_000), 15 * 60_000);
-}
-
 function isMissingStore(error: unknown) {
   if (!(error instanceof Error)) return false;
   const text = `${error.name} ${error.message}`.toLowerCase();
@@ -293,47 +285,6 @@ export async function latestVideoRenderJobForContent(input: {
   }
 }
 
-export async function claimVideoRenderDispatchJobs(input: {
-  limit?: number;
-  leaseMs?: number;
-  maximumAttempts?: number;
-}) {
-  const limit = boundedLimit(input.limit ?? 5);
-  const claimId = randomUUID();
-  const claimExpiresAt = new Date(Date.now() + boundedLeaseMs(input.leaseMs ?? 120_000));
-  const maximumAttempts = Math.min(Math.max(input.maximumAttempts ?? 5, 1), 20);
-  try {
-    const rows = await db.$transaction(async (transaction) =>
-      transaction.$queryRaw<VideoRenderJobRow[]>(Prisma.sql`
-        WITH candidates AS (
-          SELECT id
-          FROM video_render_jobs
-          WHERE state = 'DISPATCHING'
-            AND external_prompt_id IS NULL
-            AND dispatch_attempt_count < ${maximumAttempts}
-            AND (
-              dispatch_claim_expires_at IS NULL
-              OR dispatch_claim_expires_at <= CURRENT_TIMESTAMP
-            )
-          ORDER BY created_at ASC
-          FOR UPDATE SKIP LOCKED
-          LIMIT ${limit}
-        )
-        UPDATE video_render_jobs jobs
-        SET dispatch_claim_id = ${claimId},
-            dispatch_claim_expires_at = ${claimExpiresAt},
-            updated_at = CURRENT_TIMESTAMP
-        FROM candidates
-        WHERE jobs.id = candidates.id
-        RETURNING ${jobSelection}
-      `),
-    );
-    return rows.map(job);
-  } catch (error) {
-    return storeUnavailable(error);
-  }
-}
-
 export async function bindVideoRenderPrompt(input: {
   id: string;
   claimId: string;
@@ -435,7 +386,11 @@ export async function markVideoRenderQueued(input: {
       RETURNING ${jobSelection}
     `);
     if (!rows[0]) {
-      throw new TokMetricError(404, "VIDEO_RENDER_JOB_NOT_FOUND", "The video render job was not found.");
+      throw new TokMetricError(
+        404,
+        "VIDEO_RENDER_JOB_NOT_FOUND",
+        "The video render job was not found.",
+      );
     }
     return job(rows[0]);
   } catch (error) {
@@ -465,79 +420,15 @@ export async function updateVideoRenderState(input: {
       RETURNING ${jobSelection}
     `);
     if (!rows[0]) {
-      throw new TokMetricError(404, "VIDEO_RENDER_JOB_NOT_FOUND", "The video render job was not found.");
+      throw new TokMetricError(
+        404,
+        "VIDEO_RENDER_JOB_NOT_FOUND",
+        "The video render job was not found.",
+      );
     }
     return job(rows[0]);
   } catch (error) {
     if (error instanceof TokMetricError) throw error;
-    return storeUnavailable(error);
-  }
-}
-
-export async function claimVerifiedVideoRendersForFinalization(input: {
-  limit?: number;
-  leaseMs?: number;
-}) {
-  const limit = boundedLimit(input.limit ?? 5);
-  const claimId = randomUUID();
-  const claimExpiresAt = new Date(Date.now() + boundedLeaseMs(input.leaseMs ?? 180_000));
-  try {
-    const rows = await db.$transaction(async (transaction) =>
-      transaction.$queryRaw<VideoRenderJobRow[]>(Prisma.sql`
-        WITH candidates AS (
-          SELECT jobs.id
-          FROM video_render_jobs jobs
-          INNER JOIN video_render_uploads uploads
-            ON uploads.render_job_id = jobs.id
-          WHERE jobs.state IN ('COMPLETED', 'FINALIZING')
-            AND jobs.requested_by_id IS NOT NULL
-            AND (
-              jobs.state = 'COMPLETED'
-              OR jobs.dispatch_claim_expires_at IS NULL
-              OR jobs.dispatch_claim_expires_at <= CURRENT_TIMESTAMP
-            )
-          ORDER BY jobs.completed_at ASC NULLS LAST, jobs.created_at ASC
-          FOR UPDATE OF jobs SKIP LOCKED
-          LIMIT ${limit}
-        )
-        UPDATE video_render_jobs jobs
-        SET state = 'FINALIZING',
-            dispatch_claim_id = ${claimId},
-            dispatch_claim_expires_at = ${claimExpiresAt},
-            updated_at = CURRENT_TIMESTAMP
-        FROM candidates
-        WHERE jobs.id = candidates.id
-        RETURNING ${jobSelection}
-      `),
-    );
-    return rows.map(job);
-  } catch (error) {
-    return storeUnavailable(error);
-  }
-}
-
-export async function releaseVideoRenderFinalizationClaim(input: {
-  id: string;
-  claimId: string;
-  errorCode: string;
-  errorMessage: string;
-}) {
-  try {
-    const rows = await db.$queryRaw<VideoRenderJobRow[]>(Prisma.sql`
-      UPDATE video_render_jobs
-      SET state = 'COMPLETED',
-          dispatch_claim_id = NULL,
-          dispatch_claim_expires_at = NULL,
-          error_code = ${input.errorCode.slice(0, 100)},
-          error_message = ${input.errorMessage.slice(0, 500)},
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ${input.id}
-        AND state = 'FINALIZING'
-        AND dispatch_claim_id = ${input.claimId}
-      RETURNING ${jobSelection}
-    `);
-    return rows[0] ? job(rows[0]) : null;
-  } catch (error) {
     return storeUnavailable(error);
   }
 }
