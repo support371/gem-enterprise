@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireTrustedVideoWorker } from "@/lib/video/worker-auth";
-import { claimVideoRenderDispatchJobs } from "@/lib/video/store";
+import { claimWorkerDispatchJobs } from "@/lib/video/dispatch-store";
 import {
   correlationId,
   parseJson,
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   try {
     requireTrustedVideoWorker(request);
     const input = await parseJson(request, requestSchema);
-    const jobs = await claimVideoRenderDispatchJobs(input);
+    const jobs = await claimWorkerDispatchJobs(input);
     return NextResponse.json(
       {
         ok: true,
