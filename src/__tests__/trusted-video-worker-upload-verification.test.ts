@@ -73,6 +73,7 @@ const input = {
   fileSize: 2048,
   checksumSha256: "a".repeat(64),
   correlationId: "correlation-1",
+  outputManifest: completed.outputManifest,
 };
 
 describe("trusted worker private upload verification", () => {

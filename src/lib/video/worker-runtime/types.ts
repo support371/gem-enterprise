@@ -1,3 +1,5 @@
+import type { VideoJobInput } from "@/lib/video/comfyui";
+
 export type VideoWorkerEnvironment = Record<string, string | undefined>;
 
 export type VideoWorkerJob = {
@@ -9,6 +11,26 @@ export type VideoWorkerJob = {
   state: "QUEUED" | "RUNNING" | "COMPLETED";
   createdAt: string;
   updatedAt: string;
+};
+
+export type VideoWorkerDispatchJob = {
+  renderJobId: string;
+  workspaceId: string;
+  contentId: string;
+  contentVersionId: string;
+  complianceReviewId: string;
+  clientId: string;
+  claimId: string;
+  claimExpiresAt: string;
+  dispatchAttemptCount: number;
+  dispatch: VideoJobInput;
+};
+
+export type VideoWorkerDispatchJournal = {
+  renderJobId: string;
+  claimId: string;
+  promptId: string;
+  recordedAt: string;
 };
 
 export type VideoOutputDescriptor = {
@@ -27,7 +49,9 @@ export type VideoWorkerConfig = {
   storageKey: string;
   storageBucket: string;
   storagePrefix: string;
+  stateDirectory: string;
   batchSize: number;
+  dispatchLeaseMs: number;
   pollIntervalMs: number;
   maxFileBytes: number;
   requestTimeoutMs: number;

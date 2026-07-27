@@ -2,13 +2,19 @@
 
 import {
   checkVideoWorkerReadiness,
+  claimWorkerDispatchJobs,
   computeBackoffMs,
+  ensureWorkerStateDirectory,
   fetchWorkerJobs,
+  finalizeVerifiedRenders,
   loadVideoWorkerConfig,
+  processVideoWorkerDispatchJob,
   processVideoWorkerJob,
   redactedWorkerConfig,
+  reportWorkerRenderStatus,
   VideoWorkerError,
   type VideoWorkerConfig,
+  type VideoWorkerDispatchJob,
   type VideoWorkerJob,
 } from "../src/lib/video/worker-runtime";
 
@@ -40,10 +46,40 @@ function safeError(error: unknown) {
   };
 }
 
+function retryableError(error: ReturnType<typeof safeError>) {
+  return (
+    error.status === undefined ||
+    error.status === 408 ||
+    error.status === 429 ||
+    error.status >= 500
+  );
+}
+
 function parseMode(arguments_: string[]) {
   if (arguments_.includes("--check")) return "check" as const;
   if (arguments_.includes("--once")) return "once" as const;
   return "continuous" as const;
+}
+
+async function reportTerminalFailure(
+  config: VideoWorkerConfig,
+  job: VideoWorkerJob,
+  safe: ReturnType<typeof safeError>,
+) {
+  try {
+    await reportWorkerRenderStatus(config, job, {
+      state: "FAILED",
+      errorCode: safe.code,
+      errorMessage: safe.message,
+    });
+  } catch (callbackError) {
+    log("error", "job.status_callback_failed", {
+      renderJobId: job.renderJobId,
+      promptId: job.promptId,
+      ...safeError(callbackError),
+      externalPublicationTaken: false,
+    });
+  }
 }
 
 async function processJobWithRetry(
@@ -54,6 +90,12 @@ async function processJobWithRetry(
   for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
     try {
       const result = await processVideoWorkerJob(config, job);
+      if (
+        result.outcome === "pending" &&
+        result.status === "running"
+      ) {
+        await reportWorkerRenderStatus(config, job, { state: "RUNNING" });
+      }
       log("info", "job.processed", {
         renderJobId: job.renderJobId,
         promptId: job.promptId,
@@ -72,12 +114,8 @@ async function processJobWithRetry(
       return result;
     } catch (error) {
       const safe = safeError(error);
-      const retryable =
-        safe.status === undefined ||
-        safe.status === 408 ||
-        safe.status === 429 ||
-        safe.status >= 500;
-      if (!retryable || attempt === maximumAttempts - 1) {
+      if (!retryableError(safe) || attempt === maximumAttempts - 1) {
+        await reportTerminalFailure(config, job, safe);
         log("error", "job.failed", {
           renderJobId: job.renderJobId,
           promptId: job.promptId,
@@ -100,19 +138,81 @@ async function processJobWithRetry(
   return { outcome: "failed" as const };
 }
 
+async function processDispatchWithRetry(
+  config: VideoWorkerConfig,
+  job: VideoWorkerDispatchJob,
+  maximumAttempts = 3,
+) {
+  for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
+    try {
+      const result = await processVideoWorkerDispatchJob(config, job);
+      log("info", "dispatch.processed", {
+        renderJobId: job.renderJobId,
+        outcome: result.outcome,
+        promptId: "promptId" in result ? result.promptId : undefined,
+        queueDepthBeforeSubmission:
+          "queueDepthBeforeSubmission" in result
+            ? result.queueDepthBeforeSubmission
+            : undefined,
+        queueLimit: "queueLimit" in result ? result.queueLimit : undefined,
+        externalPublicationTaken: false,
+      });
+      return result;
+    } catch (error) {
+      const safe = safeError(error);
+      if (!retryableError(safe) || attempt === maximumAttempts - 1) {
+        log("error", "dispatch.failed", {
+          renderJobId: job.renderJobId,
+          attempt: attempt + 1,
+          ...safe,
+          externalPublicationTaken: false,
+        });
+        return { outcome: "failed" as const, error: safe };
+      }
+      const delayMs = computeBackoffMs(attempt);
+      log("warn", "dispatch.retrying", {
+        renderJobId: job.renderJobId,
+        attempt: attempt + 1,
+        nextAttemptInMs: delayMs,
+        ...safe,
+      });
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  return { outcome: "failed" as const };
+}
+
 async function runCycle(config: VideoWorkerConfig) {
+  const dispatchJobs = await claimWorkerDispatchJobs(config);
+  log("info", "dispatch.cycle.started", { jobCount: dispatchJobs.length });
+  for (const job of dispatchJobs) {
+    await processDispatchWithRetry(config, job);
+  }
+  log("info", "dispatch.cycle.completed", { jobCount: dispatchJobs.length });
+
   const jobs = await fetchWorkerJobs(config);
-  log("info", "cycle.started", { jobCount: jobs.length });
+  log("info", "render.cycle.started", { jobCount: jobs.length });
   for (const job of jobs) {
     await processJobWithRetry(config, job);
   }
-  log("info", "cycle.completed", { jobCount: jobs.length });
-  return jobs.length;
+  log("info", "render.cycle.completed", { jobCount: jobs.length });
+
+  const finalization = await finalizeVerifiedRenders(config);
+  log("info", "finalization.cycle.completed", {
+    responseReceived: Boolean(finalization),
+    externalPublicationTaken: false,
+  });
+
+  return {
+    dispatchJobs: dispatchJobs.length,
+    renderJobs: jobs.length,
+  };
 }
 
 async function main() {
   const mode = parseMode(process.argv.slice(2));
   const config = loadVideoWorkerConfig();
+  await ensureWorkerStateDirectory(config);
   log("info", "worker.starting", {
     mode,
     configuration: redactedWorkerConfig(config),

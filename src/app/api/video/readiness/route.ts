@@ -7,6 +7,23 @@ export async function GET() {
   if (!gate.ok) return gate.response;
 
   const readiness = getVideoReadiness();
+  if (readiness.dispatchMode === "worker") {
+    return NextResponse.json(
+      {
+        ok: readiness.contentRenderingReady,
+        ...readiness,
+        providerProbe: "delegated-to-trusted-worker",
+        code: readiness.contentRenderingReady
+          ? undefined
+          : "VIDEO_RENDER_WORKFLOW_NOT_CONFIGURED",
+      },
+      {
+        status: readiness.contentRenderingReady ? 200 : 503,
+        headers: { "Cache-Control": "no-store" },
+      },
+    );
+  }
+
   if (!readiness.directWorkerReady) {
     return NextResponse.json(
       {

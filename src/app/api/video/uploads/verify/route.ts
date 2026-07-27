@@ -15,6 +15,7 @@ const requestSchema = z.object({
   mimeType: z.enum(["video/mp4", "video/webm", "video/quicktime"]),
   fileSize: z.number().int().positive().max(1024 * 1024 * 1024),
   checksumSha256: z.string().regex(/^[a-f0-9]{64}$/i),
+  outputManifest: z.record(z.unknown()),
 });
 
 type UploadPayload = {
@@ -24,6 +25,7 @@ type UploadPayload = {
   mimeType: "video/mp4" | "video/webm" | "video/quicktime";
   fileSize: number;
   checksumSha256: string;
+  outputManifest: Record<string, unknown>;
 };
 
 export async function POST(request: NextRequest) {

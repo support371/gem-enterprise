@@ -76,6 +76,7 @@ describe("free local video routes", () => {
       configured: true,
       directWorkerReady: true,
       contentRenderingReady: true,
+      dispatchMode: "server",
       provider: "comfyui-local",
       queueLimit: 4,
       missingConfiguration: [],
@@ -153,7 +154,7 @@ describe("free local video routes", () => {
     );
   });
 
-  it("returns only redacted readiness information", async () => {
+  it("returns only redacted server-mode readiness information", async () => {
     videoMocks.probeComfyUi.mockResolvedValue({
       ok: false,
       status: 401,
@@ -172,11 +173,34 @@ describe("free local video routes", () => {
     expect(payload.system).toBeUndefined();
   });
 
+  it("delegates worker-mode provider readiness without probing from Vercel", async () => {
+    videoMocks.getVideoReadiness.mockReturnValue({
+      configured: true,
+      directWorkerReady: false,
+      contentRenderingReady: true,
+      dispatchMode: "worker",
+      provider: "comfyui-local",
+      queueLimit: 4,
+      missingConfiguration: [],
+    });
+
+    const response = await readinessGet();
+    const payload = await response.json();
+    expect(response.status).toBe(200);
+    expect(payload).toMatchObject({
+      ok: true,
+      dispatchMode: "worker",
+      providerProbe: "delegated-to-trusted-worker",
+    });
+    expect(videoMocks.probeComfyUi).not.toHaveBeenCalled();
+  });
+
   it("reports missing content workflow configuration even when the worker is reachable", async () => {
     videoMocks.getVideoReadiness.mockReturnValue({
       configured: true,
       directWorkerReady: true,
       contentRenderingReady: false,
+      dispatchMode: "server",
       provider: "comfyui-local",
       queueLimit: 4,
       missingConfiguration: ["COMFYUI_WORKFLOW_JSON"],

@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import {
   VideoWorkerError,
   type VideoWorkerConfig,
@@ -11,6 +12,7 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 const DEFAULT_TRANSFER_TIMEOUT_MS = 15 * 60_000;
 const DEFAULT_POLL_INTERVAL_MS = 15_000;
 const DEFAULT_BATCH_SIZE = 5;
+const DEFAULT_DISPATCH_LEASE_MS = 120_000;
 
 function required(env: VideoWorkerEnvironment, names: string[]) {
   for (const name of names) {
@@ -96,12 +98,22 @@ export function loadVideoWorkerConfig(
     storagePrefix: sanitizePathSegment(
       env.VIDEO_RENDER_STORAGE_PREFIX?.trim() || "renders",
     ),
+    stateDirectory: resolve(
+      env.VIDEO_RENDER_WORKER_STATE_DIR?.trim() || ".video-render-worker-state",
+    ),
     batchSize: optionalInteger(
       env,
       "VIDEO_RENDER_WORKER_BATCH_SIZE",
       DEFAULT_BATCH_SIZE,
       1,
       20,
+    ),
+    dispatchLeaseMs: optionalInteger(
+      env,
+      "VIDEO_RENDER_WORKER_DISPATCH_LEASE_MS",
+      DEFAULT_DISPATCH_LEASE_MS,
+      30_000,
+      15 * 60_000,
     ),
     pollIntervalMs: optionalInteger(
       env,
@@ -142,9 +154,11 @@ export function redactedWorkerConfig(config: VideoWorkerConfig) {
     storageBaseUrl: config.storageBaseUrl,
     storageBucket: config.storageBucket,
     storagePrefix: config.storagePrefix,
+    stateDirectory: config.stateDirectory,
     storageKeyConfigured: Boolean(config.storageKey),
     callbackSecretConfigured: Boolean(config.callbackSecret),
     batchSize: config.batchSize,
+    dispatchLeaseMs: config.dispatchLeaseMs,
     pollIntervalMs: config.pollIntervalMs,
     maxFileBytes: config.maxFileBytes,
     requestTimeoutMs: config.requestTimeoutMs,

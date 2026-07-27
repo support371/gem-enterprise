@@ -25,6 +25,11 @@ export type VideoRenderJobRecord = {
   externalPromptId: string | null;
   idempotencyKey: string;
   requestHash: string;
+  dispatchPayload: Record<string, unknown>;
+  dispatchAttemptCount: number;
+  dispatchClaimId: string | null;
+  dispatchClaimExpiresAt: Date | null;
+  dispatchedAt: Date | null;
   state: VideoRenderJobState;
   errorCode: string | null;
   errorMessage: string | null;
@@ -47,7 +52,11 @@ export type VideoRenderUploadRecord = {
   verifiedAt: Date;
 };
 
-type VideoRenderJobRow = Omit<VideoRenderJobRecord, "outputManifest"> & {
+type VideoRenderJobRow = Omit<
+  VideoRenderJobRecord,
+  "dispatchPayload" | "outputManifest"
+> & {
+  dispatchPayload: unknown;
   outputManifest: unknown;
 };
 type VideoRenderUploadRow = Omit<
@@ -70,6 +79,11 @@ const jobSelection = Prisma.sql`
   external_prompt_id AS "externalPromptId",
   idempotency_key AS "idempotencyKey",
   request_hash AS "requestHash",
+  dispatch_payload AS "dispatchPayload",
+  dispatch_attempt_count AS "dispatchAttemptCount",
+  dispatch_claim_id AS "dispatchClaimId",
+  dispatch_claim_expires_at AS "dispatchClaimExpiresAt",
+  dispatched_at AS "dispatchedAt",
   state,
   error_code AS "errorCode",
   error_message AS "errorMessage",
@@ -99,7 +113,11 @@ function object(value: unknown): Record<string, unknown> {
 }
 
 function job(row: VideoRenderJobRow): VideoRenderJobRecord {
-  return { ...row, outputManifest: object(row.outputManifest) };
+  return {
+    ...row,
+    dispatchPayload: object(row.dispatchPayload),
+    outputManifest: object(row.outputManifest),
+  };
 }
 
 function upload(row: VideoRenderUploadRow): VideoRenderUploadRecord {
@@ -117,7 +135,8 @@ function isMissingStore(error: unknown) {
     (text.includes("video_render_jobs") || text.includes("video_render_uploads")) &&
     (text.includes("does not exist") ||
       text.includes("42p01") ||
-      text.includes("p2010"))
+      text.includes("p2010") ||
+      text.includes("dispatch_payload"))
   );
 }
 
@@ -140,6 +159,7 @@ export async function createVideoRenderJob(input: {
   requestedById: string;
   idempotencyKey: string;
   request: unknown;
+  dispatchPayload?: Record<string, unknown>;
 }) {
   const requestHash = contentHash(input.request);
   try {
@@ -176,6 +196,7 @@ export async function createVideoRenderJob(input: {
           client_id,
           idempotency_key,
           request_hash,
+          dispatch_payload,
           state
         ) VALUES (
           ${id},
@@ -188,6 +209,7 @@ export async function createVideoRenderJob(input: {
           ${id},
           ${input.idempotencyKey},
           ${requestHash},
+          CAST(${JSON.stringify(input.dispatchPayload ?? {})} AS jsonb),
           'DISPATCHING'
         )
         RETURNING ${jobSelection}
@@ -263,6 +285,87 @@ export async function latestVideoRenderJobForContent(input: {
   }
 }
 
+export async function bindVideoRenderPrompt(input: {
+  id: string;
+  claimId: string;
+  promptId: string;
+}) {
+  try {
+    const rows = await db.$queryRaw<VideoRenderJobRow[]>(Prisma.sql`
+      UPDATE video_render_jobs
+      SET external_prompt_id = ${input.promptId},
+          state = 'QUEUED',
+          dispatch_attempt_count = dispatch_attempt_count + 1,
+          dispatch_claim_id = NULL,
+          dispatch_claim_expires_at = NULL,
+          dispatched_at = COALESCE(dispatched_at, CURRENT_TIMESTAMP),
+          error_code = NULL,
+          error_message = NULL,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${input.id}
+        AND state = 'DISPATCHING'
+        AND external_prompt_id IS NULL
+        AND dispatch_claim_id = ${input.claimId}
+        AND dispatch_claim_expires_at > CURRENT_TIMESTAMP
+      RETURNING ${jobSelection}
+    `);
+    if (!rows[0]) {
+      throw new TokMetricError(
+        409,
+        "VIDEO_RENDER_DISPATCH_CLAIM_INVALID",
+        "The video render dispatch claim is missing, expired, or already completed.",
+      );
+    }
+    return job(rows[0]);
+  } catch (error) {
+    if (error instanceof TokMetricError) throw error;
+    return storeUnavailable(error);
+  }
+}
+
+export async function releaseVideoRenderDispatchClaim(input: {
+  id: string;
+  claimId: string;
+  retryable: boolean;
+  errorCode: string;
+  errorMessage: string;
+  maximumAttempts?: number;
+}) {
+  const maximumAttempts = Math.min(Math.max(input.maximumAttempts ?? 5, 1), 20);
+  try {
+    const rows = await db.$queryRaw<VideoRenderJobRow[]>(Prisma.sql`
+      UPDATE video_render_jobs
+      SET dispatch_attempt_count = dispatch_attempt_count + 1,
+          state = CASE
+            WHEN ${input.retryable}
+              AND dispatch_attempt_count + 1 < ${maximumAttempts}
+            THEN 'DISPATCHING'
+            ELSE 'FAILED'
+          END,
+          dispatch_claim_id = NULL,
+          dispatch_claim_expires_at = NULL,
+          error_code = ${input.errorCode.slice(0, 100)},
+          error_message = ${input.errorMessage.slice(0, 500)},
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${input.id}
+        AND state = 'DISPATCHING'
+        AND dispatch_claim_id = ${input.claimId}
+      RETURNING ${jobSelection}
+    `);
+    if (!rows[0]) {
+      throw new TokMetricError(
+        409,
+        "VIDEO_RENDER_DISPATCH_CLAIM_INVALID",
+        "The video render dispatch claim is missing or already completed.",
+      );
+    }
+    return job(rows[0]);
+  } catch (error) {
+    if (error instanceof TokMetricError) throw error;
+    return storeUnavailable(error);
+  }
+}
+
 export async function markVideoRenderQueued(input: {
   id: string;
   promptId: string;
@@ -272,6 +375,10 @@ export async function markVideoRenderQueued(input: {
       UPDATE video_render_jobs
       SET external_prompt_id = ${input.promptId},
           state = 'QUEUED',
+          dispatch_attempt_count = dispatch_attempt_count + 1,
+          dispatched_at = COALESCE(dispatched_at, CURRENT_TIMESTAMP),
+          dispatch_claim_id = NULL,
+          dispatch_claim_expires_at = NULL,
           error_code = NULL,
           error_message = NULL,
           updated_at = CURRENT_TIMESTAMP
@@ -279,7 +386,11 @@ export async function markVideoRenderQueued(input: {
       RETURNING ${jobSelection}
     `);
     if (!rows[0]) {
-      throw new TokMetricError(404, "VIDEO_RENDER_JOB_NOT_FOUND", "The video render job was not found.");
+      throw new TokMetricError(
+        404,
+        "VIDEO_RENDER_JOB_NOT_FOUND",
+        "The video render job was not found.",
+      );
     }
     return job(rows[0]);
   } catch (error) {
@@ -309,7 +420,11 @@ export async function updateVideoRenderState(input: {
       RETURNING ${jobSelection}
     `);
     if (!rows[0]) {
-      throw new TokMetricError(404, "VIDEO_RENDER_JOB_NOT_FOUND", "The video render job was not found.");
+      throw new TokMetricError(
+        404,
+        "VIDEO_RENDER_JOB_NOT_FOUND",
+        "The video render job was not found.",
+      );
     }
     return job(rows[0]);
   } catch (error) {

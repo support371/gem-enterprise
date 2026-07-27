@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   cancelVideoJob,
+  findVideoPromptIdByClientId,
   getVideoJob,
   getVideoReadiness,
   probeComfyUi,
@@ -32,9 +33,26 @@ describe("free local video provider", () => {
     vi.restoreAllMocks();
   });
 
-  it("fails closed when the local worker is not configured", () => {
+  it("fails closed when the local worker and workflow are not configured", () => {
     vi.stubEnv("COMFYUI_BASE_URL", "");
+    vi.stubEnv("COMFYUI_WORKFLOW_JSON", "");
+    vi.stubEnv("COMFYUI_PROMPT_NODE_ID", "");
     expect(getVideoReadiness()).toMatchObject({ configured: false });
+  });
+
+  it("supports worker dispatch without exposing ComfyUI to the application", () => {
+    vi.stubEnv("VIDEO_RENDER_DISPATCH_MODE", "worker");
+    vi.stubEnv("COMFYUI_BASE_URL", "");
+    vi.stubEnv("COMFYUI_WORKFLOW_JSON", JSON.stringify(workflow));
+    vi.stubEnv("COMFYUI_PROMPT_NODE_ID", "6");
+
+    expect(getVideoReadiness()).toMatchObject({
+      configured: true,
+      directWorkerReady: false,
+      contentRenderingReady: true,
+      dispatchMode: "worker",
+      missingConfiguration: [],
+    });
   });
 
   it("rejects submissions when the configured queue boundary is reached", async () => {
@@ -88,6 +106,58 @@ describe("free local video provider", () => {
     });
 
     expect(result).toMatchObject({ promptId: "prompt-1", status: "queued" });
+  });
+
+  it("recovers a queued provider prompt from the stable client ID", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        queue_running: [],
+        queue_pending: [
+          [
+            1,
+            "prompt-recovered",
+            workflow,
+            { client_id: "client-stable" },
+            ["9"],
+          ],
+        ],
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(findVideoPromptIdByClientId("client-stable")).resolves.toBe(
+      "prompt-recovered",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("recovers a completed provider prompt from history by client ID", async () => {
+    const fetchMock = vi.fn(async (url: string | URL | Request) => {
+      const value = String(url);
+      if (value.endsWith("/queue")) {
+        return jsonResponse({ queue_running: [], queue_pending: [] });
+      }
+      if (value.includes("/history?max_items=200")) {
+        return jsonResponse({
+          "prompt-history": {
+            prompt: [
+              1,
+              "prompt-history",
+              workflow,
+              { client_id: "client-history" },
+              ["9"],
+            ],
+            outputs: {},
+          },
+        });
+      }
+      throw new Error(`Unexpected URL: ${value}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(findVideoPromptIdByClientId("client-history")).resolves.toBe(
+      "prompt-history",
+    );
   });
 
   it("preserves terminal execution failures", async () => {

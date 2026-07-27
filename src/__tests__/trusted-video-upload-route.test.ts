@@ -18,6 +18,11 @@ const payload = {
   mimeType: "video/mp4",
   fileSize: 2048,
   checksumSha256: "a".repeat(64),
+  outputManifest: {
+    "19": {
+      videos: [{ filename: "render.mp4", subfolder: "daily", type: "output" }],
+    },
+  },
 };
 
 function request(secret?: string) {

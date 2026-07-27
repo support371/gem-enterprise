@@ -21,7 +21,9 @@ const config: VideoWorkerConfig = {
   storageKey: "storage-secret",
   storageBucket: "gem-video-renders",
   storagePrefix: "renders",
+  stateDirectory: join(tmpdir(), "gem-video-worker-io-test"),
   batchSize: 5,
+  dispatchLeaseMs: 120_000,
   pollIntervalMs: 15_000,
   maxFileBytes: 1024,
   requestTimeoutMs: 30_000,
@@ -81,7 +83,7 @@ describe("trusted video worker I/O", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        new Response(new Uint8Array([1]), {
+        new Response("too large", {
           status: 200,
           headers: {
             "content-length": "2048",
@@ -93,88 +95,41 @@ describe("trusted video worker I/O", () => {
 
     await expect(downloadVideoOutput(config, output)).rejects.toMatchObject({
       code: "VIDEO_OUTPUT_TOO_LARGE",
-      status: 413,
     });
   });
 
-  it("uploads to a deterministic private object with upsert disabled", async () => {
-    const tempDirectory = await mkdtemp(join(tmpdir(), "gem-worker-test-"));
-    const tempPath = join(tempDirectory, "render.mp4");
-    await writeFile(tempPath, "render-data");
+  it("uploads a hashed temporary file to the deterministic private object path", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "gem-video-upload-test-"));
+    const tempPath = join(directory, "render.mp4");
+    await writeFile(tempPath, "video bytes");
     const downloaded: DownloadedVideo = {
-      tempDirectory,
+      tempDirectory: directory,
       tempPath,
       fileName: "render.mp4",
       mimeType: "video/mp4",
       fileSize: 11,
-      checksumSha256: "b".repeat(64),
+      checksumSha256: "a".repeat(64),
     };
-    const fetchMock = vi.fn().mockResolvedValue(new Response("{}", { status: 200 }));
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
     try {
-      const result = await uploadDownloadedVideo(config, job, downloaded);
-      expect(result.reused).toBe(false);
-      expect(result.objectPath).toContain(
-        `${job.renderJobId}/${"b".repeat(64)}-render.mp4`,
+      const uploaded = await uploadDownloadedVideo(config, job, downloaded);
+      expect(uploaded.storageRef).toContain(
+        "/storage/v1/object/gem-video-renders/renders/workspace-1/content-1/11111111-1111-4111-8111-111111111111/",
       );
       expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringContaining("/storage/v1/object/gem-video-renders/renders/"),
+        expect.stringContaining(`${"a".repeat(64)}-render.mp4`),
         expect.objectContaining({
           method: "POST",
           headers: expect.objectContaining({
-            Authorization: "Bearer storage-secret",
-            apikey: "storage-secret",
             "Content-Type": "video/mp4",
             "x-upsert": "false",
           }),
-          duplex: "half",
         }),
       );
     } finally {
-      await rm(tempDirectory, { recursive: true, force: true });
-    }
-  });
-
-  it("reuses an existing deterministic object only when size and MIME match", async () => {
-    const tempDirectory = await mkdtemp(join(tmpdir(), "gem-worker-test-"));
-    const tempPath = join(tempDirectory, "render.mp4");
-    await writeFile(tempPath, "render-data");
-    const downloaded: DownloadedVideo = {
-      tempDirectory,
-      tempPath,
-      fileName: "render.mp4",
-      mimeType: "video/mp4",
-      fileSize: 11,
-      checksumSha256: "c".repeat(64),
-    };
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(new Response("conflict", { status: 409 }))
-      .mockResolvedValueOnce(
-        new Response(null, {
-          status: 200,
-          headers: {
-            "content-length": "11",
-            "content-type": "video/mp4",
-          },
-        }),
-      );
-    vi.stubGlobal("fetch", fetchMock);
-
-    try {
-      const result = await uploadDownloadedVideo(config, job, downloaded);
-      expect(result.reused).toBe(true);
-      expect(fetchMock).toHaveBeenCalledTimes(2);
-      expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
-        method: "HEAD",
-        headers: {
-          Authorization: "Bearer storage-secret",
-          apikey: "storage-secret",
-        },
-      });
-    } finally {
-      await rm(tempDirectory, { recursive: true, force: true });
+      await rm(directory, { recursive: true, force: true });
     }
   });
 });

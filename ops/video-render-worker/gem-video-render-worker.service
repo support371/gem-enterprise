@@ -9,11 +9,14 @@ User=gem-video
 Group=gem-video
 WorkingDirectory=/opt/gem-enterprise
 EnvironmentFile=/etc/gem-video-render-worker.env
+Environment=VIDEO_RENDER_WORKER_STATE_DIR=/var/lib/gem-video-render-worker
 ExecStart=/usr/bin/env pnpm run video:worker
 Restart=on-failure
 RestartSec=10
 TimeoutStopSec=30
 KillSignal=SIGTERM
+StateDirectory=gem-video-render-worker
+StateDirectoryMode=0700
 NoNewPrivileges=true
 PrivateTmp=true
 PrivateDevices=true
@@ -25,7 +28,7 @@ ProtectControlGroups=true
 RestrictSUIDSGID=true
 LockPersonality=true
 MemoryDenyWriteExecute=false
-ReadWritePaths=/tmp
+ReadWritePaths=/tmp /var/lib/gem-video-render-worker
 UMask=0077
 
 [Install]

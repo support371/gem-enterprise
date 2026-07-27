@@ -1,8 +1,8 @@
 import { rm } from "node:fs/promises";
 import { getVideoJob } from "@/lib/video/comfyui";
 import { downloadVideoOutput, uploadDownloadedVideo } from "./io";
-import { verifyUploadedVideo } from "./network";
 import { selectVideoOutput } from "./outputs";
+import { verifyUploadedVideo } from "./upload-callback";
 import {
   VideoWorkerError,
   type VideoWorkerConfig,
@@ -32,7 +32,13 @@ export async function processVideoWorkerJob(
   const downloaded = await downloadVideoOutput(config, output);
   try {
     const uploaded = await uploadDownloadedVideo(config, job, downloaded);
-    await verifyUploadedVideo(config, job, downloaded, uploaded.storageRef);
+    await verifyUploadedVideo(
+      config,
+      job,
+      downloaded,
+      uploaded.storageRef,
+      providerJob.outputs,
+    );
     return {
       outcome: "verified" as const,
       fileName: downloaded.fileName,
