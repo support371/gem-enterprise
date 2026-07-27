@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireTrustedVideoWorker } from "@/lib/video/worker-auth";
-import { bindVideoRenderPrompt } from "@/lib/video/store";
+import {
+  bindWorkerPromptIdempotently,
+  ensureWorkerQueuedEvidence,
+} from "@/lib/video/worker-reliability";
 import {
   correlationId,
-  emitDomainEvent,
-  emitTokMetricAudit,
   parseJson,
   tokMetricErrorResponse,
 } from "@/lib/tokmetric/security";
@@ -23,38 +24,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     requireTrustedVideoWorker(request);
     const input = await parseJson(request, requestSchema);
     const { renderJobId } = await context.params;
-    const job = await bindVideoRenderPrompt({
+    const job = await bindWorkerPromptIdempotently({
       id: renderJobId,
       claimId: input.claimId,
       promptId: input.promptId,
     });
-    const metadata = {
-      renderJobId: job.id,
-      contentId: job.contentId,
-      contentVersionId: job.contentVersionId,
-      promptId: job.externalPromptId,
-      dispatchMode: "trusted-worker",
-      externalPublicationTaken: false,
-    };
-    await emitTokMetricAudit({
-      workspaceId: job.workspaceId,
-      actorId: job.requestedById ?? undefined,
-      action: "video.render.queued",
-      entityType: "video_render_job",
-      entityId: job.id,
-      correlationId: cid,
-      outcome: "queued",
-      sourceChannel: "video-render-worker",
-      metadata,
-    });
-    await emitDomainEvent({
-      workspaceId: job.workspaceId,
-      aggregateType: "content",
-      aggregateId: job.contentId,
-      eventType: "VIDEO_RENDER_QUEUED",
-      correlationId: cid,
-      metadata,
-    });
+    await ensureWorkerQueuedEvidence({ job, correlationId: cid });
     return NextResponse.json(
       {
         ok: true,
