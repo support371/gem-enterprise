@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { queueContentRender } from "@/lib/video/content-rendering";
+import { latestVideoRenderJobForContent } from "@/lib/video/store";
 import {
   queueContentRenderForWorker,
   videoRenderDispatchMode,
@@ -48,13 +49,25 @@ export async function queueCampaignVideoRenders(input: {
       });
       continue;
     }
+    const latestRender = await latestVideoRenderJobForContent({
+      workspaceId: input.workspaceId,
+      contentId: content.id,
+    });
+    const retryGeneration =
+      latestRender?.contentVersionId === content.currentVersionId &&
+      latestRender.state === "FAILED"
+        ? latestRender.id
+        : null;
     const idempotencyKey = [
       "campaign-video",
       campaign.id,
       content.id,
       content.currentVersionId,
       dispatchMode,
-    ].join(":");
+      retryGeneration && `retry-${retryGeneration}`,
+    ]
+      .filter(Boolean)
+      .join(":");
     try {
       const render =
         dispatchMode === "worker"
