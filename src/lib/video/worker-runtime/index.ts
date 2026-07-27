@@ -26,6 +26,7 @@ export {
   selectVideoOutput,
 } from "./outputs";
 export { processVideoWorkerJob } from "./processor";
+export { reportWorkerRenderStatus } from "./status-callback";
 export { verifyUploadedVideo } from "./upload-callback";
 export { VideoWorkerError } from "./types";
 export type {
