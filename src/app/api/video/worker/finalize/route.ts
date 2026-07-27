@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireTrustedVideoWorker } from "@/lib/video/worker-auth";
-import { finalizeVerifiedWorkerRenders } from "@/lib/video/worker-dispatch";
+import { finalizeVerifiedWorkerRendersReliably } from "@/lib/video/worker-reliability";
 import {
   correlationId,
   parseJson,
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   try {
     requireTrustedVideoWorker(request);
     const input = await parseJson(request, requestSchema);
-    const result = await finalizeVerifiedWorkerRenders({
+    const result = await finalizeVerifiedWorkerRendersReliably({
       limit: input.limit,
       correlationId: cid,
     });
