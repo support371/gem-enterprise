@@ -11,6 +11,7 @@ import {
   processVideoWorkerDispatchJob,
   processVideoWorkerJob,
   redactedWorkerConfig,
+  reportWorkerRenderStatus,
   VideoWorkerError,
   type VideoWorkerConfig,
   type VideoWorkerDispatchJob,
@@ -60,6 +61,27 @@ function parseMode(arguments_: string[]) {
   return "continuous" as const;
 }
 
+async function reportTerminalFailure(
+  config: VideoWorkerConfig,
+  job: VideoWorkerJob,
+  safe: ReturnType<typeof safeError>,
+) {
+  try {
+    await reportWorkerRenderStatus(config, job, {
+      state: "FAILED",
+      errorCode: safe.code,
+      errorMessage: safe.message,
+    });
+  } catch (callbackError) {
+    log("error", "job.status_callback_failed", {
+      renderJobId: job.renderJobId,
+      promptId: job.promptId,
+      ...safeError(callbackError),
+      externalPublicationTaken: false,
+    });
+  }
+}
+
 async function processJobWithRetry(
   config: VideoWorkerConfig,
   job: VideoWorkerJob,
@@ -68,6 +90,12 @@ async function processJobWithRetry(
   for (let attempt = 0; attempt < maximumAttempts; attempt += 1) {
     try {
       const result = await processVideoWorkerJob(config, job);
+      if (
+        result.outcome === "pending" &&
+        result.status === "running"
+      ) {
+        await reportWorkerRenderStatus(config, job, { state: "RUNNING" });
+      }
       log("info", "job.processed", {
         renderJobId: job.renderJobId,
         promptId: job.promptId,
@@ -87,6 +115,7 @@ async function processJobWithRetry(
     } catch (error) {
       const safe = safeError(error);
       if (!retryableError(safe) || attempt === maximumAttempts - 1) {
+        await reportTerminalFailure(config, job, safe);
         log("error", "job.failed", {
           renderJobId: job.renderJobId,
           promptId: job.promptId,
