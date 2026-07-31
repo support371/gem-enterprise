@@ -16,6 +16,27 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $WorkerHome = Join-Path $env:LOCALAPPDATA "GEM\video-render-worker"
 $WorkerStateDirectory = Join-Path $WorkerHome "state"
 $WorkerEnvironmentFile = Join-Path $WorkerHome "worker.production.env"
+$WorkerStdoutLog = Join-Path $WorkerHome "worker.stdout.log"
+$WorkerStderrLog = Join-Path $WorkerHome "worker.stderr.log"
+$CompleteNegativePrompt = "real company logos, credentials, private data, unreadable text, distorted faces, weapons, exploit instructions"
+$ManagedVercelNames = @(
+  "VIDEO_RENDER_DISPATCH_MODE",
+  "COMFYUI_WORKFLOW_JSON",
+  "COMFYUI_PROMPT_NODE_ID",
+  "COMFYUI_NEGATIVE_PROMPT_NODE_ID",
+  "COMFYUI_SEED_NODE_ID",
+  "COMFYUI_DEFAULT_NEGATIVE_PROMPT",
+  "VIDEO_RENDER_CALLBACK_SECRET",
+  "VIDEO_RENDER_STORAGE_URL",
+  "VIDEO_RENDER_STORAGE_KEY",
+  "VIDEO_RENDER_STORAGE_AUTH_ORIGIN",
+  "VIDEO_ASSET_ALLOWED_ORIGINS"
+)
+$SensitiveVercelNames = @(
+  "COMFYUI_WORKFLOW_JSON",
+  "VIDEO_RENDER_CALLBACK_SECRET",
+  "VIDEO_RENDER_STORAGE_KEY"
+)
 
 function Write-Step([string]$Message) {
   Write-Host "[GEM video worker] $Message" -ForegroundColor Cyan
@@ -100,7 +121,31 @@ function Remove-VercelValue([string]$Name) {
     Invoke-Pnpm -Arguments $arguments
   }
   catch {
-    throw "Failed to remove optional Vercel environment variable '$Name'; production configuration may be out of sync. $($_.Exception.Message)"
+    throw "Failed to remove Vercel environment variable '$Name'; production configuration may be out of sync. $($_.Exception.Message)"
+  }
+}
+
+function Get-VercelProductionEnvironment {
+  $tempFile = Join-Path ([IO.Path]::GetTempPath()) ("gem-vercel-env-{0}.tmp" -f [Guid]::NewGuid())
+  try {
+    Invoke-Pnpm @("dlx", "vercel@latest", "env", "pull", $tempFile, "--environment=production", "--yes")
+    return Get-EnvironmentMap $tempFile
+  }
+  finally {
+    if (Test-Path $tempFile) { Remove-Item -LiteralPath $tempFile -Force }
+  }
+}
+
+function Restore-VercelProductionEnvironment([hashtable]$PreviousEnvironment) {
+  Write-Step "Restoring the previous production worker environment."
+  $currentEnvironment = Get-VercelProductionEnvironment
+  foreach ($name in $ManagedVercelNames) {
+    if ($PreviousEnvironment.ContainsKey($name)) {
+      Set-VercelValue $name ([string]$PreviousEnvironment[$name]) ($SensitiveVercelNames -contains $name)
+    }
+    elseif ($currentEnvironment.ContainsKey($name)) {
+      Remove-VercelValue $name
+    }
   }
 }
 
@@ -140,6 +185,117 @@ function Write-WorkerEnvironment(
   Protect-WorkerFile $WorkerEnvironmentFile
 }
 
+function Restore-WorkerEnvironment([bool]$Existed, [string]$Content) {
+  if ($Existed) {
+    [IO.File]::WriteAllText($WorkerEnvironmentFile, $Content, [Text.UTF8Encoding]::new($false))
+    Protect-WorkerFile $WorkerEnvironmentFile
+  }
+  elseif (Test-Path $WorkerEnvironmentFile) {
+    Remove-Item -LiteralPath $WorkerEnvironmentFile -Force
+  }
+}
+
+function Assert-WorkflowNode(
+  [object]$Workflow,
+  [string]$NodeId,
+  [string]$RequiredInput,
+  [string]$Label
+) {
+  if (-not $NodeId) { return }
+  $nodeProperty = $Workflow.PSObject.Properties[$NodeId]
+  if ($null -eq $nodeProperty -or $null -eq $nodeProperty.Value) {
+    throw "$Label node '$NodeId' does not exist in the supplied ComfyUI workflow."
+  }
+  $inputsProperty = $nodeProperty.Value.PSObject.Properties["inputs"]
+  if ($null -eq $inputsProperty -or $null -eq $inputsProperty.Value) {
+    throw "$Label node '$NodeId' has no inputs object."
+  }
+  if (-not ($inputsProperty.Value.PSObject.Properties.Name -contains $RequiredInput)) {
+    throw "$Label node '$NodeId' does not expose the required '$RequiredInput' input."
+  }
+}
+
+function Test-ComfyUiPreflight([string]$BearerToken) {
+  Write-Step "Checking local ComfyUI before changing production."
+  $headers = @{}
+  if ($BearerToken) { $headers["Authorization"] = "Bearer $BearerToken" }
+  try {
+    $response = Invoke-WebRequest -Uri "$($ComfyUiBaseUrl.TrimEnd('/'))/system_stats" -Headers $headers -Method Get -TimeoutSec 30
+    if ($response.StatusCode -lt 200 -or $response.StatusCode -ge 300) {
+      throw "HTTP $($response.StatusCode)"
+    }
+  }
+  catch {
+    throw "ComfyUI preflight failed at '$ComfyUiBaseUrl'. $($_.Exception.Message)"
+  }
+}
+
+function Test-WorkerStateDirectory {
+  New-Item -ItemType Directory -Force -Path $WorkerStateDirectory | Out-Null
+  $probe = Join-Path $WorkerStateDirectory ("activation-probe-{0}.tmp" -f [Guid]::NewGuid())
+  try {
+    [IO.File]::WriteAllText($probe, "GEM worker journal probe", [Text.UTF8Encoding]::new($false))
+  }
+  finally {
+    if (Test-Path $probe) { Remove-Item -LiteralPath $probe -Force }
+  }
+}
+
+function Test-StorageWritePreflight([string]$StorageKey) {
+  Write-Step "Verifying private storage write and cleanup access before activation."
+  $probePath = "activation-probes/$([Guid]::NewGuid().ToString('N')).mp4"
+  $objectUri = "$SupabaseUrl/storage/v1/object/$StorageBucket/$probePath"
+  $bucketUri = "$SupabaseUrl/storage/v1/object/$StorageBucket"
+  $headers = @{
+    Authorization = "Bearer $StorageKey"
+    apikey = $StorageKey
+    "x-upsert" = "false"
+  }
+  $uploaded = $false
+  try {
+    $probeBytes = [Text.Encoding]::ASCII.GetBytes("GEM_VIDEO_STORAGE_WRITE_PROBE")
+    $upload = Invoke-WebRequest -Uri $objectUri -Method Post -Headers $headers -Body $probeBytes -ContentType "video/mp4" -TimeoutSec 60
+    if ($upload.StatusCode -lt 200 -or $upload.StatusCode -ge 300) {
+      throw "Storage upload returned HTTP $($upload.StatusCode)."
+    }
+    $uploaded = $true
+
+    $deleteBody = @{ prefixes = @($probePath) } | ConvertTo-Json -Compress
+    $delete = Invoke-WebRequest -Uri $bucketUri -Method Delete -Headers $headers -Body $deleteBody -ContentType "application/json" -TimeoutSec 60
+    if ($delete.StatusCode -lt 200 -or $delete.StatusCode -ge 300) {
+      throw "Storage cleanup returned HTTP $($delete.StatusCode)."
+    }
+    $uploaded = $false
+  }
+  catch {
+    $orphan = if ($uploaded) { " Probe object may remain at '$probePath'." } else { "" }
+    throw "Dedicated storage credential preflight failed.$orphan $($_.Exception.Message)"
+  }
+}
+
+function Stop-ExistingWorkerProcesses {
+  $matches = @(
+    Get-CimInstance Win32_Process | Where-Object {
+      $_.ProcessId -ne $PID -and
+      $_.CommandLine -and
+      $_.CommandLine -match 'scripts[\\/]video-render-worker\.ts'
+    }
+  )
+  foreach ($process in $matches) {
+    Write-Step "Stopping existing GEM video worker process $($process.ProcessId) before credential rotation."
+    Stop-Process -Id $process.ProcessId -Force
+    Wait-Process -Id $process.ProcessId -ErrorAction SilentlyContinue
+  }
+  return $matches.Count -gt 0
+}
+
+function Start-WorkerProcess {
+  New-Item -ItemType Directory -Force -Path $WorkerHome | Out-Null
+  $arguments = "-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Mode Run"
+  $process = Start-Process -FilePath "pwsh" -ArgumentList $arguments -WindowStyle Hidden -RedirectStandardOutput $WorkerStdoutLog -RedirectStandardError $WorkerStderrLog -PassThru
+  Write-Step "Started GEM video worker process $($process.Id)."
+}
+
 function Invoke-Worker([string]$WorkerMode) {
   Import-WorkerEnvironment
   Push-Location $RepoRoot
@@ -156,6 +312,16 @@ function Invoke-Worker([string]$WorkerMode) {
   }
 }
 
+function Deploy-CurrentProductionRevision {
+  Push-Location $RepoRoot
+  try {
+    Invoke-Pnpm @("dlx", "vercel@latest", "deploy", "--prod", "--yes")
+  }
+  finally {
+    Pop-Location
+  }
+}
+
 if ($Mode -ne "Setup") {
   Assert-Command "node"
   Assert-Command "pnpm"
@@ -166,7 +332,9 @@ if ($Mode -ne "Setup") {
 Write-Step "Checking local requirements."
 Assert-Command "node"
 Assert-Command "pnpm"
+Assert-Command "pwsh"
 Assert-Command "icacls"
+Assert-Command "Get-CimInstance"
 
 $nodeMajor = [int]((& node --version).TrimStart('v').Split('.')[0])
 if ($nodeMajor -ne 24) {
@@ -195,11 +363,11 @@ catch {
 
 $promptNodeId = (Read-Host "Positive prompt node ID").Trim()
 if (-not $promptNodeId) { throw "A positive prompt node ID is required." }
-if (-not ($workflowObject.PSObject.Properties.Name -contains $promptNodeId)) {
-  throw "Prompt node '$promptNodeId' does not exist in the supplied workflow."
-}
 $negativePromptNodeId = (Read-Host "Negative prompt node ID (press Enter if unused)").Trim()
 $seedNodeId = (Read-Host "Seed node ID (press Enter if unused)").Trim()
+Assert-WorkflowNode $workflowObject $promptNodeId "text" "Positive prompt"
+Assert-WorkflowNode $workflowObject $negativePromptNodeId "text" "Negative prompt"
+Assert-WorkflowNode $workflowObject $seedNodeId "seed" "Seed"
 
 Write-Step "Authenticating the Vercel CLI."
 $env:VERCEL_ORG_ID = $VercelOrgId
@@ -209,45 +377,60 @@ if ($LASTEXITCODE -ne 0) {
   Invoke-Pnpm @("dlx", "vercel@latest", "login")
 }
 
-$tempEnvironmentFile = Join-Path ([IO.Path]::GetTempPath()) ("gem-vercel-env-{0}.tmp" -f [Guid]::NewGuid())
+Write-Step "Reading the existing production worker configuration without printing secrets."
+$previousProductionEnvironment = Get-VercelProductionEnvironment
+$storageKey = if ($previousProductionEnvironment.ContainsKey("VIDEO_RENDER_STORAGE_KEY")) {
+  [string]$previousProductionEnvironment["VIDEO_RENDER_STORAGE_KEY"]
+} else {
+  ""
+}
+if (-not $storageKey) {
+  $secureStorageKey = Read-Host "Dedicated bucket-scoped Supabase storage credential" -AsSecureString
+  $storageKey = Convert-SecureStringToPlainText $secureStorageKey
+}
+if (-not $storageKey) {
+  throw "A dedicated bucket-scoped VIDEO_RENDER_STORAGE_KEY is required; the Supabase service-role key is not accepted."
+}
+
+$secureComfyToken = Read-Host "ComfyUI bearer token (press Enter if localhost has no token)" -AsSecureString
+$comfyBearerToken = Convert-SecureStringToPlainText $secureComfyToken
+
+Test-ComfyUiPreflight $comfyBearerToken
+Test-WorkerStateDirectory
+Test-StorageWritePreflight $storageKey
+
+$previousWorkerEnvironmentExisted = Test-Path $WorkerEnvironmentFile
+$previousWorkerEnvironmentContent = if ($previousWorkerEnvironmentExisted) {
+  Get-Content -LiteralPath $WorkerEnvironmentFile -Raw
+} else {
+  ""
+}
+$existingWorkerWasRunning = Stop-ExistingWorkerProcesses
+$callbackSecret = New-CallbackSecret
+
 try {
-  Write-Step "Reading the existing production storage credential without printing it."
-  Invoke-Pnpm @("dlx", "vercel@latest", "env", "pull", $tempEnvironmentFile, "--environment=production", "--yes")
-  $productionEnvironment = Get-EnvironmentMap $tempEnvironmentFile
-  $storageKey = $productionEnvironment["VIDEO_RENDER_STORAGE_KEY"]
-  if (-not $storageKey) { $storageKey = $productionEnvironment["SUPABASE_SERVICE_ROLE_KEY"] }
-  if (-not $storageKey) {
-    $secureStorageKey = Read-Host "Restricted Supabase storage credential" -AsSecureString
-    $storageKey = Convert-SecureStringToPlainText $secureStorageKey
-  }
-  if (-not $storageKey) { throw "A restricted storage credential is required." }
-
-  $secureComfyToken = Read-Host "ComfyUI bearer token (press Enter if localhost has no token)" -AsSecureString
-  $comfyBearerToken = Convert-SecureStringToPlainText $secureComfyToken
-  $callbackSecret = New-CallbackSecret
-
-  Write-Step "Applying the production Vercel worker configuration."
-  Set-VercelValue "VIDEO_RENDER_DISPATCH_MODE" "worker" $false
+  Write-Step "Applying the managed production worker configuration."
   Set-VercelValue "COMFYUI_WORKFLOW_JSON" $workflowJson $true
   Set-VercelValue "COMFYUI_PROMPT_NODE_ID" $promptNodeId $false
   if ($negativePromptNodeId) {
     Set-VercelValue "COMFYUI_NEGATIVE_PROMPT_NODE_ID" $negativePromptNodeId $false
   }
-  else {
+  elseif ($previousProductionEnvironment.ContainsKey("COMFYUI_NEGATIVE_PROMPT_NODE_ID")) {
     Remove-VercelValue "COMFYUI_NEGATIVE_PROMPT_NODE_ID"
   }
   if ($seedNodeId) {
     Set-VercelValue "COMFYUI_SEED_NODE_ID" $seedNodeId $false
   }
-  else {
+  elseif ($previousProductionEnvironment.ContainsKey("COMFYUI_SEED_NODE_ID")) {
     Remove-VercelValue "COMFYUI_SEED_NODE_ID"
   }
-  Set-VercelValue "COMFYUI_DEFAULT_NEGATIVE_PROMPT" "real company logos, credentials, private data, unreadable text, distorted faces" $false
+  Set-VercelValue "COMFYUI_DEFAULT_NEGATIVE_PROMPT" $CompleteNegativePrompt $false
   Set-VercelValue "VIDEO_RENDER_CALLBACK_SECRET" $callbackSecret $true
   Set-VercelValue "VIDEO_RENDER_STORAGE_URL" $SupabaseUrl $false
   Set-VercelValue "VIDEO_RENDER_STORAGE_KEY" $storageKey $true
   Set-VercelValue "VIDEO_RENDER_STORAGE_AUTH_ORIGIN" $SupabaseUrl $false
   Set-VercelValue "VIDEO_ASSET_ALLOWED_ORIGINS" $SupabaseUrl $false
+  Set-VercelValue "VIDEO_RENDER_DISPATCH_MODE" "worker" $false
 
   Write-Step "Writing the local worker configuration with current-user-only permissions."
   Write-WorkerEnvironment $callbackSecret $storageKey $comfyBearerToken
@@ -256,21 +439,38 @@ try {
   try {
     Write-Step "Installing locked repository dependencies."
     Invoke-Pnpm @("install", "--frozen-lockfile")
-
-    Write-Step "Deploying the current checked-out GEM revision to production with the managed worker environment."
-    Invoke-Pnpm @("dlx", "vercel@latest", "deploy", "--prod", "--yes")
   }
   finally {
     Pop-Location
   }
+
+  Write-Step "Deploying the current checked-out GEM revision with the managed worker environment."
+  Deploy-CurrentProductionRevision
+
+  Write-Step "Running the complete post-deployment worker readiness check."
+  Invoke-Worker "Check"
 }
-finally {
-  if (Test-Path $tempEnvironmentFile) {
-    Remove-Item -LiteralPath $tempEnvironmentFile -Force
+catch {
+  $activationError = $_
+  Write-Warning "Activation failed. Restoring the previous production and local worker configuration."
+  try {
+    Restore-VercelProductionEnvironment $previousProductionEnvironment
+    Restore-WorkerEnvironment $previousWorkerEnvironmentExisted $previousWorkerEnvironmentContent
+    Deploy-CurrentProductionRevision
+    if ($existingWorkerWasRunning -and $previousWorkerEnvironmentExisted) {
+      Start-WorkerProcess
+    }
   }
+  catch {
+    throw "Activation failed and rollback was incomplete. Activation error: $($activationError.Exception.Message). Rollback error: $($_.Exception.Message)"
+  }
+  throw "Activation failed and was rolled back. $($activationError.Exception.Message)"
 }
 
-Write-Step "Running the complete worker readiness check."
-Invoke-Worker "Check"
+if ($existingWorkerWasRunning) {
+  Write-Step "Restarting the previously running worker with the rotated production credential."
+  Start-WorkerProcess
+}
+
 Write-Step "Activation is complete. Start continuous processing with:"
 Write-Host "  pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Mode Run" -ForegroundColor Green
