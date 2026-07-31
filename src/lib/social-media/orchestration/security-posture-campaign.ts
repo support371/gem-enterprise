@@ -10,7 +10,13 @@ export const securityPostureCampaignProviders = [
   "NEXTDOOR",
 ] as const satisfies readonly SocialMediaProviderId[];
 
-const sourceReference = "https://www.gemcybersecurityassist.com/";
+export const securityPostureCampaignProductSlugs = [
+  "security-posture-assessment",
+  "24-7-threat-monitoring",
+] as const;
+
+const sourceReference =
+  "https://www.gemcybersecurityassist.com/store/security-posture-assessment";
 
 export function buildSecurityPostureCampaignRequest(input: {
   workspaceId: string;
@@ -39,23 +45,11 @@ export function buildSecurityPostureCampaignRequest(input: {
         providers: [...securityPostureCampaignProviders],
       },
     ],
-    approvedSources: [
-      {
-        id: "gem-approved:cybersecurity-assessment-monitoring",
-        title: "Cybersecurity Assessment and Monitoring Services",
-        summary:
-          "GEM Cybersecurity & Monitoring Assist provides structured cybersecurity assessments and continuous monitoring designed to help organizations better understand their security environment, identify potential areas for improvement, and support informed cybersecurity decisions.",
-        callToAction: `Request a security consultation: ${sourceReference}`,
-        sourceReference,
-        approvedAt: timestamp,
-        approved: true as const,
-        providers: [...securityPostureCampaignProviders],
-      },
-    ],
-    useGemCatalog: false,
+    useGemCatalog: true,
+    gemProductSlugs: [...securityPostureCampaignProductSlugs],
     ...(localContext ? { localContext } : {}),
     minimumTikTokItems: 20,
-    maxItemsPerOtherProvider: 1,
+    maxItemsPerOtherProvider: 2,
     freshnessWindowDays: null,
     requestApprovals: true,
     forceRegenerate: false,
