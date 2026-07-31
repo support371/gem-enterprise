@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { governedCampaignTitle } from "@/lib/social-media/orchestration/campaign-identity";
 import {
   buildSecurityPostureCampaignRequest,
-  securityPostureCampaignProviders,
+  securityPostureCampaignProductSlugs,
 } from "@/lib/social-media/orchestration/security-posture-campaign";
 
 describe("security posture governed campaign", () => {
@@ -21,8 +21,22 @@ describe("security posture governed campaign", () => {
       "NEXTDOOR",
     ]);
     expect(request.enabledProviders).not.toContain("INDEED_EMPLOYER");
-    expect(request.approvedSources[0].providers).toEqual([
-      ...securityPostureCampaignProviders,
+    expect(request.localContext).toBe("Approved local service area context.");
+  });
+
+  it("uses the canonical assessment and monitoring catalog records", () => {
+    const request = buildSecurityPostureCampaignRequest({
+      workspaceId: "workspace-1",
+      planDate: "2026-07-31",
+    });
+
+    expect(request.useGemCatalog).toBe(true);
+    expect(request.gemProductSlugs).toEqual([
+      ...securityPostureCampaignProductSlugs,
+    ]);
+    expect(request.gemProductSlugs).toEqual([
+      "security-posture-assessment",
+      "24-7-threat-monitoring",
     ]);
   });
 
@@ -37,9 +51,9 @@ describe("security posture governed campaign", () => {
     expect(request.requestApprovals).toBe(true);
     expect(request.forceRegenerate).toBe(false);
     expect(request.minimumTikTokItems).toBe(20);
-    expect(request.maxItemsPerOtherProvider).toBe(1);
+    expect(request.maxItemsPerOtherProvider).toBe(2);
     expect(request).not.toHaveProperty("localContext");
-    expect(request.approvedSources[0].summary).not.toMatch(
+    expect(request.marketSignals[0].summary).not.toMatch(
       /100% secure|unhackable|guaranteed protection|fully compliant/i,
     );
   });
