@@ -10,7 +10,6 @@ $ErrorActionPreference = "Stop"
 
 $VercelOrgId = "team_7lMXW95WSLeyK4yAObe8FptW"
 $VercelProjectId = "prj_VDGqnA7wZt2E65LLvT94ZOpnYc2Z"
-$ProductionDeploymentId = "dpl_J1zHobzphsyLXb5XjqNEBTmoiSue"
 $SupabaseUrl = "https://slzdjoqpzbkwzuaexlkj.supabase.co"
 $StorageBucket = "gem-video-renders"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
@@ -102,7 +101,7 @@ function Remove-VercelValue([string]$Name) {
 function Protect-WorkerFile([string]$Path) {
   & icacls $Path /inheritance:r *> $null
   if ($LASTEXITCODE -ne 0) { throw "Failed to disable inherited permissions on $Path." }
-  & icacls $Path /grant:r "$env:USERNAME:(F)" *> $null
+  & icacls $Path /grant:r "${env:USERNAME}:(F)" *> $null
   if ($LASTEXITCODE -ne 0) { throw "Failed to restrict $Path to the current Windows user." }
 }
 
@@ -252,8 +251,8 @@ try {
     Write-Step "Installing locked repository dependencies."
     Invoke-Pnpm @("install", "--frozen-lockfile")
 
-    Write-Step "Redeploying the verified production artifact with the new managed environment."
-    Invoke-Pnpm @("dlx", "vercel@latest", "redeploy", $ProductionDeploymentId, "--yes")
+    Write-Step "Deploying the current checked-out GEM revision to production with the managed worker environment."
+    Invoke-Pnpm @("dlx", "vercel@latest", "deploy", "--prod", "--yes")
   }
   finally {
     Pop-Location
@@ -268,4 +267,4 @@ finally {
 Write-Step "Running the complete worker readiness check."
 Invoke-Worker "Check"
 Write-Step "Activation is complete. Start continuous processing with:"
-Write-Host "  powershell -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Mode Run" -ForegroundColor Green
+Write-Host "  pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Mode Run" -ForegroundColor Green
