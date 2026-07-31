@@ -10,6 +10,7 @@ $ErrorActionPreference = "Stop"
 
 $VercelOrgId = "team_7lMXW95WSLeyK4yAObe8FptW"
 $VercelProjectId = "prj_VDGqnA7wZt2E65LLvT94ZOpnYc2Z"
+$ProductionAlias = "https://www.gemcybersecurityassist.com"
 $SupabaseUrl = "https://slzdjoqpzbkwzuaexlkj.supabase.co"
 $StorageBucket = "gem-video-renders"
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
@@ -62,6 +63,16 @@ function New-CallbackSecret {
   $bytes = New-Object byte[] 48
   [Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
   return [Convert]::ToBase64String($bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_')
+}
+
+function Merge-OriginAllowlist([string]$Existing, [string]$RequiredOrigin) {
+  $origins = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+  foreach ($candidate in ($Existing -split ',')) {
+    $normalized = $candidate.Trim().TrimEnd('/')
+    if ($normalized) { [void]$origins.Add($normalized) }
+  }
+  [void]$origins.Add($RequiredOrigin.Trim().TrimEnd('/'))
+  return (($origins | Sort-Object) -join ',')
 }
 
 function Invoke-Pnpm([string[]]$Arguments, [string]$InputValue = $null) {
@@ -150,10 +161,36 @@ function Restore-VercelProductionEnvironment([hashtable]$PreviousEnvironment) {
 }
 
 function Protect-WorkerFile([string]$Path) {
-  & icacls $Path /inheritance:r *> $null
-  if ($LASTEXITCODE -ne 0) { throw "Failed to disable inherited permissions on $Path." }
-  & icacls $Path /grant:r "${env:USERNAME}:(F)" *> $null
-  if ($LASTEXITCODE -ne 0) { throw "Failed to restrict $Path to the current Windows user." }
+  $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+  $currentSid = $currentIdentity.User
+  $acl = Get-Acl -LiteralPath $Path
+  $acl.SetAccessRuleProtection($true, $false)
+  foreach ($existingRule in @($acl.Access)) {
+    [void]$acl.RemoveAccessRuleSpecific($existingRule)
+  }
+  $currentUserRule = [Security.AccessControl.FileSystemAccessRule]::new(
+    $currentSid,
+    [Security.AccessControl.FileSystemRights]::FullControl,
+    [Security.AccessControl.AccessControlType]::Allow
+  )
+  [void]$acl.AddAccessRule($currentUserRule)
+  Set-Acl -LiteralPath $Path -AclObject $acl
+
+  $verifiedAcl = Get-Acl -LiteralPath $Path
+  $unexpectedRules = @(
+    $verifiedAcl.Access | Where-Object {
+      try {
+        $ruleSid = $_.IdentityReference.Translate([Security.Principal.SecurityIdentifier])
+        $ruleSid.Value -ne $currentSid.Value
+      }
+      catch {
+        $true
+      }
+    }
+  )
+  if ($unexpectedRules.Count -ne 0) {
+    throw "Failed to remove non-current-user access rules from $Path."
+  }
 }
 
 function Write-WorkerEnvironment(
@@ -293,6 +330,10 @@ function Start-WorkerProcess {
   New-Item -ItemType Directory -Force -Path $WorkerHome | Out-Null
   $arguments = "-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$PSCommandPath`" -Mode Run"
   $process = Start-Process -FilePath "pwsh" -ArgumentList $arguments -WindowStyle Hidden -RedirectStandardOutput $WorkerStdoutLog -RedirectStandardError $WorkerStderrLog -PassThru
+  Start-Sleep -Seconds 2
+  if ($process.HasExited) {
+    throw "The GEM video worker process exited during startup. Check $WorkerStderrLog."
+  }
   Write-Step "Started GEM video worker process $($process.Id)."
 }
 
@@ -312,14 +353,9 @@ function Invoke-Worker([string]$WorkerMode) {
   }
 }
 
-function Deploy-CurrentProductionRevision {
-  Push-Location $RepoRoot
-  try {
-    Invoke-Pnpm @("dlx", "vercel@latest", "deploy", "--prod", "--yes")
-  }
-  finally {
-    Pop-Location
-  }
+function Redeploy-CanonicalProductionArtifact {
+  Write-Step "Redeploying the current canonical Git-integrated production artifact."
+  Invoke-Pnpm @("dlx", "vercel@latest", "redeploy", $ProductionAlias, "--yes")
 }
 
 if ($Mode -ne "Setup") {
@@ -333,7 +369,6 @@ Write-Step "Checking local requirements."
 Assert-Command "node"
 Assert-Command "pnpm"
 Assert-Command "pwsh"
-Assert-Command "icacls"
 Assert-Command "Get-CimInstance"
 
 $nodeMajor = [int]((& node --version).TrimStart('v').Split('.')[0])
@@ -394,6 +429,12 @@ if (-not $storageKey) {
 
 $secureComfyToken = Read-Host "ComfyUI bearer token (press Enter if localhost has no token)" -AsSecureString
 $comfyBearerToken = Convert-SecureStringToPlainText $secureComfyToken
+$existingAssetOrigins = if ($previousProductionEnvironment.ContainsKey("VIDEO_ASSET_ALLOWED_ORIGINS")) {
+  [string]$previousProductionEnvironment["VIDEO_ASSET_ALLOWED_ORIGINS"]
+} else {
+  ""
+}
+$mergedAssetOrigins = Merge-OriginAllowlist $existingAssetOrigins $SupabaseUrl
 
 Test-ComfyUiPreflight $comfyBearerToken
 Test-WorkerStateDirectory
@@ -429,7 +470,7 @@ try {
   Set-VercelValue "VIDEO_RENDER_STORAGE_URL" $SupabaseUrl $false
   Set-VercelValue "VIDEO_RENDER_STORAGE_KEY" $storageKey $true
   Set-VercelValue "VIDEO_RENDER_STORAGE_AUTH_ORIGIN" $SupabaseUrl $false
-  Set-VercelValue "VIDEO_ASSET_ALLOWED_ORIGINS" $SupabaseUrl $false
+  Set-VercelValue "VIDEO_ASSET_ALLOWED_ORIGINS" $mergedAssetOrigins $false
   Set-VercelValue "VIDEO_RENDER_DISPATCH_MODE" "worker" $false
 
   Write-Step "Writing the local worker configuration with current-user-only permissions."
@@ -444,11 +485,15 @@ try {
     Pop-Location
   }
 
-  Write-Step "Deploying the current checked-out GEM revision with the managed worker environment."
-  Deploy-CurrentProductionRevision
+  Redeploy-CanonicalProductionArtifact
 
   Write-Step "Running the complete post-deployment worker readiness check."
   Invoke-Worker "Check"
+
+  if ($existingWorkerWasRunning) {
+    Write-Step "Restarting the previously running worker with the rotated production credential."
+    Start-WorkerProcess
+  }
 }
 catch {
   $activationError = $_
@@ -456,7 +501,7 @@ catch {
   try {
     Restore-VercelProductionEnvironment $previousProductionEnvironment
     Restore-WorkerEnvironment $previousWorkerEnvironmentExisted $previousWorkerEnvironmentContent
-    Deploy-CurrentProductionRevision
+    Redeploy-CanonicalProductionArtifact
     if ($existingWorkerWasRunning -and $previousWorkerEnvironmentExisted) {
       Start-WorkerProcess
     }
@@ -465,11 +510,6 @@ catch {
     throw "Activation failed and rollback was incomplete. Activation error: $($activationError.Exception.Message). Rollback error: $($_.Exception.Message)"
   }
   throw "Activation failed and was rolled back. $($activationError.Exception.Message)"
-}
-
-if ($existingWorkerWasRunning) {
-  Write-Step "Restarting the previously running worker with the rotated production credential."
-  Start-WorkerProcess
 }
 
 Write-Step "Activation is complete. Start continuous processing with:"
