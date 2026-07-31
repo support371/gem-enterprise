@@ -12,11 +12,12 @@ This utility completes the owner-controlled portion of the GEM trusted video wor
 - applies the complete negative-prompt safety policy used by the application runtime
 - generates a new 48-byte callback secret and applies the same value to Vercel and the local worker
 - binds storage to `https://slzdjoqpzbkwzuaexlkj.supabase.co`
+- adds the canonical Supabase origin without deleting any existing approved video-asset origin
 - uses the private `gem-video-renders` bucket
 - writes the worker environment under `%LOCALAPPDATA%\GEM\video-render-worker`
-- removes inherited permissions from the local environment file and grants access only to the current Windows user
+- replaces the file ACL with a current-Windows-user-only access rule before retaining production secrets
 - stops an existing trusted worker before callback-secret rotation and restarts it only after successful readiness verification
-- deploys the current checked-out GEM revision rather than a frozen historical artifact
+- redeploys the production artifact already serving the canonical GEM domain, preserving the Git-integrated `main` release path
 - restores the previous Vercel and local worker configuration if deployment or readiness verification fails
 - runs the complete GEM, ComfyUI, database, journal, and storage readiness check
 
@@ -75,7 +76,7 @@ The continuous worker performs dispatch, local ComfyUI rendering, checksum calcu
 
 ## Transactional behavior
 
-The utility performs local ComfyUI, journal, and storage-write preflights before setting worker mode. It snapshots the current managed Vercel values and local worker file before rotation. If environment mutation, deployment, or the post-deployment readiness check fails, it restores the previous values, redeploys, restores the previous local worker file, and restarts a previously running worker only after rollback.
+The utility performs local ComfyUI, journal, and storage-write preflights before setting worker mode. It snapshots the current managed Vercel values and local worker file before rotation. Environment changes are applied to Vercel, then the currently serving canonical Git-integrated production artifact is redeployed so it receives those values. If environment mutation, redeployment, worker restart, or the post-deployment readiness check fails, the utility restores the previous values, redeploys the same canonical production artifact, restores the previous local worker file, and restarts a previously running worker only after rollback.
 
 A storage probe is uploaded with MIME type `video/mp4` under `activation-probes/` and immediately deleted. Any failure to upload or clean up stops activation.
 
