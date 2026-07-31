@@ -95,7 +95,13 @@ function Set-VercelValue(
 }
 
 function Remove-VercelValue([string]$Name) {
-  & pnpm dlx vercel@latest env rm $Name production --yes *> $null
+  $arguments = @("dlx", "vercel@latest", "env", "rm", $Name, "production", "--yes")
+  try {
+    Invoke-Pnpm -Arguments $arguments
+  }
+  catch {
+    throw "Failed to remove optional Vercel environment variable '$Name'; production configuration may be out of sync. $($_.Exception.Message)"
+  }
 }
 
 function Protect-WorkerFile([string]$Path) {
