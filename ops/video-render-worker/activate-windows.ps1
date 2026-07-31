@@ -193,6 +193,15 @@ function Protect-WorkerFile([string]$Path) {
   }
 }
 
+function Initialize-ProtectedWorkerFile([string]$Path) {
+  $parent = Split-Path -Parent $Path
+  New-Item -ItemType Directory -Force -Path $parent | Out-Null
+  if (-not (Test-Path -LiteralPath $Path)) {
+    [IO.File]::WriteAllText($Path, "", [Text.UTF8Encoding]::new($false))
+  }
+  Protect-WorkerFile $Path
+}
+
 function Write-WorkerEnvironment(
   [string]$CallbackSecret,
   [string]$StorageKey,
@@ -218,12 +227,14 @@ function Write-WorkerEnvironment(
     "VIDEO_RENDER_WORKER_TRANSFER_TIMEOUT_MS=900000",
     "VIDEO_RENDER_MAX_FILE_BYTES=1073741824"
   )
+  Initialize-ProtectedWorkerFile $WorkerEnvironmentFile
   [IO.File]::WriteAllLines($WorkerEnvironmentFile, $lines, [Text.UTF8Encoding]::new($false))
   Protect-WorkerFile $WorkerEnvironmentFile
 }
 
 function Restore-WorkerEnvironment([bool]$Existed, [string]$Content) {
   if ($Existed) {
+    Initialize-ProtectedWorkerFile $WorkerEnvironmentFile
     [IO.File]::WriteAllText($WorkerEnvironmentFile, $Content, [Text.UTF8Encoding]::new($false))
     Protect-WorkerFile $WorkerEnvironmentFile
   }
