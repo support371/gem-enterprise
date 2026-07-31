@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Film, ShieldCheck } from "lucide-react";
 import { ContentOrchestratorPanel } from "@/components/social-media/ContentOrchestratorPanel";
+import { GovernedVideoPreviewPanel } from "@/components/social-media/GovernedVideoPreviewPanel";
 
 export const metadata: Metadata = {
   title: "Content Studio | GEM Enterprise Command Center",
   description:
-    "Governed daily content generation, local video rendering, media registration, compliance review, and exact-version approval.",
+    "Governed daily content generation, local video rendering, media registration, compliance review, exact-version approval, and private video preview.",
 };
 
 export default function SocialMediaContentStudioPage() {
@@ -36,16 +37,17 @@ export default function SocialMediaContentStudioPage() {
               Daily content generation and realistic video production
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-400">
-              Run the existing adaptive content orchestrator, send approved video recipes to the free local ComfyUI worker, track execution, register completed media, and return the final exact version to compliance and approval.
+              Run the existing adaptive content orchestrator, send approved video recipes to the free local ComfyUI worker, track execution, register completed media, privately preview the verified output, and return the final exact version to compliance and approval.
             </p>
           </div>
           <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-4 text-sm text-amber-100/80 lg:max-w-sm">
-            This studio creates and prepares media. It does not bypass publishing locks, provider authorization, or separate human approval.
+            This studio creates, prepares, and previews media. It does not bypass publishing locks, provider authorization, or separate human approval.
           </div>
         </div>
       </section>
 
       <ContentOrchestratorPanel />
+      <GovernedVideoPreviewPanel />
     </div>
   );
 }
