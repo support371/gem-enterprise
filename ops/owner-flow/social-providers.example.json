@@ -1,0 +1,50 @@
+{
+  "orchestrator": {
+    "workspaceId": "",
+    "serviceActorId": "",
+    "nextdoorLocalContext": "GEM Cybersecurity & Monitoring Assist serves approved local businesses and organizations in the documented service area. Replace this sentence with the exact approved locality before enabling Nextdoor content."
+  },
+  "providers": {
+    "meta": {
+      "enabled": true,
+      "appId": "",
+      "graphApiVersion": "v23.0",
+      "scopes": "pages_show_list pages_read_engagement pages_manage_posts instagram_basic instagram_content_publish",
+      "platformApprovalRecorded": false
+    },
+    "x": {
+      "enabled": true,
+      "clientId": "",
+      "scopes": "tweet.read tweet.write users.read offline.access"
+    },
+    "nextdoor": {
+      "enabled": true,
+      "clientId": "",
+      "scopes": "openid profile post:write post:read",
+      "platformApprovalRecorded": false
+    },
+    "tiktok": {
+      "enabled": true,
+      "clientKey": "",
+      "environment": "sandbox"
+    },
+    "linkedin": {
+      "enabled": false,
+      "clientId": "",
+      "apiVersion": "202607",
+      "scopes": "rw_organization_admin w_organization_social r_organization_social",
+      "platformApprovalRecorded": false
+    },
+    "youtube": {
+      "enabled": false,
+      "clientId": "",
+      "scopes": "https://www.googleapis.com/auth/youtube.readonly https://www.googleapis.com/auth/youtube.upload",
+      "platformApprovalRecorded": false
+    },
+    "indeed": {
+      "enabled": false,
+      "employerId": "",
+      "jobFeedUrl": ""
+    }
+  }
+}
