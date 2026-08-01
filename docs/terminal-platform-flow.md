@@ -1,57 +1,74 @@
 # GEM Enterprise Terminal Platform Flow
 
-This runbook starts from the current canonical repository and uses the platform's existing systems of record. It does not create a second content engine, video pipeline, connector store, OAuth implementation, publishing queue, or social scheduler.
+This runbook operates the existing `support371/gem-enterprise` platform. It does not create a second content engine, OAuth store, credential store, video pipeline, social scheduler, or publishing queue.
 
-## What is already built
+## Current implementation
 
-The current platform includes:
+The repository already contains:
 
-- the adaptive Content Orchestrator;
-- daily cross-platform packages for TikTok, Facebook Page, Instagram Professional, X, Nextdoor, LinkedIn, and YouTube;
+- adaptive daily content orchestration;
+- approved GEM service-catalog grounding;
+- historical fingerprint checks to prevent repeated content;
+- at least 20 unique TikTok drafts when TikTok is enabled;
+- platform-native packages for TikTok, Facebook Page, Instagram Professional, X, Nextdoor, LinkedIn Company, and YouTube;
 - Indeed restrictions for genuine vacancies and approved employer updates only;
+- video recipes, image/carousel briefs, captions, hashtags, calls to action, source evidence, risk flags, and publishing checklists;
 - exact-version compliance review and separate human approval;
-- duplicate-content fingerprint prevention;
-- a minimum of 20 unique TikTok drafts when TikTok is enabled;
-- a durable, trusted ComfyUI render-job and worker flow;
-- verified media upload, checksum, storage-origin, and exact-job binding;
-- the Content and Video Studio;
-- the shared OAuth connector foundation for Meta, X, LinkedIn, YouTube, and Nextdoor;
+- shared OAuth connection management for Meta, X, LinkedIn, YouTube, and Nextdoor;
 - TikTok OAuth inside TokMetric;
+- durable worker-dispatch video production through private ComfyUI;
+- verified private-storage uploads, SHA-256 evidence, exact-job binding, and automatic finalization into a fresh approval request;
 - the provider-neutral governed publishing queue.
 
-## What remains owner-controlled
+## Owner-controlled work that no terminal script can bypass
 
-A terminal process can validate and start the platform, but it cannot lawfully or technically complete these actions without the account owner:
+The owner must still:
 
-1. Enter production database, storage, provider, and application secrets.
-2. Apply the committed render-store migration to the intended database.
-3. Install and operate the approved ComfyUI workflow on a private worker.
-4. Complete each provider's developer-app review or API-access approval.
-5. Sign in to each social platform and approve OAuth consent.
-6. Select the correct Facebook Page, Instagram professional account, company organization, channel, or Nextdoor identity.
-7. Approve final media and content through a different authorized GEM operator.
-8. Enable live-publishing gates only after certification evidence exists.
+1. supply real database, storage, application, and provider credentials;
+2. apply the committed video migrations to the intended database;
+3. install the approved ComfyUI workflow and model dependencies on the private worker;
+4. complete provider developer-app review or API-access approval;
+5. sign in to each social platform and grant OAuth consent;
+6. select the correct Page, professional account, organization, channel, or Nextdoor identity;
+7. approve final media through a different authorized GEM operator;
+8. enable each publishing gate only after provider certification evidence exists.
 
-The script never turns on live publishing or represents a provider approval as complete.
+The terminal flow never turns on publishing gates, invents platform approval, or bypasses human consent.
 
-## One command
+## First command: audit
 
 From the repository root:
+
+```bash
+node scripts/gem-platform-flow.mjs --audit
+```
+
+Machine-readable output:
+
+```bash
+node scripts/gem-platform-flow.mjs --audit --json
+```
+
+The audit reports repository surfaces, database/application readiness, scheduled orchestration, application video dispatch, private worker readiness, provider credentials, platform approvals, OAuth readiness, and publishing gates. It never prints secret values.
+
+## Full local command
+
+After `.env.local` and the private worker environment are configured:
 
 ```bash
 node scripts/gem-platform-flow.mjs --all
 ```
 
-This performs:
+This command:
 
-1. platform and environment audit;
-2. locked dependency installation;
-3. Prisma schema generation and validation;
-4. claims, lint, TypeScript, and test verification;
-5. trusted video-worker readiness check;
-6. Next.js application startup;
-7. continuous video-worker startup;
-8. browser opening for Integrations, Social Media, Content Studio, and TokMetric.
+1. audits the platform;
+2. installs locked dependencies;
+3. generates and validates Prisma;
+4. runs claims, lint, TypeScript, and tests;
+5. checks the trusted video worker;
+6. starts Next.js;
+7. starts the continuous render worker;
+8. opens Integrations, Social Media, Content Studio, and TokMetric.
 
 It does **not** apply database migrations by default.
 
@@ -61,51 +78,23 @@ To apply committed migrations before startup:
 node scripts/gem-platform-flow.mjs --all --migrate
 ```
 
-Use `--migrate` only after confirming that `.env.local` points to the intended database and a backup or recovery path exists.
+Use `--migrate` only after verifying the target database and recovery path.
 
-## First audit
+## Environment templates
 
-Run this before adding provider credentials:
+Application and provider template:
 
-```bash
-node scripts/gem-platform-flow.mjs --audit
+```text
+config/gem-social-video.env.example
 ```
 
-For machine-readable output:
+Dedicated worker template:
 
-```bash
-node scripts/gem-platform-flow.mjs --audit --json
+```text
+ops/video-render-worker/worker.env.example
 ```
 
-The report separates:
-
-- missing database and application configuration;
-- scheduled orchestrator configuration;
-- trusted video-worker configuration;
-- provider credentials and scopes;
-- platform approval evidence;
-- human OAuth authorization;
-- live-publishing gates.
-
-## Required local environment
-
-Copy the example file and fill real values without committing it:
-
-### Windows PowerShell
-
-```powershell
-Copy-Item .env.example .env.local
-notepad .env.local
-```
-
-### macOS or Linux
-
-```bash
-cp .env.example .env.local
-${EDITOR:-nano} .env.local
-```
-
-At minimum, configure the relevant values from these groups.
+Never commit real credentials.
 
 ### Application and database
 
@@ -118,174 +107,106 @@ SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
 ```
 
-### Scheduled daily content
+### Scheduled content orchestration
 
 ```text
 CONTENT_ORCHESTRATOR_WORKSPACE_ID
 CONTENT_ORCHESTRATOR_ACTOR_ID
 CONTENT_ORCHESTRATOR_CRON_SECRET
-CONTENT_ORCHESTRATOR_NEXTDOOR_LOCAL_CONTEXT
 CONTENT_ORCHESTRATOR_PROVIDERS
+CONTENT_ORCHESTRATOR_NEXTDOOR_LOCAL_CONTEXT
 CONTENT_ORCHESTRATOR_MINIMUM_TIKTOK_ITEMS
 CONTENT_ORCHESTRATOR_OTHER_PROVIDER_ITEMS
 ```
 
-Recommended provider list:
+Recommended providers:
 
 ```text
 TIKTOK,FACEBOOK_PAGE,INSTAGRAM_PROFESSIONAL,X,NEXTDOOR
 ```
 
-The minimum TikTok value must remain at least `20`.
+The TikTok minimum must remain at least `20`.
 
-### Trusted local video production
+### Canonical application video dispatch
 
 ```text
-COMFYUI_BASE_URL
-COMFYUI_BEARER_TOKEN
-COMFYUI_MAX_QUEUE_ITEMS
+VIDEO_RENDER_DISPATCH_MODE=worker
 COMFYUI_WORKFLOW_JSON
 COMFYUI_PROMPT_NODE_ID
 COMFYUI_NEGATIVE_PROMPT_NODE_ID
 COMFYUI_SEED_NODE_ID
 COMFYUI_DEFAULT_NEGATIVE_PROMPT
 VIDEO_RENDER_CALLBACK_SECRET
+VIDEO_RENDER_STORAGE_URL
+VIDEO_RENDER_STORAGE_KEY
+VIDEO_RENDER_STORAGE_AUTH_ORIGIN
 VIDEO_ASSET_ALLOWED_ORIGINS
-VIDEO_WORKER_PLATFORM_BASE_URL
-VIDEO_WORKER_CALLBACK_SECRET
-VIDEO_WORKER_SUPABASE_URL
-VIDEO_WORKER_SUPABASE_SERVICE_ROLE_KEY
-VIDEO_WORKER_STORAGE_BUCKET
-VIDEO_WORKER_STATE_DIR
 ```
 
-The private worker must use the same callback secret expected by the platform. The exact worker variable names should be confirmed by `pnpm video:worker:check`, which fails closed and prints only redacted configuration.
+The Vercel application does not need access to private ComfyUI when worker mode is used.
 
-### Shared OAuth security
+### Trusted private worker
 
 ```text
-SOCIAL_TOKEN_ENCRYPTION_KEY
-SOCIAL_OAUTH_STATE_SECRET
+GEM_VIDEO_WORKER_API_URL
+VIDEO_RENDER_CALLBACK_SECRET
+COMFYUI_BASE_URL
+COMFYUI_BEARER_TOKEN
+VIDEO_RENDER_STORAGE_URL
+VIDEO_RENDER_STORAGE_KEY
+VIDEO_RENDER_STORAGE_BUCKET
+VIDEO_RENDER_STORAGE_PREFIX
+VIDEO_RENDER_WORKER_STATE_DIR
+VIDEO_RENDER_WORKER_BATCH_SIZE
+VIDEO_RENDER_WORKER_DISPATCH_LEASE_MS
+VIDEO_RENDER_WORKER_POLL_MS
+VIDEO_RENDER_WORKER_TIMEOUT_MS
+VIDEO_RENDER_WORKER_TRANSFER_TIMEOUT_MS
+VIDEO_RENDER_MAX_FILE_BYTES
 ```
 
-### TikTok / TokMetric
+The worker and application must share the managed callback secret. Run:
 
-```text
-TIKTOK_CLIENT_KEY
-TIKTOK_CLIENT_SECRET
-TIKTOK_REDIRECT_URI
-TOKMETRIC_TOKEN_ENCRYPTION_KEY
-TOKMETRIC_TIKTOK_OAUTH_ENABLED
+```bash
+pnpm video:worker:check
 ```
 
-### Meta: Facebook Page and Instagram Professional
+The check fails closed when the job feed, migrations, journal directory, ComfyUI, private bucket, or callback configuration is unavailable.
+
+## Social account connection
+
+After the application is running, sign in with an active approved administrator or authorized workspace operator. The terminal flow opens:
 
 ```text
-META_APP_ID
-META_APP_SECRET
-META_GRAPH_API_VERSION
-META_SOCIAL_SCOPES
-META_OAUTH_REDIRECT_URI
-META_APP_REVIEW_APPROVED
-META_SOCIAL_OAUTH_ENABLED
-```
-
-### X
-
-```text
-X_CLIENT_ID
-X_CLIENT_SECRET
-X_SOCIAL_SCOPES
-X_OAUTH_REDIRECT_URI
-X_SOCIAL_OAUTH_ENABLED
-```
-
-### LinkedIn Company
-
-```text
-LINKEDIN_CLIENT_ID
-LINKEDIN_CLIENT_SECRET
-LINKEDIN_SOCIAL_SCOPES
-LINKEDIN_API_VERSION
-LINKEDIN_OAUTH_REDIRECT_URI
-LINKEDIN_COMMUNITY_MANAGEMENT_ACCESS_APPROVED
-LINKEDIN_SOCIAL_OAUTH_ENABLED
-```
-
-### YouTube
-
-```text
-GOOGLE_SOCIAL_CLIENT_ID
-GOOGLE_SOCIAL_CLIENT_SECRET
-YOUTUBE_SOCIAL_SCOPES
-YOUTUBE_OAUTH_REDIRECT_URI
-YOUTUBE_DATA_API_AUDIT_APPROVED
-YOUTUBE_SOCIAL_OAUTH_ENABLED
-```
-
-### Nextdoor
-
-```text
-NEXTDOOR_CLIENT_ID
-NEXTDOOR_CLIENT_SECRET
-NEXTDOOR_SOCIAL_SCOPES
-NEXTDOOR_OAUTH_REDIRECT_URI
-NEXTDOOR_PUBLISH_API_ACCESS_APPROVED
-NEXTDOOR_OAUTH_ENABLED
-CONTENT_ORCHESTRATOR_NEXTDOOR_LOCAL_CONTEXT
-```
-
-### Indeed
-
-Indeed is not connected through generic social OAuth. Configure it only when GEM has a genuine approved vacancy or employer update:
-
-```text
-INDEED_EMPLOYER_ID
-INDEED_JOB_FEED_URL
-INDEED_EMPLOYER_INTEGRATION_ENABLED
-```
-
-## Account connection flow
-
-After the application is running, sign in with an active approved administrator or authorized workspace operator.
-
-Open:
-
-```text
+/app/command-center/integrations
 /app/command-center/social-media
+/app/command-center/social-media/content-studio
+/app/command-center/tokmetric
 ```
 
-Then authorize providers in this order:
+Authorize in this order:
 
-1. TikTok through `/app/command-center/tokmetric`.
-2. Meta and explicitly select the correct Facebook Page and Instagram professional account.
+1. TikTok through TokMetric.
+2. Meta, then explicitly select the Facebook Page and Instagram professional account.
 3. X company account.
 4. LinkedIn company organization.
 5. YouTube channel or Brand Account.
-6. Nextdoor authorized identity or business page after Publish API approval.
-7. Indeed only through the approved employer-feed workflow.
+6. Nextdoor identity or business page after Publish API approval.
+7. Indeed only through the employer-feed workflow for a genuine vacancy or approved employer update.
 
-OAuth connection stores encrypted credentials and discovered destination accounts. It does not enable publishing.
+OAuth stores encrypted credentials and discovered destinations. It does not authorize publishing.
 
-## Daily content and video flow
-
-Open:
-
-```text
-/app/command-center/social-media/content-studio
-```
-
-The operating sequence is:
+## Daily operating flow
 
 ```text
 Observe → Plan → Create → Review → Render → Verify → Approve → Queue → Publish → Engage → Learn → Repeat
 ```
 
-The system prepares video recipes, image/carousel briefs, captions, hashtags, calls to action, source evidence, risk flags, and publishing checklists. A passing exact-version review is required before rendering. The trusted worker renders, checksums, uploads, and verifies the result. GEM creates a new exact version containing the video and requires fresh human approval before a publishing job can be created.
+In Content Studio, generate or load the daily plan, produce the eligible video set, allow the trusted worker to render and verify outputs, and obtain fresh exact-version approval. Only then may a separately governed publishing job be created for an explicitly selected healthy connector.
 
-## Publishing activation
+## Publishing gates
 
-Keep these false while configuring and testing:
+Keep all gates false during setup and certification:
 
 ```text
 SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED=false
@@ -298,55 +219,53 @@ NEXTDOOR_PUBLISHING_ENABLED=false
 INDEED_JOB_PUBLISHING_ENABLED=false
 ```
 
-Each provider gate may be enabled only after credentials, account authorization, scopes, platform approval, sandbox evidence, destination selection, audit review, and rollback readiness are verified for that provider.
+A provider gate may be enabled only after credentials, scopes, platform approval, OAuth authorization, destination selection, sandbox evidence, audit review, and rollback readiness are verified for that provider.
 
 ## Terminal coding-agent master prompt
-
-Use the following prompt from the repository root when a terminal coding agent is available:
 
 ```text
 Work only in the existing support371/gem-enterprise repository. Do not create a second application, content engine, OAuth store, credential store, video pipeline, scheduler, or publishing queue.
 
-First inspect AGENTS.md, package.json, docs/social-media-command-center.md, docs/free-local-video-service.md, the current main branch, open issues #262 and #263, and all current open pull requests that touch social media, video, content orchestration, deployment, database reliability, or provider certification.
+Inspect AGENTS.md, package.json, docs/social-media-command-center.md, docs/free-local-video-service.md, docs/VIDEO_RENDER_WORKER.md, the current main branch, open issues #262 and #263, and every open pull request touching social media, video, content orchestration, provider certification, database reliability, deployment, or public website video placement.
 
-Determine the exact implemented and remaining state from code and retained verification evidence. Do not infer that a provider is connected, approved, certified, or live merely because environment-variable support exists.
+Determine the exact implemented and remaining state from code, migrations, tests, retained Vercel evidence, and provider evidence. Do not infer that a provider is connected, approved, certified, or live merely because configuration support exists.
 
 Continue the existing governed flow:
 Observe → Plan → Create → Review → Render → Verify → Approve → Queue → Publish → Engage → Learn → Repeat.
 
 Complete all repository-owned work needed for:
-- daily unique content packages grounded in the approved GEM service catalog;
+- unique daily packages grounded in the approved GEM service catalog;
 - TikTok, Facebook Page, Instagram Professional, X, Nextdoor, LinkedIn Company, and YouTube;
 - Indeed only for genuine vacancies or approved employer updates;
-- short video, long video, image, carousel, text, caption, hashtag, CTA, accessibility, source evidence, risk flags, and publishing checklists;
-- the trusted private ComfyUI worker, durable render dispatch, checksum, immutable or versioned storage, upload verification, exact-job binding, atomic finalization, and fresh human approval;
+- short and long video, image, carousel, text, captions, hashtags, CTAs, accessibility, source evidence, risk flags, and publishing checklists;
+- appropriate governed video descriptions and placements across public and authenticated GEM pages without claiming that a render exists before verified media is registered;
+- private worker-dispatch ComfyUI production, durable leasing, local journal recovery, exact output binding, bounded transfer, SHA-256, private versioned or immutable storage, upload verification, automatic finalization, and fresh human approval;
 - secure OAuth start/callback, signed state, PKCE where applicable, encrypted token storage, account discovery, explicit destination selection, health, refresh, disconnect, revocation, and audit evidence;
 - the provider-neutral publishing worker with exact-version approval, compliance evidence, idempotency, emergency locks, retries, dead-letter handling, and sanitized provider results;
-- the Content Studio, Social Media Command Center, Integrations, and TokMetric operator interfaces;
-- a terminal audit and startup command through scripts/gem-platform-flow.mjs.
+- Content Studio, Social Media Command Center, Integrations, TokMetric, and scripts/gem-platform-flow.mjs.
 
 Preserve these constraints:
-- no provider secret in source, logs, browser data, URLs, or response payloads;
-- no auto-selection of the first social destination;
+- no secret in source, logs, browser data, URLs, prompts, workflow payloads, or response archives;
+- no automatic selection of the first social destination;
 - no personal Facebook-profile automation;
 - no Nextdoor content without documented local context;
-- no Indeed marketing posts;
+- no Indeed general marketing posts;
 - no unsupported security, performance, regulatory, certification, partnership, customer, or outcome claims;
 - no real-person face or voice generation without documented rights;
-- no external publishing during tests or review;
+- no external publishing during development, tests, review, or preview verification;
 - all publishing gates remain false until provider-specific owner approval and certification evidence exist;
-- requester and approver must remain separate;
-- every external mutation must be authenticated, authorized, idempotent, auditable, bounded, retry-safe, and fail closed.
+- requester and approver remain separate;
+- every external mutation is authenticated, authorized, idempotent, audited, bounded, retry-safe, and fail closed.
 
-Work directly through code, tests, migrations, documentation, and the existing Command Center. Resolve review findings instead of merely describing them. Run the repository's schema checks, public-claims check, lint, TypeScript, tests, and optimized Next.js build. Use the canonical Vercel preview as the hosted gate when GitHub Actions is blocked before runner startup.
+Implement through code, tests, migrations, documentation, and the existing Command Center. Resolve review findings rather than describing them. Run schema checks, public-claims checks, lint, TypeScript, tests, and the optimized Next.js build. Use the canonical Vercel preview as the hosted gate when GitHub Actions is blocked before runner startup.
 
-Do not claim completion of owner-only actions. At the end, produce an exact activation report containing:
+Do not claim completion of owner-only actions. End with an exact activation report containing:
 1. merged or proposed repository changes;
-2. database migrations still requiring owner authorization;
-3. environment variables still missing, grouped by subsystem and provider;
-4. provider platform approvals still missing;
-5. accounts still requiring human OAuth consent and destination selection;
-6. one controlled video evidence cycle still required;
+2. migrations still requiring owner authorization;
+3. missing environment values grouped by subsystem and provider;
+4. platform approvals still missing;
+5. accounts requiring human OAuth consent and destination selection;
+6. the controlled queue → render → upload → verify → finalize evidence cycle still required;
 7. publishing gates that remain false;
 8. the exact next terminal command and Command Center pages for the owner.
 ```
