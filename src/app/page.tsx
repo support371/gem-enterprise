@@ -18,6 +18,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { HomeStoreShowcase } from "@/components/store/HomeStoreShowcase";
+import { VideoLibraryLink, VideoSection } from "@/components/videos/VideoSection";
+import { homepageVideoScripts } from "@/lib/video-data/scripts";
 
 export const metadata = {
   title: "GEM Enterprise | Defend. Protect. Prevail.",
@@ -257,6 +259,23 @@ export default function HomePage() {
               </Link>
             );
           })}
+        </div>
+      </section>
+
+      <section className="container mx-auto max-w-7xl px-6 py-24">
+        <div className="mb-12 text-center">
+          <Badge className="mb-4 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-1.5 text-xs uppercase tracking-widest text-cyan-200">
+            Governed video library
+          </Badge>
+          <h2 className="mb-4 text-4xl font-black text-white">Prepared scripts, gated production</h2>
+          <p className="mx-auto max-w-3xl text-lg leading-relaxed text-slate-400">
+            GEM video scripts are structured for future AI-avatar generation, but no provider-dependent video is
+            presented as live until owner approval, credential configuration, and rights review are complete.
+          </p>
+        </div>
+        <VideoSection videos={homepageVideoScripts} compact />
+        <div className="mt-8 text-center">
+          <VideoLibraryLink />
         </div>
       </section>
 
