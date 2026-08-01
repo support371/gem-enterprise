@@ -27,6 +27,7 @@ export type PlatformNavIcon =
   | "BadgeDollarSign"
   | "Bot"
   | "Plug"
+  | "Megaphone"
   | "Building2";
 
 export interface PlatformSurface {
@@ -49,6 +50,7 @@ export interface PlatformNavItem {
 export interface PlatformNavGroup {
   label: string;
   items: PlatformNavItem[];
+  adminOnly?: boolean;
 }
 
 export const platformSurfaces: PlatformSurface[] = [
@@ -98,6 +100,13 @@ export const clientPortalNavGroups: PlatformNavGroup[] = [
         description: "Live cross-domain intelligence operations console.",
       },
       {
+        href: "/app/social-media",
+        icon: "Megaphone",
+        label: "Social Media Suite",
+        description:
+          "Social accounts, content, governed video, TokMetric, approvals, scheduling, and analytics.",
+      },
+      {
         href: "/app/portfolios",
         icon: "Briefcase",
         label: "Portfolios",
@@ -137,6 +146,7 @@ export const clientPortalNavGroups: PlatformNavGroup[] = [
   },
   {
     label: "Command Center",
+    adminOnly: true,
     items: [
       {
         href: "/app/command-center",
@@ -184,7 +194,8 @@ export const clientPortalNavGroups: PlatformNavGroup[] = [
         href: "/app/command-center/tokmetric",
         icon: "Bot",
         label: "TikTok Operations",
-        description: "TokMetric accounts, content, compliance, approvals, publishing, analytics, and Custom GPT controls.",
+        description:
+          "Administrator controls for TokMetric accounts, content, compliance, approvals, publishing, analytics, and Custom GPT.",
       },
       {
         href: "/app/command-center/integrations",
@@ -355,5 +366,7 @@ export const adminPortalNavItems: PlatformNavItem[] = [
 
 export function resolvePreferredSurface(destination?: string | null) {
   if (!destination) return "marketing-mobile" as const;
-  return destination.startsWith("/app") ? ("enterprise-web-app" as const) : ("marketing-mobile" as const);
+  return destination.startsWith("/app")
+    ? ("enterprise-web-app" as const)
+    : ("marketing-mobile" as const);
 }
