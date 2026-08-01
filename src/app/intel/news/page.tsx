@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  Activity,
   AlertTriangle,
   ArrowLeft,
   ExternalLink,
@@ -13,10 +14,39 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-const NEWS_FORGE_URL =
-  process.env.NEXT_PUBLIC_NEWS_FORGE_URL?.trim().replace(/\/$/, "") || null;
+const ALLOWED_NEWS_HOSTS = new Set([
+  "news.gemcybersecurityassist.com",
+  "gemcybersecurityassist.com",
+  "www.gemcybersecurityassist.com",
+]);
+
+function resolveNewsForgeUrl() {
+  const raw = process.env.NEXT_PUBLIC_NEWS_FORGE_URL?.trim();
+  if (!raw) return null;
+
+  try {
+    const parsed = new URL(raw);
+    if (parsed.protocol !== "https:") return null;
+
+    const allowed =
+      ALLOWED_NEWS_HOSTS.has(parsed.hostname) ||
+      parsed.hostname.endsWith(".vercel.app") ||
+      parsed.hostname.endsWith(".lovable.app");
+
+    if (!allowed) return null;
+
+    parsed.pathname = parsed.pathname.replace(/\/$/, "");
+    parsed.search = "";
+    parsed.hash = "";
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+const NEWS_FORGE_URL = resolveNewsForgeUrl();
 const NEWS_FORGE_EMBED_URL = NEWS_FORGE_URL
-  ? `${NEWS_FORGE_URL}/?embed=gem`
+  ? new URL("/?embed=gem", NEWS_FORGE_URL).toString()
   : null;
 
 export const metadata: Metadata = {
@@ -80,9 +110,14 @@ export default function IntelNewsPage() {
                   <Mail className="mr-2 h-4 w-4" /> News newsletter
                 </Link>
               </Button>
+              <Button asChild variant="outline" className="border-sky-400/25 bg-sky-400/[0.06] text-sky-200 hover:bg-sky-400/10 hover:text-white">
+                <Link href="/api/intel/news-forge/status">
+                  <Activity className="mr-2 h-4 w-4" /> Channel status
+                </Link>
+              </Button>
               {NEWS_FORGE_URL ? (
                 <Button asChild className="bg-[#FFBF00] font-semibold text-[#001F3F] hover:bg-[#ffd04d]">
-                  <a href={NEWS_FORGE_URL} target="_blank" rel="noopener noreferrer">
+                  <a href={NEWS_FORGE_URL.toString()} target="_blank" rel="noopener noreferrer">
                     Open full channel <ExternalLink className="ml-2 h-4 w-4" />
                   </a>
                 </Button>
@@ -116,7 +151,7 @@ export default function IntelNewsPage() {
               {connected ? "News Forge connected through GEM" : "News Forge host awaiting production configuration"}
             </div>
             <span className="hidden font-mono sm:inline">
-              {NEWS_FORGE_URL ? new URL(NEWS_FORGE_URL).host : "NEXT_PUBLIC_NEWS_FORGE_URL"}
+              {NEWS_FORGE_URL?.host || "NEXT_PUBLIC_NEWS_FORGE_URL"}
             </span>
           </div>
 
@@ -135,9 +170,9 @@ export default function IntelNewsPage() {
                 <AlertTriangle className="mx-auto h-10 w-10 text-amber-300" aria-hidden="true" />
                 <h2 className="mt-5 text-2xl font-bold">News Forge deployment connection pending</h2>
                 <p className="mt-3 text-sm leading-7 text-slate-300">
-                  The platform integration is installed, but GEM will not load an unverified or
-                  unresolved external hostname. Connect the News Forge deployment to
-                  <strong className="text-white"> news.gemcybersecurityassist.com</strong> and set
+                  The platform integration is installed, but GEM will not load an unverified,
+                  malformed, non-HTTPS, or unresolved external hostname. Connect the News Forge
+                  deployment to <strong className="text-white">news.gemcybersecurityassist.com</strong> and set
                   <code className="mx-1 rounded bg-black/30 px-1.5 py-0.5 text-amber-200">NEXT_PUBLIC_NEWS_FORGE_URL</code>
                   on the canonical GEM Vercel project.
                 </p>
