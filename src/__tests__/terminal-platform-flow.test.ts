@@ -13,21 +13,17 @@ function source(path: string) {
 
 describe("GEM terminal platform flow", () => {
   it("emits a machine-readable audit without exposing secret values", () => {
-    const result = spawnSync(
-      process.execPath,
-      [scriptPath, "--audit", "--json"],
-      {
-        cwd: root,
-        encoding: "utf8",
-        env: {
-          ...process.env,
-          META_APP_SECRET: "meta-secret-must-not-appear",
-          X_CLIENT_SECRET: "x-secret-must-not-appear",
-          VIDEO_RENDER_CALLBACK_SECRET: "video-secret-must-not-appear",
-          SOCIAL_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString("base64"),
-        },
+    const result = spawnSync(process.execPath, [scriptPath, "--audit", "--json"], {
+      cwd: root,
+      encoding: "utf8",
+      env: {
+        ...process.env,
+        META_APP_SECRET: "meta-secret-must-not-appear",
+        X_CLIENT_SECRET: "x-secret-must-not-appear",
+        VIDEO_RENDER_CALLBACK_SECRET: "video-secret-must-not-appear",
+        SOCIAL_TOKEN_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString("base64"),
       },
-    );
+    });
 
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
@@ -40,9 +36,19 @@ describe("GEM terminal platform flow", () => {
       }>;
       safety: { message: string };
     };
-    expect(report.core.some((group) => group.id === "video")).toBe(true);
+    expect(report.core.map((group) => group.id)).toEqual(
+      expect.arrayContaining(["videoApplication", "videoWorker", "orchestrator"]),
+    );
     expect(report.providers.map((provider) => provider.id)).toEqual(
-      expect.arrayContaining(["TIKTOK", "META", "X", "LINKEDIN", "YOUTUBE", "NEXTDOOR", "INDEED"]),
+      expect.arrayContaining([
+        "TIKTOK",
+        "META",
+        "X",
+        "LINKEDIN",
+        "YOUTUBE",
+        "NEXTDOOR",
+        "INDEED",
+      ]),
     );
     expect(report.safety.message).toContain("never enables publishing gates");
     expect(result.stdout).not.toContain("meta-secret-must-not-appear");
@@ -54,13 +60,22 @@ describe("GEM terminal platform flow", () => {
     const script = source(scriptPath);
     const documentation = source(documentationPath);
 
-    expect(script).toContain('const shouldMigrate = args.has("--migrate")');
+    expect(script).toContain('migrate: args.has("--migrate")');
     expect(script).not.toContain('SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED", "true"');
     expect(script).not.toContain('TOKMETRIC_LIVE_PUBLISHING_ENABLED", "true"');
-    expect(documentation).toContain("does not apply database migrations by default");
-    expect(documentation).toContain("cannot lawfully or technically complete");
+    expect(documentation).toContain("does **not** apply database migrations by default");
+    expect(documentation).toContain("no terminal script can bypass");
     expect(documentation).toContain("OAuth consent");
-    expect(documentation).toContain("no external publishing during tests or review");
+    expect(documentation).toContain("no external publishing during development, tests, review");
+  });
+
+  it("uses the canonical worker-dispatch environment and migrations", () => {
+    const script = source(scriptPath);
+    expect(script).toContain("VIDEO_RENDER_DISPATCH_MODE");
+    expect(script).toContain("GEM_VIDEO_WORKER_API_URL");
+    expect(script).toContain("VIDEO_RENDER_STORAGE_BUCKET");
+    expect(script).toContain("20260725035000_video_render_jobs");
+    expect(script).toContain("20260726062000_video_worker_dispatch");
   });
 
   it("opens the canonical integration, social, content studio, and TokMetric surfaces", () => {
