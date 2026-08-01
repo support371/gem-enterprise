@@ -61,7 +61,9 @@ export const enterpriseApplicationSchema = rejectSensitiveContent(
     organization: z.string().trim().min(2).max(160),
     title: z.string().trim().min(2).max(120),
     organizationType: z.enum([
+      "individual",
       "company",
+      "trust",
       "nonprofit",
       "government",
       "family_office",
