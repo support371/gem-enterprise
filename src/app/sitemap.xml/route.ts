@@ -11,6 +11,7 @@ const routes = [
   "/services/federal-compliance",
   "/intel",
   "/intel/news",
+  "/newsletter",
   "/store",
   "/store/main",
   "/store/campaign-hub",
