@@ -15,6 +15,16 @@ const REQUIRED_ROUTES = [
   "/policy",
 ] as const;
 
+const ROUTE_PROBES = [
+  { contract: "/", path: "/" },
+  { contract: "/story/:id", path: "/story/gem-integration-smoke-test" },
+  { contract: "/saved", path: "/saved" },
+  { contract: "/preferences", path: "/preferences" },
+  { contract: "/auth", path: "/auth" },
+  { contract: "/admin", path: "/admin" },
+  { contract: "/policy", path: "/policy" },
+] as const;
+
 const ALLOWED_HOSTS = new Set([
   "news.gemcybersecurityassist.com",
   "gemcybersecurityassist.com",
@@ -141,6 +151,10 @@ function baseContract(expectedSourceCommit: string | null) {
   };
 }
 
+function isRouteAvailable(status: number) {
+  return status >= 200 && status < 400;
+}
+
 export async function GET() {
   const configuredUrl = resolveConfiguredUrl();
   const expectedSourceCommit = resolveExpectedSourceCommit();
@@ -154,6 +168,7 @@ export async function GET() {
         reachable: false,
         embeddable: false,
         sourceVerified: false,
+        routesAvailable: false,
         ready: false,
         requiredVariables: [
           "NEXT_PUBLIC_NEWS_FORGE_URL",
@@ -170,31 +185,42 @@ export async function GET() {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8_000);
+  const timeout = setTimeout(() => controller.abort(), 12_000);
   const manifestUrl = new URL("/news-forge-manifest.json", configuredUrl);
 
   try {
-    const [upstreamResponse, manifestResponse] = await Promise.all([
-      fetch(configuredUrl, {
-        method: "HEAD",
-        redirect: "follow",
-        cache: "no-store",
-        signal: controller.signal,
-        headers: { "User-Agent": "GEM-News-Forge-Health/2.0" },
-      }),
+    const [manifestResponse, ...routeResponses] = await Promise.all([
       fetch(manifestUrl, {
         method: "GET",
         redirect: "follow",
         cache: "no-store",
         signal: controller.signal,
-        headers: { "User-Agent": "GEM-News-Forge-Health/2.0" },
+        headers: { "User-Agent": "GEM-News-Forge-Health/3.0" },
       }),
+      ...ROUTE_PROBES.map((probe) =>
+        fetch(new URL(probe.path, configuredUrl), {
+          method: "HEAD",
+          redirect: "follow",
+          cache: "no-store",
+          signal: controller.signal,
+          headers: { "User-Agent": "GEM-News-Forge-Health/3.0" },
+        }),
+      ),
     ]);
 
-    const reachable =
-      upstreamResponse.ok ||
-      (upstreamResponse.status >= 300 && upstreamResponse.status < 500);
-    const framePolicy = evaluateFramePolicy(upstreamResponse.headers);
+    const routeChecks = ROUTE_PROBES.map((probe, index) => {
+      const response = routeResponses[index];
+      return {
+        contract: probe.contract,
+        path: probe.path,
+        status: response.status,
+        available: isRouteAvailable(response.status),
+      };
+    });
+    const routesAvailable = routeChecks.every((check) => check.available);
+    const rootResponse = routeResponses[0];
+    const reachable = routeChecks[0]?.available ?? false;
+    const framePolicy = evaluateFramePolicy(rootResponse.headers);
 
     let manifestValue: unknown = null;
     if (manifestResponse.ok) {
@@ -206,20 +232,25 @@ export async function GET() {
     }
     const manifest = inspectManifest(manifestValue, expectedSourceCommit);
     const ready =
-      reachable && framePolicy.embeddable && manifest.sourceVerified;
+      reachable &&
+      routesAvailable &&
+      framePolicy.embeddable &&
+      manifest.sourceVerified;
 
     return NextResponse.json(
       {
         ...contract,
         configured: true,
         reachable,
+        routesAvailable,
         embeddable: framePolicy.embeddable,
         sourceVerified: manifest.sourceVerified,
         ready,
-        upstreamStatus: upstreamResponse.status,
+        upstreamStatus: rootResponse.status,
         manifestStatus: manifestResponse.status,
         host: configuredUrl.hostname,
         embeddedUrl: new URL("/?embed=gem", configuredUrl).toString(),
+        routeChecks,
         framePolicy,
         manifest,
         checkedAt: new Date().toISOString(),
@@ -235,6 +266,7 @@ export async function GET() {
         ...contract,
         configured: true,
         reachable: false,
+        routesAvailable: false,
         embeddable: false,
         sourceVerified: false,
         ready: false,
