@@ -7,6 +7,7 @@ import {
   Film,
   KeyRound,
   Megaphone,
+  Newspaper,
   Plug,
   ShieldCheck,
 } from "lucide-react";
@@ -20,8 +21,20 @@ export const metadata: Metadata = {
 export default function IntegrationsCommandCenterPage() {
   const socialProviders = getSocialMediaProviderReadiness();
   const configured = socialProviders.filter((provider) => provider.configurationReady).length;
+  const newsForgeBound = Boolean(
+    process.env.NEXT_PUBLIC_NEWS_FORGE_URL &&
+      process.env.NEWS_FORGE_EXPECTED_SOURCE_SHA,
+  );
 
   const integrationCards = [
+    {
+      href: "/app/command-center/integrations/news-forge",
+      title: "News Forge",
+      description:
+        "Trace the live news host, exact source commit, required routes, frame policy, manifest, and GEM deployment binding.",
+      icon: Newspaper,
+      status: newsForgeBound ? "Source binding configured" : "Verification pending",
+    },
     {
       href: "/app/command-center/social-media",
       title: "Social Media Operations",
