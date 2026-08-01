@@ -22,6 +22,9 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Private owner activation configuration
+ops/owner-flow/social-providers.local.json
+
 # Package manager lock files (pnpm is the project package manager)
 bun.lock
 bun.lockb
