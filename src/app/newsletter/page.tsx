@@ -1,13 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Newspaper,
+  ShieldCheck,
+} from "lucide-react";
 import NewsletterSignupForm from "./NewsletterSignupForm";
 
 export const metadata: Metadata = {
-  title: "GEM Security Intelligence Updates",
+  title: "GEM News & Security Intelligence Newsletter",
   description:
-    "Opt in to cybersecurity awareness, threat-intelligence summaries, service updates, and operational-risk guidance from GEM Cybersecurity & Monitoring Assist.",
+    "Subscribe to the GEM News Forge companion newsletter for cybersecurity awareness, threat-intelligence summaries, service updates, and operational-risk guidance.",
   robots: { index: true, follow: true },
+  alternates: { canonical: "/newsletter" },
 };
 
 const topics = [
@@ -21,7 +28,7 @@ export default function NewsletterPage() {
   return (
     <main className="min-h-screen bg-[#0d121b] text-white">
       <section className="border-b border-white/10 bg-[#101824]">
-        <div className="mx-auto max-w-6xl px-5 py-5 sm:px-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-5 sm:px-8">
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-sm text-white/60 transition hover:text-cyan-300"
@@ -29,30 +36,35 @@ export default function NewsletterPage() {
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
             Back to GEM Enterprise
           </Link>
+          <Link
+            href="/intel/news"
+            className="inline-flex items-center gap-2 rounded-full border border-[#FFBF00]/30 bg-[#FFBF00]/10 px-4 py-2 text-sm font-semibold text-[#FFBF00] transition hover:bg-[#FFBF00]/15"
+          >
+            <Newspaper className="h-4 w-4" aria-hidden="true" />
+            Open live News Forge
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </div>
       </section>
 
       <section className="relative overflow-hidden px-5 py-16 sm:px-8 sm:py-24">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-1/4 top-16 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 h-72 w-72 rounded-full bg-blue-600/10 blur-3xl" />
+          <div className="absolute bottom-0 right-1/4 h-72 w-72 rounded-full bg-[#FFBF00]/10 blur-3xl" />
         </div>
 
         <div className="relative mx-auto grid max-w-6xl gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
           <div className="pt-4">
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">
               <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-              Explicit opt-in only
+              News Forge companion channel
             </div>
 
             <h1 className="mt-7 max-w-3xl text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">
-              GEM Security Intelligence Updates
+              GEM News & Security Intelligence Updates
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-white/65">
-              Receive carefully reviewed updates from GEM Cybersecurity & Monitoring
-              Assist. Public messages remain informational and do not replace a
-              scoped engagement, incident-response plan, legal advice, or regulatory
-              determination.
+              Read the live channel inside GEM at <Link href="/intel/news" className="font-semibold text-[#FFBF00] hover:underline">GEM News Forge</Link>, then opt in here for carefully reviewed summaries and platform updates delivered by email. Public messages remain informational and do not replace a scoped engagement, incident-response plan, legal advice, or regulatory determination.
             </p>
 
             <div className="mt-9 space-y-4">
@@ -67,7 +79,7 @@ export default function NewsletterPage() {
               ))}
             </div>
 
-            <div className="mt-10 rounded-2xl border border-amber-300/20 bg-amber-300/[0.06] p-5 text-sm leading-6 text-amber-50/80">
+            <div className="mt-10 rounded-2xl border border-[#FFBF00]/20 bg-[#FFBF00]/[0.06] p-5 text-sm leading-6 text-amber-50/80">
               Subscription requires email confirmation. GEM does not add purchased,
               scraped, or third-party lists, and unconfirmed addresses are not part
               of the active mailing audience.
