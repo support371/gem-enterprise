@@ -286,6 +286,19 @@ export const canonicalRoutes: SiteRoute[] = [
     showInFooter: true,
   },
   {
+    path: "/enterprise-solutions",
+    label: "Enterprise Solutions",
+    category: "public",
+    description:
+      "Official gateway to the GEM-operated enterprise solutions discovery experience",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "services",
+    owner: "marketing",
+    showInNav: true,
+    showInFooter: true,
+  },
+  {
     path: "/company",
     label: "Company",
     category: "public",
@@ -908,6 +921,7 @@ export const navigationMenu: NavSection[] = [
     group: "services",
     path: "/services",
     items: [
+      { label: "Enterprise Solutions", path: "/enterprise-solutions", description: "Official access to the GEM solutions experience" },
       { label: "Cybersecurity", path: "/services#cyber", description: "Enterprise threat protection and response" },
       { label: "Financial", path: "/services#financial", description: "Secure financial services and compliance" },
       { label: "Real Estate", path: "/services#real-estate", description: "Real estate security and asset protection" },

@@ -9,6 +9,7 @@ const routes = [
   "/services/red-team",
   "/services/asset-recovery",
   "/services/federal-compliance",
+  "/enterprise-solutions",
   "/intel",
   "/intel/news",
   "/newsletter",

@@ -72,6 +72,7 @@ const NAV_SECTIONS_DATA: NavSection[] = [
     label: "Services",
     path: "/services",
     items: [
+      { label: "Enterprise Solutions", path: "/enterprise-solutions", description: "Official access to the GEM solutions experience" },
       { label: "Cybersecurity", path: "/services#cyber", description: "Enterprise threat protection and response" },
       { label: "Financial", path: "/services#financial", description: "Secure financial services and compliance" },
       { label: "Real Estate", path: "/services#real-estate", description: "Real estate security and asset protection" },
@@ -218,6 +219,9 @@ function NavigationContent() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
+          <Link href="/enterprise-solutions" className="rounded-md px-3 py-2 text-sm font-medium text-cyan-300/80 transition-colors hover:bg-cyan-400/10 hover:text-cyan-200">
+            Solutions
+          </Link>
           <Link href="/contact" className="rounded-md px-3 py-2 text-sm font-medium text-white/55 transition-colors hover:bg-white/5 hover:text-white">
             Contact
           </Link>
@@ -301,6 +305,9 @@ function NavigationContent() {
             })}
 
             <div className="mt-5 grid gap-3 border-t border-white/[0.07] pt-5">
+              <Button asChild variant="outline" className="h-14 justify-center border-cyan-400/30 bg-cyan-400/5 text-base font-semibold text-cyan-200 hover:border-cyan-300/50 hover:bg-cyan-400/10 hover:text-cyan-100">
+                <Link href="/enterprise-solutions" onClick={closeMobile}>Enterprise Solutions</Link>
+              </Button>
               <Button asChild variant="ghost" className="h-14 justify-center border border-white/10 bg-transparent text-base font-semibold text-white/70 hover:border-white/20 hover:bg-white/5 hover:text-white">
                 <Link href="/client-login" onClick={closeMobile}>Client Login</Link>
               </Button>

@@ -8,6 +8,7 @@ describe('enterprise platform origins', () => {
 
   it('uses the verified GEM production domains', () => {
     expect(platformOrigins.publicWebsite).toBe('https://www.gemcybersecurityassist.com')
+    expect(platformOrigins.enterpriseSolutions).toBe('https://gem-assist-enterprise.vercel.app')
     expect(platformOrigins.adminCommandCenter).toBe('https://admin.gemcybersecurityassist.com')
     expect(platformOrigins.publicCommandCenterRoute).toBe('/command-center')
   })

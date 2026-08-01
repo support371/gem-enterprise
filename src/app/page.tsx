@@ -162,6 +162,11 @@ export default function HomePage() {
                 Request Access <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
+            <Button asChild size="lg" variant="outline" className="rounded-full border-cyan-400/30 px-8 font-semibold text-cyan-200 hover:bg-cyan-400/10">
+              <Link href="/enterprise-solutions">
+                Enterprise Solutions <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
             <Button asChild size="lg" variant="outline" className="rounded-full border-white/20 px-8 font-semibold text-white hover:bg-white/10">
               <Link href="/trust-center">
                 Review Trust Center <ChevronDown className="ml-2 h-5 w-5" />
