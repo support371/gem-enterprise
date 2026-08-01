@@ -8,6 +8,11 @@ import { ProductionDisclosure } from "@/components/ProductionDisclosure";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 
+const impactSiteVerificationMeta = {
+  name: "impact-site-verification",
+  value: "c7d5673c-3b23-42e6-ab9c-d88520cf7525",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL || "https://www.gemcybersecurityassist.com",
@@ -53,6 +58,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className="bg-[#0d121b]">
+      <head>
+        <meta {...impactSiteVerificationMeta} />
+      </head>
       <body className="bg-[#0d121b] text-white antialiased">
         <Providers>
           {!isPortal && (
