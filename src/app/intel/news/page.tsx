@@ -1,85 +1,87 @@
-"use client";
-
+import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, ExternalLink, Rss } from "lucide-react";
+import { ArrowLeft, ExternalLink, Newspaper, Radio, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  CuratedNewsFeed,
-  type CuratedCategory,
-} from "@/components/intel/CuratedNewsFeed";
 
-const CATEGORIES: CuratedCategory[] = [
-  { label: "Crypto & Digital Assets", slug: "crypto" },
-  { label: "Cybersecurity", slug: "cybersecurity" },
-  { label: "Markets & Capital", slug: "markets" },
-  { label: "Geopolitics", slug: "geopolitics" },
-  { label: "Policy & Regulation", slug: "policy" },
-  { label: "Real Estate", slug: "real-estate" },
-];
+const NEWS_FORGE_URL =
+  process.env.NEXT_PUBLIC_NEWS_FORGE_URL?.replace(/\/$/, "") ||
+  "https://news-forge-feed.lovable.app";
+
+export const metadata: Metadata = {
+  title: "GEM News Channel | Live Intelligence Feed",
+  description:
+    "GEM's live News Forge channel for cybersecurity, markets, business, technology, world affairs, and operational intelligence.",
+};
 
 export default function IntelNewsPage() {
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <section className="border-b border-amber-400/30 bg-amber-400/10 px-4 py-4 text-amber-100">
-        <div className="container mx-auto flex max-w-6xl items-start gap-3 px-2 text-sm leading-6">
-          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-300" aria-hidden="true" />
-          <p>
-            <strong>News aggregation preview:</strong> articles may be imported from external
-            sources and can be delayed, incomplete, duplicated, or unavailable. Publication on
-            this page does not mean GEM independently verified, endorsed, or authored a story.
-            Always open the original publisher before relying on the information.
-          </p>
-        </div>
-      </section>
-
-      <section className="border-b border-border cyber-grid">
-        <div className="container mx-auto max-w-6xl px-6 py-16 md:py-20">
-          <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-            <div className="max-w-2xl">
-              <Badge className="mb-4 border-primary/30 bg-primary/10 font-mono text-xs tracking-widest text-primary">
-                <Rss className="mr-1.5 h-3 w-3" /> SOURCED NEWS PREVIEW
-              </Badge>
-              <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">
-                GEM Intel <span className="text-gradient-primary">News</span>
-              </h1>
-              <p className="text-lg leading-relaxed text-muted-foreground">
-                A category view of externally sourced articles. Feed status, source coverage,
-                retrieval time, and editorial review must be confirmed before this service is
-                described as continuous or analyst-curated.
-              </p>
+    <main className="min-h-screen bg-[#020817] text-white">
+      <section className="relative overflow-hidden border-b border-white/10 bg-[#03132b]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,191,0,0.16),transparent_38%),radial-gradient(circle_at_top_left,rgba(14,165,233,0.12),transparent_34%)]" />
+        <div className="relative mx-auto flex max-w-[1600px] flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-[#FFBF00]/30 bg-[#FFBF00]/10 shadow-[0_0_30px_rgba(255,191,0,0.12)]">
+                <Newspaper className="h-6 w-6 text-[#FFBF00]" aria-hidden="true" />
+              </div>
+              <div>
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <Badge className="border-emerald-400/30 bg-emerald-400/10 text-emerald-300 hover:bg-emerald-400/10">
+                    <Radio className="mr-1.5 h-3 w-3" /> LIVE CHANNEL
+                  </Badge>
+                  <Badge className="border-white/15 bg-white/5 text-slate-300 hover:bg-white/5">
+                    <ShieldCheck className="mr-1.5 h-3 w-3 text-sky-300" /> GEM VERIFIED ACCESS POINT
+                  </Badge>
+                </div>
+                <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                  GEM News <span className="text-[#FFBF00]">Forge</span>
+                </h1>
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
+                  The complete GEM intelligence news experience, presented inside the enterprise platform with its live feed, story pages, saved items, preferences, and editorial functions preserved.
+                </p>
+              </div>
             </div>
-            <Button asChild variant="outline" className="shrink-0 border-border/60">
-              <Link href="/contact?subject=intelligence">
-                Ask about intelligence services <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button asChild variant="outline" className="border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white">
+                <Link href="/intel">
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Intelligence Center
+                </Link>
+              </Button>
+              <Button asChild className="bg-[#FFBF00] font-semibold text-[#001F3F] hover:bg-[#ffd04d]">
+                <a href={NEWS_FORGE_URL} target="_blank" rel="noopener noreferrer">
+                  Open full channel <ExternalLink className="ml-2 h-4 w-4" />
+                </a>
+              </Button>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="container mx-auto max-w-6xl px-6 py-10">
-        <CuratedNewsFeed categories={CATEGORIES} initialCategory="crypto" />
-      </section>
-
-      <section className="border-t border-border py-12">
-        <div className="container mx-auto max-w-6xl px-6">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-            <h2 className="text-xl font-semibold text-foreground">Reliance notice</h2>
-            <p className="mt-3 max-w-4xl text-sm leading-6 text-muted-foreground">
-              News content is informational and may become stale. It is not a security alert,
-              investment recommendation, legal opinion, incident notification, or substitute
-              for an authoritative advisory. Source links should open the original publisher in
-              a separate context before any operational decision is made.
-            </p>
-            <Link
-              href="/intel"
-              className="mt-5 inline-flex items-center font-semibold text-primary hover:underline"
-            >
-              Return to the intelligence preview <ExternalLink className="ml-2 h-4 w-4" />
-            </Link>
+      <section className="mx-auto max-w-[1800px] px-2 py-2 sm:px-4 sm:py-4">
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-[#020817] shadow-2xl shadow-black/30 sm:rounded-2xl">
+          <div className="flex items-center justify-between border-b border-white/10 bg-[#07152c] px-4 py-2.5 text-xs text-slate-400">
+            <div className="flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
+              News Forge connected
+            </div>
+            <span className="hidden font-mono sm:inline">news.gemcybersecurityassist.com</span>
           </div>
+
+          <iframe
+            src={NEWS_FORGE_URL}
+            title="GEM News Forge live channel"
+            className="h-[calc(100vh-13rem)] min-h-[720px] w-full bg-[#020817]"
+            loading="eager"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allow="clipboard-read; clipboard-write; fullscreen; autoplay"
+          />
         </div>
+
+        <p className="px-3 py-4 text-center text-xs leading-5 text-slate-500">
+          News content is informational and may change rapidly. Verify material claims with the original publisher before making security, financial, legal, or operational decisions.
+        </p>
       </section>
     </main>
   );
