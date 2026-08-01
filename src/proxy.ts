@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFromRequest, resolveAccessDestination } from "@/lib/auth";
 
-const ADMIN_PREFIXES = ["/app/admin", "/admin", "/compliance/admin"];
+const ADMIN_PREFIXES = [
+  "/app/admin",
+  "/app/command-center",
+  "/admin",
+  "/compliance/admin",
+];
 const REVIEW_PREFIXES = ["/review"];
 const PROTECTED_PREFIXES = [
   "/app",
@@ -123,9 +128,13 @@ export async function proxy(request: NextRequest) {
     requestHeaders.set("x-kyc-status", session.kycStatus);
     requestHeaders.set("x-user-entitlements", session.entitlements.join(","));
 
-    if (session.kycApplicationId) requestHeaders.set("x-kyc-application-id", session.kycApplicationId);
+    if (session.kycApplicationId) {
+      requestHeaders.set("x-kyc-application-id", session.kycApplicationId);
+    }
     if (session.portfolioId) requestHeaders.set("x-portfolio-id", session.portfolioId);
-    if (session.organizationId) requestHeaders.set("x-organization-id", session.organizationId);
+    if (session.organizationId) {
+      requestHeaders.set("x-organization-id", session.organizationId);
+    }
     if (pathname.startsWith("/app") || pathname.startsWith("/access")) {
       requestHeaders.set("x-is-portal", "1");
     }
