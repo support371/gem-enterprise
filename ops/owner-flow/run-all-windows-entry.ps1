@@ -16,6 +16,16 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $script:WorkspaceId = ""
 
+$parsedComfyUiBaseUrl = $null
+if (
+  -not [Uri]::TryCreate($ComfyUiBaseUrl, [UriKind]::Absolute, [ref]$parsedComfyUiBaseUrl) -or
+  $parsedComfyUiBaseUrl.Scheme -notin @("http", "https") -or
+  $ComfyUiBaseUrl -match "\s"
+) {
+  throw "ComfyUiBaseUrl must be one absolute HTTP or HTTPS URL without whitespace."
+}
+$ComfyUiBaseUrl = $parsedComfyUiBaseUrl.AbsoluteUri.TrimEnd('/')
+
 if ($Mode -in @("Configure", "Full")) {
   $defaultConfig = Join-Path $PSScriptRoot "social-providers.local.json"
   $candidate = if ($SocialConfigPath) {
