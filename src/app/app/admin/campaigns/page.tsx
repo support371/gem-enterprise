@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Mail, Plus, RefreshCw, ShieldCheck, Loader2 } from "lucide-react";
+import { AlertTriangle, Mail, Plus, RefreshCw, ShieldCheck, Loader2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,9 +57,12 @@ export default function AdminCampaignsPage() {
             Review lifecycle campaigns, recipients, and send readiness. Sending remains an explicit approval-gated operation.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={fetchCampaigns} className="border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">
             <RefreshCw className="h-3.5 w-3.5" />
+          </Button>
+          <Button asChild size="sm" className="bg-violet-400 text-black hover:bg-violet-300">
+            <Link href="/app/admin/campaigns/manus"><Sparkles className="mr-2 h-4 w-4" /> Generate with Manus</Link>
           </Button>
           <Button asChild size="sm" className="bg-cyan-400 text-black hover:bg-cyan-300">
             <Link href="/app/admin/campaigns/new"><Plus className="mr-2 h-4 w-4" /> New Campaign</Link>
