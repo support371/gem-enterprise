@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, ExternalLink, Newspaper, Radio, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  ExternalLink,
+  Mail,
+  Newspaper,
+  Radio,
+  ShieldCheck,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -12,6 +19,7 @@ export const metadata: Metadata = {
   title: "GEM News Channel | Live Intelligence Feed",
   description:
     "GEM's live News Forge channel for cybersecurity, markets, business, technology, world affairs, and operational intelligence.",
+  alternates: { canonical: "/intel/news" },
 };
 
 export default function IntelNewsPage() {
@@ -31,14 +39,16 @@ export default function IntelNewsPage() {
                     <Radio className="mr-1.5 h-3 w-3" /> LIVE CHANNEL
                   </Badge>
                   <Badge className="border-white/15 bg-white/5 text-slate-300 hover:bg-white/5">
-                    <ShieldCheck className="mr-1.5 h-3 w-3 text-sky-300" /> GEM VERIFIED ACCESS POINT
+                    <ShieldCheck className="mr-1.5 h-3 w-3 text-sky-300" /> GEM PLATFORM CHANNEL
                   </Badge>
                 </div>
                 <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
                   GEM News <span className="text-[#FFBF00]">Forge</span>
                 </h1>
                 <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-300 sm:text-base">
-                  The complete GEM intelligence news experience, presented inside the enterprise platform with its live feed, story pages, saved items, preferences, and editorial functions preserved.
+                  The complete News Forge experience inside the main GEM platform. Live feed,
+                  story pages, saved items, preferences, authentication, and editorial functions
+                  remain part of the connected news application.
                 </p>
               </div>
             </div>
@@ -49,6 +59,11 @@ export default function IntelNewsPage() {
                   <ArrowLeft className="mr-2 h-4 w-4" /> Intelligence Center
                 </Link>
               </Button>
+              <Button asChild variant="outline" className="border-[#FFBF00]/30 bg-[#FFBF00]/5 text-[#FFBF00] hover:bg-[#FFBF00]/10 hover:text-[#ffd04d]">
+                <Link href="/newsletter">
+                  <Mail className="mr-2 h-4 w-4" /> News newsletter
+                </Link>
+              </Button>
               <Button asChild className="bg-[#FFBF00] font-semibold text-[#001F3F] hover:bg-[#ffd04d]">
                 <a href={NEWS_FORGE_URL} target="_blank" rel="noopener noreferrer">
                   Open full channel <ExternalLink className="ml-2 h-4 w-4" />
@@ -56,6 +71,12 @@ export default function IntelNewsPage() {
               </Button>
             </div>
           </div>
+
+          <nav aria-label="News channel routes" className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-400">
+            <span>Canonical route: /intel/news</span>
+            <Link href="/news" className="transition hover:text-[#FFBF00]">Quick route: /news</Link>
+            <Link href="/news/newsletter" className="transition hover:text-[#FFBF00]">Newsletter route: /news/newsletter</Link>
+          </nav>
         </div>
       </section>
 
@@ -64,7 +85,7 @@ export default function IntelNewsPage() {
           <div className="flex items-center justify-between border-b border-white/10 bg-[#07152c] px-4 py-2.5 text-xs text-slate-400">
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
-              News Forge connected
+              News Forge connected through GEM
             </div>
             <span className="hidden font-mono sm:inline">news.gemcybersecurityassist.com</span>
           </div>
@@ -80,7 +101,8 @@ export default function IntelNewsPage() {
         </div>
 
         <p className="px-3 py-4 text-center text-xs leading-5 text-slate-500">
-          News content is informational and may change rapidly. Verify material claims with the original publisher before making security, financial, legal, or operational decisions.
+          News content is informational and may change rapidly. Verify material claims with the
+          original publisher before making security, financial, legal, or operational decisions.
         </p>
       </section>
     </main>
