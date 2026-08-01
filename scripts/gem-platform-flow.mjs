@@ -7,23 +7,23 @@ import process from "node:process";
 
 const ROOT = process.cwd();
 const PNPM = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-
 const args = new Set(process.argv.slice(2));
-const modeAll = args.has("--all");
-const shouldInstall = modeAll || args.has("--install");
-const shouldVerify = modeAll || args.has("--verify");
-const shouldCheckWorker = modeAll || args.has("--worker-check");
-const shouldStart = modeAll || args.has("--start");
-const shouldOpen = modeAll || args.has("--open") || args.has("--connect");
-const shouldMigrate = args.has("--migrate");
+const all = args.has("--all");
+const actions = {
+  install: all || args.has("--install"),
+  verify: all || args.has("--verify"),
+  migrate: args.has("--migrate"),
+  workerCheck: all || args.has("--worker-check"),
+  start: all || args.has("--start"),
+  open: all || args.has("--open") || args.has("--connect"),
+};
 const jsonOutput = args.has("--json");
-const skipAudit = args.has("--skip-audit");
 
 const providerDefinitions = [
   {
     id: "TIKTOK",
     label: "TikTok / TokMetric",
-    oauthEnabled: "TOKMETRIC_TIKTOK_OAUTH_ENABLED",
+    enable: "TOKMETRIC_TIKTOK_OAUTH_ENABLED",
     required: [
       "TIKTOK_CLIENT_KEY",
       "TIKTOK_CLIENT_SECRET",
@@ -31,13 +31,12 @@ const providerDefinitions = [
       "TOKMETRIC_TOKEN_ENCRYPTION_KEY",
     ],
     approval: null,
-    liveGates: ["TOKMETRIC_LIVE_PUBLISHING_ENABLED"],
-    connectionPath: "/app/command-center/tokmetric",
+    live: ["TOKMETRIC_LIVE_PUBLISHING_ENABLED"],
   },
   {
     id: "META",
     label: "Facebook Page + Instagram Professional",
-    oauthEnabled: "META_SOCIAL_OAUTH_ENABLED",
+    enable: "META_SOCIAL_OAUTH_ENABLED",
     required: [
       "META_GRAPH_API_VERSION",
       "META_APP_ID",
@@ -47,13 +46,12 @@ const providerDefinitions = [
       "SOCIAL_TOKEN_ENCRYPTION_KEY",
     ],
     approval: "META_APP_REVIEW_APPROVED",
-    liveGates: ["SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED", "META_SOCIAL_PUBLISHING_ENABLED"],
-    connectionPath: "/app/command-center/social-media",
+    live: ["SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED", "META_SOCIAL_PUBLISHING_ENABLED"],
   },
   {
     id: "X",
     label: "X company account",
-    oauthEnabled: "X_SOCIAL_OAUTH_ENABLED",
+    enable: "X_SOCIAL_OAUTH_ENABLED",
     required: [
       "X_CLIENT_ID",
       "X_CLIENT_SECRET",
@@ -62,13 +60,12 @@ const providerDefinitions = [
       "SOCIAL_TOKEN_ENCRYPTION_KEY",
     ],
     approval: null,
-    liveGates: ["SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED", "X_SOCIAL_PUBLISHING_ENABLED"],
-    connectionPath: "/app/command-center/social-media",
+    live: ["SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED", "X_SOCIAL_PUBLISHING_ENABLED"],
   },
   {
     id: "LINKEDIN",
     label: "LinkedIn Company",
-    oauthEnabled: "LINKEDIN_SOCIAL_OAUTH_ENABLED",
+    enable: "LINKEDIN_SOCIAL_OAUTH_ENABLED",
     required: [
       "LINKEDIN_CLIENT_ID",
       "LINKEDIN_CLIENT_SECRET",
@@ -78,13 +75,12 @@ const providerDefinitions = [
       "SOCIAL_TOKEN_ENCRYPTION_KEY",
     ],
     approval: "LINKEDIN_COMMUNITY_MANAGEMENT_ACCESS_APPROVED",
-    liveGates: ["SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED", "LINKEDIN_SOCIAL_PUBLISHING_ENABLED"],
-    connectionPath: "/app/command-center/social-media",
+    live: ["SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED", "LINKEDIN_SOCIAL_PUBLISHING_ENABLED"],
   },
   {
     id: "YOUTUBE",
     label: "YouTube channel / Brand Account",
-    oauthEnabled: "YOUTUBE_SOCIAL_OAUTH_ENABLED",
+    enable: "YOUTUBE_SOCIAL_OAUTH_ENABLED",
     required: [
       "GOOGLE_SOCIAL_CLIENT_ID",
       "GOOGLE_SOCIAL_CLIENT_SECRET",
@@ -93,13 +89,12 @@ const providerDefinitions = [
       "SOCIAL_TOKEN_ENCRYPTION_KEY",
     ],
     approval: "YOUTUBE_DATA_API_AUDIT_APPROVED",
-    liveGates: ["SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED", "YOUTUBE_PUBLISHING_ENABLED"],
-    connectionPath: "/app/command-center/social-media",
+    live: ["SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED", "YOUTUBE_PUBLISHING_ENABLED"],
   },
   {
     id: "NEXTDOOR",
     label: "Nextdoor business / authorized identity",
-    oauthEnabled: "NEXTDOOR_OAUTH_ENABLED",
+    enable: "NEXTDOOR_OAUTH_ENABLED",
     required: [
       "NEXTDOOR_CLIENT_ID",
       "NEXTDOOR_CLIENT_SECRET",
@@ -109,17 +104,15 @@ const providerDefinitions = [
       "CONTENT_ORCHESTRATOR_NEXTDOOR_LOCAL_CONTEXT",
     ],
     approval: "NEXTDOOR_PUBLISH_API_ACCESS_APPROVED",
-    liveGates: ["SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED", "NEXTDOOR_PUBLISHING_ENABLED"],
-    connectionPath: "/app/command-center/social-media",
+    live: ["SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED", "NEXTDOOR_PUBLISHING_ENABLED"],
   },
   {
     id: "INDEED",
     label: "Indeed Employer feed",
-    oauthEnabled: "INDEED_EMPLOYER_INTEGRATION_ENABLED",
+    enable: "INDEED_EMPLOYER_INTEGRATION_ENABLED",
     required: ["INDEED_EMPLOYER_ID", "INDEED_JOB_FEED_URL"],
     approval: null,
-    liveGates: ["INDEED_JOB_PUBLISHING_ENABLED"],
-    connectionPath: "/app/command-center/social-media",
+    live: ["INDEED_JOB_PUBLISHING_ENABLED"],
     hiringOnly: true,
   },
 ];
@@ -146,59 +139,74 @@ const coreGroups = [
     ],
   },
   {
-    id: "video",
-    label: "Trusted video worker",
+    id: "videoApplication",
+    label: "Application video-dispatch configuration",
     required: [
-      "COMFYUI_BASE_URL",
+      "VIDEO_RENDER_DISPATCH_MODE",
       "COMFYUI_WORKFLOW_JSON",
       "COMFYUI_PROMPT_NODE_ID",
       "VIDEO_RENDER_CALLBACK_SECRET",
-      "SUPABASE_URL",
-      "SUPABASE_SERVICE_ROLE_KEY",
+      "VIDEO_RENDER_STORAGE_URL",
+      "VIDEO_RENDER_STORAGE_KEY",
+      "VIDEO_RENDER_STORAGE_AUTH_ORIGIN",
+      "VIDEO_ASSET_ALLOWED_ORIGINS",
+    ],
+  },
+  {
+    id: "videoWorker",
+    label: "Trusted video-worker runtime",
+    required: [
+      "GEM_VIDEO_WORKER_API_URL",
+      "VIDEO_RENDER_CALLBACK_SECRET",
+      "COMFYUI_BASE_URL",
+      "VIDEO_RENDER_STORAGE_URL",
+      "VIDEO_RENDER_STORAGE_KEY",
+      "VIDEO_RENDER_STORAGE_BUCKET",
+      "VIDEO_RENDER_WORKER_STATE_DIR",
     ],
   },
 ];
 
 function parseDotEnv(text) {
-  const values = {};
+  const output = {};
   for (const sourceLine of text.split(/\r?\n/)) {
     const line = sourceLine.trim();
     if (!line || line.startsWith("#")) continue;
-    const separator = line.indexOf("=");
-    if (separator < 1) continue;
-    const key = line.slice(0, separator).trim();
-    let value = line.slice(separator + 1).trim();
+    const index = line.indexOf("=");
+    if (index < 1) continue;
+    const key = line.slice(0, index).trim();
+    let value = line.slice(index + 1).trim();
     if (
       (value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))
     ) {
       value = value.slice(1, -1);
     }
-    values[key] = value;
+    output[key] = value;
   }
-  return values;
+  return output;
 }
 
 function loadEnvironment() {
-  const values = {};
-  for (const name of [".env", ".env.local"]) {
-    const path = resolve(ROOT, name);
-    if (existsSync(path)) Object.assign(values, parseDotEnv(readFileSync(path, "utf8")));
+  const output = {};
+  for (const fileName of [".env", ".env.local"]) {
+    const path = resolve(ROOT, fileName);
+    if (existsSync(path)) Object.assign(output, parseDotEnv(readFileSync(path, "utf8")));
   }
-  return { ...values, ...process.env };
+  return { ...output, ...process.env };
 }
 
 function meaningful(value) {
   if (!value?.trim()) return false;
   const normalized = value.trim().toLowerCase();
-  return !(
-    normalized.includes("replace-with") ||
-    normalized.includes("replace_this") ||
-    normalized.includes("your-") ||
-    normalized.includes("your_") ||
-    normalized.includes("example.com") ||
-    normalized.includes("username:password")
-  );
+  return ![
+    "replace-with",
+    "replace_this",
+    "your-",
+    "your_",
+    "example.com",
+    "username:password",
+  ].some((marker) => normalized.includes(marker));
 }
 
 function enabled(env, key) {
@@ -218,48 +226,60 @@ function commandAvailable(command) {
   return result.status === 0;
 }
 
-function verifyRepositoryFiles() {
-  const files = [
+function repositoryFiles() {
+  return [
     "package.json",
     "prisma/schema.prisma",
     "prisma/migrations/20260725035000_video_render_jobs/migration.sql",
+    "prisma/migrations/20260726062000_video_worker_dispatch/migration.sql",
     "scripts/video-render-worker.ts",
     "src/app/app/command-center/social-media/page.tsx",
     "src/app/app/command-center/social-media/content-studio/page.tsx",
     "src/app/api/social-media/oauth/[provider]/start/route.ts",
     "src/app/api/social-media/oauth/[provider]/callback/route.ts",
     "src/app/api/social-media/orchestrator/daily/process/route.ts",
-  ];
-  return files.map((path) => ({ path, present: existsSync(resolve(ROOT, path)) }));
+    "src/app/api/video/worker/dispatch/route.ts",
+    "src/app/api/video/worker/finalize/route.ts",
+  ].map((path) => ({ path, present: existsSync(resolve(ROOT, path)) }));
 }
 
 function audit(env) {
-  const nodeMajor = Number.parseInt(process.versions.node.split(".")[0], 10);
-  const core = coreGroups.map((group) => ({
-    ...group,
-    missing: missing(env, group.required),
-    ready: missing(env, group.required).length === 0,
-  }));
+  const core = coreGroups.map((group) => {
+    const missingVariables = missing(env, group.required);
+    const modeProblem =
+      group.id === "videoApplication" &&
+      meaningful(env.VIDEO_RENDER_DISPATCH_MODE) &&
+      env.VIDEO_RENDER_DISPATCH_MODE.trim().toLowerCase() !== "worker";
+    return {
+      id: group.id,
+      label: group.label,
+      ready: missingVariables.length === 0 && !modeProblem,
+      missing: missingVariables,
+      issue: modeProblem ? "VIDEO_RENDER_DISPATCH_MODE must be worker" : null,
+    };
+  });
+
   const providers = providerDefinitions.map((provider) => {
     const missingConfiguration = missing(env, provider.required);
-    const oauthEnabled = enabled(env, provider.oauthEnabled);
+    const configurationEnabled = enabled(env, provider.enable);
     const approvalGranted = !provider.approval || enabled(env, provider.approval);
-    const livePublishingEnabled = provider.liveGates.every((key) => enabled(env, key));
+    const livePublishingEnabled = provider.live.every((key) => enabled(env, key));
     let state = "CONFIGURATION_REQUIRED";
-    if (!missingConfiguration.length && !oauthEnabled) state = "ENABLE_OAUTH_AFTER_CREDENTIALS";
-    else if (!missingConfiguration.length && oauthEnabled && !approvalGranted) state = "PLATFORM_APPROVAL_REQUIRED";
-    else if (!missingConfiguration.length && oauthEnabled) state = "READY_FOR_HUMAN_AUTHORIZATION";
-    if (provider.hiringOnly && !missingConfiguration.length && oauthEnabled) state = "HIRING_WORKFLOW_ONLY";
+    if (!missingConfiguration.length && !configurationEnabled) {
+      state = "ENABLE_OAUTH_AFTER_CREDENTIALS";
+    } else if (!missingConfiguration.length && configurationEnabled && !approvalGranted) {
+      state = "PLATFORM_APPROVAL_REQUIRED";
+    } else if (!missingConfiguration.length && configurationEnabled) {
+      state = provider.hiringOnly ? "HIRING_WORKFLOW_ONLY" : "READY_FOR_HUMAN_AUTHORIZATION";
+    }
     return {
       id: provider.id,
       label: provider.label,
       state,
-      oauthEnabled,
+      missingConfiguration,
+      configurationEnabled,
       approvalGranted,
       livePublishingEnabled,
-      missingConfiguration,
-      connectionPath: provider.connectionPath,
-      hiringOnly: Boolean(provider.hiringOnly),
     };
   });
 
@@ -268,17 +288,17 @@ function audit(env) {
     repository: ROOT,
     runtime: {
       node: process.versions.node,
-      nodeSupported: nodeMajor >= 24,
+      nodeSupported: Number.parseInt(process.versions.node.split(".")[0], 10) >= 24,
       pnpmAvailable: commandAvailable(PNPM),
     },
-    files: verifyRepositoryFiles(),
+    files: repositoryFiles(),
     core,
     providers,
     safety: {
       globalSocialPublishingEnabled: enabled(env, "SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED"),
       tikTokPublishingEnabled: enabled(env, "TOKMETRIC_LIVE_PUBLISHING_ENABLED"),
       message:
-        "The terminal flow never enables publishing gates, submits platform-review claims, or bypasses OAuth consent.",
+        "The terminal flow never enables publishing gates, fabricates platform approval, or bypasses OAuth consent.",
     },
   };
 }
@@ -294,37 +314,34 @@ function printReport(report) {
   console.log(`pnpm: ${report.runtime.pnpmAvailable ? "ready" : "not installed"}`);
   const missingFiles = report.files.filter((entry) => !entry.present);
   console.log(`Repository surfaces: ${missingFiles.length ? `${missingFiles.length} missing` : "complete"}`);
-  for (const entry of missingFiles) console.log(`  - missing ${entry.path}`);
-
+  for (const entry of missingFiles) console.log(`  - ${entry.path}`);
   console.log("\nCore activation");
   for (const group of report.core) {
     console.log(`  ${group.ready ? "[ready]" : "[blocked]"} ${group.label}`);
     for (const key of group.missing) console.log(`    - ${key}`);
+    if (group.issue) console.log(`    - ${group.issue}`);
   }
-
-  console.log("\nSocial account authorization");
+  console.log("\nSocial account connection");
   for (const provider of report.providers) {
     console.log(`  [${provider.state}] ${provider.label}`);
     for (const key of provider.missingConfiguration) console.log(`    - ${key}`);
   }
-
   console.log("\nPublishing gates");
   console.log(
-    `  Cross-platform live publishing: ${report.safety.globalSocialPublishingEnabled ? "ENABLED" : "disabled"}`,
+    `  Cross-platform: ${report.safety.globalSocialPublishingEnabled ? "ENABLED" : "disabled"}`,
   );
   console.log(
-    `  TikTok live publishing: ${report.safety.tikTokPublishingEnabled ? "ENABLED" : "disabled"}`,
+    `  TikTok: ${report.safety.tikTokPublishingEnabled ? "ENABLED" : "disabled"}`,
   );
   console.log(`  ${report.safety.message}`);
 }
 
-function run(command, commandArgs, options = {}) {
+function run(command, commandArgs) {
   console.log(`\n> ${command} ${commandArgs.join(" ")}`);
   const result = spawnSync(command, commandArgs, {
     cwd: ROOT,
     stdio: "inherit",
     shell: false,
-    ...options,
   });
   if (result.error) throw result.error;
   if (result.status !== 0) {
@@ -333,20 +350,20 @@ function run(command, commandArgs, options = {}) {
 }
 
 function appBaseUrl(env) {
-  const requested = process.argv.find((value) => value.startsWith("--base-url="));
-  if (requested) return requested.slice("--base-url=".length).replace(/\/$/, "");
+  const explicit = process.argv.find((value) => value.startsWith("--base-url="));
+  if (explicit) return explicit.slice("--base-url=".length).replace(/\/$/, "");
+  if (actions.start) return "http://localhost:3000";
   if (meaningful(env.NEXT_PUBLIC_APP_URL)) return env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
   return "http://localhost:3000";
 }
 
 function openUrl(url) {
-  const commands =
+  const [command, commandArgs] =
     process.platform === "win32"
-      ? [["cmd", ["/c", "start", "", url]]]
+      ? ["cmd", ["/c", "start", "", url]]
       : process.platform === "darwin"
-        ? [["open", [url]]]
-        : [["xdg-open", [url]]];
-  const [command, commandArgs] = commands[0];
+        ? ["open", [url]]
+        : ["xdg-open", [url]];
   const child = spawn(command, commandArgs, {
     cwd: ROOT,
     detached: true,
@@ -358,20 +375,20 @@ function openUrl(url) {
 
 function openCommandCenters(env) {
   const base = appBaseUrl(env);
-  const pages = [
+  const paths = [
     "/app/command-center/integrations",
     "/app/command-center/social-media",
     "/app/command-center/social-media/content-studio",
     "/app/command-center/tokmetric",
   ];
   console.log("\nHuman authorization pages");
-  for (const path of pages) {
+  for (const path of paths) {
     const url = `${base}${path}`;
     console.log(`  ${url}`);
     try {
       openUrl(url);
     } catch {
-      console.log("  Browser opening was unavailable; copy the URL manually.");
+      console.log("  Browser opening unavailable; copy the URL manually.");
     }
   }
 }
@@ -382,87 +399,69 @@ function startServices() {
     spawn(PNPM, ["video:worker"], { cwd: ROOT, stdio: "inherit", shell: false }),
   ];
   const stop = (signal) => {
-    for (const child of children) {
-      if (!child.killed) child.kill(signal);
-    }
+    for (const child of children) if (!child.killed) child.kill(signal);
   };
   process.on("SIGINT", () => stop("SIGINT"));
   process.on("SIGTERM", () => stop("SIGTERM"));
   return new Promise((resolvePromise, rejectPromise) => {
-    let completed = 0;
+    let exited = 0;
     for (const child of children) {
       child.on("error", rejectPromise);
       child.on("exit", (code) => {
-        completed += 1;
+        exited += 1;
         if (code && code !== 0) rejectPromise(new Error(`A GEM service exited with ${code}`));
-        else if (completed === children.length) resolvePromise();
+        else if (exited === children.length) resolvePromise();
       });
     }
   });
 }
 
-function printUsage() {
+function usage() {
   console.log(`
 Usage:
   node scripts/gem-platform-flow.mjs --audit
   node scripts/gem-platform-flow.mjs --all
   node scripts/gem-platform-flow.mjs --all --migrate
-  node scripts/gem-platform-flow.mjs --connect --base-url=http://localhost:3000
+  node scripts/gem-platform-flow.mjs --connect --base-url=https://your-host
 
-Flags:
-  --audit          Print platform, video, orchestrator, and provider readiness. Default action.
-  --all            Install, verify, check the worker, start services, and open dashboards.
-  --install        Run pnpm install --frozen-lockfile.
-  --verify         Run Prisma generation and the repository verification chain.
-  --migrate        Apply committed database migrations with prisma migrate deploy.
-  --worker-check   Verify the trusted render worker configuration and connectivity.
-  --start          Start the Next.js application and the continuous video worker.
-  --connect        Open the social, video, integration, and TokMetric dashboards.
-  --open           Alias for --connect.
-  --json           Emit the audit as JSON.
-  --base-url=URL   Override the command-center base URL.
-  --help           Show this help.
-
-Safety:
-  --all does not apply migrations unless --migrate is also supplied.
-  No command enables live publishing, fabricates platform approval, or completes OAuth consent for you.
+--all installs, verifies, checks the worker, starts Next.js and the worker, and opens the dashboards.
+--migrate is separate and applies committed migrations with prisma migrate deploy.
+No option enables publishing or completes provider consent.
 `);
 }
 
 async function main() {
   if (args.has("--help")) {
-    printUsage();
+    usage();
     return;
   }
   const env = loadEnvironment();
   const report = audit(env);
-  if (!skipAudit) printReport(report);
+  printReport(report);
 
-  if (shouldInstall) run(PNPM, ["install", "--frozen-lockfile"]);
-  if (shouldVerify) {
+  if (actions.install) run(PNPM, ["install", "--frozen-lockfile"]);
+  if (actions.verify) {
     run(PNPM, ["db:generate"]);
     run(PNPM, ["verify:preview"]);
   }
-  if (shouldMigrate) {
+  if (actions.migrate) {
     if (!meaningful(env.POSTGRES_PRISMA_URL)) {
       throw new Error("POSTGRES_PRISMA_URL must be configured before applying migrations.");
     }
     run(PNPM, ["exec", "prisma", "migrate", "deploy"]);
   }
-  if (shouldCheckWorker) {
-    const video = report.core.find((group) => group.id === "video");
-    if (!video?.ready) {
-      throw new Error(
-        `Trusted video worker configuration is incomplete: ${video?.missing.join(", ")}`,
-      );
+  if (actions.workerCheck) {
+    const worker = report.core.find((group) => group.id === "videoWorker");
+    const application = report.core.find((group) => group.id === "videoApplication");
+    if (!worker?.ready || !application?.ready) {
+      const missingNames = [...(application?.missing ?? []), ...(worker?.missing ?? [])];
+      throw new Error(`Video activation is incomplete: ${[...new Set(missingNames)].join(", ")}`);
     }
     run(PNPM, ["video:worker:check"]);
   }
-  if (shouldOpen && !shouldStart) openCommandCenters(env);
-  if (shouldStart) {
-    if (shouldOpen) {
-      setTimeout(() => openCommandCenters(env), 4000).unref();
-    }
+  if (actions.open && !actions.start) openCommandCenters(env);
+  if (actions.start) {
+    if (actions.open) setTimeout(() => openCommandCenters(env), 4000).unref();
     await startServices();
   }
 }
