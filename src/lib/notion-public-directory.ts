@@ -22,6 +22,11 @@ export interface PublicDirectoryResult {
   status: "ready" | "not_configured" | "provider_error";
 }
 
+interface DirectoryEnvironment {
+  NOTION_API_TOKEN?: string;
+  NOTION_PERSONNEL_DATA_SOURCE_ID?: string;
+}
+
 function record(value: unknown): UnknownRecord | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as UnknownRecord)
@@ -139,7 +144,7 @@ function normalizeDataSourceId(value: string | undefined): string | null {
 }
 
 export async function getPublicDirectory(
-  env: Pick<NodeJS.ProcessEnv, "NOTION_API_TOKEN" | "NOTION_PERSONNEL_DATA_SOURCE_ID"> = process.env,
+  env: DirectoryEnvironment = process.env,
   request: typeof fetch = fetch,
 ): Promise<PublicDirectoryResult> {
   const token = env.NOTION_API_TOKEN?.trim();
