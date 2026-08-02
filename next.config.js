@@ -104,7 +104,7 @@ const nextConfig = {
       },
       {
         source: '/admin-command',
-        destination: 'https://admin.gemcybersecurityassist.com',
+        destination: '/app/command-center',
         permanent: false,
       },
     ];
