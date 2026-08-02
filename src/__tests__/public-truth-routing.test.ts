@@ -1,9 +1,5 @@
-import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const require = createRequire(import.meta.url);
 const nextConfig = require("../../next.config.js") as {
   redirects: () => Promise<
     Array<{ source: string; destination: string; permanent: boolean }>
@@ -11,14 +7,43 @@ const nextConfig = require("../../next.config.js") as {
 };
 
 describe("public truth routing", () => {
-  it("temporarily routes the legacy community page to the disclosed preview", async () => {
+  it("routes public demo and preview entry points to controlled production pages", async () => {
     const redirects = await nextConfig.redirects();
 
-    expect(redirects).toContainEqual({
-      source: "/community",
-      destination: "/community-hub",
-      permanent: false,
-    });
+    expect(redirects).toEqual(
+      expect.arrayContaining([
+        {
+          source: "/community",
+          destination: "/hub",
+          permanent: false,
+        },
+        {
+          source: "/community-hub",
+          destination: "/hub",
+          permanent: false,
+        },
+        {
+          source: "/enterprise-demo",
+          destination: "/enterprise-solutions",
+          permanent: false,
+        },
+        {
+          source: "/enterprise-demo/watch",
+          destination: "/enterprise-solutions",
+          permanent: false,
+        },
+        {
+          source: "/preview",
+          destination: "/company",
+          permanent: false,
+        },
+        {
+          source: "/tokmetric/review-demo",
+          destination: "/tokmetric",
+          permanent: false,
+        },
+      ]),
+    );
   });
 
   it("permanently routes open registration to controlled onboarding", async () => {
@@ -29,21 +54,5 @@ describe("public truth routing", () => {
       destination: "/get-started",
       permanent: true,
     });
-  });
-
-  it("keeps the Community Hub explicitly fictional and non-indexed", () => {
-    const source = readFileSync(
-      join(process.cwd(), "src/app/community-hub/page.tsx"),
-      "utf8",
-    );
-
-    expect(source).toContain("Fictional interface preview");
-    expect(source).toContain(
-      "No live members, opportunities, events, secure messaging, or verified network are represented.",
-    );
-    expect(source).toContain("Production access remains unavailable");
-    expect(source).toContain("index: false");
-    expect(source).toContain("follow: false");
-    expect(source).toContain("nocache: true");
   });
 });
