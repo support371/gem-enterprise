@@ -89,7 +89,32 @@ const nextConfig = {
       { source: '/blog', destination: '/resources', permanent: true },
       {
         source: '/community',
-        destination: '/community-hub',
+        destination: '/hub',
+        permanent: false,
+      },
+      {
+        source: '/community-hub',
+        destination: '/hub',
+        permanent: false,
+      },
+      {
+        source: '/enterprise-demo',
+        destination: '/enterprise-solutions',
+        permanent: false,
+      },
+      {
+        source: '/enterprise-demo/watch',
+        destination: '/enterprise-solutions',
+        permanent: false,
+      },
+      {
+        source: '/preview',
+        destination: '/company',
+        permanent: false,
+      },
+      {
+        source: '/tokmetric/review-demo',
+        destination: '/tokmetric',
         permanent: false,
       },
       {
