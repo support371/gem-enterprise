@@ -1,13 +1,22 @@
 [CmdletBinding()]
 param(
-  [ValidateSet("Audit", "Configure", "ActivateVideo", "Connect", "Full")]
+  [ValidateSet("Audit", "Configure", "ActivateVideo", "Connect", "Full", "Rollback")]
   [string]$Mode = "Full",
   [string]$WorkspaceId = "",
   [string]$ServiceActorId = "",
   [string]$NextdoorLocalContext = "",
   [string]$SocialConfigPath = "",
   [string]$ComfyUiBaseUrl = "http://127.0.0.1:8188",
+  [string]$ExpectedCommit = "",
+  [string]$PreviewCommit = "",
+  [string]$PreviewUrl = "",
+  [string]$PlatformVideoUrl = "",
   [switch]$SkipLocalVerification,
+  [switch]$ApproveDependencyInstall,
+  [switch]$ApproveProductionChanges,
+  [switch]$ApproveProductionDeploy,
+  [switch]$ApprovePlatformVideo,
+  [switch]$ApproveRollback,
   [switch]$StartWorker,
   [switch]$DoNotOpenBrowser
 )
@@ -67,8 +76,17 @@ $parameters = @{
   NextdoorLocalContext = $NextdoorLocalContext
   SocialConfigPath = $SocialConfigPath
   ComfyUiBaseUrl = $ComfyUiBaseUrl
+  ExpectedCommit = $ExpectedCommit
+  PreviewCommit = $PreviewCommit
+  PreviewUrl = $PreviewUrl
+  PlatformVideoUrl = $PlatformVideoUrl
 }
 if ($SkipLocalVerification) { $parameters.SkipLocalVerification = $true }
+if ($ApproveDependencyInstall) { $parameters.ApproveDependencyInstall = $true }
+if ($ApproveProductionChanges) { $parameters.ApproveProductionChanges = $true }
+if ($ApproveProductionDeploy) { $parameters.ApproveProductionDeploy = $true }
+if ($ApprovePlatformVideo) { $parameters.ApprovePlatformVideo = $true }
+if ($ApproveRollback) { $parameters.ApproveRollback = $true }
 if ($StartWorker) { $parameters.StartWorker = $true }
 if ($DoNotOpenBrowser) { $parameters.DoNotOpenBrowser = $true }
 
