@@ -99,12 +99,12 @@ const nextConfig = {
       },
       {
         source: '/command-center',
-        destination: 'https://admin.gemcybersecurityassist.com',
+        destination: '/app/command-center',
         permanent: false,
       },
       {
         source: '/admin-command',
-        destination: 'https://admin.gemcybersecurityassist.com',
+        destination: '/app/command-center',
         permanent: false,
       },
     ];
