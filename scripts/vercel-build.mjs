@@ -35,6 +35,8 @@ console.log("Promoting separated-intake Prisma models...");
 run("node", ["scripts/apply-intake-prisma-models.mjs"], env);
 console.log("Promoting scoped service-request Prisma fields...");
 run("node", ["scripts/apply-service-request-prisma.mjs"], env);
+console.log("Promoting capital-readiness transaction models...");
+run("node", ["scripts/apply-capital-readiness-prisma-models.mjs"], env);
 
 const schemaValidationUrl = "postgresql://schema:validation@127.0.0.1:5432/schema_validation";
 const schemaValidationEnv = {
@@ -51,7 +53,7 @@ run("pnpm", ["exec", "prisma", "generate"], schemaValidationEnv);
 const shouldVerifyPreview =
   env.VERCEL_ENV === "preview" || env.RUN_PREVIEW_VERIFICATION === "true";
 if (shouldVerifyPreview) {
-  console.log("Running preview verification: lint, typecheck, and unit tests...");
+  console.log("Running preview verification: schema, capital contract, claims, lint, typecheck, and unit tests...");
   const verificationEnv = {
     ...env,
     NODE_ENV: "test",

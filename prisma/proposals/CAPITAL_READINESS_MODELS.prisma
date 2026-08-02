@@ -1,0 +1,1191 @@
+// GEM Enterprise Capital Readiness & Transaction Command Center
+// Additive Prisma fragment. Promoted by scripts/apply-capital-readiness-prisma-models.mjs.
+// This file does not authorize a production migration.
+
+enum CapitalActivityClassification {
+  GREEN_NON_REGULATED
+  AMBER_REVIEW_REQUIRED
+  RED_LICENSED_PARTNER_ONLY
+  PROHIBITED
+}
+
+enum CapitalOpportunityStatus {
+  LEAD_RECEIVED
+  QUALIFICATION
+  PENDING_INFORMATION
+  QUALIFIED
+  DECLINED
+  REFERRED_OUT
+  CONVERTED
+  CLOSED
+}
+
+enum CapitalKybStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  ENHANCED_DUE_DILIGENCE
+  COMPLIANCE_HOLD
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum CapitalScreeningType {
+  ENTITY
+  BENEFICIAL_OWNER
+  SANCTIONS
+  PEP
+  ADVERSE_MEDIA
+  LITIGATION
+  INSOLVENCY
+  REGULATORY_LICENSE
+  SOURCE_OF_FUNDS
+}
+
+enum CapitalScreeningResult {
+  CLEAR
+  POSSIBLE_MATCH
+  CONFIRMED_MATCH
+  REVIEW_REQUIRED
+  UNAVAILABLE
+}
+
+enum CapitalHoldType {
+  COMPLIANCE
+  LEGAL
+  SECURITY
+  PAYMENT
+  DOCUMENT_INTEGRITY
+}
+
+enum CapitalHoldStatus {
+  ACTIVE
+  RELEASED
+  EXPIRED
+}
+
+enum CapitalFeeType {
+  FIXED_PROJECT_FEE
+  MILESTONE_FEE
+  HOURLY_FEE
+  MONTHLY_RETAINER
+  ANNUAL_SUBSCRIPTION
+  IMPLEMENTATION_FEE
+  SECURITY_MONITORING_FEE
+  TRANSACTION_BASED_FEE
+}
+
+enum CapitalEngagementStatus {
+  DRAFT
+  COMPLIANCE_REVIEW
+  APPROVED
+  SENT
+  SIGNED
+  ACTIVE
+  SUSPENDED
+  COMPLETED
+  TERMINATED
+}
+
+enum CapitalMatterStatus {
+  INTAKE
+  KYB_AND_CONFLICT_REVIEW
+  ENGAGEMENT_EXECUTION
+  READINESS_ASSESSMENT
+  REMEDIATION
+  INTERNAL_COMMITTEE
+  LICENSED_PARTNER_REVIEW
+  CONTROLLED_MARKET_PROCESS
+  DILIGENCE_AND_PROPOSALS
+  TERM_SHEET
+  PRE_CLOSING
+  CLOSING_IN_PROGRESS
+  CLOSED
+  FAILED_TO_CLOSE
+  TERMINATED
+}
+
+enum CapitalWorkstreamType {
+  CORPORATE
+  FINANCIAL
+  COMMERCIAL
+  MANAGEMENT
+  CYBERSECURITY
+  COMPLIANCE
+  TRANSACTION
+  DATA_ROOM
+}
+
+enum CapitalAssessmentStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  READY
+  CONDITIONALLY_READY
+  REMEDIATION_REQUIRED
+  BLOCKED
+}
+
+enum CapitalFindingSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum CapitalFindingStatus {
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  CLIENT_RESPONSE_REQUIRED
+  READY_FOR_REVIEW
+  VERIFIED
+  RISK_ACCEPTED
+  REJECTED
+  OVERDUE
+}
+
+enum CapitalEvidenceQuality {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum CapitalReviewerConfidence {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum CapitalCommitteeDecision {
+  PENDING
+  APPROVED_FOR_PARTNER_REVIEW
+  APPROVED_WITH_CONDITIONS
+  RETURNED_FOR_REMEDIATION
+  DECLINED
+  ESCALATED_TO_COUNSEL
+}
+
+enum CapitalPartnerStatus {
+  PENDING_VERIFICATION
+  ACTIVE
+  RESTRICTED
+  SUSPENDED
+  EXPIRED
+  TERMINATED
+}
+
+enum CapitalPartnerMandateStatus {
+  PROPOSED
+  PARTNER_REVIEW
+  ADDITIONAL_DILIGENCE
+  ACCEPTED
+  DECLINED
+  ACTIVE
+  COMPLETED
+  TERMINATED
+}
+
+enum CapitalTargetEntryStatus {
+  RESEARCH_ONLY
+  VALIDATION_REQUIRED
+  PARTNER_REVIEW_REQUIRED
+  APPROVED_FOR_LICENSED_OUTREACH
+  HOLD
+  DO_NOT_CONTACT
+}
+
+enum CapitalOutreachStatus {
+  NOT_APPROVED
+  PARTNER_REVIEW
+  APPROVED
+  CONTACTED_BY_PARTNER
+  RESPONSE_RECEIVED
+  NDA_PENDING
+  NDA_SIGNED
+  MATERIALS_GRANTED
+  DILIGENCE_ACTIVE
+  INDICATION_RECEIVED
+  DECLINED
+  WITHDRAWN
+}
+
+enum CapitalConfidentialityLevel {
+  INTERNAL
+  CLIENT_CONFIDENTIAL
+  PARTNER_CONFIDENTIAL
+  CLEAN_TEAM_ONLY
+  INVESTOR_APPROVED
+  COUNSEL_ONLY
+  BOARD_ONLY
+}
+
+enum CapitalDocumentStatus {
+  DRAFT
+  REVIEW_REQUIRED
+  APPROVED
+  RELEASED
+  SUPERSEDED
+  EXPIRED
+  BLOCKED
+}
+
+enum CapitalDiligenceStatus {
+  DRAFT
+  INTERNAL_REVIEW
+  SENT_TO_CLIENT
+  CLIENT_RESPONSE
+  ANALYST_REVIEW
+  FOLLOW_UP_REQUIRED
+  APPROVED
+  CLOSED
+  ESCALATED
+}
+
+enum CapitalProposalStatus {
+  INDICATION
+  NON_BINDING_PROPOSAL
+  TERM_SHEET
+  UNDER_DILIGENCE
+  APPROVED
+  REJECTED
+  EXPIRED
+  WITHDRAWN
+  SUPERSEDED
+}
+
+enum CapitalSourceLabel {
+  SOURCE_BACKED
+  CLIENT_PROVIDED
+  PARTNER_PROVIDED
+  ANALYST_CALCULATED
+  ILLUSTRATIVE_ASSUMPTION
+  NEEDS_VERIFICATION
+}
+
+enum CapitalClosingStatus {
+  PRE_CLOSING
+  CONDITIONS_OUTSTANDING
+  READY_TO_CLOSE
+  CLOSING_IN_PROGRESS
+  CLOSED
+  FAILED_TO_CLOSE
+  TERMINATED
+}
+
+enum CapitalContractStatus {
+  DRAFT
+  APPROVED
+  SENT
+  SIGNED
+  ACTIVE
+  PAUSED
+  EXPIRED
+  TERMINATED
+}
+
+enum CapitalRevenueType {
+  READINESS_ASSESSMENT
+  CAPITAL_READINESS_PACKAGE
+  CYBERSECURITY_ASSESSMENT
+  COMPLIANCE_ASSESSMENT
+  FINANCIAL_MODEL
+  VALUATION_SUPPORT
+  DATA_ROOM_SETUP
+  DUE_DILIGENCE_SUPPORT
+  TRANSACTION_PROJECT_MANAGEMENT
+  POST_CLOSE_IMPLEMENTATION
+  MONTHLY_MONITORING
+  ANNUAL_CERTIFICATION
+  LICENSED_PARTNER_REVENUE
+}
+
+enum CapitalAgentStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  BLOCKED
+  RETIRED
+}
+
+enum CapitalAgentRunStatus {
+  QUEUED
+  RUNNING
+  WAITING_FOR_APPROVAL
+  COMPLETED
+  FAILED
+  CANCELLED
+  BLOCKED
+}
+
+model CapitalOpportunity {
+  id                     String                   @id @default(cuid())
+  workspaceId            String
+  publicId               String                   @unique
+  legalEntityName        String
+  jurisdiction           String
+  registrationNumber     String?
+  projectType             String
+  targetAmount            Decimal?                @db.Decimal(18, 2)
+  currency                String                   @default("USD")
+  useOfProceeds           String
+  timingConstraint       String?
+  existingDebt            Decimal?                @db.Decimal(18, 2)
+  referralSource          String?
+  activityClassification CapitalActivityClassification @default(GREEN_NON_REGULATED)
+  status                  CapitalOpportunityStatus @default(LEAD_RECEIVED)
+  preliminaryRiskScore   Int?
+  assignedToId            String?
+  consentVersion          String
+  consentGivenAt          DateTime
+  privacyVersion          String
+  privacyAcceptedAt       DateTime
+  safeMetadata            Json                     @default("{}")
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+
+  workspace            Workspace                    @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  contacts             CapitalOpportunityContact[]
+  qualificationReviews CapitalQualificationReview[]
+  kybCases             CapitalKybCase[]
+  engagements          CapitalEngagement[]
+  matters              CapitalMatter[]
+
+  @@index([workspaceId, status, createdAt])
+  @@index([workspaceId, legalEntityName])
+  @@map("capital_opportunities")
+}
+
+model CapitalOpportunityContact {
+  id            String   @id @default(cuid())
+  opportunityId String
+  name          String
+  email         String
+  phone         String?
+  title         String?
+  isPrimary     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  opportunity CapitalOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId, isPrimary])
+  @@map("capital_opportunity_contacts")
+}
+
+model CapitalQualificationReview {
+  id            String                   @id @default(cuid())
+  opportunityId String
+  reviewerId    String
+  fromStatus    CapitalOpportunityStatus
+  toStatus      CapitalOpportunityStatus
+  rationale     String
+  evidenceRefs  String[]                 @default([])
+  conditions    Json                     @default("{}")
+  createdAt     DateTime                 @default(now())
+
+  opportunity CapitalOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId, createdAt])
+  @@map("capital_qualification_reviews")
+}
+
+model CapitalKybCase {
+  id            String           @id @default(cuid())
+  workspaceId   String
+  opportunityId String
+  status        CapitalKybStatus @default(NOT_STARTED)
+  riskLevel     CapitalFindingSeverity @default(MEDIUM)
+  assignedToId  String?
+  openedAt      DateTime         @default(now())
+  approvedAt    DateTime?
+  rejectedAt    DateTime?
+  expiresAt     DateTime?
+  safeMetadata  Json             @default("{}")
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  workspace        Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  opportunity      CapitalOpportunity        @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
+  beneficialOwners CapitalBeneficialOwner[]
+  screenings       CapitalScreeningResultRecord[]
+  conflictChecks   CapitalConflictCheck[]
+  holds            CapitalHold[]
+
+  @@index([workspaceId, status, createdAt])
+  @@unique([opportunityId])
+  @@map("capital_kyb_cases")
+}
+
+model CapitalBeneficialOwner {
+  id              String   @id @default(cuid())
+  kybCaseId       String
+  fullName        String
+  nationality     String?
+  countryOfResidence String?
+  ownershipPercent Decimal? @db.Decimal(5, 2)
+  controlPerson   Boolean  @default(false)
+  verificationStatus String @default("PENDING")
+  documentRef     String?
+  safeMetadata    Json     @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  kybCase CapitalKybCase @relation(fields: [kybCaseId], references: [id], onDelete: Cascade)
+
+  @@index([kybCaseId, verificationStatus])
+  @@map("capital_beneficial_owners")
+}
+
+model CapitalScreeningResultRecord {
+  id             String                  @id @default(cuid())
+  kybCaseId      String
+  screeningType  CapitalScreeningType
+  subjectRef     String
+  provider       String?
+  providerCaseRef String?
+  result         CapitalScreeningResult
+  reviewedById   String?
+  reviewedAt     DateTime?
+  expiresAt      DateTime?
+  evidenceRef    String?
+  safeMetadata   Json                    @default("{}")
+  createdAt      DateTime                @default(now())
+
+  kybCase CapitalKybCase @relation(fields: [kybCaseId], references: [id], onDelete: Cascade)
+
+  @@index([kybCaseId, screeningType, result])
+  @@map("capital_screening_results")
+}
+
+model CapitalConflictCheck {
+  id            String   @id @default(cuid())
+  kybCaseId     String
+  subject       String
+  result        String
+  details       String?
+  reviewedById  String?
+  reviewedAt    DateTime?
+  evidenceRef   String?
+  createdAt     DateTime @default(now())
+
+  kybCase CapitalKybCase @relation(fields: [kybCaseId], references: [id], onDelete: Cascade)
+
+  @@index([kybCaseId, result])
+  @@map("capital_conflict_checks")
+}
+
+model CapitalHold {
+  id           String            @id @default(cuid())
+  kybCaseId    String?
+  matterId     String?
+  holdType     CapitalHoldType
+  status       CapitalHoldStatus @default(ACTIVE)
+  reason       String
+  imposedById  String
+  imposedAt    DateTime          @default(now())
+  releasedById String?
+  releasedAt   DateTime?
+  releaseReason String?
+  expiresAt    DateTime?
+
+  kybCase CapitalKybCase? @relation(fields: [kybCaseId], references: [id], onDelete: Restrict)
+  matter  CapitalMatter?  @relation(fields: [matterId], references: [id], onDelete: Restrict)
+
+  @@index([kybCaseId, status])
+  @@index([matterId, status])
+  @@map("capital_holds")
+}
+
+model CapitalEngagement {
+  id                     String                  @id @default(cuid())
+  workspaceId            String
+  opportunityId          String
+  status                 CapitalEngagementStatus @default(DRAFT)
+  title                  String
+  scope                  Json
+  excludedActivities     String[]                @default([])
+  jurisdictions          String[]                @default([])
+  noCustodyAccepted      Boolean                 @default(false)
+  noGuaranteeAccepted    Boolean                 @default(false)
+  licensedPartnerRequired Boolean                @default(false)
+  approvedById           String?
+  approvedAt             DateTime?
+  signedAt               DateTime?
+  effectiveAt            DateTime?
+  expiresAt              DateTime?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+
+  workspace   Workspace                    @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  opportunity CapitalOpportunity           @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
+  fees        CapitalEngagementFee[]
+  milestones  CapitalEngagementMilestone[]
+  matters     CapitalMatter[]
+
+  @@index([workspaceId, status, createdAt])
+  @@map("capital_engagements")
+}
+
+model CapitalEngagementFee {
+  id                         String         @id @default(cuid())
+  engagementId               String
+  feeType                    CapitalFeeType
+  description                String
+  amount                     Decimal?       @db.Decimal(18, 2)
+  currency                   String         @default("USD")
+  hourlyRate                 Decimal?       @db.Decimal(18, 2)
+  transactionBasedEnabled    Boolean        @default(false)
+  counselApprovalRef         String?
+  licensedPartnerApprovalRef String?
+  complianceApprovalRef      String?
+  approvedById               String?
+  approvedAt                 DateTime?
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
+
+  engagement CapitalEngagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+
+  @@index([engagementId, feeType])
+  @@map("capital_engagement_fees")
+}
+
+model CapitalEngagementMilestone {
+  id           String   @id @default(cuid())
+  engagementId String
+  title        String
+  status       String   @default("PENDING")
+  amount       Decimal? @db.Decimal(18, 2)
+  dueAt        DateTime?
+  completedAt  DateTime?
+  invoiceRef   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  engagement CapitalEngagement @relation(fields: [engagementId], references: [id], onDelete: Cascade)
+
+  @@index([engagementId, status, dueAt])
+  @@map("capital_engagement_milestones")
+}
+
+model CapitalMatter {
+  id            String              @id @default(cuid())
+  workspaceId   String
+  opportunityId String
+  engagementId  String
+  publicId      String              @unique
+  title         String
+  status        CapitalMatterStatus @default(INTAKE)
+  transactionType String
+  targetAmount  Decimal?            @db.Decimal(18, 2)
+  currency      String              @default("USD")
+  useOfProceeds String
+  globalHold    Boolean             @default(false)
+  openedAt      DateTime            @default(now())
+  closedAt      DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  workspace      Workspace                    @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  opportunity    CapitalOpportunity           @relation(fields: [opportunityId], references: [id], onDelete: Restrict)
+  engagement     CapitalEngagement            @relation(fields: [engagementId], references: [id], onDelete: Restrict)
+  assessments    CapitalReadinessAssessment[]
+  findings       CapitalFinding[]
+  holds          CapitalHold[]
+  committeeReviews CapitalCommitteeReview[]
+  partnerMandates CapitalPartnerMandate[]
+  targetUniverses CapitalTargetUniverse[]
+  dataRooms      CapitalDataRoom[]
+  diligenceQuestions CapitalDiligenceQuestion[]
+  proposals      CapitalProposal[]
+  closingConditions CapitalClosingCondition[]
+  closings       CapitalClosing[]
+  serviceContracts CapitalServiceContract[]
+
+  @@index([workspaceId, status, createdAt])
+  @@map("capital_matters")
+}
+
+model CapitalReadinessAssessment {
+  id             String                  @id @default(cuid())
+  matterId       String
+  status         CapitalAssessmentStatus @default(NOT_STARTED)
+  overallScore   Decimal?                @db.Decimal(5, 2)
+  criticalBlocks Int                     @default(0)
+  calculatedAt   DateTime?
+  calculatedById String?
+  methodologyVersion String              @default("1.0")
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  matter      CapitalMatter              @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  workstreams CapitalReadinessWorkstream[]
+
+  @@index([matterId, status])
+  @@map("capital_readiness_assessments")
+}
+
+model CapitalReadinessWorkstream {
+  id                String                    @id @default(cuid())
+  assessmentId      String
+  type              CapitalWorkstreamType
+  score             Decimal?                  @db.Decimal(5, 2)
+  weight            Decimal                   @db.Decimal(5, 2)
+  status            CapitalAssessmentStatus   @default(NOT_STARTED)
+  evidenceQuality   CapitalEvidenceQuality    @default(LOW)
+  reviewerConfidence CapitalReviewerConfidence @default(LOW)
+  criticalFindings  Int                       @default(0)
+  openActions       Int                       @default(0)
+  reviewedById      String?
+  reviewedAt        DateTime?
+  safeMetadata      Json                      @default("{}")
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  assessment CapitalReadinessAssessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assessmentId, type])
+  @@index([assessmentId, status])
+  @@map("capital_readiness_workstreams")
+}
+
+model CapitalFinding {
+  id              String                 @id @default(cuid())
+  matterId        String
+  workstreamType  CapitalWorkstreamType
+  severity        CapitalFindingSeverity
+  status          CapitalFindingStatus   @default(OPEN)
+  title           String
+  description     String
+  evidenceRefs    String[]               @default([])
+  requiredRemediation String
+  ownerId         String?
+  dueAt           DateTime?
+  verifiedById    String?
+  verifiedAt      DateTime?
+  residualRisk    String?
+  clientAcceptedAt DateTime?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  matter             CapitalMatter              @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  remediationActions CapitalRemediationAction[]
+
+  @@index([matterId, severity, status])
+  @@map("capital_findings")
+}
+
+model CapitalRemediationAction {
+  id             String               @id @default(cuid())
+  findingId      String
+  title          String
+  status         CapitalFindingStatus @default(OPEN)
+  ownerId        String?
+  dueAt          DateTime?
+  verificationMethod String
+  evidenceRefs   String[]             @default([])
+  reviewerId     String?
+  reviewedAt     DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  finding CapitalFinding @relation(fields: [findingId], references: [id], onDelete: Cascade)
+
+  @@index([findingId, status, dueAt])
+  @@map("capital_remediation_actions")
+}
+
+model CapitalCommitteeReview {
+  id             String                   @id @default(cuid())
+  matterId       String
+  decision       CapitalCommitteeDecision @default(PENDING)
+  packageVersion Int
+  packageHash    String
+  conditions     Json                     @default("{}")
+  submittedById  String
+  submittedAt    DateTime                 @default(now())
+  decidedAt      DateTime?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  matter CapitalMatter          @relation(fields: [matterId], references: [id], onDelete: Restrict)
+  votes  CapitalCommitteeVote[]
+
+  @@unique([matterId, packageVersion])
+  @@index([matterId, decision])
+  @@map("capital_committee_reviews")
+}
+
+model CapitalCommitteeVote {
+  id        String                   @id @default(cuid())
+  reviewId  String
+  voterId   String
+  decision  CapitalCommitteeDecision
+  rationale String
+  createdAt DateTime                 @default(now())
+
+  review CapitalCommitteeReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, voterId])
+  @@map("capital_committee_votes")
+}
+
+model CapitalLicensedPartner {
+  id                    String               @id @default(cuid())
+  workspaceId           String
+  legalName             String
+  regulatoryEntityName  String
+  regulatoryReference   String
+  status                CapitalPartnerStatus @default(PENDING_VERIFICATION)
+  jurisdictions         String[]             @default([])
+  authorizedInstruments String[]             @default([])
+  minimumTransaction    Decimal?             @db.Decimal(18, 2)
+  maximumTransaction    Decimal?             @db.Decimal(18, 2)
+  industryRestrictions  String[]             @default([])
+  geographicRestrictions String[]            @default([])
+  complianceContact     String?
+  conflictContact       String?
+  agreementExpiresAt    DateTime?
+  insuranceExpiresAt    DateTime?
+  verifiedAt            DateTime?
+  verificationEvidenceRef String?
+  safeMetadata          Json                 @default("{}")
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  workspace Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  licenses  CapitalPartnerLicense[]
+  mandates  CapitalPartnerMandate[]
+
+  @@unique([workspaceId, regulatoryReference])
+  @@index([workspaceId, status, agreementExpiresAt])
+  @@map("capital_licensed_partners")
+}
+
+model CapitalPartnerLicense {
+  id             String   @id @default(cuid())
+  partnerId      String
+  jurisdiction   String
+  regulator      String
+  licenseType    String
+  licenseReference String
+  authorizedActivities String[] @default([])
+  verifiedAt     DateTime?
+  expiresAt      DateTime?
+  evidenceRef    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  partner CapitalLicensedPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@unique([partnerId, jurisdiction, licenseReference])
+  @@index([partnerId, expiresAt])
+  @@map("capital_partner_licenses")
+}
+
+model CapitalPartnerMandate {
+  id            String                       @id @default(cuid())
+  matterId      String
+  partnerId     String
+  status        CapitalPartnerMandateStatus  @default(PROPOSED)
+  jurisdiction  String
+  instrument    String
+  routedById    String
+  routedAt      DateTime                     @default(now())
+  acceptedAt    DateTime?
+  declinedAt    DateTime?
+  rationale     String?
+  approvalRef   String?
+  createdAt     DateTime                     @default(now())
+  updatedAt     DateTime                     @updatedAt
+
+  matter  CapitalMatter          @relation(fields: [matterId], references: [id], onDelete: Restrict)
+  partner CapitalLicensedPartner @relation(fields: [partnerId], references: [id], onDelete: Restrict)
+
+  @@unique([matterId, partnerId])
+  @@index([partnerId, status])
+  @@map("capital_partner_mandates")
+}
+
+model CapitalTargetUniverse {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  matterId      String
+  name          String
+  objective     String
+  confidentialityPosture String
+  approvedByClientAt DateTime?
+  submittedForPartnerReviewAt DateTime?
+  approvedByPartnerAt DateTime?
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  workspace Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  matter    CapitalMatter        @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  entries   CapitalTargetEntry[]
+
+  @@index([workspaceId, matterId])
+  @@map("capital_target_universes")
+}
+
+model CapitalTargetEntry {
+  id               String                   @id @default(cuid())
+  universeId       String
+  organizationName String
+  organizationType String
+  jurisdiction     String?
+  sectorPreference String?
+  stagePreference  String?
+  typicalTransactionMin Decimal?             @db.Decimal(18, 2)
+  typicalTransactionMax Decimal?             @db.Decimal(18, 2)
+  instrumentPreference String?
+  strategicRationale String
+  capacityEvidenceRef String?
+  relationshipPath String?
+  conflictStatus   String                    @default("NOT_CHECKED")
+  confidentialityRisk CapitalFindingSeverity @default(MEDIUM)
+  regulatoryRestrictions String[]            @default([])
+  proposedWave     Int?
+  status           CapitalTargetEntryStatus  @default(RESEARCH_ONLY)
+  sourceRef        String?
+  sourceAsOf       DateTime?
+  confidence       CapitalReviewerConfidence @default(LOW)
+  nextAction       String?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+
+  universe       CapitalTargetUniverse @relation(fields: [universeId], references: [id], onDelete: Cascade)
+  outreachEvents CapitalOutreachEvent[]
+  proposals      CapitalProposal[]
+
+  @@index([universeId, status, proposedWave])
+  @@map("capital_target_entries")
+}
+
+model CapitalOutreachEvent {
+  id                 String                @id @default(cuid())
+  targetEntryId      String
+  status             CapitalOutreachStatus @default(NOT_APPROVED)
+  licensedPartnerId  String?
+  approvedMessageHash String?
+  approvedSender     String?
+  approvedRecipient  String?
+  jurisdictionCheckRef String?
+  eligibilityCheckRef String?
+  materialVersionRef String?
+  complianceApprovalRef String?
+  partnerApprovalRef String?
+  occurredAt         DateTime?
+  safeMetadata       Json                  @default("{}")
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  targetEntry CapitalTargetEntry @relation(fields: [targetEntryId], references: [id], onDelete: Cascade)
+
+  @@index([targetEntryId, status, createdAt])
+  @@map("capital_outreach_events")
+}
+
+model CapitalDataRoom {
+  id            String   @id @default(cuid())
+  workspaceId   String
+  matterId      String
+  name          String
+  status        String   @default("DRAFT")
+  watermarkRequired Boolean @default(true)
+  downloadDisabledByDefault Boolean @default(true)
+  createdById   String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  workspace Workspace                @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  matter    CapitalMatter            @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  documents CapitalDocument[]
+  accessGrants CapitalDataRoomAccess[]
+
+  @@index([workspaceId, matterId])
+  @@map("capital_data_rooms")
+}
+
+model CapitalDocument {
+  id                   String                     @id @default(cuid())
+  dataRoomId           String
+  category             String
+  title                String
+  confidentialityLevel CapitalConfidentialityLevel
+  status               CapitalDocumentStatus      @default(DRAFT)
+  currentVersion       Int                         @default(0)
+  ownerId              String
+  effectiveAt          DateTime?
+  expiresAt            DateTime?
+  downloadAllowed      Boolean                     @default(false)
+  watermarkRequired    Boolean                     @default(true)
+  legalHoldActive      Boolean                     @default(false)
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+
+  dataRoom CapitalDataRoom        @relation(fields: [dataRoomId], references: [id], onDelete: Cascade)
+  versions CapitalDocumentVersion[]
+
+  @@index([dataRoomId, category, status])
+  @@map("capital_documents")
+}
+
+model CapitalDocumentVersion {
+  id             String   @id @default(cuid())
+  documentId     String
+  version        Int
+  storageRef     String
+  fileName       String
+  mimeType       String
+  fileSize       Int
+  checksum       String
+  sourceRef      String?
+  redactionStatus String   @default("NOT_REVIEWED")
+  approvedById   String?
+  approvedAt     DateTime?
+  supersedesVersion Int?
+  createdById    String
+  createdAt      DateTime @default(now())
+
+  document CapitalDocument @relation(fields: [documentId], references: [id], onDelete: Restrict)
+
+  @@unique([documentId, version])
+  @@unique([documentId, checksum])
+  @@map("capital_document_versions")
+}
+
+model CapitalDataRoomAccess {
+  id                  String                     @id @default(cuid())
+  dataRoomId          String
+  granteeType         String
+  granteeRef          String
+  confidentialityLevel CapitalConfidentialityLevel
+  canView             Boolean                    @default(true)
+  canDownload         Boolean                    @default(false)
+  grantedById         String
+  approvedByPartnerRef String?
+  expiresAt           DateTime
+  revokedAt           DateTime?
+  createdAt           DateTime                   @default(now())
+
+  dataRoom CapitalDataRoom @relation(fields: [dataRoomId], references: [id], onDelete: Cascade)
+
+  @@index([dataRoomId, granteeRef, expiresAt])
+  @@map("capital_data_room_access")
+}
+
+model CapitalDiligenceQuestion {
+  id               String                  @id @default(cuid())
+  matterId         String
+  category         String
+  question         String
+  status           CapitalDiligenceStatus  @default(DRAFT)
+  disclosureRestriction CapitalConfidentialityLevel @default(CLIENT_CONFIDENTIAL)
+  raisedByRef      String?
+  assignedToId     String?
+  dueAt            DateTime?
+  riskRef          String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  matter    CapitalMatter               @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  responses CapitalDiligenceResponse[]
+
+  @@index([matterId, status, dueAt])
+  @@map("capital_diligence_questions")
+}
+
+model CapitalDiligenceResponse {
+  id             String   @id @default(cuid())
+  questionId     String
+  response       String
+  evidenceRefs   String[] @default([])
+  respondentId   String
+  reviewerId     String?
+  reviewedAt     DateTime?
+  approvedAt     DateTime?
+  version        Int
+  createdAt      DateTime @default(now())
+
+  question CapitalDiligenceQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, version])
+  @@map("capital_diligence_responses")
+}
+
+model CapitalProposal {
+  id             String                @id @default(cuid())
+  matterId       String
+  targetEntryId  String?
+  status         CapitalProposalStatus
+  instrument     String
+  proposedAmount Decimal?              @db.Decimal(18, 2)
+  currency       String                @default("USD")
+  valuationOrPricing String?
+  interestOrReturnTerms String?
+  maturity       String?
+  security       String?
+  covenants      Json                  @default("{}")
+  conditions     Json                  @default("{}")
+  fees           Json                  @default("{}")
+  exclusivity    String?
+  expiresAt      DateTime?
+  fundingCertainty CapitalReviewerConfidence @default(LOW)
+  sourceLabel    CapitalSourceLabel
+  sourceRef      String?
+  partnerAssessment String?
+  clientDecision String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  matter      CapitalMatter       @relation(fields: [matterId], references: [id], onDelete: Cascade)
+  targetEntry CapitalTargetEntry? @relation(fields: [targetEntryId], references: [id], onDelete: SetNull)
+
+  @@index([matterId, status, expiresAt])
+  @@map("capital_proposals")
+}
+
+model CapitalClosingCondition {
+  id          String   @id @default(cuid())
+  matterId    String
+  category    String
+  description String
+  ownerId     String?
+  status      String   @default("OUTSTANDING")
+  dueAt       DateTime?
+  evidenceRef String?
+  verifiedById String?
+  verifiedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  matter CapitalMatter @relation(fields: [matterId], references: [id], onDelete: Cascade)
+
+  @@index([matterId, status, dueAt])
+  @@map("capital_closing_conditions")
+}
+
+model CapitalClosing {
+  id                       String               @id @default(cuid())
+  matterId                 String
+  status                   CapitalClosingStatus @default(PRE_CLOSING)
+  finalKybRefreshAt        DateTime?
+  finalSanctionsRefreshAt  DateTime?
+  partnerConfirmationRef   String?
+  counselConfirmationRef   String?
+  feeApprovalRef           String?
+  fundsFlowVerifiedExternally Boolean           @default(false)
+  noGemCustodyConfirmed    Boolean               @default(false)
+  authorizedSignatoriesConfirmed Boolean         @default(false)
+  scheduledAt              DateTime?
+  closedAt                 DateTime?
+  terminationReason        String?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+
+  matter CapitalMatter @relation(fields: [matterId], references: [id], onDelete: Restrict)
+
+  @@index([matterId, status])
+  @@map("capital_closings")
+}
+
+model CapitalServiceContract {
+  id             String                @id @default(cuid())
+  workspaceId    String
+  matterId       String?
+  title          String
+  status         CapitalContractStatus @default(DRAFT)
+  serviceTypes   CapitalRevenueType[]
+  monthlyAmount  Decimal?              @db.Decimal(18, 2)
+  annualAmount   Decimal?              @db.Decimal(18, 2)
+  currency       String                @default("USD")
+  startAt        DateTime?
+  endAt          DateTime?
+  signedAt       DateTime?
+  approvedById   String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  matter    CapitalMatter?  @relation(fields: [matterId], references: [id], onDelete: SetNull)
+  revenueEvents CapitalRevenueEvent[]
+
+  @@index([workspaceId, status, startAt])
+  @@map("capital_service_contracts")
+}
+
+model CapitalRevenueEvent {
+  id             String             @id @default(cuid())
+  workspaceId    String
+  contractId     String?
+  revenueType    CapitalRevenueType
+  amount         Decimal            @db.Decimal(18, 2)
+  currency       String             @default("USD")
+  status         String             @default("PLANNED")
+  trigger        String
+  invoiceRef     String?
+  paymentRef     String?
+  occurredAt     DateTime?
+  safeMetadata   Json               @default("{}")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  workspace Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  contract  CapitalServiceContract? @relation(fields: [contractId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, status, createdAt])
+  @@map("capital_revenue_events")
+}
+
+model CapitalGovernedAgent {
+  id                         String             @id @default(cuid())
+  workspaceId                String
+  name                       String
+  purpose                    String
+  status                     CapitalAgentStatus @default(DRAFT)
+  defaultMode                String             @default("READ_ONLY")
+  externalCommunicationMode String             @default("HUMAN_APPROVAL_REQUIRED")
+  regulatedActivityMode     String             @default("LICENSED_PARTNER_REQUIRED")
+  moneyMovementEnabled       Boolean            @default(false)
+  custodyEnabled             Boolean            @default(false)
+  criticalComplianceHumanOnly Boolean           @default(true)
+  configuration             Json               @default("{}")
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
+
+  workspace Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  runs      CapitalGovernedAgentRun[]
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, status])
+  @@map("capital_governed_agents")
+}
+
+model CapitalGovernedAgentRun {
+  id                     String                @id @default(cuid())
+  agentId                String
+  status                 CapitalAgentRunStatus @default(QUEUED)
+  matterId               String?
+  requestedById          String
+  activityClassification CapitalActivityClassification
+  inputHash              String
+  outputHash             String?
+  evidenceRefs           String[]              @default([])
+  confidence             CapitalReviewerConfidence?
+  humanApprovalRef       String?
+  partnerApprovalRef     String?
+  complianceApprovalRef  String?
+  errorCode              String?
+  safeErrorMessage       String?
+  startedAt              DateTime?
+  completedAt            DateTime?
+  createdAt              DateTime              @default(now())
+
+  agent CapitalGovernedAgent @relation(fields: [agentId], references: [id], onDelete: Restrict)
+
+  @@index([agentId, status, createdAt])
+  @@index([matterId, createdAt])
+  @@map("capital_governed_agent_runs")
+}
