@@ -52,7 +52,21 @@ const officialPaths = [
   },
 ];
 
+function approvedPlatformVideoUrl() {
+  if (process.env.ENTERPRISE_SOLUTIONS_VIDEO_APPROVED !== "true") return null;
+  const candidate = process.env.ENTERPRISE_SOLUTIONS_VIDEO_URL?.trim();
+  if (!candidate) return null;
+  try {
+    const parsed = new URL(candidate);
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password) return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
 export default function EnterpriseSolutionsPage() {
+  const platformVideoUrl = approvedPlatformVideoUrl();
   return (
     <main className="min-h-screen bg-background text-foreground">
       <section className="relative overflow-hidden border-b border-white/10 px-6 py-24">
@@ -108,6 +122,33 @@ export default function EnterpriseSolutionsPage() {
               </ul>
             </aside>
           </div>
+        </div>
+      </section>
+
+      <section className="border-b border-white/10 bg-[#071019] px-6 py-16">
+        <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">Platform briefing</p>
+            <h2 className="mt-3 text-3xl font-black text-white">See the approved GEM operating model</h2>
+            <p className="mt-4 leading-7 text-slate-400">
+              Public media is released separately from private client and social-workspace assets. A real briefing appears here only after rights, factual accuracy, accessibility, and owner approval are recorded.
+            </p>
+          </div>
+          {platformVideoUrl ? (
+            <div className="overflow-hidden rounded-2xl border border-cyan-400/20 bg-black shadow-2xl shadow-cyan-950/20">
+              <video className="aspect-video w-full bg-black object-contain" controls playsInline preload="metadata" aria-label="Approved GEM Enterprise platform briefing">
+                <source src={platformVideoUrl} />
+                Your browser cannot play the approved platform briefing.
+              </video>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] p-6">
+              <p className="font-semibold text-amber-100">Public video awaiting approval</p>
+              <p className="mt-2 text-sm leading-6 text-amber-100/70">
+                No demo or private workspace media is substituted while the final rights-cleared platform briefing is under review.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
