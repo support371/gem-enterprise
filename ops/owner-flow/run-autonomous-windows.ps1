@@ -114,7 +114,7 @@ function Invoke-Captured {
   $exitCode = $LASTEXITCODE
 
   if (($exitCode -ne 0) -and (-not $AllowFailure)) {
-    throw "Command failed with exit code $exitCode: $File $($Arguments -join ' ')"
+    throw "Command failed with exit code ${exitCode}: $File $($Arguments -join ' ')"
   }
 
   [pscustomobject]@{
