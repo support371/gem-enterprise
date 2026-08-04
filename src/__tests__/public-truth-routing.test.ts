@@ -41,7 +41,7 @@ describe("public truth routing", () => {
         },
         {
           source: "/tokmetric/review-demo",
-          destination: "/tokmetric",
+          destination: "/tokmetric/app-review",
           permanent: false,
         },
       ]),
