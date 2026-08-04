@@ -82,7 +82,7 @@ export function TokMetricConnectorPanel() {
             The authorized review workspace is preselected so a signed-in reviewer can load real database-backed connector records without knowing an internal identifier. Tokens and client secrets are never returned to the browser.
           </p>
         </div>
-        <div className="grid gap-2 sm:grid-cols-[minmax(260px,1fr)_auto_auto]">
+        <div className="grid gap-2 sm:grid-cols-[minmax(260px,1fr)_auto_auto_auto]">
           <input
             aria-label="TokMetric workspace ID"
             value={workspaceId}
@@ -98,6 +98,12 @@ export function TokMetricConnectorPanel() {
           >
             Refresh
           </button>
+          <a
+            href="/tokmetric/setup-status"
+            className="rounded-xl border border-cyan-300/25 bg-cyan-300/[0.07] px-4 py-2 text-center text-sm font-semibold text-cyan-200 transition hover:bg-cyan-300/[0.12]"
+          >
+            Setup status
+          </a>
           <a
             href={oauthHref}
             className="rounded-xl bg-cyan-300 px-4 py-2 text-center text-sm font-bold text-[#06111b] transition hover:bg-cyan-200"
