@@ -114,7 +114,7 @@ const nextConfig = {
       },
       {
         source: '/tokmetric/review-demo',
-        destination: '/tokmetric',
+        destination: '/tokmetric/app-review',
         permanent: false,
       },
       {
