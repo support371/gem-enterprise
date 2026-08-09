@@ -35,7 +35,21 @@ PLACEHOLDER_WORDS = (
     "<",
 )
 
-ALLOWED_ENV_TEMPLATES = {".env.example", ".env.sample", ".env.template"}
+# These names are intended to contain live runtime values and therefore must
+# never be tracked. Test/CI fixtures are not rejected by name alone; their
+# contents are still scanned for Telegram token patterns.
+FORBIDDEN_ENV_FILENAMES = {
+    ".env",
+    ".env.local",
+    ".env.production",
+    ".env.production.local",
+    ".env.development",
+    ".env.development.local",
+    ".env.staging",
+    ".env.staging.local",
+    ".env.preview",
+    ".env.preview.local",
+}
 
 
 def tracked_files() -> list[str]:
@@ -85,10 +99,8 @@ def main() -> int:
         path = Path(filename)
         basename = path.name
 
-        # Real environment files must never be tracked. Template files are
-        # permitted provided they contain placeholder-only values.
-        if basename.startswith(".env") and basename not in ALLOWED_ENV_TEMPLATES:
-            findings.append((filename, 0, "tracked-environment-file"))
+        if basename in FORBIDDEN_ENV_FILENAMES:
+            findings.append((filename, 0, "tracked-runtime-environment-file"))
             continue
 
         for line_number, rule in inspect_file(path):
@@ -102,7 +114,7 @@ def main() -> int:
         print("Secret values are intentionally not printed. Rotate exposed credentials before merging.")
         return 1
 
-    print("Secret scan passed: no tracked Telegram token patterns or real .env files detected.")
+    print("Secret scan passed: no tracked Telegram token patterns or live runtime .env files detected.")
     return 0
 
 
