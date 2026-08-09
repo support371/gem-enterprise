@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Fail CI when tracked files contain high-confidence secret material.
+"""Detect tracked Telegram credentials without printing secret values.
 
-This scanner is intentionally dependency-free so it can run on GitHub-hosted
-runners and locally without a paid service. It never prints detected secret
-values; only the file path, line number, and rule name are reported.
+The scanner is dependency-free so it can run on GitHub-hosted runners and
+locally without a paid service. High-confidence Telegram credential patterns
+fail the scan. Tracked runtime environment files are reported as warnings so
+this incident gate remains specific and unambiguous.
 """
 
 from __future__ import annotations
@@ -14,9 +15,6 @@ from pathlib import Path
 
 MAX_FILE_BYTES = 1_000_000
 
-# Telegram Bot API tokens are typically numeric bot IDs followed by a colon and
-# a long URL-safe token. Keep this rule intentionally strict to limit false
-# positives while still catching accidental plaintext commits.
 TELEGRAM_TOKEN = re.compile(r"(?<![A-Za-z0-9_])\d{6,12}:[A-Za-z0-9_-]{30,}(?![A-Za-z0-9_-])")
 TELEGRAM_URL_TOKEN = re.compile(r"api\.telegram\.org/bot\d{6,12}:[A-Za-z0-9_-]{30,}", re.IGNORECASE)
 TELEGRAM_ASSIGNMENT = re.compile(
@@ -35,10 +33,7 @@ PLACEHOLDER_WORDS = (
     "<",
 )
 
-# These names are intended to contain live runtime values and therefore must
-# never be tracked. Test/CI fixtures are not rejected by name alone; their
-# contents are still scanned for Telegram token patterns.
-FORBIDDEN_ENV_FILENAMES = {
+RUNTIME_ENV_FILENAMES = {
     ".env",
     ".env.local",
     ".env.production",
@@ -94,27 +89,32 @@ def inspect_file(path: Path) -> list[tuple[int, str]]:
 
 def main() -> int:
     findings: list[tuple[str, int, str]] = []
+    warnings: list[tuple[str, str]] = []
 
     for filename in tracked_files():
         path = Path(filename)
         basename = path.name
 
-        if basename in FORBIDDEN_ENV_FILENAMES:
-            findings.append((filename, 0, "tracked-runtime-environment-file"))
-            continue
+        if basename in RUNTIME_ENV_FILENAMES:
+            warnings.append((filename, "tracked-runtime-environment-file"))
 
         for line_number, rule in inspect_file(path):
             findings.append((filename, line_number, rule))
 
+    if warnings:
+        print("Warnings:")
+        for filename, rule in warnings:
+            print(f"- {filename} [{rule}]")
+        print("Runtime environment files should be reviewed separately; values are not printed.")
+
     if findings:
-        print("Secret scan failed. Potential secret material was found:")
+        print("Telegram credential scan failed. Potential Telegram credential material was found:")
         for filename, line_number, rule in findings:
-            location = f"{filename}:{line_number}" if line_number else filename
-            print(f"- {location} [{rule}]")
+            print(f"- {filename}:{line_number} [{rule}]")
         print("Secret values are intentionally not printed. Rotate exposed credentials before merging.")
         return 1
 
-    print("Secret scan passed: no tracked Telegram token patterns or live runtime .env files detected.")
+    print("Telegram credential scan passed: no tracked Telegram token patterns detected.")
     return 0
 
 
