@@ -1,15 +1,17 @@
 # GEM Rollback Register
 
+Reconciled `2026-08-10T19:11:25Z` from exact ledger artifact commit `2a2f7eac1dd7c731eccc165d758be25147977918`. Protected repository files are unchanged from parent baseline `1128771e2b8dfc767fb50a7394dee4b5de5a8544`.
+
 Rollback documentation is not rehearsal evidence. Each entry identifies the current safe point and the proof still required. Destructive production rehearsal is prohibited.
 
 ## RB-001 — Persistent ledger documents
 
-- **Scope:** The four files under `artifacts/` introduced by the ledger delivery commit.
+- **Scope:** The four files under `artifacts/` introduced by commit `2a2f7eac1dd7c731eccc165d758be25147977918` and updated in place by reconciliation.
 - **Rollback point:** Parent commit `1128771e2b8dfc767fb50a7394dee4b5de5a8544`.
 - **Method:** Revert the ledger delivery commit on its focused branch; do not delete unrelated artifacts.
 - **Data/runtime impact:** None; documentation-only change.
 - **Validation:** Confirm the revert touches only these four files and run `git diff --check` plus the repository verification gate.
-- **Rehearsal:** Dry-run logic reviewed; no destructive action was needed.
+- **Rehearsal:** Non-destructive validation confirmed the parent commit exists and the artifact commit changes only the four ledger files; an actual revert was not performed.
 - **Status:** Readable and actionable.
 
 ## RB-002 — Application deployment
@@ -54,4 +56,4 @@ Rollback documentation is not rehearsal evidence. Each entry identifies the curr
 
 ## Release rollback gate
 
-A release candidate cannot be frozen until the previous deployment identifier exists, the controller backup is readable, configuration restoration is dry-run validated, dependency backup exists, database implications are documented, and all commands reference real artifacts. Current result: **NO-GO**.
+A release candidate cannot be frozen until the previous deployment identifier exists, the controller backup is readable, configuration restoration is dry-run validated, dependency backup exists, database implications are documented, and all commands reference real artifacts. Current result: **NO-GO**. No rollback point was discarded or moved during reconciliation.

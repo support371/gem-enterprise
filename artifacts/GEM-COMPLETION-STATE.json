@@ -1,19 +1,25 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "authoritative": true,
   "environment": {
     "classification": "CODEX_CLOUD",
-    "observedAt": "2026-08-08T00:00:00Z",
-    "basis": "Linux workspace at /workspace/gem-enterprise; no claim is made about Windows-local state."
+    "observedAt": "2026-08-10T19:11:25Z",
+    "basis": "Linux workspace at /workspace/gem-enterprise; Windows-local filesystem, processes, registry, ports, controller, and media state were not inspected."
   },
   "repositoryBaseline": {
     "repository": "support371/gem-enterprise",
-    "branch": "docs/persistent-completion-ledger",
-    "headBeforeLedgerChange": "1128771e2b8dfc767fb50a7394dee4b5de5a8544",
-    "workingTreeBeforeLedgerChange": "clean",
+    "currentBranch": "work",
+    "currentHead": "2a2f7eac1dd7c731eccc165d758be25147977918",
+    "baseBranch": "main (project default; no local ref or remote is configured)",
+    "workingTreeClean": true,
+    "ledgerArtifactCommit": "2a2f7eac1dd7c731eccc165d758be25147977918",
+    "recordedBaselineHead": "1128771e2b8dfc767fb50a7394dee4b5de5a8544",
+    "recordedBaselineExists": true,
     "packageVersion": "1.0.0",
     "routeFileCount": 388,
-    "migrationFileCount": 32
+    "migrationFileCount": 32,
+    "protectedDrift": "NONE",
+    "protectedComparison": "1128771e2b8dfc767fb50a7394dee4b5de5a8544..2a2f7eac1dd7c731eccc165d758be25147977918"
   },
   "statusValues": [
     "NOT_STARTED",
@@ -50,22 +56,29 @@
         "artifacts/GEM-ROLLBACK-REGISTER.md"
       ],
       "repository": "support371/gem-enterprise",
-      "branch": "docs/persistent-completion-ledger",
-      "commit": "baseline 1128771e2b8dfc767fb50a7394dee4b5de5a8544; ledger delivery commit is discoverable as the first descendant touching this file",
+      "branch": "work",
+      "commit": "2a2f7eac1dd7c731eccc165d758be25147977918",
       "testsRun": [
         "JSON parse",
+        "required-field/status/dependency validation",
         "evidence path existence",
-        "git diff --check"
+        "git diff --check",
+        "protected hash comparison",
+        "repository identity check"
       ],
       "testsPassed": [
         "JSON parse",
+        "required-field/status/dependency validation",
         "evidence path existence",
-        "git diff --check"
+        "git diff --check",
+        "protected hash comparison",
+        "repository identity check"
       ],
       "blocker": null,
-      "rollbackPoint": "Delete the four artifacts added by the ledger delivery commit; no runtime or database state is affected.",
-      "lastUpdated": "2026-08-08T00:00:00Z",
-      "nextSafeAction": "At the next session start, validate every evidence path and reconcile this ledger with repository HEAD before any mutation."
+      "rollbackPoint": "1128771e2b8dfc767fb50a7394dee4b5de5a8544",
+      "lastUpdated": "2026-08-10T19:11:25Z",
+      "nextSafeAction": "On the next session start, revalidate JSON structure, evidence paths, protected hashes, repository identity, and PR state before mutation.",
+      "blockerClass": null
     },
     {
       "name": "Cloud repository verification gate",
@@ -80,8 +93,8 @@
         "scripts/vercel-build.mjs"
       ],
       "repository": "support371/gem-enterprise",
-      "branch": "docs/persistent-completion-ledger",
-      "commit": "1128771e2b8dfc767fb50a7394dee4b5de5a8544 (inspected baseline)",
+      "branch": "work",
+      "commit": "2a2f7eac1dd7c731eccc165d758be25147977918",
       "testsRun": [
         "node --version",
         "pnpm --version",
@@ -92,17 +105,18 @@
         "pnpm run verify"
       ],
       "testsPassed": [
-        "Node v24.15.0 available",
-        "pnpm 10.28.0 available",
-        "28G disk available",
-        "registry DNS resolved",
+        "node --version",
+        "pnpm --version",
+        "disk availability",
+        "registry DNS resolution",
         "corepack enable",
         "pnpm install --frozen-lockfile"
       ],
-      "blocker": "pnpm run verify stopped during prisma validate because required environment-variable name POSTGRES_URL_NON_POOLING is not configured in this workspace; failure class: CONFIGURATION. No secret value was requested or recorded.",
+      "blocker": "Both required database environment-variable names, POSTGRES_PRISMA_URL and POSTGRES_URL_NON_POOLING, are absent. The historical verify failure therefore remains unresolved; no secret values were read.",
       "rollbackPoint": "1128771e2b8dfc767fb50a7394dee4b5de5a8544",
-      "lastUpdated": "2026-08-08T00:00:00Z",
-      "nextSafeAction": "Configure the required database environment variables through an approved secret mechanism, then rerun pnpm run verify from the start; do not modify Prisma or reinstall dependencies for this configuration failure."
+      "lastUpdated": "2026-08-10T19:11:25Z",
+      "nextSafeAction": "After approved secret injection makes both required database variable names available, rerun pnpm run verify once and retain sanitized output; do not reinstall dependencies or change Prisma for this configuration blocker.",
+      "blockerClass": "CONFIGURATION"
     },
     {
       "name": "Prisma readiness and authenticated persistence",
@@ -118,20 +132,21 @@
         "src/lib/auth.ts"
       ],
       "repository": "support371/gem-enterprise",
-      "branch": "docs/persistent-completion-ledger",
-      "commit": "1128771e2b8dfc767fb50a7394dee4b5de5a8544 (inspected baseline)",
+      "branch": "work",
+      "commit": "2a2f7eac1dd7c731eccc165d758be25147977918",
       "testsRun": [
         "migration file inventory",
         "configuration SHA-256 baseline"
       ],
       "testsPassed": [
-        "32 migration.sql files present",
-        "schema baseline recorded in GEM-COMPLETION-REPORT.md"
+        "migration file inventory",
+        "configuration SHA-256 baseline"
       ],
-      "blocker": "No production migration-state evidence or repeated authenticated persistence requests were collected; failure class: DATABASE.",
+      "blocker": "Migration files and schema exist, but authorized runtime migration state and repeated authenticated persistence evidence are absent.",
       "rollbackPoint": "Application rollback is commit 1128771e2b8dfc767fb50a7394dee4b5de5a8544; database rollback implications require migration-specific review and owner approval.",
-      "lastUpdated": "2026-08-08T00:00:00Z",
-      "nextSafeAction": "After the repository gate passes, inspect non-secret migration status in an authorized preview and test repeated positive and negative authenticated requests."
+      "lastUpdated": "2026-08-10T19:11:25Z",
+      "nextSafeAction": "After the cloud verification gate passes, inspect authorized non-secret migration state and run repeated authenticated positive and negative persistence requests without mutating production.",
+      "blockerClass": "DATABASE"
     },
     {
       "name": "Application security regression suite",
@@ -146,14 +161,15 @@
         "src"
       ],
       "repository": "support371/gem-enterprise",
-      "branch": "docs/persistent-completion-ledger",
-      "commit": "1128771e2b8dfc767fb50a7394dee4b5de5a8544 (inspected baseline)",
+      "branch": "work",
+      "commit": "2a2f7eac1dd7c731eccc165d758be25147977918",
       "testsRun": [],
       "testsPassed": [],
-      "blocker": "Required anonymous, privilege-escalation, cross-tenant, server-authorization, private-record, bypass, bundle-secret, log-secret, and evidence-secret proofs have not been consolidated; failure class: SECURITY.",
+      "blocker": "Required authorization, tenant-isolation, private-record, bypass, and secret-exposure regression evidence is absent.",
       "rollbackPoint": "1128771e2b8dfc767fb50a7394dee4b5de5a8544",
-      "lastUpdated": "2026-08-08T00:00:00Z",
-      "nextSafeAction": "Inventory existing tests, run them after persistence readiness, add only missing negative cases, and store sanitized results under security-results."
+      "lastUpdated": "2026-08-10T19:11:25Z",
+      "nextSafeAction": "After persistence readiness, inventory existing tests and execute or add only the missing authorization, isolation, bypass, and secret-exposure regression cases with sanitized results.",
+      "blockerClass": "SECURITY"
     },
     {
       "name": "Canonical Vercel preview and cloud platform",
@@ -168,14 +184,15 @@
         "scripts/vercel-build.mjs"
       ],
       "repository": "support371/gem-enterprise",
-      "branch": "docs/persistent-completion-ledger",
-      "commit": "1128771e2b8dfc767fb50a7394dee4b5de5a8544 (inspected baseline)",
+      "branch": "work",
+      "commit": "2a2f7eac1dd7c731eccc165d758be25147977918",
       "testsRun": [],
       "testsPassed": [],
-      "blocker": "No authenticated GitHub remote, pull request, preview deployment identifier, or preview logs are available in this session; failure class: AUTHORIZATION.",
+      "blocker": "Draft PR #291 is user-reported, but GitHub/PR and canonical preview evidence cannot be read because repository authorization and a Git remote are unavailable.",
       "rollbackPoint": "Use the previous real Vercel deployment identifier after it is recorded and validated; no direct production deployment is authorized.",
-      "lastUpdated": "2026-08-08T00:00:00Z",
-      "nextSafeAction": "A repository owner must provide authorized GitHub/Vercel access, create or confirm the issue and PR, then record the canonical preview identifier and gate result."
+      "lastUpdated": "2026-08-10T19:11:25Z",
+      "nextSafeAction": "Obtain read authorization for PR #291 and the canonical Vercel preview, then bind preview identity, logs, affected-route checks, and the previous deployment identifier to an exact SHA.",
+      "blockerClass": "AUTHORIZATION"
     },
     {
       "name": "GEM Studio and controller runtime",
@@ -186,14 +203,15 @@
         "artifacts/GEM-HUMAN-ACTIONS.md"
       ],
       "repository": "support371/gem-enterprise",
-      "branch": "docs/persistent-completion-ledger",
-      "commit": "1128771e2b8dfc767fb50a7394dee4b5de5a8544 (cloud baseline only)",
+      "branch": "work",
+      "commit": "2a2f7eac1dd7c731eccc165d758be25147977918",
       "testsRun": [],
       "testsPassed": [],
-      "blocker": "CODEX_CLOUD cannot inspect C:\\pinokio, Windows processes, local ports, controller runtime, OBS, Virtual Camera, or Voicemod; failure class: ENVIRONMENT.",
+      "blocker": "This CODEX_CLOUD session cannot inspect Windows-local configuration, processes, ports, controller state, OBS, Virtual Camera, or Voicemod.",
       "rollbackPoint": "No Windows mutation occurred. Record readable controller package and configuration backups before any GEM_ASSIST_WINDOWS mutation.",
-      "lastUpdated": "2026-08-08T00:00:00Z",
-      "nextSafeAction": "Resume in a positively identified GEM_ASSIST_WINDOWS environment, baseline protected configuration, then run controller security and bounded stability tests without reinstalling dependencies."
+      "lastUpdated": "2026-08-10T19:11:25Z",
+      "nextSafeAction": "Resume only in GEM_ASSIST_WINDOWS; baseline protected Windows configuration before mutation, then run controller security, resource, and bounded soak checks.",
+      "blockerClass": "ENVIRONMENT"
     },
     {
       "name": "GEM Studio real media acceptance",
@@ -206,14 +224,15 @@
         "artifacts/GEM-HUMAN-ACTIONS.md"
       ],
       "repository": "support371/gem-enterprise",
-      "branch": "docs/persistent-completion-ledger",
-      "commit": "1128771e2b8dfc767fb50a7394dee4b5de5a8544 (cloud baseline only)",
+      "branch": "work",
+      "commit": "2a2f7eac1dd7c731eccc165d758be25147977918",
       "testsRun": [],
       "testsPassed": [],
-      "blocker": "Real visual/audio call quality, identity, and consent acceptance require an authorized human after sustained videoCallReady evidence; failure class: HUMAN_GOVERNANCE.",
+      "blocker": "Consented human visual/audio acceptance is absent and cannot precede sustained GEM_ASSIST_WINDOWS readiness evidence.",
       "rollbackPoint": "Keep media auto-start disabled and restore the recorded Windows configuration backup if acceptance fails.",
-      "lastUpdated": "2026-08-08T00:00:00Z",
-      "nextSafeAction": "After controller and soak gates pass, conduct a consented real-call QA and attach non-sensitive acceptance evidence."
+      "lastUpdated": "2026-08-10T19:11:25Z",
+      "nextSafeAction": "After sustained controller and videoCallReady evidence passes in GEM_ASSIST_WINDOWS, obtain consented human visual/audio acceptance.",
+      "blockerClass": "HUMAN_GOVERNANCE"
     },
     {
       "name": "News Forge production activation",
@@ -227,14 +246,15 @@
         "artifacts/GEM-HUMAN-ACTIONS.md"
       ],
       "repository": "support371/gem-enterprise",
-      "branch": "docs/persistent-completion-ledger",
-      "commit": "1128771e2b8dfc767fb50a7394dee4b5de5a8544 (inspected baseline)",
+      "branch": "work",
+      "commit": "2a2f7eac1dd7c731eccc165d758be25147977918",
       "testsRun": [],
       "testsPassed": [],
-      "blocker": "No approved real story, speech end-to-end evidence, or human publication approval exists; failure class: HUMAN_GOVERNANCE.",
+      "blocker": "Human approval for a real story, rights/consent, speech acceptance, and publication is absent; security and canonical preview prerequisites also remain incomplete.",
       "rollbackPoint": "Keep production publication disabled; revert only a future activation-specific change, not shared infrastructure.",
-      "lastUpdated": "2026-08-08T00:00:00Z",
-      "nextSafeAction": "Prove security first, then test one owner-approved story and speech flow without enabling automatic publication."
+      "lastUpdated": "2026-08-10T19:11:25Z",
+      "nextSafeAction": "After application security and canonical preview prerequisites pass, test one owner-approved story and speech flow; keep automatic publication disabled pending approval.",
+      "blockerClass": "HUMAN_GOVERNANCE"
     },
     {
       "name": "Notion publication integration",
@@ -247,14 +267,15 @@
         "artifacts/GEM-HUMAN-ACTIONS.md"
       ],
       "repository": "support371/gem-enterprise",
-      "branch": "docs/persistent-completion-ledger",
-      "commit": "1128771e2b8dfc767fb50a7394dee4b5de5a8544 (inspected baseline)",
+      "branch": "work",
+      "commit": "2a2f7eac1dd7c731eccc165d758be25147977918",
       "testsRun": [],
       "testsPassed": [],
-      "blocker": "Provider consent, negative publication proof, positive controlled-record proof, and human identity/consent approval are absent; failure classes: PROVIDER and HUMAN_GOVERNANCE.",
+      "blocker": "Authorized provider consent and controlled negative/positive publication evidence are absent; human identity and publication approvals remain downstream requirements.",
       "rollbackPoint": "Keep publication disabled and revoke only the dedicated integration credential if an owner later activates it.",
-      "lastUpdated": "2026-08-08T00:00:00Z",
-      "nextSafeAction": "After owner consent, test rejection first, then one controlled record, and require explicit publication approval."
+      "lastUpdated": "2026-08-10T19:11:25Z",
+      "nextSafeAction": "After provider consent and application security pass, prove rejection first and then one controlled record; require explicit identity, consent, and publication approval.",
+      "blockerClass": "PROVIDER"
     },
     {
       "name": "Release candidate freeze and final dossier",
@@ -271,14 +292,25 @@
         "artifacts/GEM-ROLLBACK-REGISTER.md"
       ],
       "repository": "support371/gem-enterprise",
-      "branch": "docs/persistent-completion-ledger",
-      "commit": "1128771e2b8dfc767fb50a7394dee4b5de5a8544 (not a release candidate)",
+      "branch": "work",
+      "commit": "2a2f7eac1dd7c731eccc165d758be25147977918",
       "testsRun": [],
       "testsPassed": [],
-      "blocker": "Prerequisite cloud, security, Windows runtime, media, provider, and governance gates are incomplete; failure class: DEPENDENCY.",
+      "blocker": "Cloud verification, persistence, security, preview, Windows runtime, media, provider, rollback, and governance prerequisites remain incomplete.",
       "rollbackPoint": "No release candidate has been frozen and no deployment mutation occurred.",
-      "lastUpdated": "2026-08-08T00:00:00Z",
-      "nextSafeAction": "Do not freeze. Complete prerequisites in dependency order, then generate build-manifest.json, release-hashes.txt, deployment-evidence, and windows-runtime-evidence in one final evidence directory."
+      "lastUpdated": "2026-08-10T19:11:25Z",
+      "nextSafeAction": "Do not freeze. Complete all dependencies, rollback validation, and human approvals before creating one versioned final evidence directory and release candidate.",
+      "blockerClass": "DEPENDENCY"
     }
-  ]
+  ],
+  "pullRequest": {
+    "number": 291,
+    "state": "DRAFT (user-provided; not independently verified)",
+    "accessible": false,
+    "headSha": null,
+    "baseBranch": "main (user/project context)",
+    "lastChecked": "2026-08-10T19:11:25Z",
+    "blockerClass": "AUTHORIZATION",
+    "evidence": "gh pr view failed because GitHub CLI is unauthenticated; no Git remote is configured."
+  }
 }

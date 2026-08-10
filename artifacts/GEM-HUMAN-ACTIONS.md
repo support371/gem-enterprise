@@ -1,67 +1,67 @@
 # GEM Human Approval Register
 
-This register prevents repeated approval requests. An item remains open until the required evidence is linked from the authoritative state ledger. Do not put credentials, tokens, personal data, or other secret values in this file.
+Reconciled `2026-08-10T19:11:25Z` in `CODEX_CLOUD` at commit `2a2f7eac1dd7c731eccc165d758be25147977918`. An action is not repeated after satisfaction; credentials, tokens, personal data, and secret values must never be recorded here.
 
-## HA-001 — GitHub issue, remote, and pull-request authorization
+## HA-001 — Repository and PR read authorization
 
-- **State:** Open
-- **Reason:** The delivery flow requires a tracked issue and pull request, but this workspace has no configured Git remote and `gh` is not authenticated.
-- **Exact component:** `support371/gem-enterprise` repository governance.
-- **Required evidence:** Issue URL containing objective, acceptance criteria, exclusions, risks, plan, and manual dependencies; pull-request URL tied to `docs/persistent-completion-ledger`; authenticated canonical remote.
-- **What Codex already proved:** The work is isolated on a focused branch and the inspected baseline SHA is recorded without secrets.
-- **What Codex must do after approval:** Push the committed branch, open or update the PR with test evidence, risks, manual dependencies, and rollback notes; then record URLs without exposing credentials.
+- **State:** PARTIALLY SATISFIED
+- **Reason:** The task context establishes that draft PR #291 exists, satisfying PR creation. This workspace still has no Git remote and `gh` is unauthenticated, so its live state and inline comments cannot be verified.
+- **Exact component:** Draft PR #291 in `support371/gem-enterprise`.
+- **Actual evidence:** User-provided PR number/state; local exact artifact commit `2a2f7eac1dd7c731eccc165d758be25147977918`; `gh pr view` returned an authentication error.
+- **Required remaining evidence:** Authorized read access or a sanitized export showing PR URL, current head/base, updated time, inline comments, reviews, checks, linked issue, and canonical preview.
+- **What Codex already proved:** The four existing artifacts come from exact local commit `2a2f7eac1dd7c731eccc165d758be25147977918`; protected files did not drift from the recorded baseline.
+- **What Codex must do after approval:** Reconcile PR evidence to the exact SHA, address actual inline comments minimally, and update rather than recreate these artifacts.
 
 ## HA-002 — Canonical Vercel preview verification
 
-- **State:** Open
+- **State:** OPEN
 - **Reason:** Only the canonical Vercel Git integration may provide the hosted preview gate; no second production deployment is authorized.
-- **Exact component:** Vercel project `support371-gem-enterprise`.
-- **Required evidence:** Canonical preview deployment identifier, commit SHA, successful preview verification/build logs, affected-route checks, and previous valid deployment identifier for rollback.
-- **What Codex already proved:** Repository-side build orchestration and its non-secret hash were inspected; no duplicate deployment was initiated.
-- **What Codex must do after approval:** Inspect the authorized preview evidence, reconcile it to the exact commit, run non-destructive smoke checks, and update the ledger accurately.
+- **Exact component:** Vercel project `support371-gem-enterprise` for PR #291.
+- **Required evidence:** Canonical preview identifier, exact commit SHA, successful preview verification/build logs, affected-route checks, and previous valid deployment identifier.
+- **What Codex already proved:** Repository-side protected configuration did not drift and no duplicate deployment was initiated.
+- **What Codex must do after approval:** Inspect authorized preview evidence, bind it to the exact commit, run non-destructive smoke checks, and update the ledger without deploying production.
 
 ## HA-003 — Production database ownership and migration-state confirmation
 
-- **State:** Open
+- **State:** OPEN
 - **Reason:** Production database access and migration execution are owner-controlled and must not be mutated from CI.
 - **Exact component:** PostgreSQL/Prisma production persistence.
-- **Required evidence:** Named accountable owner, sanitized migration status, compatibility assessment, backup/restore evidence, migration-specific rollback implications, and explicit execution approval if a migration is needed.
-- **What Codex already proved:** The repository contains 32 migration files and recorded the schema hash; it did not mutate a production database.
-- **What Codex must do after approval:** Compare authorized migration state, run safe compatibility checks, and update persistence status without converting it to `PASS` based only on schema files.
+- **Required evidence:** Accountable owner, sanitized migration status, compatibility assessment, readable backup/restore evidence, migration-specific rollback implications, and explicit execution approval if needed.
+- **What Codex already proved:** 32 migration files and the unchanged schema hash exist; no database was mutated. Both required database environment-variable names are absent in this process.
+- **What Codex must do after approval:** Compare authorized migration state and run safe compatibility and repeated request checks without promoting persistence based only on repository files.
 
 ## HA-004 — GEM Studio Windows runtime and real-call acceptance
 
-- **State:** Open
-- **Reason:** Cloud execution cannot inspect Windows-local media state, and real visual/audio quality and consent require a person.
+- **State:** OPEN
+- **Reason:** `CODEX_CLOUD` cannot inspect Windows-local media state, while actual visual/audio acceptance requires a consented human.
 - **Exact component:** GEM controller, Pinokio/Decart, OBS/WebSocket/Virtual Camera, Voicemod, and real call flow.
-- **Required evidence:** Positive `GEM_ASSIST_WINDOWS` environment classification; protected configuration hashes; controller security results; bounded soak log; process/listener ownership; recovery behavior; consented human visual/audio acceptance.
-- **What Codex already proved:** No Windows or media readiness claim was made and media auto-start was not enabled from this session.
-- **What Codex must do after approval:** Baseline before mutation, run the controller security matrix, observe sustained readiness, classify failures correctly, and record human acceptance separately from automated evidence.
+- **Required evidence:** Positive `GEM_ASSIST_WINDOWS` classification; protected configuration hashes; resource and controller security results; bounded soak log; process/listener ownership; recovery behavior; consented visual/audio acceptance.
+- **What Codex already proved:** No Windows or media readiness claim was made and no Windows mutation occurred.
+- **What Codex must do after approval:** Baseline before mutation, run the controller security matrix, observe sustained readiness, distinguish network from dependency failure, and record human acceptance separately.
 
 ## HA-005 — News Forge content and publication approval
 
-- **State:** Open
-- **Reason:** A real story, identity/consent, speech output, and publication decision are governance decisions; code completion cannot authorize production publication.
+- **State:** OPEN
+- **Reason:** Story rights, identity/consent, speech acceptance, and publication are governance decisions.
 - **Exact component:** News Forge story-to-speech/publication flow.
-- **Required evidence:** Owner-approved story, rights/identity/consent confirmation, successful controlled speech E2E result, and explicit publication approval.
-- **What Codex already proved:** Nothing was activated and no operational claim was promoted to `PASS`.
-- **What Codex must do after approval:** Run one controlled E2E test after security prerequisites pass, retain sanitized evidence, and leave automatic publication disabled unless separately approved.
+- **Required evidence:** Owner-approved story, rights and identity/consent confirmation, controlled speech E2E result, and explicit publication approval.
+- **What Codex already proved:** Nothing was activated and the dependency remains `HUMAN_REQUIRED`.
+- **What Codex must do after approval:** After security and preview prerequisites pass, run one controlled E2E test and keep automatic publication disabled absent separate approval.
 
 ## HA-006 — Notion provider consent and controlled publication
 
-- **State:** Open
-- **Reason:** OAuth/provider consent and publication identity cannot be automated or inferred.
+- **State:** OPEN
+- **Reason:** Provider consent, publication identity, and approval cannot be inferred.
 - **Exact component:** Notion integration and publication target.
-- **Required evidence:** Owner-granted provider consent, credential stored in an approved secret manager, negative publication test, one positive controlled-record test, identity/consent approval, and explicit publication approval.
+- **Required evidence:** Owner-granted consent, approved secret storage, negative publication test, one positive controlled-record test, identity/consent approval, and explicit publication approval.
 - **What Codex already proved:** No provider credential or secret value was inspected, logged, or activated.
-- **What Codex must do after approval:** Test rejection before success, constrain scope, record sanitized evidence, and preserve a credential-revocation rollback path.
+- **What Codex must do after approval:** Prove rejection before success, constrain scope, retain sanitized evidence, and preserve credential-revocation rollback.
 
 ## HA-007 — Release-candidate ownership and freeze approval
 
-- **State:** Open
-- **Reason:** Release approval cannot precede automated, cloud, local runtime, security, rollback, and governance evidence.
-- **Exact component:** Final GEM release dossier and release-candidate freeze.
-- **Required evidence:** Exact repository/branch/commit, package version, build hash, deployment artifact, controller package SHA-256, complete evidence directories, rollback dry-run results, and owner sign-off.
-- **What Codex already proved:** Current evidence supports `NO-GO`; no release candidate or production deployment was declared.
-- **What Codex must do after approval:** Freeze only after prerequisites pass, prohibit feature work, and create a new candidate plus affected retests for every release-blocking fix.
-
+- **State:** OPEN
+- **Reason:** Release approval cannot precede automated, cloud, local runtime, security, rollback, provider, and governance evidence.
+- **Exact component:** Final GEM evidence dossier and release-candidate freeze.
+- **Required evidence:** Exact repository/branch/commit, package version, build hash, deployment artifact, controller package SHA-256, complete evidence directory, rollback validation, and owner sign-off.
+- **What Codex already proved:** Current evidence supports `NO-GO`; no candidate, production deployment, or activation was declared.
+- **What Codex must do after approval:** Freeze only after prerequisites pass; any release-blocking fix creates a new candidate and reruns affected tests.
