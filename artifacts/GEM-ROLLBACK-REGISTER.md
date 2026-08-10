@@ -1,12 +1,12 @@
 # GEM Rollback Register
 
-Reconciled `2026-08-10T19:11:25Z` from exact ledger artifact commit `2a2f7eac1dd7c731eccc165d758be25147977918`. Protected repository files are unchanged from parent baseline `1128771e2b8dfc767fb50a7394dee4b5de5a8544`.
+Reconciled `2026-08-10T22:06:45Z` against main `1128771e2b8dfc767fb50a7394dee4b5de5a8544`, supplied GitHub PR #291 head `9db0e5d3240bc529de8fcffad6080219214646bc`, and local artifact commit `c54c0f0ddabb24a5f8d303efb4c3d5ba0ca9a742`. Protected repository files are unchanged from parent baseline `1128771e2b8dfc767fb50a7394dee4b5de5a8544`.
 
 Rollback documentation is not rehearsal evidence. Each entry identifies the current safe point and the proof still required. Destructive production rehearsal is prohibited.
 
 ## RB-001 — Persistent ledger documents
 
-- **Scope:** The four files under `artifacts/` introduced by commit `2a2f7eac1dd7c731eccc165d758be25147977918` and updated in place by reconciliation.
+- **Scope:** The four files under `artifacts/` represented on GitHub by supplied PR head `9db0e5d3240bc529de8fcffad6080219214646bc` and locally by commit `c54c0f0ddabb24a5f8d303efb4c3d5ba0ca9a742` and updated in place by reconciliation.
 - **Rollback point:** Parent commit `1128771e2b8dfc767fb50a7394dee4b5de5a8544`.
 - **Method:** Revert the ledger delivery commit on its focused branch; do not delete unrelated artifacts.
 - **Data/runtime impact:** None; documentation-only change.

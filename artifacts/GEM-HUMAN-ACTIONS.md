@@ -1,21 +1,29 @@
 # GEM Human Approval Register
 
-Reconciled `2026-08-10T19:11:25Z` in `CODEX_CLOUD` at commit `2a2f7eac1dd7c731eccc165d758be25147977918`. An action is not repeated after satisfaction; credentials, tokens, personal data, and secret values must never be recorded here.
+Reconciled `2026-08-10T22:06:45Z` in `CODEX_CLOUD` using GitHub PR #291 head `9db0e5d3240bc529de8fcffad6080219214646bc` and local artifact commit `c54c0f0ddabb24a5f8d303efb4c3d5ba0ca9a742`. An action is not repeated after satisfaction; credentials, tokens, personal data, and secret values must never be recorded here.
 
-## HA-001 — Repository and PR read authorization
+## HA-001 — Repository and PR read evidence
 
-- **State:** PARTIALLY SATISFIED
-- **Reason:** The task context establishes that draft PR #291 exists, satisfying PR creation. This workspace still has no Git remote and `gh` is unauthenticated, so its live state and inline comments cannot be verified.
+- **State:** SATISFIED
+- **Reason:** Current external live evidence establishes draft PR #291, its exact GitHub head/base relationship, passing-status count, and review-thread state.
 - **Exact component:** Draft PR #291 in `support371/gem-enterprise`.
-- **Actual evidence:** User-provided PR number/state; local exact artifact commit `2a2f7eac1dd7c731eccc165d758be25147977918`; `gh pr view` returned an authentication error.
-- **Required remaining evidence:** Authorized read access or a sanitized export showing PR URL, current head/base, updated time, inline comments, reviews, checks, linked issue, and canonical preview.
-- **What Codex already proved:** The four existing artifacts come from exact local commit `2a2f7eac1dd7c731eccc165d758be25147977918`; protected files did not drift from the recorded baseline.
-- **What Codex must do after approval:** Reconcile PR evidence to the exact SHA, address actual inline comments minimally, and update rather than recreate these artifacts.
+- **Actual evidence:** Head `9db0e5d3240bc529de8fcffad6080219214646bc`; base `main` at `1128771e2b8dfc767fb50a7394dee4b5de5a8544`; 1 ahead/0 behind; 11 passing statuses; no unresolved review thread.
+- **What Codex already proved:** PR read authorization is no longer requested. The local `work` branch and local artifact commit are not represented as the authoritative GitHub PR branch/head.
+- **What Codex must do after satisfaction:** Do not request this approval again. Recheck live PR evidence only when a later session needs freshness.
+
+## HA-001B — Existing PR #291 branch publication
+
+- **State:** OPEN
+- **Reason:** This workspace has no Git remote, so the final reconciliation commit cannot be published to the existing PR branch here.
+- **Exact component:** Existing draft PR #291 only; creating another PR is prohibited.
+- **Required evidence:** Successful publication of this exact four-file reconciliation to the existing PR #291 branch and verification of the resulting GitHub head.
+- **What Codex already proved:** The final patch is limited to the four existing artifacts.
+- **What Codex must do after approval:** Push only to the existing PR #291 branch, record the verified resulting head, and do not merge.
 
 ## HA-002 — Canonical Vercel preview verification
 
 - **State:** OPEN
-- **Reason:** Only the canonical Vercel Git integration may provide the hosted preview gate; no second production deployment is authorized.
+- **Reason:** GitHub PR read evidence is satisfied, but only the canonical Vercel Git integration can provide preview identity and logs; no second production deployment is authorized.
 - **Exact component:** Vercel project `support371-gem-enterprise` for PR #291.
 - **Required evidence:** Canonical preview identifier, exact commit SHA, successful preview verification/build logs, affected-route checks, and previous valid deployment identifier.
 - **What Codex already proved:** Repository-side protected configuration did not drift and no duplicate deployment was initiated.
