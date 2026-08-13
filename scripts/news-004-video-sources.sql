@@ -1,0 +1,6 @@
+-- Trusted publisher video feeds for the native GEM News video digest.
+INSERT INTO public.news_sources (id,name,slug,"feedUrl","siteUrl",category,description,"isActive","pollIntervalMinutes","createdAt","updatedAt") VALUES
+('src_bbc_video','BBC News Video','bbc-news-video','https://www.youtube.com/feeds/videos.xml?channel_id=UC16niRr50-MSBwiO3YDb3RA','https://www.youtube.com/@BBCNews','geopolitics','BBC News video reports and explainers',true,120,now(),now()),
+('src_cnbc_video','CNBC Video','cnbc-video','https://www.youtube.com/feeds/videos.xml?channel_id=UCvJJ_dzjViJCoLf5uKUTwoA','https://www.youtube.com/@CNBC','markets','CNBC business, economy and markets video coverage',true,120,now(),now()),
+('src_bloomberg_video','Bloomberg Television','bloomberg-television','https://www.youtube.com/feeds/videos.xml?channel_id=UCIALMKvObZNtJ6AmdCLP7Lg','https://www.youtube.com/@markets','markets','Bloomberg global business and markets video coverage',true,120,now(),now())
+ON CONFLICT (slug) DO UPDATE SET name=excluded.name,"feedUrl"=excluded."feedUrl","siteUrl"=excluded."siteUrl",category=excluded.category,description=excluded.description,"isActive"=true,"pollIntervalMinutes"=excluded."pollIntervalMinutes","updatedAt"=now();

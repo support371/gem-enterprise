@@ -122,6 +122,16 @@ async function invokeGateway<T>(
   }
 }
 
+export type NewsGatewayAction = "feed" | "story" | "status";
+
+/** Public, read-only native news gateway. Mutating ingestion is never exposed here. */
+export async function newsGateway<T>(
+  action: NewsGatewayAction,
+  payload: Record<string, unknown> = {},
+): Promise<T> {
+  return invokeGateway<T>("gem-news-gateway", { action, ...payload });
+}
+
 export async function evidenceGatewayHealth<T = {
   ok: boolean;
   service: string;

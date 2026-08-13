@@ -21,19 +21,15 @@ export const metadata: Metadata = {
 export default function IntegrationsCommandCenterPage() {
   const socialProviders = getSocialMediaProviderReadiness();
   const configured = socialProviders.filter((provider) => provider.configurationReady).length;
-  const newsForgeBound = Boolean(
-    process.env.NEXT_PUBLIC_NEWS_FORGE_URL &&
-      process.env.NEWS_FORGE_EXPECTED_SOURCE_SHA,
-  );
 
   const integrationCards = [
     {
-      href: "/app/command-center/integrations/news-forge",
-      title: "News Forge",
+      href: "/app/command-center/integrations/news",
+      title: "Native News Automation",
       description:
-        "Trace the live news host, exact source commit, required routes, frame policy, manifest, and GEM deployment binding.",
+        "Review GEM's source catalog, scheduled ingestion, attributed stories, video discovery, and native news experience.",
       icon: Newspaper,
-      status: newsForgeBound ? "Source binding configured" : "Verification pending",
+      status: "Supabase ingestion active",
     },
     {
       href: "/app/command-center/social-media",

@@ -64,14 +64,14 @@ describe("organization workspace operating system", () => {
     expect(page).toContain('gate.session.authSource === "supabase_gateway"');
   });
 
-  it("keeps AI consent receipts and News Forge production fallbacks explicit",()=>{
+  it("keeps AI consent receipts and native news ownership explicit",()=>{
     const widget=source("src/components/AIChatWidget.tsx");
     const news=source("src/app/intel/news/page.tsx");
-    const status=source("src/app/api/intel/news-forge/status/route.ts");
+    const gateway=source("supabase/functions/gem-news-gateway/index.ts");
     expect(widget).toContain("DEFAULT_AI_DISCLOSURE_TEXT");
     expect(widget).toContain("process.env.NEXT_PUBLIC_AI_DISCLOSURE_TEXT || DEFAULT_AI_DISCLOSURE_TEXT");
-    expect(news).toContain("id-preview-9bbada32--3ededa60-a168-4b51-928b-a3310f00bcbd.lovable.app");
-    expect(news).toContain("redirect(NEWS_FORGE_URL.toString())");
-    expect(status).toContain("bd9d42c07b392c094a011d932b38c07929e7c91f");
+    expect(news).toContain("Native GEM intelligence");
+    expect(news).not.toMatch(/iframe|external news host/i);
+    expect(gateway).toContain('action === "ingest"');
   });
 });

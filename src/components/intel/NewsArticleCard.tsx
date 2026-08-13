@@ -5,7 +5,7 @@
 // 3-up grid.
 
 import Link from "next/link";
-import { ExternalLink, PlayCircle, Sparkles, Star } from "lucide-react";
+import { Bookmark, ExternalLink, PlayCircle, Sparkles, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -166,9 +166,7 @@ export function NewsArticleCard({
           }`}
         >
           <Link
-            href={article.externalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+            href={`/intel/news/${article.slug}`}
             className="after:absolute after:inset-0"
           >
             {article.title}
@@ -189,9 +187,16 @@ export function NewsArticleCard({
           <span className="truncate">
             {article.author ? `By ${article.author}` : article.source?.name ?? ""}
           </span>
-          <span className="inline-flex items-center gap-1 text-primary font-medium relative z-10">
-            Read <ExternalLink className="h-3 w-3" />
-          </span>
+          <div className="relative z-10 flex items-center gap-3">
+            <button type="button" aria-label="Save story" onClick={() => {
+              const key = "gem.news.saved.v1";
+              const current = JSON.parse(localStorage.getItem(key) || "[]") as NewsArticleCardData[];
+              localStorage.setItem(key, JSON.stringify([article, ...current.filter((item) => item.id !== article.id)].slice(0, 100)));
+            }} className="inline-flex items-center gap-1 hover:text-primary"><Bookmark className="h-3.5 w-3.5" /> Save</button>
+            <Link href={article.externalUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary font-medium">
+              Source <ExternalLink className="h-3 w-3" />
+            </Link>
+          </div>
         </div>
       </CardContent>
     </Card>
