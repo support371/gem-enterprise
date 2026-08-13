@@ -32,3 +32,8 @@ ALTER TABLE "workspace_weekly_updates" ADD CONSTRAINT "workspace_weekly_updates_
 ALTER TABLE "workspace_weekly_updates" ADD CONSTRAINT "workspace_weekly_updates_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "organization_projects"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 ALTER TABLE "workspace_weekly_updates" ADD CONSTRAINT "workspace_weekly_updates_authorUserId_fkey" FOREIGN KEY ("authorUserId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 ALTER TABLE "workspace_weekly_updates" ADD CONSTRAINT "workspace_weekly_updates_reviewedById_fkey" FOREIGN KEY ("reviewedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE "organization_projects" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "workspace_weekly_updates" ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE "organization_projects" FROM anon, authenticated;
+REVOKE ALL ON TABLE "workspace_weekly_updates" FROM anon, authenticated;
