@@ -52,4 +52,12 @@ describe("organization workspace operating system", () => {
     const page=source("src/app/app/admin/organization-reports/page.tsx");
     expect(page).toContain('requirePlatformOwner()'); expect(page).toContain('where:{status:"APPROVED"}'); expect(page).not.toContain('status:"DRAFT"');
   });
+  it("uses the authenticated Supabase gateway when direct Prisma is intentionally absent", () => {
+    const gateway=source("supabase/functions/gem-workspace-gateway/index.ts");
+    const page=source("src/app/app/workspace/page.tsx");
+    expect(gateway).toContain('claims.iss!=="gem-auth-gateway"');
+    expect(gateway).toContain('await membership(u.id,w,["manage","projects"])');
+    expect(page).toContain('workspaceGateway<');
+    expect(page).toContain('gate.session.authSource === "supabase_gateway"');
+  });
 });
