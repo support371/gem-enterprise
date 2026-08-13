@@ -208,6 +208,24 @@ export async function bootstrapGatewayStatus<T>(): Promise<T> {
   });
 }
 
+export type WorkspaceGatewayAction =
+  | "access"
+  | "overview"
+  | "admin_snapshot"
+  | "provision"
+  | "create_project"
+  | "add_member"
+  | "create_update"
+  | "review_update";
+
+export async function workspaceGateway<T>(
+  action: WorkspaceGatewayAction,
+  token: string,
+  payload: Record<string, unknown> = {},
+): Promise<T> {
+  return invokeGateway<T>("gem-workspace-gateway", { action, token, ...payload });
+}
+
 export type AdminReadGatewayAction =
   | "users"
   | "stats"
