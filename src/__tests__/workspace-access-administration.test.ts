@@ -22,6 +22,13 @@ describe("workspace access administration", () => {
     expect(pageSource).toContain("/client-login?next=/app/admin/workspace-access");
   });
 
+  it("loads the owner snapshot through the authenticated gateway when Prisma is unavailable", () => {
+    expect(pageSource).toContain('gate.session.authSource === "supabase_gateway"');
+    expect(pageSource).toContain("getGatewaySessionToken()");
+    expect(pageSource).toContain('workspaceGateway<WorkspaceAdministrationSnapshot>(');
+    expect(pageSource).toContain('"admin_snapshot"');
+  });
+
   it("requires same-origin, rate-limited, non-cacheable write requests", () => {
     expect(apiSource).toContain('request.headers.get("origin")');
     expect(apiSource).toContain("request.nextUrl.origin");
