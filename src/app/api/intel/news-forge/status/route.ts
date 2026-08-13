@@ -31,9 +31,14 @@ const ALLOWED_HOSTS = new Set([
   "www.gemcybersecurityassist.com",
 ]);
 
+const VERIFIED_NEWS_FORGE_URL =
+  "https://id-preview-9bbada32--3ededa60-a168-4b51-928b-a3310f00bcbd.lovable.app";
+const VERIFIED_SOURCE_BRANCH_SHA =
+  "bd9d42c07b392c094a011d932b38c07929e7c91f";
+
 function resolveConfiguredUrl() {
-  const raw = process.env.NEXT_PUBLIC_NEWS_FORGE_URL?.trim();
-  if (!raw) return null;
+  const raw =
+    process.env.NEXT_PUBLIC_NEWS_FORGE_URL?.trim() || VERIFIED_NEWS_FORGE_URL;
 
   try {
     const url = new URL(raw);
@@ -51,7 +56,9 @@ function resolveConfiguredUrl() {
 }
 
 function resolveExpectedSourceCommit() {
-  const value = process.env.NEWS_FORGE_EXPECTED_SOURCE_SHA?.trim().toLowerCase();
+  const value =
+    process.env.NEWS_FORGE_EXPECTED_SOURCE_SHA?.trim().toLowerCase() ||
+    VERIFIED_SOURCE_BRANCH_SHA;
   return value && /^[0-9a-f]{40}$/.test(value) ? value : null;
 }
 

@@ -57,7 +57,20 @@ describe("organization workspace operating system", () => {
     const page=source("src/app/app/workspace/page.tsx");
     expect(gateway).toContain('claims.iss!=="gem-auth-gateway"');
     expect(gateway).toContain('await membership(u.id,w,["manage","projects"])');
+    expect(gateway).toContain('action==="ai_session"');
+    expect(gateway).toContain('action==="ai_message_event"');
+    expect(gateway).toContain('profileId:u.id');
     expect(page).toContain('workspaceGateway<');
     expect(page).toContain('gate.session.authSource === "supabase_gateway"');
+  });
+
+  it("keeps AI consent receipts and News Forge production fallbacks explicit",()=>{
+    const widget=source("src/components/AIChatWidget.tsx");
+    const news=source("src/app/intel/news/page.tsx");
+    const status=source("src/app/api/intel/news-forge/status/route.ts");
+    expect(widget).toContain("DEFAULT_AI_DISCLOSURE_TEXT");
+    expect(widget).toContain("process.env.NEXT_PUBLIC_AI_DISCLOSURE_TEXT || DEFAULT_AI_DISCLOSURE_TEXT");
+    expect(news).toContain("id-preview-9bbada32--3ededa60-a168-4b51-928b-a3310f00bcbd.lovable.app");
+    expect(status).toContain("bd9d42c07b392c094a011d932b38c07929e7c91f");
   });
 });

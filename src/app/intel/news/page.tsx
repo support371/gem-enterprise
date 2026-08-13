@@ -20,9 +20,14 @@ const ALLOWED_NEWS_HOSTS = new Set([
   "www.gemcybersecurityassist.com",
 ]);
 
+// Public, non-secret production fallback. Vercel may still override this with
+// the canonical news.gemcybersecurityassist.com host when that domain is ready.
+const VERIFIED_NEWS_FORGE_URL =
+  "https://id-preview-9bbada32--3ededa60-a168-4b51-928b-a3310f00bcbd.lovable.app";
+
 function resolveNewsForgeUrl() {
-  const raw = process.env.NEXT_PUBLIC_NEWS_FORGE_URL?.trim();
-  if (!raw) return null;
+  const raw =
+    process.env.NEXT_PUBLIC_NEWS_FORGE_URL?.trim() || VERIFIED_NEWS_FORGE_URL;
 
   try {
     const parsed = new URL(raw);
