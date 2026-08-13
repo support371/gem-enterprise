@@ -3,6 +3,7 @@
 import { useMemo, useState, type FormEvent } from "react";
 import {
   AlertTriangle,
+  Building2,
   CheckCircle2,
   KeyRound,
   LockKeyhole,
@@ -193,6 +194,13 @@ export function WorkspaceAccessAdministration({
   const [assignmentEmail, setAssignmentEmail] = useState("");
   const [assignmentConfirmation, setAssignmentConfirmation] = useState("");
   const [assignmentReason, setAssignmentReason] = useState("");
+  const [organizationName, setOrganizationName] = useState("");
+  const [workspaceName, setWorkspaceName] = useState("Main Workspace");
+  const [ownerEmail, setOwnerEmail] = useState("");
+  const [confirmOwnerEmail, setConfirmOwnerEmail] = useState("");
+  const [projectName, setProjectName] = useState("");
+  const [projectSummary, setProjectSummary] = useState("");
+  const [provisionReason, setProvisionReason] = useState("");
 
   const roleWorkspace = workspaces.find((workspace) => workspace.id === roleWorkspaceId) ?? null;
   const assignmentWorkspace =
@@ -287,6 +295,12 @@ export function WorkspaceAccessAdministration({
     setAssignmentReason("");
   }
 
+  async function submitProvisioning(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await mutate("POST", { operation:"provision_organization", organizationName, workspaceName, ownerEmail, confirmOwnerEmail, projectName:projectName||null, projectSummary:projectSummary||null, reason:provisionReason }, "Organization workspace provisioned for the existing member and recorded in the audit log.");
+    setOrganizationName(""); setWorkspaceName("Main Workspace"); setOwnerEmail(""); setConfirmOwnerEmail(""); setProjectName(""); setProjectSummary(""); setProvisionReason("");
+  }
+
   const totalRoles = workspaces.reduce((sum, workspace) => sum + workspace.roles.length, 0);
   const totalMemberships = workspaces.reduce((sum, workspace) => sum + workspace.members.length, 0);
 
@@ -347,6 +361,23 @@ export function WorkspaceAccessAdministration({
               client. Access removal suspends a membership rather than deleting its history.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-cyan-400/20 bg-card">
+        <CardHeader><CardTitle className="flex items-center gap-2 text-base text-white"><Building2 className="h-4 w-4 text-cyan-300" /> Provision an organization workspace</CardTitle></CardHeader>
+        <CardContent>
+          <p className="mb-4 text-sm leading-6 text-slate-400">Creates an isolated organization, its main workspace, an Organization Owner role, optional first project, and membership for one existing active client account. It never creates credentials or a GEM platform administrator.</p>
+          <form onSubmit={submitProvisioning} className="grid gap-4 lg:grid-cols-2">
+            <label className="space-y-1.5 text-xs text-slate-400">Organization name<input className={fieldClass} value={organizationName} onChange={e=>setOrganizationName(e.target.value)} placeholder="Infinite Wealth & Well-Being" required /></label>
+            <label className="space-y-1.5 text-xs text-slate-400">Workspace name<input className={fieldClass} value={workspaceName} onChange={e=>setWorkspaceName(e.target.value)} required /></label>
+            <label className="space-y-1.5 text-xs text-slate-400">Existing member email<input className={fieldClass} type="email" value={ownerEmail} onChange={e=>setOwnerEmail(e.target.value)} required /></label>
+            <label className="space-y-1.5 text-xs text-slate-400">Confirm member email<input className={fieldClass} type="email" value={confirmOwnerEmail} onChange={e=>setConfirmOwnerEmail(e.target.value)} required /></label>
+            <label className="space-y-1.5 text-xs text-slate-400">First project, optional<input className={fieldClass} value={projectName} onChange={e=>setProjectName(e.target.value)} placeholder="Infinite Wealth & Well-Being" /></label>
+            <label className="space-y-1.5 text-xs text-slate-400">Written reason<input className={fieldClass} value={provisionReason} onChange={e=>setProvisionReason(e.target.value)} minLength={12} maxLength={500} required /></label>
+            <label className="space-y-1.5 text-xs text-slate-400 lg:col-span-2">Project summary, optional<textarea className={textareaClass} value={projectSummary} onChange={e=>setProjectSummary(e.target.value)} /></label>
+            <div className="lg:col-span-2"><Button disabled={busy || ownerEmail.toLowerCase()!==confirmOwnerEmail.toLowerCase()} className="bg-cyan-300 text-slate-950 hover:bg-cyan-200"><Building2 className="mr-2 h-4 w-4" /> Provision reviewed workspace</Button></div>
+          </form>
         </CardContent>
       </Card>
 

@@ -80,7 +80,7 @@ describe("workspace access administration", () => {
   });
 
   it("limits role permissions to the controlled workspace catalog", () => {
-    expect(workspacePermissionCatalog).toHaveLength(8);
+    expect(workspacePermissionCatalog).toHaveLength(11);
     expect(
       workspacePermissionCatalog.every((permission) =>
         ["view", "manage"].includes(permission.action),

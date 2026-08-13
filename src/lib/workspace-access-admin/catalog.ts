@@ -47,6 +47,24 @@ export const workspacePermissionCatalog = [
     label: "View approvals",
     description: "See approval records without granting decision authority.",
   },
+  {
+    action: "manage",
+    scope: "members",
+    label: "Manage members",
+    description: "Manage organization workspace members without granting platform roles.",
+  },
+  {
+    action: "manage",
+    scope: "projects",
+    label: "Manage projects",
+    description: "Create and maintain projects within this workspace only.",
+  },
+  {
+    action: "manage",
+    scope: "weekly_updates",
+    label: "Manage weekly updates",
+    description: "Draft, submit, and review workspace-scoped weekly updates.",
+  },
 ] as const;
 
 export type WorkspacePermissionCatalogItem = (typeof workspacePermissionCatalog)[number];

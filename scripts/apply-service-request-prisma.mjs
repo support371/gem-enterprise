@@ -19,7 +19,7 @@ function requireSingleAnchor(source, search, label) {
 function validatePromotedSchema(source) {
   const required = [
     marker,
-    "serviceRequests             ServiceRequest[]",
+    "serviceRequests",
     "workspaceId String?",
     "workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Restrict)",
     "@@index([workspaceId, createdAt])",
@@ -39,9 +39,7 @@ function promoteSchema(source) {
     return { schema: source, changed: false };
   }
 
-  const workspaceAnchor = `  oauthAuthorizationAttempts OAuthAuthorizationAttempt[]
-
-  @@unique([organizationId, slug])`;
+  const workspaceAnchor = `  oauthAuthorizationAttempts OAuthAuthorizationAttempt[]`;
   const requestHeaderAnchor = `model ServiceRequest {
   id          String          @id @default(cuid())
   userId      String
@@ -57,9 +55,7 @@ function promoteSchema(source) {
   let schema = source.replace(
     workspaceAnchor,
     `  oauthAuthorizationAttempts OAuthAuthorizationAttempt[]
-  serviceRequests             ServiceRequest[]
-
-  @@unique([organizationId, slug])`,
+  serviceRequests             ServiceRequest[]`,
   );
   schema = schema.replace(
     requestHeaderAnchor,

@@ -18,6 +18,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isPlatformOwnerRole, requireSession } from "@/lib/api/auth-helpers";
 import { resolveWorkspaceAccess } from "@/lib/workspaceAccess";
 import { cn } from "@/lib/utils";
+import { getOrganizationWorkspaceOverview } from "@/lib/organizationWorkspace";
+import { OrganizationWorkspaceOperatingSystem } from "@/components/workspace/OrganizationWorkspaceOperatingSystem";
+import { getGatewaySessionToken } from "@/lib/auth";
+import { workspaceGateway } from "@/lib/supabase-gateway";
 
 export const metadata: Metadata = {
   title: "Workspace | GEM Enterprise",
@@ -69,10 +73,10 @@ export default async function WorkspacePage({ searchParams }: WorkspacePageProps
   const params = await searchParams;
   const requestedWorkspaceId = firstString(params.workspace);
   const accessNotice = firstString(params.access);
-  const resolution = await resolveWorkspaceAccess(
-    gate.session.userId,
-    requestedWorkspaceId,
-  );
+  const gatewayToken = gate.session.authSource === "supabase_gateway" ? await getGatewaySessionToken() : null;
+  const resolution = gatewayToken
+    ? await workspaceGateway<{workspaces: Awaited<ReturnType<typeof resolveWorkspaceAccess>>["workspaces"]}>("access",gatewayToken).then(({workspaces})=>({workspaces,selected:requestedWorkspaceId?workspaces.find(workspace=>workspace.id===requestedWorkspaceId)??null:workspaces[0]??null,requestedWorkspaceId,requestedDenied:Boolean(requestedWorkspaceId&&!workspaces.some(workspace=>workspace.id===requestedWorkspaceId))}))
+    : await resolveWorkspaceAccess(gate.session.userId,requestedWorkspaceId);
 
   if (resolution.requestedDenied) {
     redirect("/app/workspace?access=denied");
@@ -118,6 +122,10 @@ export default async function WorkspacePage({ searchParams }: WorkspacePageProps
       </div>
     );
   }
+
+  const operatingOverview = gatewayToken
+    ? await workspaceGateway<Awaited<ReturnType<typeof getOrganizationWorkspaceOverview>>>("overview",gatewayToken,{workspaceId:selected.id})
+    : await getOrganizationWorkspaceOverview(gate.session.userId, selected.id);
 
   const controls = [
     ["Global emergency lock", selected.controls.globalEmergencyLock],
@@ -220,6 +228,8 @@ export default async function WorkspacePage({ searchParams }: WorkspacePageProps
           </Card>
         ))}
       </section>
+
+      <OrganizationWorkspaceOperatingSystem overview={operatingOverview} />
 
       <section className="grid gap-6 xl:grid-cols-2">
         <Card className="border-white/10 bg-card">
