@@ -18,6 +18,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isPlatformOwnerRole, requireSession } from "@/lib/api/auth-helpers";
 import { resolveWorkspaceAccess } from "@/lib/workspaceAccess";
 import { cn } from "@/lib/utils";
+import { getOrganizationWorkspaceOverview } from "@/lib/organizationWorkspace";
+import { OrganizationWorkspaceOperatingSystem } from "@/components/workspace/OrganizationWorkspaceOperatingSystem";
 
 export const metadata: Metadata = {
   title: "Workspace | GEM Enterprise",
@@ -118,6 +120,8 @@ export default async function WorkspacePage({ searchParams }: WorkspacePageProps
       </div>
     );
   }
+
+  const operatingOverview = await getOrganizationWorkspaceOverview(gate.session.userId, selected.id);
 
   const controls = [
     ["Global emergency lock", selected.controls.globalEmergencyLock],
@@ -220,6 +224,8 @@ export default async function WorkspacePage({ searchParams }: WorkspacePageProps
           </Card>
         ))}
       </section>
+
+      <OrganizationWorkspaceOperatingSystem overview={operatingOverview} />
 
       <section className="grid gap-6 xl:grid-cols-2">
         <Card className="border-white/10 bg-card">
