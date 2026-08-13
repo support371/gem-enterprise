@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { resolveAccessDestination } from "@/lib/auth";
 import type { SessionPayload, KYCStatus, AuthRole } from "@/lib/auth";
+import { resolveWorkspaceAccess } from "@/lib/workspaceAccess";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,11 @@ export default async function AccessContinuePage() {
     kycStatus: kycStatus ?? "not_started",
     entitlements: [],
   };
+
+  const workspaceAccess = await resolveWorkspaceAccess(userId);
+  if (workspaceAccess.selected) {
+    redirect(`/app/workspace?workspace=${encodeURIComponent(workspaceAccess.selected.id)}`);
+  }
 
   const destination = resolveAccessDestination(session);
   redirect(destination);
