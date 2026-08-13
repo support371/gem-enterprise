@@ -88,6 +88,12 @@ export const clientPortalNavGroups: PlatformNavGroup[] = [
     label: "Overview",
     items: [
       {
+        href: "/app/workspace",
+        icon: "Building2",
+        label: "Organization Workspace",
+        description: "Manage your organization, projects, team, tools, and weekly reporting.",
+      },
+      {
         href: "/app/dashboard",
         icon: "LayoutDashboard",
         label: "Dashboard",
@@ -301,6 +307,12 @@ export const clientPortalNavGroups: PlatformNavGroup[] = [
 ];
 
 export const adminPortalNavItems: PlatformNavItem[] = [
+  {
+    href: "/app/admin/organization-reports",
+    icon: "ClipboardList",
+    label: "Organization Highlights",
+    description: "Review approved weekly highlights submitted by organization workspaces.",
+  },
   {
     href: "/app/admin",
     icon: "Shield",
