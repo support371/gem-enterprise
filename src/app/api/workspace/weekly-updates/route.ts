@@ -34,6 +34,7 @@ export async function PATCH(request:NextRequest){
   const blocked=writeGate(request,gate.session.userId);if(blocked)return blocked;
   const parsed=reviewSchema.safeParse(await request.json().catch(()=>null));if(!parsed.success)return NextResponse.json({error:"Validation failed",details:parsed.error.flatten()},{status:400});
   try{
+    if(gate.session.authSource==="supabase_gateway"){const token=await getGatewaySessionToken();if(!token)return NextResponse.json({error:"Gateway session required"},{status:401});return NextResponse.json(await workspaceGateway("review_update",token,parsed.data))}
     await requireWorkspacePermission(gate.session.userId,parsed.data.workspaceId,"manage","weekly_updates");
     const current=await db.workspaceWeeklyUpdate.findFirst({where:{id:parsed.data.updateId,workspaceId:parsed.data.workspaceId,status:"SUBMITTED"}});if(!current)throw new OrganizationWorkspaceError("Submitted update not found in this workspace.",404,"UPDATE_NOT_REVIEWABLE");
     if(current.authorUserId===gate.session.userId)throw new OrganizationWorkspaceError("Authors cannot approve their own weekly update.",403,"SEPARATION_OF_DUTIES_REQUIRED");
