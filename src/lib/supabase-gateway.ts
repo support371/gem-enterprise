@@ -213,6 +213,8 @@ export type WorkspaceGatewayAction =
   | "overview"
   | "admin_snapshot"
   | "provision"
+  | "ai_session"
+  | "ai_message_event"
   | "create_project"
   | "add_member"
   | "create_update"

@@ -31,10 +31,13 @@ interface ChatMessage {
   restricted?: boolean
 }
 
+const DEFAULT_AI_DISCLOSURE_TEXT =
+  "GEM Concierge is an AI assistant. It does not provide legal, financial, or investment advice.";
+
 // ── Shared Disclosure Screen ──────────────────────────────────────────────────
 
-function DisclosureScreen({ onAccept, onDecline }: { onAccept: () => void, onDecline: () => void }) {
-  const disclosureText = process.env.NEXT_PUBLIC_AI_DISCLOSURE_TEXT || "GEM Concierge is an AI assistant. It does not provide legal, financial, or investment advice."
+function DisclosureScreen({ onAccept, onDecline, busy }: { onAccept: () => void, onDecline: () => void, busy: boolean }) {
+  const disclosureText = process.env.NEXT_PUBLIC_AI_DISCLOSURE_TEXT || DEFAULT_AI_DISCLOSURE_TEXT
 
   return (
     <div className="p-6 space-y-4">
@@ -46,8 +49,8 @@ function DisclosureScreen({ onAccept, onDecline }: { onAccept: () => void, onDec
         {disclosureText}
       </p>
       <div className="pt-4 flex flex-col gap-2">
-        <Button onClick={onAccept} className="bg-cyan-500 hover:bg-cyan-600 text-black font-semibold">
-          Accept & Continue
+        <Button disabled={busy} onClick={onAccept} className="bg-cyan-500 hover:bg-cyan-600 text-black font-semibold">
+          {busy ? 'Starting…' : 'Accept & Continue'}
         </Button>
         <Button variant="ghost" onClick={onDecline} className="text-slate-500 hover:text-white">
           Decline
@@ -103,6 +106,7 @@ export function AIChatWidget({ profileId = 'PRF-005', profileName = 'Platform Su
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [escalationReason, setEscalationReason] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -112,8 +116,10 @@ export function AIChatWidget({ profileId = 'PRF-005', profileName = 'Platform Su
   }, [messages])
 
   const acceptDisclosure = async () => {
+    setLoading(true)
+    setError(null)
     try {
-      const text = process.env.NEXT_PUBLIC_AI_DISCLOSURE_TEXT ?? ''
+      const text = process.env.NEXT_PUBLIC_AI_DISCLOSURE_TEXT || DEFAULT_AI_DISCLOSURE_TEXT
       const encoded = new TextEncoder().encode(text)
       const hashBuffer = await crypto.subtle.digest('SHA-256', encoded)
       const disclosureTextHash = Array.from(new Uint8Array(hashBuffer))
@@ -139,9 +145,14 @@ export function AIChatWidget({ profileId = 'PRF-005', profileName = 'Platform Su
           text: `Disclosure accepted. Session started. How can I help you today?`,
           at: new Date().toLocaleTimeString(),
         }])
+      } else {
+        setError(data.error || 'Unable to start the AI support session. Please try again.')
       }
     } catch (error) {
       console.error('Failed to start session', error)
+      setError('Unable to reach the AI support service. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -229,7 +240,11 @@ export function AIChatWidget({ profileId = 'PRF-005', profileName = 'Platform Su
 
       <div className="flex-1 overflow-y-auto min-h-0 bg-slate-950/50">
         {phase === 'disclosure' && (
-          <DisclosureScreen onAccept={acceptDisclosure} onDecline={() => setPhase('closed')} />
+          <div>
+            <DisclosureScreen busy={loading} onAccept={acceptDisclosure} onDecline={() => setPhase('closed')} />
+            {loading && <p className="px-6 pb-4 text-xs text-cyan-300">Starting secure session…</p>}
+            {error && <p role="alert" className="px-6 pb-4 text-xs text-rose-300">{error}</p>}
+          </div>
         )}
         {phase === 'escalated' && (
           <EscalationScreen reason={escalationReason} onClose={() => setPhase('closed')} />

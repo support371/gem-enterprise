@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { emitAuditLog } from "@/lib/audit";
-import { getSession } from "@/lib/auth";
+import { getGatewaySessionToken, getSession } from "@/lib/auth";
+import { GatewayRequestError, workspaceGateway } from "@/lib/supabase-gateway";
 
 async function generateAIReply(
   message: string,
@@ -81,6 +82,28 @@ export async function POST(req: NextRequest) {
     // Restricted class detection (ADR-003)
     const isRestricted = /legal|financial|advice/i.test(message);
 
+    if (session.authSource === "supabase_gateway") {
+      const token = await getGatewaySessionToken();
+      if (!token) {
+        return NextResponse.json({ error: "Gateway session required" }, { status: 401 });
+      }
+      await workspaceGateway("ai_message_event", token, {
+        sessionId,
+        messageLength: message.length,
+        restricted: isRestricted,
+      });
+
+      if (isRestricted) {
+        return NextResponse.json(
+          { error: "Restricted content detected", escalate: true },
+          { status: 422 },
+        );
+      }
+
+      const reply = await generateAIReply(message, []);
+      return NextResponse.json({ text: reply });
+    }
+
     if (isRestricted) {
       await emitAuditLog({
         action: "restricted_class_detected",
@@ -114,6 +137,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ text: reply });
   } catch (error) {
+    if (error instanceof GatewayRequestError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode },
+      );
+    }
     return NextResponse.json({ error: "Error processing message" }, { status: 500 });
   }
 }

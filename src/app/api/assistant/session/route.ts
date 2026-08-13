@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { emitAuditLog } from "@/lib/audit";
-import { getSession } from "@/lib/auth";
+import { getGatewaySessionToken, getSession } from "@/lib/auth";
+import { GatewayRequestError, workspaceGateway } from "@/lib/supabase-gateway";
 
 const schema = z.object({
   consentGiven: z.boolean(),
@@ -28,6 +29,24 @@ export async function POST(req: NextRequest) {
 
     if (!consentGiven) {
       return NextResponse.json({ error: "Consent required" }, { status: 400 });
+    }
+
+    if (session.authSource === "supabase_gateway") {
+      const token = await getGatewaySessionToken();
+      if (!token) {
+        return NextResponse.json({ error: "Gateway session required" }, { status: 401 });
+      }
+      const result = await workspaceGateway<{ ok: true; sessionId: string }>(
+        "ai_session",
+        token,
+        {
+          profileId: profileId || session.userId,
+          disclosureTextHash,
+          ipAddress: req.headers.get("x-forwarded-for") || "127.0.0.1",
+          userAgent: req.headers.get("user-agent") || undefined,
+        },
+      );
+      return NextResponse.json(result);
     }
 
     const aiRun = await db.aiRun.create({
@@ -56,6 +75,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, sessionId: aiRun.id });
   } catch (error) {
+    if (error instanceof GatewayRequestError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode },
+      );
+    }
     console.error(error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
