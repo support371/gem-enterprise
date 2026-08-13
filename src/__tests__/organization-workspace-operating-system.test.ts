@@ -71,6 +71,7 @@ describe("organization workspace operating system", () => {
     expect(widget).toContain("DEFAULT_AI_DISCLOSURE_TEXT");
     expect(widget).toContain("process.env.NEXT_PUBLIC_AI_DISCLOSURE_TEXT || DEFAULT_AI_DISCLOSURE_TEXT");
     expect(news).toContain("id-preview-9bbada32--3ededa60-a168-4b51-928b-a3310f00bcbd.lovable.app");
+    expect(news).toContain("redirect(NEWS_FORGE_URL.toString())");
     expect(status).toContain("bd9d42c07b392c094a011d932b38c07929e7c91f");
   });
 });

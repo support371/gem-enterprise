@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import {
   Activity,
   AlertTriangle,
@@ -62,6 +63,10 @@ export const metadata: Metadata = {
 };
 
 export default function IntelNewsPage() {
+  if (NEWS_FORGE_URL) {
+    redirect(NEWS_FORGE_URL.toString());
+  }
+
   const connected = Boolean(NEWS_FORGE_EMBED_URL);
 
   return (
