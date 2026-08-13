@@ -12,6 +12,7 @@ import {
   updateWorkspaceMembership,
   WorkspaceAdministrationError,
 } from "@/lib/workspaceAccessAdministration";
+import { provisionOrganizationWorkspace } from "@/lib/organizationWorkspace";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ const createRoleSchema = z
         "Use letters, numbers, spaces, hyphens, or underscores.",
       ),
     description: z.string().trim().max(300).optional().nullable(),
-    permissions: z.array(permissionSchema).min(1).max(8),
+    permissions: z.array(permissionSchema).min(1).max(11),
     reason,
   })
   .strict();
@@ -58,9 +59,21 @@ const assignMembershipSchema = z
   })
   .strict();
 
-const postSchema = z.discriminatedUnion("operation", [
+const provisionOrganizationSchema = z.object({
+  operation: z.literal("provision_organization"),
+  organizationName: z.string().trim().min(2).max(120),
+  workspaceName: z.string().trim().min(2).max(120),
+  ownerEmail: z.string().trim().email().max(254),
+  confirmOwnerEmail: z.string().trim().email().max(254),
+  projectName: z.string().trim().min(2).max(120).optional().nullable(),
+  projectSummary: z.string().trim().min(10).max(2000).optional().nullable(),
+  reason,
+}).strict().refine((value) => value.ownerEmail.toLowerCase() === value.confirmOwnerEmail.toLowerCase(), { path: ["confirmOwnerEmail"], message: "Owner email confirmation does not match." });
+
+const postSchema = z.union([
   createRoleSchema,
   assignMembershipSchema,
+  provisionOrganizationSchema,
 ]);
 
 const patchSchema = z
@@ -171,6 +184,14 @@ export async function POST(request: NextRequest) {
   const requestContext = getRequestContext(request);
   try {
     const data = parsed.data;
+    if (data.operation === "provision_organization") {
+      const result = await provisionOrganizationWorkspace(
+        { organizationName: data.organizationName, workspaceName: data.workspaceName, ownerEmail: data.ownerEmail, projectName: data.projectName ?? null, projectSummary: data.projectSummary ?? null, reason: data.reason },
+        gate.session.userId,
+        requestContext,
+      );
+      return json({ ok: true, operation: data.operation, result }, 201);
+    }
     if (data.operation === "create_role") {
       const role = await createWorkspaceRole(
         {
