@@ -21,9 +21,9 @@ function validatePromotedSchema(source) {
     marker,
     "enum IntakeKind {",
     "enum IntakeSubmissionStatus {",
-    'intakeSubmissions         IntakeSubmission[] @relation("IntakeApplicant")',
-    'assignedIntakeSubmissions IntakeSubmission[] @relation("IntakeAssignee")',
-    'intakeStatusEvents        IntakeStatusEvent[] @relation("IntakeEventActor")',
+    'intakeSubmissions',
+    'assignedIntakeSubmissions',
+    'intakeStatusEvents',
     "model IntakeSubmission {",
     "model IntakeStatusEvent {",
     "@@index([userId])",
@@ -51,9 +51,7 @@ function promoteSchema(source) {
   COMPLETED
 }
 `;
-  const userAnchor = `  OAuthAuthorizationAttempt OAuthAuthorizationAttempt[]
-
-  @@map("users")`;
+  const userAnchor = `  OAuthAuthorizationAttempt OAuthAuthorizationAttempt[]`;
 
   requireSingleAnchor(source, meetingAnchor, "MeetingStatus enum");
   requireSingleAnchor(source, userAnchor, "User relation");
@@ -84,9 +82,7 @@ enum IntakeSubmissionStatus {
     `  OAuthAuthorizationAttempt OAuthAuthorizationAttempt[]
   intakeSubmissions         IntakeSubmission[] @relation("IntakeApplicant")
   assignedIntakeSubmissions IntakeSubmission[] @relation("IntakeAssignee")
-  intakeStatusEvents        IntakeStatusEvent[] @relation("IntakeEventActor")
-
-  @@map("users")`,
+  intakeStatusEvents        IntakeStatusEvent[] @relation("IntakeEventActor")`,
   );
 
   const models = `
