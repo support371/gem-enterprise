@@ -33,34 +33,42 @@ export function InteractiveEarthShowcase() {
       : "Start rotating Earth";
 
   return (
-    <div className={styles.root} data-testid="interactive-earth-showcase">
+    <>
+      <div className={styles.root} data-testid="interactive-earth-showcase">
+        <div
+          className={styles.earthSurface}
+          data-testid="interactive-earth-surface"
+          onClick={() => {
+            if (!prefersReducedMotion) setIsRunning((current) => !current);
+          }}
+        >
+          <span
+            className={`${styles.earth} ${motionActive ? styles.earthRunning : styles.earthPaused}`}
+            aria-hidden="true"
+          >
+            <Image
+              src="/images/gem-interactive-earth.webp"
+              alt=""
+              fill
+              priority
+              sizes="(max-width: 640px) 118vw, (max-width: 1024px) 92vw, 64rem"
+              className={styles.earthImage}
+            />
+          </span>
+        </div>
+      </div>
+
       <button
         type="button"
-        className={styles.earthButton}
+        className={styles.motionControl}
         aria-label={label}
         aria-pressed={motionActive}
         disabled={prefersReducedMotion}
         onClick={() => setIsRunning((current) => !current)}
       >
-        <span
-          className={`${styles.earth} ${motionActive ? styles.earthRunning : styles.earthPaused}`}
-          aria-hidden="true"
-        >
-          <Image
-            src="/images/gem-interactive-earth.webp"
-            alt=""
-            fill
-            priority
-            sizes="(max-width: 640px) 118vw, (max-width: 1024px) 92vw, 64rem"
-            className={styles.earthImage}
-          />
-        </span>
-
-        <span className={styles.motionControl} aria-hidden="true">
-          {motionActive ? <Pause size={14} /> : <Play size={14} />}
-          <span>{prefersReducedMotion ? "Motion reduced" : motionActive ? "Earth live" : "Earth paused"}</span>
-        </span>
+        {motionActive ? <Pause size={14} aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}
+        <span>{prefersReducedMotion ? "Motion reduced" : motionActive ? "Earth live" : "Earth paused"}</span>
       </button>
-    </div>
+    </>
   );
 }

@@ -35,6 +35,9 @@ describe("InteractiveEarthShowcase", () => {
 
     fireEvent.click(startButton);
     expect(screen.getByRole("button", { name: "Pause rotating Earth" })).toBeTruthy();
+
+    fireEvent.click(screen.getByTestId("interactive-earth-surface"));
+    expect(screen.getByRole("button", { name: "Start rotating Earth" })).toBeTruthy();
   });
 
   it("stops motion and disables the control when reduced motion is preferred", async () => {

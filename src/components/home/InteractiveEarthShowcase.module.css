@@ -6,31 +6,17 @@
   overflow: hidden;
 }
 
-.earthButton {
+.earthSurface {
   pointer-events: auto;
   position: absolute;
   left: 50%;
   top: 49%;
   width: min(116vw, 64rem);
   aspect-ratio: 1;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: rgb(207 250 254);
   cursor: pointer;
   transform: translate(-50%, -50%);
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
-}
-
-.earthButton:disabled {
-  cursor: default;
-}
-
-.earthButton:focus-visible {
-  outline: 2px solid rgb(34 211 238);
-  outline-offset: -4px;
-  border-radius: 9999px;
 }
 
 .earth {
@@ -58,8 +44,9 @@
 
 .motionControl {
   position: absolute;
-  right: 8%;
-  bottom: 10%;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 20;
   display: inline-flex;
   min-height: 2.25rem;
   align-items: center;
@@ -73,12 +60,24 @@
   letter-spacing: 0.08em;
   line-height: 1;
   text-transform: uppercase;
+  color: rgb(207 250 254);
+  cursor: pointer;
   box-shadow: 0 0 1.5rem rgb(34 211 238 / 0.08);
   backdrop-filter: blur(10px);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.earthButton:hover .earth,
-.earthButton:focus-visible .earth {
+.motionControl:disabled {
+  cursor: default;
+}
+
+.motionControl:focus-visible {
+  outline: 2px solid rgb(34 211 238);
+  outline-offset: 3px;
+}
+
+.earthSurface:hover .earth {
   opacity: 0.52;
   filter: saturate(1) brightness(0.84) drop-shadow(0 0 3.25rem rgb(34 211 238 / 0.22));
 }
@@ -94,14 +93,14 @@
 }
 
 @media (min-width: 640px) {
-  .earthButton {
+  .earthSurface {
     top: 48%;
     width: min(86vw, 64rem);
   }
 
   .motionControl {
-    right: 11%;
-    bottom: 11%;
+    right: 1.5rem;
+    bottom: 1.5rem;
   }
 }
 
