@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { HomeStoreShowcase } from "@/components/store/HomeStoreShowcase";
+import { InteractiveEarthShowcase } from "@/components/home/InteractiveEarthShowcase";
 
 export const metadata = {
   title: "GEM Enterprise | Defend. Protect. Prevail.",
@@ -134,6 +135,7 @@ export default function HomePage() {
             className="object-cover opacity-20"
             priority
           />
+          <InteractiveEarthShowcase />
           <div className="absolute inset-0 bg-gradient-to-b from-background/60 via-background/40 to-background/90" />
         </div>
         <div className="absolute inset-0 opacity-10">
