@@ -47,7 +47,7 @@ const NAV_SECTIONS_DATA: NavSection[] = [
     path: "/intel/news",
     items: [
       {
-        label: "News Forge Channel",
+        label: "GEM News",
         path: "/intel/news",
         description: "Live source-linked news and clearly labelled AI briefs",
       },
@@ -59,12 +59,12 @@ const NAV_SECTIONS_DATA: NavSection[] = [
       {
         label: "Quick News Route",
         path: "/news",
-        description: "Stable public shortcut to the News Forge channel",
+        description: "Stable public shortcut to the native GEM news channel",
       },
       {
-        label: "Channel Status",
-        path: "/api/intel/news-forge/status",
-        description: "Check News Forge host configuration and reachability",
+        label: "Video Briefings",
+        path: "/intel/news/videos",
+        description: "Watch publisher video coverage inside GEM",
       },
     ],
   },
@@ -126,7 +126,7 @@ const NAV_SECTIONS_DATA: NavSection[] = [
       { label: "Market Insights", path: "/resources#insights", description: "Intelligence and market analysis" },
       { label: "Templates", path: "/resources#templates", description: "Downloadable security templates" },
       { label: "Bots", path: "/resources#bots", description: "Automated intelligence tools" },
-      { label: "News Forge", path: "/intel/news", description: "Open the connected GEM news channel" },
+      { label: "GEM News", path: "/intel/news", description: "Open the built-in GEM news channel" },
       { label: "Newsletter", path: "/newsletter", description: "Subscribe to intelligence updates" },
       { label: "FAQ", path: "/resources#faq", description: "Frequently asked questions" },
     ],

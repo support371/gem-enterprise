@@ -117,7 +117,7 @@ export function Footer() {
             <FooterColumnHeading>Platform</FooterColumnHeading>
             <ul className="space-y-2.5">
               <FooterLink href="/enterprise-solutions">Enterprise Solutions</FooterLink>
-              <FooterLink href="/intel/news">News Forge</FooterLink>
+              <FooterLink href="/intel/news">GEM News</FooterLink>
               <FooterLink href="/newsletter">News Newsletter</FooterLink>
               {platformSections.map((section) => (
                 <FooterLink key={section.group} href={section.path}>

@@ -12,10 +12,10 @@ export default function ResourcesLayout({ children }: { children: React.ReactNod
               <Newspaper className="h-5 w-5 text-[#FFBF00]" aria-hidden="true" />
             </div>
             <div>
-              <p className="font-semibold text-[#ffe6a0]">The live GEM news channel is News Forge.</p>
+              <p className="font-semibold text-[#ffe6a0]">The live GEM news channel is built into the platform.</p>
               <p className="mt-1 max-w-3xl text-sm leading-6 text-white/60">
-                Use News Forge for the connected feed, story pages, saved items, preferences,
-                authentication, and editorial workflow. Any article cards elsewhere in Resources
+                Use GEM News for the live feed, native story pages, saved items, preferences,
+                and video briefings. Any article cards elsewhere in Resources
                 are reference or archive content and are not the live channel.
               </p>
             </div>
@@ -24,7 +24,7 @@ export default function ResourcesLayout({ children }: { children: React.ReactNod
           <div className="flex flex-wrap gap-3">
             <Button asChild className="bg-[#FFBF00] font-semibold text-[#001F3F] hover:bg-[#ffd04d]">
               <Link href="/intel/news">
-                Open News Forge <ArrowRight className="ml-2 h-4 w-4" />
+                Open GEM News <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
             <Button asChild variant="outline" className="border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white">

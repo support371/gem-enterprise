@@ -38,9 +38,11 @@ const INITIAL_STATE: FetchState = {
 export function CuratedNewsFeed({
   categories,
   initialCategory,
+  videoOnly = false,
 }: {
   categories: CuratedCategory[];
   initialCategory?: string;
+  videoOnly?: boolean;
 }) {
   const [activeSlug, setActiveSlug] = useState<string>(
     initialCategory ?? "all",
@@ -62,6 +64,7 @@ export function CuratedNewsFeed({
       if (activeSlug !== "all") params.set("category", activeSlug);
       if (debouncedSearch) params.set("q", debouncedSearch);
       params.set("limit", "18");
+      if (videoOnly) params.set("videoOnly", "1");
 
       const res = await fetch(`/api/intel/news?${params.toString()}`, {
         cache: "no-store",
@@ -87,7 +90,7 @@ export function CuratedNewsFeed({
         error: err instanceof Error ? err.message : "Failed to load feed",
       });
     }
-  }, [activeSlug, debouncedSearch]);
+  }, [activeSlug, debouncedSearch, videoOnly]);
 
   useEffect(() => {
     void loadInitial();
@@ -101,6 +104,7 @@ export function CuratedNewsFeed({
       if (activeSlug !== "all") params.set("category", activeSlug);
       if (debouncedSearch) params.set("q", debouncedSearch);
       params.set("limit", "18");
+      if (videoOnly) params.set("videoOnly", "1");
       params.set("cursor", state.nextCursor);
 
       const res = await fetch(`/api/intel/news?${params.toString()}`, {
@@ -125,7 +129,7 @@ export function CuratedNewsFeed({
         error: err instanceof Error ? err.message : "Failed to load more",
       }));
     }
-  }, [activeSlug, debouncedSearch, state.nextCursor, state.loadingMore]);
+  }, [activeSlug, debouncedSearch, state.nextCursor, state.loadingMore, videoOnly]);
 
   // Infinite scroll trigger
   const sentinelRef = useRef<HTMLDivElement | null>(null);
@@ -229,8 +233,7 @@ export function CuratedNewsFeed({
       {!state.loading && !state.error && state.items.length === 0 && (
         <div className="rounded-xl border border-border/60 bg-card/30 p-12 text-center">
           <p className="text-sm text-muted-foreground">
-            No articles yet for this view. Run an ingestion cycle from the admin
-            console or check back after the next cron run.
+            No stories match this view yet. The automated feed will add new coverage as publishers release it.
           </p>
         </div>
       )}

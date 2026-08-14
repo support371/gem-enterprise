@@ -12,7 +12,7 @@ import NewsletterSignupForm from "./NewsletterSignupForm";
 export const metadata: Metadata = {
   title: "GEM News & Security Intelligence Newsletter",
   description:
-    "Subscribe to the GEM News Forge companion newsletter for cybersecurity awareness, threat-intelligence summaries, service updates, and operational-risk guidance.",
+    "Subscribe to the GEM News companion newsletter for cybersecurity awareness, threat-intelligence summaries, service updates, and operational-risk guidance.",
   robots: { index: true, follow: true },
   alternates: { canonical: "/newsletter" },
 };
@@ -41,7 +41,7 @@ export default function NewsletterPage() {
             className="inline-flex items-center gap-2 rounded-full border border-[#FFBF00]/30 bg-[#FFBF00]/10 px-4 py-2 text-sm font-semibold text-[#FFBF00] transition hover:bg-[#FFBF00]/15"
           >
             <Newspaper className="h-4 w-4" aria-hidden="true" />
-            Open live News Forge
+            Open live GEM News
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
         </div>
@@ -57,14 +57,14 @@ export default function NewsletterPage() {
           <div className="pt-4">
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">
               <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-              News Forge companion channel
+              GEM News companion channel
             </div>
 
             <h1 className="mt-7 max-w-3xl text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">
               GEM News & Security Intelligence Updates
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-white/65">
-              Read the live channel inside GEM at <Link href="/intel/news" className="font-semibold text-[#FFBF00] hover:underline">GEM News Forge</Link>, then opt in here for carefully reviewed summaries and platform updates delivered by email. Public messages remain informational and do not replace a scoped engagement, incident-response plan, legal advice, or regulatory determination.
+              Read the live channel inside GEM at <Link href="/intel/news" className="font-semibold text-[#FFBF00] hover:underline">GEM News</Link>, then opt in here for carefully reviewed summaries and platform updates delivered by email. Public messages remain informational and do not replace a scoped engagement, incident-response plan, legal advice, or regulatory determination.
             </p>
 
             <div className="mt-9 space-y-4">
