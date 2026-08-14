@@ -1,0 +1,567 @@
+openapi: 3.1.0
+info:
+  title: GEM Enterprise Capital Readiness API
+  version: 1.0.0-draft
+  description: |
+    Authenticated, workspace-scoped control plane for capital readiness,
+    KYB, transaction governance, licensed-partner routing, data rooms,
+    diligence, closing, recurring services, and governed AI operations.
+
+    This API does not authorize custody, money movement, guaranteed returns,
+    autonomous securities solicitation, or unlicensed regulated execution.
+servers:
+  - url: https://www.gemcybersecurityassist.com
+    description: Canonical production host after explicit activation
+security:
+  - sessionCookie: []
+  - bearerAuth: []
+tags:
+  - name: Workspaces
+  - name: Opportunities
+  - name: Readiness
+  - name: Commands
+  - name: Lifecycle
+  - name: Approvals
+  - name: Matters
+  - name: Closings
+paths:
+  /api/capital-readiness/workspaces:
+    get:
+      tags: [Workspaces]
+      summary: List capital-readiness workspaces accessible to the authenticated user
+      responses:
+        '200':
+          description: Accessible workspace directory
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [workspaces]
+                properties:
+                  workspaces:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WorkspaceSummary'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/capital-readiness/snapshot:
+    get:
+      tags: [Readiness]
+      summary: Get a live workspace-scoped command-center snapshot
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceIdQuery'
+      responses:
+        '200':
+          description: Live snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapitalSnapshot'
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '423': { $ref: '#/components/responses/Locked' }
+        '503':
+          description: Capital database schema is not installed in the selected environment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapitalSnapshot'
+  /api/capital-readiness/opportunities:
+    get:
+      tags: [Opportunities]
+      summary: List opportunities in an authorized workspace
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceIdQuery'
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+      responses:
+        '200':
+          description: Opportunity register
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Opportunities]
+      summary: Create an audited capital-readiness opportunity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOpportunityRequest'
+      responses:
+        '201':
+          description: Opportunity created
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '423': { $ref: '#/components/responses/Locked' }
+  /api/capital-readiness/policy:
+    post:
+      tags: [Readiness]
+      summary: Evaluate an activity against the capital policy engine
+      description: Evaluation only. This endpoint does not execute the requested action.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyEvaluationRequest'
+      responses:
+        '200':
+          description: Policy decision
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /api/capital-readiness/readiness/calculate:
+    post:
+      tags: [Readiness]
+      summary: Calculate the weighted readiness decision
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReadinessCalculationRequest'
+      responses:
+        '200':
+          description: Deterministic readiness result
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /api/capital-readiness/commands:
+    post:
+      tags: [Commands]
+      summary: Execute an idempotent capital command
+      description: |
+        Commands are validated by command-specific schemas, workspace scoped,
+        audited, and protected by idempotency. Transaction-based fees remain
+        activation-blocked. Generic closing authorization is rejected in favor
+        of the dedicated evidence-derived closing endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CapitalCommandRequest'
+      responses:
+        '200':
+          description: Command completed or idempotently replayed
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: Approval, idempotency, or workflow conflict
+        '423':
+          description: Workspace locked or externally gated feature not activated
+  /api/capital-readiness/lifecycle:
+    post:
+      tags: [Lifecycle]
+      summary: Execute a role-separated lifecycle action
+      description: |
+        Supports opportunity qualification, beneficial-owner verification,
+        KYB decisions, partner-mandate decisions, outreach progression,
+        diligence progression, closing-condition decisions, service-contract
+        lifecycle, governed-agent lifecycle, and closing completion.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CapitalLifecycleRequest'
+      responses:
+        '200': { description: Lifecycle action completed }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: Evidence, role, approval, or workflow conflict }
+  /api/capital-readiness/approvals:
+    get:
+      tags: [Approvals]
+      summary: List capital approval requests for a workspace
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceIdQuery'
+      responses:
+        '200': { description: Approval register }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [Approvals]
+      summary: Request a version-bound approval
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApprovalRequestInput'
+      responses:
+        '201': { description: Approval request created }
+        '200': { description: Matching active request reused }
+        '400': { $ref: '#/components/responses/ValidationError' }
+  /api/capital-readiness/approvals/{approvalRequestId}/decision:
+    post:
+      tags: [Approvals]
+      summary: Record an independent approval decision
+      parameters:
+        - name: approvalRequestId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workspaceId, decision, reason]
+              properties:
+                workspaceId: { type: string }
+                decision: { type: string, enum: [approve, reject, revoke] }
+                reason: { type: string, minLength: 10, maxLength: 2000 }
+      responses:
+        '200': { description: Decision recorded }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: Separation-of-duties, role, state, or expiry conflict }
+  /api/capital-readiness/matters/{matterId}/transition:
+    post:
+      tags: [Matters]
+      summary: Transition a matter using server-derived evidence
+      parameters:
+        - name: matterId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workspaceId, nextStatus, reason]
+              properties:
+                workspaceId: { type: string }
+                nextStatus:
+                  $ref: '#/components/schemas/MatterStatus'
+                reason: { type: string, minLength: 5, maxLength: 2000 }
+                context:
+                  type: object
+                  description: Supplemental context cannot override server-derived holds or evidence.
+      responses:
+        '200': { description: Matter transitioned and audited }
+        '404': { description: Matter not found }
+        '409': { description: Transition blocked by the state machine or evidence gates }
+  /api/capital-readiness/closings/{closingId}/authorize:
+    post:
+      tags: [Closings]
+      summary: Authorize closing from stored evidence and an immutable approval
+      parameters:
+        - name: closingId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthorizeClosingRequest'
+      responses:
+        '200':
+          description: Closing becomes READY_TO_CLOSE
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: Closing not found }
+        '409': { description: Stored evidence, approval, or closing gates are incomplete }
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: gem_session
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    WorkspaceIdQuery:
+      name: workspaceId
+      in: query
+      required: true
+      schema: { type: string }
+  responses:
+    Unauthorized:
+      description: Authentication is required
+    Forbidden:
+      description: Workspace or role access is denied
+    Locked:
+      description: The workspace emergency lock or a controlled feature lock is active
+    ValidationError:
+      description: Request validation failed
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error: { type: string }
+              fields: { type: object, additionalProperties: true }
+  schemas:
+    WorkspaceSummary:
+      type: object
+      required: [id, name, slug, organization, role, controls]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        organization:
+          type: object
+          required: [id, name, slug]
+          properties:
+            id: { type: string }
+            name: { type: string }
+            slug: { type: string }
+            billingPlan: { type: [string, 'null'] }
+        role:
+          type: object
+          required: [name]
+          properties:
+            name: { type: string }
+            description: { type: [string, 'null'] }
+        permissions:
+          type: array
+          items: { type: string }
+        controls:
+          type: object
+          required: [globalEmergencyLock]
+          properties:
+            globalEmergencyLock: { type: boolean }
+    CapitalSnapshot:
+      type: object
+      required: [availability, workspaceId, generatedAt, metrics, stages, blockers]
+      properties:
+        availability: { type: string, enum: [ready, configuration_required] }
+        workspaceId: { type: string }
+        generatedAt: { type: string, format: date-time }
+        metrics:
+          type: object
+          additionalProperties: true
+        stages:
+          type: array
+          items:
+            type: object
+            required: [status, count]
+            properties:
+              status: { type: string }
+              count: { type: integer }
+        blockers:
+          type: array
+          items: { type: string }
+    ActivityClassification:
+      type: string
+      enum:
+        - GREEN_NON_REGULATED
+        - AMBER_REVIEW_REQUIRED
+        - RED_LICENSED_PARTNER_ONLY
+        - PROHIBITED
+    MatterStatus:
+      type: string
+      enum:
+        - INTAKE
+        - KYB_AND_CONFLICT_REVIEW
+        - ENGAGEMENT_EXECUTION
+        - READINESS_ASSESSMENT
+        - REMEDIATION
+        - INTERNAL_COMMITTEE
+        - LICENSED_PARTNER_REVIEW
+        - CONTROLLED_MARKET_PROCESS
+        - DILIGENCE_AND_PROPOSALS
+        - TERM_SHEET
+        - PRE_CLOSING
+        - CLOSING_IN_PROGRESS
+        - CLOSED
+        - FAILED_TO_CLOSE
+        - TERMINATED
+    CreateOpportunityRequest:
+      type: object
+      required:
+        - workspaceId
+        - legalEntityName
+        - jurisdiction
+        - projectType
+        - useOfProceeds
+        - consentVersion
+        - consentGivenAt
+        - privacyVersion
+        - privacyAcceptedAt
+        - primaryContact
+      properties:
+        workspaceId: { type: string }
+        legalEntityName: { type: string, minLength: 2, maxLength: 240 }
+        jurisdiction: { type: string, minLength: 2, maxLength: 120 }
+        registrationNumber: { type: string }
+        projectType: { type: string }
+        targetAmount: { type: number, exclusiveMinimum: 0 }
+        currency: { type: string, pattern: '^[A-Z]{3}$', default: USD }
+        useOfProceeds: { type: string, minLength: 10, maxLength: 5000 }
+        timingConstraint: { type: string }
+        existingDebt: { type: number, minimum: 0 }
+        referralSource: { type: string }
+        activityClassification:
+          $ref: '#/components/schemas/ActivityClassification'
+        consentVersion: { type: string }
+        consentGivenAt: { type: string, format: date-time }
+        privacyVersion: { type: string }
+        privacyAcceptedAt: { type: string, format: date-time }
+        primaryContact:
+          type: object
+          required: [name, email]
+          properties:
+            name: { type: string }
+            email: { type: string, format: email }
+            phone: { type: string }
+            title: { type: string }
+    PolicyEvaluationRequest:
+      type: object
+      required: [action, classification, actorRole]
+      properties:
+        action: { type: string }
+        classification:
+          $ref: '#/components/schemas/ActivityClassification'
+        actorRole: { type: string }
+        complianceHold: { type: boolean }
+        legalHold: { type: boolean }
+        complianceApproved: { type: boolean }
+        humanApproved: { type: boolean }
+        counselApproved: { type: boolean }
+        licensedPartnerApproved: { type: boolean }
+        transactionBasedFeesEnabled: { type: boolean }
+    ReadinessCalculationRequest:
+      type: object
+      required: [workstreams]
+      properties:
+        workstreams:
+          type: array
+          minItems: 0
+          maxItems: 8
+          items:
+            type: object
+            required: [type, score, criticalFindings, openActions]
+            properties:
+              type:
+                type: string
+                enum: [CORPORATE, FINANCIAL, COMMERCIAL, MANAGEMENT, CYBERSECURITY, COMPLIANCE, TRANSACTION, DATA_ROOM]
+              score: { type: number, minimum: 0, maximum: 100 }
+              criticalFindings: { type: integer, minimum: 0 }
+              openActions: { type: integer, minimum: 0 }
+    CapitalCommandRequest:
+      type: object
+      required: [workspaceId, idempotencyKey, command, payload]
+      properties:
+        workspaceId: { type: string }
+        idempotencyKey: { type: string, minLength: 16, maxLength: 240 }
+        approvalRequestId: { type: string }
+        command:
+          type: string
+          enum:
+            - CREATE_KYB_CASE
+            - ADD_BENEFICIAL_OWNER
+            - RECORD_SCREENING_RESULT
+            - IMPOSE_HOLD
+            - RELEASE_HOLD
+            - CREATE_ENGAGEMENT
+            - ADD_ENGAGEMENT_FEE
+            - ACTIVATE_ENGAGEMENT
+            - CREATE_MATTER
+            - SAVE_READINESS_ASSESSMENT
+            - CREATE_FINDING
+            - RESOLVE_FINDING
+            - SUBMIT_COMMITTEE_REVIEW
+            - CAST_COMMITTEE_VOTE
+            - REGISTER_LICENSED_PARTNER
+            - ADD_PARTNER_LICENSE
+            - ROUTE_TO_PARTNER
+            - CREATE_TARGET_UNIVERSE
+            - ADD_TARGET_ENTRY
+            - APPROVE_CONTROLLED_OUTREACH
+            - CREATE_DATA_ROOM
+            - REGISTER_DOCUMENT_VERSION
+            - RELEASE_DOCUMENT
+            - GRANT_DATA_ROOM_ACCESS
+            - CREATE_DILIGENCE_QUESTION
+            - ADD_DILIGENCE_RESPONSE
+            - RECORD_PROPOSAL
+            - ADD_CLOSING_CONDITION
+            - CREATE_CLOSING
+            - AUTHORIZE_CLOSING
+            - CREATE_SERVICE_CONTRACT
+            - RECORD_REVENUE_EVENT
+            - REGISTER_GOVERNED_AGENT
+            - RECORD_GOVERNED_AGENT_RUN
+        payload:
+          type: object
+          additionalProperties: true
+    CapitalLifecycleRequest:
+      type: object
+      required: [workspaceId, action, payload]
+      properties:
+        workspaceId: { type: string }
+        approvalRequestId: { type: string }
+        action:
+          type: string
+          enum:
+            - QUALIFY_OPPORTUNITY
+            - VERIFY_BENEFICIAL_OWNER
+            - DECIDE_KYB_CASE
+            - DECIDE_PARTNER_MANDATE
+            - UPDATE_OUTREACH_STATUS
+            - UPDATE_DILIGENCE_STATUS
+            - UPDATE_CLOSING_CONDITION
+            - UPDATE_SERVICE_CONTRACT
+            - UPDATE_GOVERNED_AGENT
+            - COMPLETE_CLOSING
+        payload:
+          type: object
+          additionalProperties: true
+    ApprovalRequestInput:
+      type: object
+      required: [workspaceId, action, entityType, entityId, object, requiredRole]
+      properties:
+        workspaceId: { type: string }
+        action:
+          type: string
+          enum:
+            - COMMITTEE_RELEASE
+            - PARTNER_ROUTING
+            - CONTROLLED_OUTREACH
+            - TRANSACTION_BASED_FEE
+            - EXTERNAL_COMMUNICATION
+            - DOCUMENT_RELEASE
+            - DATA_ROOM_ACCESS
+            - CLOSING_AUTHORIZATION
+            - CRITICAL_RISK_ACCEPTANCE
+            - HIGH_IMPACT_AI_ACTION
+        entityType: { type: string }
+        entityId: { type: string }
+        object:
+          description: Exact object version to approve. The canonical SHA-256 hash binds the later action.
+        requiredRole: { type: string }
+        expiresAt: { type: string, format: date-time }
+    AuthorizeClosingRequest:
+      type: object
+      required:
+        - workspaceId
+        - approvalRequestId
+        - finalKybRefreshAt
+        - finalSanctionsRefreshAt
+        - partnerConfirmationRef
+        - counselConfirmationRef
+        - feeApprovalRef
+        - signatoryEvidenceRef
+        - fundsFlowVerificationRef
+        - postCloseOwnerRefs
+        - noGemCustodyConfirmed
+        - rationale
+      properties:
+        workspaceId: { type: string }
+        approvalRequestId: { type: string }
+        finalKybRefreshAt: { type: string, format: date-time }
+        finalSanctionsRefreshAt: { type: string, format: date-time }
+        partnerConfirmationRef: { type: string }
+        counselConfirmationRef: { type: string }
+        feeApprovalRef: { type: string }
+        signatoryEvidenceRef: { type: string }
+        fundsFlowVerificationRef: { type: string }
+        postCloseOwnerRefs:
+          type: array
+          minItems: 1
+          items: { type: string }
+        noGemCustodyConfirmed: { type: boolean, const: true }
+        rationale: { type: string, minLength: 10, maxLength: 3000 }
