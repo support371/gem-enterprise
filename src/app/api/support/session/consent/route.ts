@@ -9,36 +9,40 @@ const schema = z.object({
 });
 
 const GREETING =
-  "Welcome to GEM Concierge. I'm your AI support assistant. How can I help you today? You can ask about your account, products, KYC status, or request to speak with a human advisor.";
+  "Secure AI support session started. I can help with your account, organization workspace, requests, verification, products, GEM News, or a tracked human-support handoff.";
+
+function json(body: unknown, status = 200) {
+  return NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
+}
 
 export async function POST(request: NextRequest) {
   const auth = await getSession();
   if (!auth) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return json({ error: "Unauthorized" }, 401);
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    return json({ error: "Invalid JSON" }, 400);
   }
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    return json({ error: "Invalid request" }, 400);
   }
 
   const { sessionId, accepted } = parsed.data;
   const session = await supportStore.getSession(sessionId);
 
   if (!session || session.userId !== auth.userId) {
-    return NextResponse.json({ error: "Session not found" }, { status: 404 });
+    return json({ error: "Session not found" }, 404);
   }
 
   if (!accepted) {
     await supportStore.closeSession(sessionId);
-    return NextResponse.json({ success: false, greeting: "" });
+    return json({ success: false, greeting: "" });
   }
 
   await supportStore.updateSession(sessionId, {
@@ -47,5 +51,5 @@ export async function POST(request: NextRequest) {
     status: "active",
   });
 
-  return NextResponse.json({ success: true, greeting: GREETING });
+  return json({ success: true, greeting: GREETING });
 }

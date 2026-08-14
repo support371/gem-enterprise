@@ -14,6 +14,7 @@ export type EscalationReason =
   | "user_requested"
   | "policy_triggered"
   | "incident_detected"
+  | "restricted_class"
   | "billing_query"
   | "consultation_request";
 
@@ -93,6 +94,11 @@ export interface SupportBooking {
 export interface PolicyEvaluationResult {
   shouldEscalate: boolean;
   escalationReason?: EscalationReason;
+  restrictedClass?:
+    | "LEGAL_ADVICE"
+    | "FINANCIAL_ADVICE"
+    | "SECURITY_CLOSURE"
+    | "IDENTITY_DETERMINATION";
   queue?: SupportQueue;
   path?: "escalate" | "booking" | "billing" | "continue";
   triggerKeyword?: string;
@@ -104,5 +110,12 @@ export interface OrchestrationResult {
   shouldEscalate: boolean;
   escalationReason?: EscalationReason;
   queue?: SupportQueue;
+  knowledgeLinks?: Array<{
+    title: string;
+    href: string;
+    description: string;
+  }>;
+  responseSource?: "gateway" | "fallback" | "policy";
+  providerStatus?: "available" | "disabled" | "budget_limited" | "rate_limited" | "unavailable";
   metadata?: Record<string, unknown>;
 }

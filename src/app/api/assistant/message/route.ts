@@ -1,148 +1,120 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { db } from "@/lib/db";
 import { emitAuditLog } from "@/lib/audit";
 import { getGatewaySessionToken, getSession } from "@/lib/auth";
+import { generateGemSupportReply } from "@/lib/ai/gem-support-agent";
+import { evaluatePolicy } from "@/lib/policy/evaluate-policy";
 import { GatewayRequestError, workspaceGateway } from "@/lib/supabase-gateway";
 
-async function generateAIReply(
-  message: string,
-  history: { role: string; content: string }[]
-): Promise<string> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+const schema = z.object({
+  sessionId: z.string().min(1).max(128),
+  message: z.string().trim().min(1).max(2000),
+});
 
-  if (!apiKey) {
-    return generateFallbackReply(message);
-  }
-
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        model: process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001",
-        max_tokens: 512,
-        system: `You are GEM Concierge, the AI support assistant for GEM Enterprise — an institutional-grade cybersecurity, financial security, and real estate protection platform.
-You assist verified, authenticated clients with account inquiries, product questions, and support needs.
-Be concise, professional, and helpful. Do not invent policies. If uncertain, offer to connect the client with a human advisor.
-Keep responses to 2-4 sentences unless detail is specifically required.`,
-        messages: [
-          ...history.map((h) => ({ role: h.role as "user" | "assistant", content: h.content })),
-          { role: "user", content: message },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      return generateFallbackReply(message);
-    }
-
-    const data = await response.json();
-    return data?.content?.[0]?.text ?? generateFallbackReply(message);
-  } catch {
-    return generateFallbackReply(message);
-  }
-}
-
-function generateFallbackReply(message: string): string {
-  const msg = message.toLowerCase();
-
-  if (msg.includes("password") || msg.includes("login") || msg.includes("access")) {
-    return "For account access issues, I recommend visiting your Security settings or using the password reset flow on the login page. If you continue to have trouble, I can connect you with a human advisor.";
-  }
-  if (msg.includes("kyc") || msg.includes("verif") || msg.includes("document")) {
-    return "Your KYC status and submitted documents can be reviewed in the KYC Status page. If your application is under review, you'll be notified when a decision is reached.";
-  }
-  if (msg.includes("portfolio") || msg.includes("allocation")) {
-    return "Portfolio details including holdings and allocations are available in the Portfolios section of your dashboard. For specific allocation changes, please submit a service request.";
-  }
-  if (msg.includes("thank")) {
-    return "You're welcome. Is there anything else I can help you with today?";
-  }
-
-  return "Thank you for your message. I'm here to help with your GEM Enterprise account, products, and services. Could you provide a bit more detail about what you need assistance with?";
+function json(body: unknown, status = 200, headers?: Record<string, string>) {
+  return NextResponse.json(body, {
+    status,
+    headers: { "Cache-Control": "no-store", ...headers },
+  });
 }
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!session) return json({ error: "Unauthorized" }, 401);
+
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "Invalid JSON" }, 400);
   }
 
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) return json({ error: "Invalid request" }, 400);
+
+  const { sessionId, message } = parsed.data;
+  const policy = evaluatePolicy(message);
+
   try {
-    const { sessionId, message } = await req.json();
-
-    if (!sessionId || !message) {
-      return NextResponse.json({ error: "sessionId and message are required" }, { status: 400 });
-    }
-
-    // Restricted class detection (ADR-003)
-    const isRestricted = /legal|financial|advice/i.test(message);
-
     if (session.authSource === "supabase_gateway") {
       const token = await getGatewaySessionToken();
-      if (!token) {
-        return NextResponse.json({ error: "Gateway session required" }, { status: 401 });
-      }
+      if (!token) return json({ error: "Gateway session required" }, 401);
       await workspaceGateway("ai_message_event", token, {
         sessionId,
         messageLength: message.length,
-        restricted: isRestricted,
+        restricted: policy.shouldEscalate,
       });
-
-      if (isRestricted) {
-        return NextResponse.json(
-          { error: "Restricted content detected", escalate: true },
-          { status: 422 },
-        );
-      }
-
-      const reply = await generateAIReply(message, []);
-      return NextResponse.json({ text: reply });
+    } else {
+      const consent = await db.consentRecord.findFirst({
+        where: { aiRunId: sessionId, userId: session.userId },
+        select: { id: true },
+      });
+      if (!consent) return json({ error: "AI session not found" }, 404);
     }
 
-    if (isRestricted) {
+    if (policy.shouldEscalate) {
       await emitAuditLog({
         action: "restricted_class_detected",
         resource: "ai_run",
         resourceId: sessionId,
-        metadata: { message },
+        metadata: {
+          messageLength: message.length,
+          escalationReason: policy.escalationReason,
+          restrictedClass: policy.restrictedClass,
+        },
       });
 
-      return NextResponse.json(
-        { error: "Restricted content detected", escalate: true },
-        { status: 422 }
+      return json(
+        {
+          error: "This request requires human support.",
+          escalate: true,
+          queue: policy.queue,
+          supportPath: "/app/support",
+        },
+        422,
       );
+    }
+
+    const reply = await generateGemSupportReply({
+      message,
+      history: [],
+      userId: session.userId,
+      userTier: session.role === "admin" || session.role === "internal" ? "vip" : "standard",
+    });
+
+    if (session.authSource !== "supabase_gateway") {
+      await db.aiRun.update({
+        where: { id: sessionId },
+        data: {
+          messageCount: { increment: 1 },
+          outputStatus: "responded",
+        },
+      });
     }
 
     await emitAuditLog({
       action: "ai_message_sent",
       resource: "ai_run",
       resourceId: sessionId,
-      metadata: { messageLength: message.length },
+      metadata: {
+        messageLength: message.length,
+        responseSource: reply.source,
+        providerStatus: reply.providerStatus,
+      },
     });
 
-    // Increment message count on the AiRun record
-    await db.aiRun.update({
-      where: { id: sessionId },
-      data: { messageCount: { increment: 1 } },
-    }).catch(() => {
-      // Non-fatal: session may be from a different flow
+    return json({
+      text: reply.text,
+      knowledgeLinks: reply.knowledgeLinks,
+      responseSource: reply.source,
+      providerStatus: reply.providerStatus,
     });
-
-    const reply = await generateAIReply(message, []);
-
-    return NextResponse.json({ text: reply });
   } catch (error) {
     if (error instanceof GatewayRequestError) {
-      return NextResponse.json(
-        { error: error.message, code: error.code },
-        { status: error.statusCode },
-      );
+      return json({ error: error.message, code: error.code }, error.statusCode);
     }
-    return NextResponse.json({ error: "Error processing message" }, { status: 500 });
+    console.error("[assistant/message]", error);
+    return json({ error: "Error processing message" }, 500);
   }
 }

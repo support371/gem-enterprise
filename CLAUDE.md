@@ -15,7 +15,7 @@
 | Auth | Custom JWT via `jose` | — |
 | UI Components | shadcn/ui (Radix primitives) | — |
 | Styling | Tailwind CSS | 3.x |
-| AI | Anthropic Claude API | — |
+| AI | Vercel AI SDK + AI Gateway with deterministic fallback | 6.x |
 | Email | nodemailer | 8.x |
 | Package manager | **pnpm** (always — never npm/yarn) | 10.x |
 | Deployment | Vercel | — |
@@ -386,7 +386,7 @@ export default function YourPage() {
 | `POSTGRES_PRISMA_URL` | Pooled connection string (Neon/Supabase) |
 | `POSTGRES_URL_NON_POOLING` | Direct connection string for migrations |
 | `JWT_SECRET` | Min 32 chars — `openssl rand -hex 32` |
-| `ANTHROPIC_API_KEY` | For AI chat widget and support |
+| `GEM_AI_PROVIDER_ENABLED` | Enables governed AI Gateway generation; `false` keeps deterministic support active |
 
 ### Optional (enables features)
 
@@ -394,7 +394,7 @@ export default function YourPage() {
 |---|---|
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | Email campaigns + meeting confirmations |
 | `EMAIL_FROM` | Sender address for outbound emails |
-| `ANTHROPIC_MODEL` | Model override (default: `claude-haiku-4-5-20251001`) |
+| `GEM_AI_MODEL` | Gateway model override (default: `openai/gpt-5.6-luna`) |
 | `NEXT_PUBLIC_APP_URL` | Public URL for redirects |
 | `NEXT_PUBLIC_APP_NAME` | App name shown in UI |
 | `NEXT_PUBLIC_AI_DISCLOSURE_TEXT` | Compliance text for AI widget |
