@@ -5,7 +5,7 @@ import { startSupportSession } from "@/lib/support/start-session";
 export async function POST(_request: NextRequest) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
 
   try {
@@ -16,9 +16,9 @@ export async function POST(_request: NextRequest) {
       status: supportSession.status,
       requiresConsent: !supportSession.consentAccepted,
       isExisting,
-    });
+    }, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     console.error("[support/session/start]", err);
-    return NextResponse.json({ error: "Failed to start session" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to start session" }, { status: 500, headers: { "Cache-Control": "no-store" } });
   }
 }

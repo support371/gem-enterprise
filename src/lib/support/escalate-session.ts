@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { supportStore } from "./store-instance";
 import { generateSessionSummary } from "./generate-summary";
 import { mapQueueToAtlassian } from "@/lib/atlassian/map-queue-to-atlassian";
@@ -8,7 +9,10 @@ import type { EscalationReason, AtlassianHandoffPayload } from "@/types/support"
 export interface EscalateSessionResult {
   success: boolean;
   queue: string;
+  handoffChannel: "atlassian" | "gem_ticket";
   atlassianIssueKey?: string;
+  ticketId?: string;
+  providerConfigured: boolean;
   payload: AtlassianHandoffPayload;
   error?: string;
 }
@@ -37,6 +41,21 @@ export async function escalateSession(
 
   const atlassianResult = await createEscalationIssue(payload);
 
+  let ticketId: string | undefined;
+  if (!atlassianResult.success) {
+    ticketId = `TKT-${randomUUID().slice(0, 8).toUpperCase()}`;
+    await supportStore.createTicket({
+      id: ticketId,
+      sessionId,
+      userId: session.userId,
+      subject: `Human support handoff — ${queue}`,
+      description: transcript,
+      priority: queue === "Cybersecurity / Incident" ? "critical" : "medium",
+      status: "open",
+      createdAt: new Date().toISOString(),
+    });
+  }
+
   // Update session
   await supportStore.updateSession(sessionId, {
     status: "escalated",
@@ -44,13 +63,17 @@ export async function escalateSession(
     escalatedAt: new Date().toISOString(),
     escalationPayload: payload,
     queue,
+    ticketId,
   });
 
   return {
-    success: atlassianResult.success,
+    success: atlassianResult.success || Boolean(ticketId),
     queue,
+    handoffChannel: atlassianResult.success ? "atlassian" : "gem_ticket",
     atlassianIssueKey: atlassianResult.issueKey,
+    ticketId,
+    providerConfigured: atlassianResult.configured,
     payload,
-    error: atlassianResult.error,
+    error: atlassianResult.success || ticketId ? undefined : atlassianResult.error,
   };
 }

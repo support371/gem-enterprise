@@ -4,17 +4,22 @@ import { db } from "@/lib/db";
 import { emitAuditLog } from "@/lib/audit";
 import { getGatewaySessionToken, getSession } from "@/lib/auth";
 import { GatewayRequestError, workspaceGateway } from "@/lib/supabase-gateway";
+import { DEFAULT_GEM_AI_MODEL } from "@/lib/ai/gem-support-agent";
 
 const schema = z.object({
   consentGiven: z.boolean(),
-  disclosureTextHash: z.string().min(1),
-  profileId: z.string().optional(),
+  disclosureTextHash: z.string().regex(/^[0-9a-f]{64}$/i),
+  profileId: z.string().trim().min(1).max(128).optional(),
 });
+
+function json(body: unknown, status = 200) {
+  return NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
+}
 
 export async function POST(req: NextRequest) {
   const session = await getSession();
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return json({ error: "Unauthorized" }, 401);
   }
 
   try {
@@ -22,19 +27,19 @@ export async function POST(req: NextRequest) {
     const parsed = schema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
+      return json({ error: "Invalid request", details: parsed.error.flatten() }, 400);
     }
 
     const { consentGiven, disclosureTextHash, profileId } = parsed.data;
 
     if (!consentGiven) {
-      return NextResponse.json({ error: "Consent required" }, { status: 400 });
+      return json({ error: "Consent required" }, 400);
     }
 
     if (session.authSource === "supabase_gateway") {
       const token = await getGatewaySessionToken();
       if (!token) {
-        return NextResponse.json({ error: "Gateway session required" }, { status: 401 });
+        return json({ error: "Gateway session required" }, 401);
       }
       const result = await workspaceGateway<{ ok: true; sessionId: string }>(
         "ai_session",
@@ -46,13 +51,13 @@ export async function POST(req: NextRequest) {
           userAgent: req.headers.get("user-agent") || undefined,
         },
       );
-      return NextResponse.json(result);
+      return json(result);
     }
 
     const aiRun = await db.aiRun.create({
       data: {
         profileId: profileId || session.userId,
-        modelVersion: process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001",
+        modelVersion: process.env.GEM_AI_MODEL ?? DEFAULT_GEM_AI_MODEL,
         consentReceiptId: `CR-${Date.now()}`,
         disclosureTextHash,
         consentRecord: {
@@ -73,15 +78,12 @@ export async function POST(req: NextRequest) {
       metadata: { profileId: aiRun.profileId, disclosureTextHash },
     });
 
-    return NextResponse.json({ ok: true, sessionId: aiRun.id });
+    return json({ ok: true, sessionId: aiRun.id });
   } catch (error) {
     if (error instanceof GatewayRequestError) {
-      return NextResponse.json(
-        { error: error.message, code: error.code },
-        { status: error.statusCode },
-      );
+      return json({ error: error.message, code: error.code }, error.statusCode);
     }
     console.error(error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return json({ error: "Internal server error" }, 500);
   }
 }
