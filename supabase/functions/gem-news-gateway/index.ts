@@ -54,7 +54,7 @@ Deno.serve(async (request) => {
   }
   if (action === "story") {
     const slug = String(input.slug || ""); if (!/^[a-z0-9-]{3,120}$/.test(slug)) return json({ error: "Invalid story" }, 400);
-    const { data, error } = await db.from("news_articles").select("slug,title,summary,aiSummary,externalUrl,category,author,imageUrl,imageAlt,videoUrl,publishedAt,source:news_sources(name,siteUrl)").eq("status", "published").eq("slug", slug).maybeSingle(); if (error || !data) return json({ error: "Not found" }, 404); return json({ item: data }, 200, true);
+    const { data, error } = await db.from("news_articles").select("slug,title,summary,aiSummary,externalUrl,category,author,mediaType,imageUrl,imageAlt,videoUrl,videoThumbnail,videoProvider,publishedAt,source:news_sources(name,siteUrl)").eq("status", "published").eq("slug", slug).maybeSingle(); if (error || !data) return json({ error: "Not found" }, 404); return json({ item: data }, 200, true);
   }
   if (action === "status") { const { count } = await db.from("news_articles").select("id", { count: "exact", head: true }).eq("status", "published"); return json({ ok: true, service: "gem-news-gateway", published: count || 0 }); }
   if (action === "ingest") {

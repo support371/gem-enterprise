@@ -19,6 +19,17 @@ describe("native GEM News platform", () => {
     expect(page).toContain('/intel/news/preferences');
     expect(page).toContain('/intel/news/videos');
   });
+  it("plays allowlisted publisher video inside cards and story pages", () => {
+    const card = source("src/components/intel/NewsArticleCard.tsx");
+    const story = source("src/app/intel/news/[slug]/page.tsx");
+    const player = source("src/components/video/GemVideoPlayer.tsx");
+    const gateway = source("supabase/functions/gem-news-gateway/index.ts");
+    expect(card).toContain("<GemVideoPlayer");
+    expect(story).toContain("<GemVideoPlayer");
+    expect(player).toContain("allowFullScreen");
+    expect(player).toContain("playsInline");
+    expect(gateway).toContain("videoThumbnail,videoProvider");
+  });
   it("keeps ingestion protected by a server-side authorization hash", () => {
     const gateway = source("supabase/functions/gem-news-gateway/index.ts");
     expect(gateway).toContain('token_hash');

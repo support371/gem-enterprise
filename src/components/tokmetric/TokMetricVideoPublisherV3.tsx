@@ -18,6 +18,7 @@ import {
   type TikTokPublishStatus,
   type TikTokVideoSource,
 } from "@/lib/tokmetric/publishing/types";
+import { GemVideoPlayer } from "@/components/video/GemVideoPlayer";
 
 type WorkspaceContext = {
   id: string;
@@ -551,7 +552,14 @@ export function TokMetricVideoPublisherV3() {
             <p className="text-sm font-medium text-white/70">Video preview</p>
             <div className="mt-2 overflow-hidden rounded-xl border border-white/10 bg-black/30">
               {previewSource ? (
-                <video key={previewSource} src={previewSource} controls preload="metadata" className="aspect-video w-full bg-black object-contain" />
+                <GemVideoPlayer
+                  src={previewSource}
+                  title="TikTok video preview"
+                  description="Private preview of the video selected for the governed TikTok publishing workflow."
+                  providerHint="native"
+                  allowLocalObjectUrl={source === "FILE_UPLOAD"}
+                  className="rounded-none border-0"
+                />
               ) : (
                 <div className="flex aspect-video items-center justify-center text-sm text-white/35">Select a video to preview it before posting.</div>
               )}

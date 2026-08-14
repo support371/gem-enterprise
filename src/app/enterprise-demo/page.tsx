@@ -19,6 +19,7 @@ import {
   UsersRound,
   Video,
 } from "lucide-react";
+import { GemVideoPlayer } from "@/components/video/GemVideoPlayer";
 
 export const metadata: Metadata = {
   title: "Enterprise Website & TikTok Demo Flow | GEM Enterprise",
@@ -203,10 +204,13 @@ export default function EnterpriseDemoPage() {
         <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <article className="overflow-hidden rounded-3xl border border-white/[0.08] bg-black/30">
             {videoGuideUrl ? (
-              <video className="aspect-video w-full bg-black" controls playsInline preload="metadata">
-                <source src={videoGuideUrl} type="video/mp4" />
-                Your browser does not support embedded video.
-              </video>
+              <GemVideoPlayer
+                src={videoGuideUrl}
+                title="GEM Enterprise platform walkthrough"
+                description="Approved guided walkthrough of the GEM Enterprise public website, protected Hub, and governed content operations."
+                providerHint="native"
+                className="rounded-none border-0"
+              />
             ) : (
               <div className="flex aspect-video items-center justify-center bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.18),transparent_55%)] p-8 text-center">
                 <div className="max-w-xl">
