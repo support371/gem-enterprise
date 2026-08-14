@@ -5,9 +5,10 @@
 // 3-up grid.
 
 import Link from "next/link";
-import { Bookmark, ExternalLink, PlayCircle, Sparkles, Star } from "lucide-react";
+import { Bookmark, ExternalLink, Sparkles, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { GemVideoPlayer } from "@/components/video/GemVideoPlayer";
 
 export type NewsArticleCardData = {
   id: string;
@@ -72,14 +73,15 @@ export function NewsArticleCard({
 }) {
   const isHero = variant === "hero";
   const isCompact = variant === "compact";
-  const hasMedia = article.mediaType !== "none" && !!article.imageUrl;
+  const hasVideo = article.mediaType === "video" && !!article.videoUrl;
+  const hasMedia = hasVideo || (article.mediaType !== "none" && !!article.imageUrl);
   const categoryLabel =
     CATEGORY_LABEL[article.category] ?? article.category;
   const summary = article.aiSummary ?? article.summary;
 
   return (
     <Card
-      className={`glass-panel bento-card border-border/50 overflow-hidden group transition-all hover:border-primary/40 ${
+      className={`glass-panel bento-card relative border-border/50 overflow-hidden group transition-all hover:border-primary/40 ${
         isHero ? "md:flex md:flex-row" : "flex flex-col"
       }`}
     >
@@ -93,22 +95,27 @@ export function NewsArticleCard({
                 : "aspect-[16/9]"
           }`}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={article.imageUrl ?? "/placeholder.svg"}
-            alt={article.imageAlt ?? article.title}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
-            referrerPolicy="no-referrer"
-          />
-          {article.mediaType === "video" && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-              <div className="rounded-full bg-background/80 backdrop-blur-sm p-3 border border-border/50 group-hover:scale-110 transition-transform">
-                <PlayCircle className="h-6 w-6 text-primary" />
-              </div>
-            </div>
+          {hasVideo ? (
+            <GemVideoPlayer
+              src={article.videoUrl}
+              title={article.title}
+              description={article.aiSummary ?? article.summary}
+              poster={article.videoThumbnail ?? article.imageUrl}
+              providerHint={article.videoProvider}
+              externalUrl={article.externalUrl}
+              className="relative z-20 h-full rounded-none border-0"
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={article.imageUrl ?? "/placeholder.svg"}
+              alt={article.imageAlt ?? article.title}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+            />
           )}
-          <div className="absolute top-3 left-3 flex items-center gap-2">
+          <div className="pointer-events-none absolute top-3 left-3 z-30 flex items-center gap-2">
             <Badge className="bg-background/80 backdrop-blur-sm text-foreground border-border/60 text-xs font-mono uppercase tracking-wider">
               {categoryLabel}
             </Badge>
