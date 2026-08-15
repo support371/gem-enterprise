@@ -1,10 +1,16 @@
 export type CommandCenterSection =
   | "overview"
   | "executive"
+  | "development"
+  | "marketing"
+  | "sales"
+  | "monitoring"
   | "security"
   | "compliance"
   | "revenue"
   | "clients"
+  | "teams"
+  | "support"
   | "agents"
   | "integrations";
 
@@ -30,6 +36,22 @@ export const commandCenterSections: Record<
     title: "Executive Intelligence",
     description: "Decision-grade performance, risk, delivery, and growth indicators for leadership.",
   },
+  development: {
+    title: "Development Operations",
+    description: "Repositories, APIs, releases, deployment readiness, and platform delivery controls.",
+  },
+  marketing: {
+    title: "Marketing Operations",
+    description: "Campaigns, social content, news distribution, audience journeys, and governed publishing.",
+  },
+  sales: {
+    title: "Sales Operations",
+    description: "Service requests, opportunities, client onboarding, proposals, and commercial handoffs.",
+  },
+  monitoring: {
+    title: "Monitoring & Trends",
+    description: "Live platform health, audit evidence, security signals, intelligence, and operational trends.",
+  },
   security: {
     title: "Security Operations",
     description: "Incident, vulnerability, posture, response-time, and managed-service operations.",
@@ -46,6 +68,14 @@ export const commandCenterSections: Record<
     title: "Client Portfolio",
     description: "Tenant health, service adoption, renewal risk, open actions, and upgrade demand.",
   },
+  teams: {
+    title: "Team Delivery",
+    description: "Assigned workspaces, projects, meetings, messages, documents, and weekly delivery updates.",
+  },
+  support: {
+    title: "Support Operations",
+    description: "Client requests, support cases, AI assistance, human escalation, and service follow-through.",
+  },
   agents: {
     title: "AI Agent Operations",
     description: "Agent registry, task performance, human approvals, cost controls, and error monitoring.",
@@ -55,6 +85,28 @@ export const commandCenterSections: Record<
     description: "Truthful connection state, configuration ownership, health checks, and remediation.",
   },
 };
+
+export const commandCenterNavigationGroups: Array<{
+  label: string;
+  sections: CommandCenterSection[];
+}> = [
+  {
+    label: "Leadership & health",
+    sections: ["overview", "executive", "monitoring"],
+  },
+  {
+    label: "Delivery & growth",
+    sections: ["development", "marketing", "sales", "revenue"],
+  },
+  {
+    label: "Trust & service",
+    sections: ["security", "compliance", "clients", "teams", "support"],
+  },
+  {
+    label: "Automation & connections",
+    sections: ["agents", "integrations"],
+  },
+];
 
 export const executiveMetrics: CommandCenterMetric[] = [
   { label: "Monthly recurring revenue", value: "$148.2K", detail: "Illustrative recurring revenue", trend: "+8.6%", tone: "emerald" },

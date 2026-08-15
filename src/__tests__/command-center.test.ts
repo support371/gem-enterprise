@@ -18,10 +18,16 @@ describe("GEM enterprise command center", () => {
     expect(Object.keys(commandCenterSections)).toEqual([
       "overview",
       "executive",
+      "development",
+      "marketing",
+      "sales",
+      "monitoring",
       "security",
       "compliance",
       "revenue",
       "clients",
+      "teams",
+      "support",
       "agents",
       "integrations",
     ]);
@@ -88,11 +94,9 @@ describe("GEM enterprise command center", () => {
     expect(commandCenterGroup?.items.map((item) => item.href)).toEqual(
       expect.arrayContaining([
         "/app/command-center",
-        "/app/command-center/executive",
-        "/app/command-center/security",
-        "/app/command-center/compliance",
-        "/app/command-center/revenue",
-        "/app/command-center/clients",
+        "/app/command-center/development",
+        "/app/command-center/tokmetric",
+        "/app/command-center/monitoring",
         "/app/command-center/agents",
         "/app/command-center/integrations",
       ]),

@@ -52,7 +52,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
-  adminPortalNavItems,
+  adminPrimaryNavItems,
   clientPortalNavGroups,
   type PlatformNavIcon,
 } from "@/lib/platformNavigation";
@@ -93,7 +93,9 @@ const iconMap: Record<PlatformNavIcon, React.ComponentType<{ className?: string 
 };
 
 function isActivePath(pathname: string, href: string) {
-  if (href === "/app/dashboard" || href === "/intel") return pathname === href;
+  if (href === "/app/dashboard" || href === "/app/admin" || href === "/intel") {
+    return pathname === href;
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
@@ -178,7 +180,7 @@ function SidebarContent({
           <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500">
             Administration
           </p>
-          {adminPortalNavItems
+          {adminPrimaryNavItems
             .filter((item) => !item.ownerOnly || viewerRole === "super_admin")
             .map(({ href, icon, label: itemLabel, description }) => {
               const Icon = iconMap[icon];

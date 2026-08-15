@@ -99,6 +99,42 @@ export async function getOrganizationWorkspaceOverview(userId: string, workspace
   };
 }
 
+export async function getOrganizationProjectWorkspace(userId: string, projectId: string) {
+  const project = await db.organizationProject.findUnique({
+    where: { id: projectId },
+    include: {
+      _count: { select: { updates: true } },
+      updates: {
+        orderBy: { weekEnding: "desc" },
+        take: 6,
+        select: {
+          id: true,
+          weekEnding: true,
+          status: true,
+          accomplishments: true,
+          inProgress: true,
+        },
+      },
+      workspace: {
+        include: {
+          organization: true,
+          _count: { select: { members: true, connectors: true, approvalRequests: true } },
+        },
+      },
+    },
+  });
+  if (!project || project.status === "ARCHIVED") {
+    throw new OrganizationWorkspaceError("Project workspace not found.", 404, "PROJECT_NOT_FOUND");
+  }
+  const membership = await requireWorkspaceMembership(userId, project.workspaceId);
+  return {
+    project,
+    workspace: project.workspace,
+    membership,
+    permissions: membership.role?.permissions ?? [],
+  };
+}
+
 export async function provisionOrganizationWorkspace(input: {
   organizationName: string; workspaceName: string; ownerEmail: string; projectName?: string | null; projectSummary?: string | null; reason: string;
 }, actorUserId: string, context: { ipAddress: string; userAgent: string }) {

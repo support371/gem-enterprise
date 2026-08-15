@@ -4,20 +4,18 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Activity,
-  AlertTriangle,
+  ArrowRight,
   CheckCircle2,
-  ChevronRight,
-  Code2,
   Database,
   ExternalLink,
   FileJson,
+  Layers3,
   Loader2,
   LockKeyhole,
   ShieldCheck,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 type OperationMode = "ready" | "partial" | "planned" | "external";
 type OperationRisk = "safe" | "approval_required" | "destructive";
@@ -46,180 +44,144 @@ type RegistryResponse = {
   operations: OperationRoute[];
 };
 
-function modeClass(mode: OperationMode) {
-  if (mode === "ready") return "border-green-500/25 bg-green-500/15 text-green-400";
-  if (mode === "partial") return "border-yellow-500/25 bg-yellow-500/15 text-yellow-400";
-  if (mode === "external") return "border-cyan-500/25 bg-cyan-500/15 text-cyan-400";
-  return "border-white/10 bg-white/10 text-slate-300";
-}
-
-function riskClass(risk: OperationRisk) {
-  if (risk === "destructive") return "border-red-500/25 bg-red-500/15 text-red-400";
-  if (risk === "approval_required") return "border-yellow-500/25 bg-yellow-500/15 text-yellow-400";
-  return "border-green-500/25 bg-green-500/15 text-green-400";
-}
-
 function formatLabel(value: string) {
-  return value.replace(/([A-Z])/g, " $1").replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()).trim();
+  return value
+    .replace(/([A-Z])/g, " $1")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase())
+    .trim();
 }
 
 export default function AdminApiOperationsPage() {
   const [registry, setRegistry] = useState<RegistryResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [domain, setDomain] = useState("all");
 
   useEffect(() => {
-    fetch("/api/operations/registry")
-      .then((response) => response.json())
+    fetch("/api/operations/registry", { cache: "no-store" })
+      .then((response) => (response.ok ? response.json() : null))
       .then((data) => setRegistry(data))
       .finally(() => setLoading(false));
   }, []);
 
   const domains = useMemo(() => {
-    const values = new Set(registry?.operations.map((operation) => operation.domain) ?? []);
-    return ["all", ...Array.from(values).sort()];
+    if (!registry) return [];
+    const grouped = new Map<string, OperationRoute[]>();
+    for (const operation of registry.operations) {
+      const rows = grouped.get(operation.domain) ?? [];
+      rows.push(operation);
+      grouped.set(operation.domain, rows);
+    }
+    return Array.from(grouped.entries())
+      .map(([domain, operations]) => ({
+        domain,
+        operations,
+        ready: operations.filter((operation) => operation.mode === "ready").length,
+        approvals: operations.filter((operation) => operation.risk !== "safe").length,
+      }))
+      .sort((a, b) => a.domain.localeCompare(b.domain));
   }, [registry]);
 
-  const operations = useMemo(() => {
-    if (!registry) return [];
-    if (domain === "all") return registry.operations;
-    return registry.operations.filter((operation) => operation.domain === domain);
-  }, [registry, domain]);
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-20 text-slate-500">
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading API operations…
+      </div>
+    );
+  }
+
+  if (!registry) {
+    return (
+      <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-8 text-center text-red-300">
+        The API registry is unavailable. No operation has been attempted.
+      </div>
+    );
+  }
+
+  const summaryCards = [
+    { label: "Operations", value: registry.summary.total, icon: Database, tone: "text-cyan-300 bg-cyan-400/10" },
+    { label: "Ready", value: registry.summary.ready, icon: CheckCircle2, tone: "text-emerald-300 bg-emerald-400/10" },
+    { label: "Partial", value: registry.summary.partial, icon: Activity, tone: "text-amber-300 bg-amber-400/10" },
+    { label: "Approval gated", value: registry.summary.approvalRequired, icon: LockKeyhole, tone: "text-rose-300 bg-rose-400/10" },
+  ];
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-3 py-1 text-xs font-mono uppercase tracking-wider text-cyan-400">
-            <Code2 className="h-3.5 w-3.5" />
-            API Project Environment
+      <header className="flex flex-col gap-5 rounded-3xl border border-white/10 bg-white/[0.035] p-6 sm:p-8 xl:flex-row xl:items-end xl:justify-between">
+        <div className="max-w-3xl">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
+            <Layers3 className="h-3.5 w-3.5" aria-hidden="true" /> API project environment
           </div>
-          <h1 className="text-2xl font-bold text-white">API Operations Center</h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-400">
-            Operational map for the SaaS API layer, showing implemented GEM routes, external connectors, approval-gated actions, and planned capabilities.
+          <h1 className="text-3xl font-bold text-white">API Operations</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-400">
+            Select one operational domain to review its routes, readiness, and approval boundaries on a focused sub-page.
           </p>
         </div>
-
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" className="border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">
-            <Link href="/api/openapi" target="_blank">
-              <FileJson className="mr-2 h-4 w-4" /> OpenAPI JSON
-            </Link>
+          <Button asChild variant="outline" className="border-white/10 text-slate-200 hover:bg-white/[0.07]">
+            <Link href="/api/openapi" target="_blank"><FileJson className="mr-2 h-4 w-4" /> OpenAPI JSON</Link>
           </Button>
-          <Button asChild className="bg-cyan-400 text-black hover:bg-cyan-300">
-            <Link href="/api/operations/registry" target="_blank">
-              Registry <ExternalLink className="ml-2 h-4 w-4" />
-            </Link>
+          <Button asChild className="bg-cyan-300 text-slate-950 hover:bg-cyan-200">
+            <Link href="/api/operations/registry" target="_blank">Raw registry <ExternalLink className="ml-2 h-4 w-4" /></Link>
           </Button>
         </div>
-      </div>
+      </header>
 
-      {loading ? (
-        <div className="flex items-center justify-center gap-2 py-16 text-slate-500">
-          <Loader2 className="h-4 w-4 animate-spin" /> Loading API operations…
-        </div>
-      ) : registry ? (
-        <>
-          <div className="grid grid-cols-2 gap-4 xl:grid-cols-6">
-            {[
-              ["Total", registry.summary.total, Database, "text-cyan-400", "bg-cyan-500/10"],
-              ["Ready", registry.summary.ready, CheckCircle2, "text-green-400", "bg-green-500/10"],
-              ["Partial", registry.summary.partial, Activity, "text-yellow-400", "bg-yellow-500/10"],
-              ["External", registry.summary.external, ExternalLink, "text-cyan-400", "bg-cyan-500/10"],
-              ["Approval", registry.summary.approvalRequired, LockKeyhole, "text-yellow-400", "bg-yellow-500/10"],
-              ["Planned", registry.summary.planned, AlertTriangle, "text-slate-400", "bg-white/10"],
-            ].map(([label, value, Icon, color, bg]) => (
-              <div key={String(label)} className="glass-panel bento-card rounded-xl p-5">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${bg}`}>
-                    {/* @ts-expect-error icon union */}
-                    <Icon className={`h-5 w-5 ${color}`} />
-                  </div>
-                  <p className={`text-2xl font-bold ${color}`}>{String(value)}</p>
-                </div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{String(label)}</p>
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" aria-label="API readiness summary">
+        {summaryCards.map(({ label, value, icon: Icon, tone }) => {
+          const [textClass, backgroundClass] = tone.split(" ");
+          return (
+            <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 sm:p-5">
+              <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${backgroundClass}`}>
+                <Icon className={`h-5 w-5 ${textClass}`} aria-hidden="true" />
               </div>
-            ))}
+              <p className={`text-3xl font-bold ${textClass}`}>{value}</p>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+            </div>
+          );
+        })}
+      </section>
+
+      <section className="rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.045] p-5 sm:p-6">
+        <div className="flex items-start gap-3">
+          <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-cyan-300" aria-hidden="true" />
+          <div>
+            <h2 className="text-sm font-bold text-white">Operating guardrails stay active on every sub-page</h2>
+            <ul className="mt-3 grid gap-2 text-xs leading-6 text-slate-400 md:grid-cols-2">
+              {registry.instructions.slice(0, 4).map((instruction) => (
+                <li key={instruction} className="rounded-xl border border-white/[0.07] bg-black/10 px-3 py-2.5">{instruction}</li>
+              ))}
+            </ul>
           </div>
-
-          <Card className="border-white/10 bg-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <ShieldCheck className="h-5 w-5 text-cyan-400" /> Agent Guardrails
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-3 md:grid-cols-2">
-                {registry.instructions.slice(0, 8).map((instruction) => (
-                  <div key={instruction} className="rounded-xl border border-white/10 bg-white/5 p-4 text-sm leading-relaxed text-slate-300">
-                    {instruction}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="flex flex-wrap gap-2">
-            {domains.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setDomain(item)}
-                className={`rounded-full px-4 py-2 text-xs font-semibold transition ${
-                  domain === item ? "bg-cyan-400 text-black" : "border border-white/10 bg-white/5 text-slate-400 hover:text-white"
-                }`}
-              >
-                {formatLabel(item)}
-              </button>
-            ))}
-          </div>
-
-          <Card className="border-white/10 bg-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Database className="h-5 w-5 text-cyan-400" /> Operations Registry
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-hidden rounded-2xl border border-white/10">
-                <div className="grid grid-cols-[0.65fr_1.2fr_0.7fr_0.8fr_1fr] border-b border-white/10 bg-white/5 px-4 py-3 text-xs font-medium uppercase tracking-wide text-slate-500">
-                  <span>Method</span>
-                  <span>Operation</span>
-                  <span>Mode</span>
-                  <span>Risk</span>
-                  <span>Path</span>
-                </div>
-
-                {operations.map((operation) => (
-                  <div key={`${operation.method}-${operation.path}-${operation.label}`} className="grid grid-cols-[0.65fr_1.2fr_0.7fr_0.8fr_1fr] items-center border-b border-white/5 px-4 py-4 last:border-b-0">
-                    <span className="font-mono text-xs text-cyan-400">{operation.method}</span>
-                    <div>
-                      <p className="text-sm font-semibold text-white">{operation.label}</p>
-                      <p className="mt-1 line-clamp-2 text-xs text-slate-500">{operation.description}</p>
-                    </div>
-                    <Badge className={modeClass(operation.mode)}>{operation.mode}</Badge>
-                    <Badge className={riskClass(operation.risk)}>{operation.risk.replace(/_/g, " ")}</Badge>
-                    <div className="flex items-center gap-2 truncate font-mono text-xs text-slate-500">
-                      {operation.path.startsWith("/api") ? (
-                        <Link href={operation.path} target="_blank" className="truncate hover:text-cyan-400">
-                          {operation.path}
-                        </Link>
-                      ) : (
-                        <span className="truncate">{operation.path}</span>
-                      )}
-                      <ChevronRight className="h-3 w-3 shrink-0" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </>
-      ) : (
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-8 text-center text-red-400">
-          Unable to load API registry.
         </div>
-      )}
+      </section>
+
+      <section aria-labelledby="api-domain-title">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">Dedicated sub-pages</p>
+        <h2 id="api-domain-title" className="mt-1 text-xl font-bold text-white">Choose an API domain</h2>
+        <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {domains.map(({ domain, operations, ready, approvals }) => (
+            <Link
+              key={domain}
+              href={`/app/admin/api/${domain}`}
+              className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:-translate-y-0.5 hover:border-cyan-400/30 hover:bg-white/[0.055]"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
+                  <Layers3 className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <Badge className="border-white/10 bg-white/[0.05] text-slate-300">{operations.length} routes</Badge>
+              </div>
+              <h3 className="mt-5 text-base font-bold text-white">{formatLabel(domain)}</h3>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
+                <span>{ready} ready</span><span aria-hidden="true">•</span><span>{approvals} approval gated</span>
+              </div>
+              <span className="mt-5 flex items-center gap-2 text-sm font-semibold text-cyan-300">
+                Open domain <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden="true" />
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
