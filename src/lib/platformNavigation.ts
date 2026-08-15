@@ -157,51 +157,32 @@ export const clientPortalNavGroups: PlatformNavGroup[] = [
       {
         href: "/app/command-center",
         icon: "BarChart3",
-        label: "Enterprise Analytics",
-        description: "Unified security, compliance, revenue, client, and AI operating view.",
+        label: "Enterprise Operations",
+        description: "Role-directed directory for focused platform operating workspaces.",
       },
       {
-        href: "/app/command-center/executive",
+        href: "/app/command-center/development",
         icon: "Activity",
-        label: "Executive",
-        description: "Leadership KPIs, priorities, delivery health, and growth signals.",
+        label: "Development",
+        description: "Repositories, APIs, releases, deployments, and delivery readiness.",
       },
       {
-        href: "/app/command-center/security",
-        icon: "ShieldAlert",
-        label: "Security Ops",
-        description: "Incident, posture, asset, vulnerability, and response operations.",
+        href: "/app/command-center/tokmetric",
+        icon: "BarChart3",
+        label: "TikTok Operations",
+        description: "Campaign performance, creator signals, approvals, and publishing readiness.",
       },
       {
-        href: "/app/command-center/compliance",
-        icon: "Scale",
-        label: "Compliance",
-        description: "Framework readiness, controls, evidence, policies, risks, and audits.",
-      },
-      {
-        href: "/app/command-center/revenue",
-        icon: "BadgeDollarSign",
-        label: "Revenue Ops",
-        description: "Products, subscriptions, usage metering, pipeline, and expansion.",
-      },
-      {
-        href: "/app/command-center/clients",
-        icon: "Building2",
-        label: "Client Portfolio",
-        description: "Tenant health, renewals, adoption, open actions, and upgrade signals.",
+        href: "/app/command-center/monitoring",
+        icon: "Activity",
+        label: "Monitoring",
+        description: "Live health, evidence, security signals, intelligence, and trends.",
       },
       {
         href: "/app/command-center/agents",
         icon: "Bot",
         label: "AI Agents",
         description: "Agent registry, task quality, approvals, costs, and errors.",
-      },
-      {
-        href: "/app/command-center/tokmetric",
-        icon: "Bot",
-        label: "TikTok Operations",
-        description:
-          "Administrator controls for TokMetric accounts, content, compliance, approvals, publishing, analytics, and Custom GPT.",
       },
       {
         href: "/app/command-center/integrations",
@@ -306,75 +287,130 @@ export const clientPortalNavGroups: PlatformNavGroup[] = [
   },
 ];
 
-export const adminPortalNavItems: PlatformNavItem[] = [
+export const adminPortalNavGroups: PlatformNavGroup[] = [
   {
-    href: "/app/admin/organization-reports",
-    icon: "ClipboardList",
-    label: "Organization Highlights",
-    description: "Review approved weekly highlights submitted by organization workspaces.",
+    label: "Organizations & access",
+    items: [
+      {
+        href: "/app/admin",
+        icon: "Shield",
+        label: "Admin Center",
+        description: "Administrative overview and route directory.",
+      },
+      {
+        href: "/app/admin/organization-reports",
+        icon: "ClipboardList",
+        label: "Organization Highlights",
+        description: "Review approved weekly highlights submitted by organization workspaces.",
+      },
+      {
+        href: "/app/admin/workspace-access",
+        icon: "Building2",
+        label: "Workspace Access",
+        description: "Owner-only roles, memberships, and organization workspace access.",
+        ownerOnly: true,
+      },
+      {
+        href: "/app/admin/plan-workspaces",
+        icon: "Building2",
+        label: "Plan Workspaces",
+        description: "Owner-only preview of every plan and representative workspace role.",
+        ownerOnly: true,
+      },
+    ],
   },
   {
-    href: "/app/admin",
-    icon: "Shield",
-    label: "Admin Center",
-    description: "Administrative overview and controls.",
+    label: "Identity & decisions",
+    items: [
+      {
+        href: "/app/admin/intake",
+        icon: "ClipboardList",
+        label: "Intake Queue",
+        description: "Review enterprise, community, and product intake submissions.",
+      },
+      {
+        href: "/app/admin/kyc",
+        icon: "CheckCircle",
+        label: "KYC Queue",
+        description: "KYC review queue and decisioning.",
+      },
+      {
+        href: "/app/admin/approvals",
+        icon: "ClipboardList",
+        label: "Approvals",
+        description: "Operational approvals and manual reviews.",
+      },
+      {
+        href: "/app/admin/users",
+        icon: "Users",
+        label: "Users",
+        description: "User management and role administration.",
+      },
+      {
+        href: "/app/admin/allocations",
+        icon: "PieChart",
+        label: "Allocations",
+        description: "Allocation, entitlement, and portfolio administration.",
+      },
+      {
+        href: "/app/admin/gem-verify",
+        icon: "ShieldCheck",
+        label: "GEM Verify",
+        description: "Verification system readiness, cases, evidence, and assurance controls.",
+      },
+      {
+        href: "/app/admin/verification-pilot",
+        icon: "UserCheck",
+        label: "Verification Pilot",
+        description: "Controlled analyst and decision-maker readiness workflow.",
+      },
+    ],
   },
   {
-    href: "/app/admin/plan-workspaces",
-    icon: "Building2",
-    label: "Plan Workspaces",
-    description: "Owner-only preview of every plan and representative workspace role.",
-    ownerOnly: true,
-  },
-  {
-    href: "/app/admin/api",
-    icon: "Activity",
-    label: "API Operations",
-    description: "Operational API registry, OpenAPI descriptor, connector status, and agent guardrails.",
-  },
-  {
-    href: "/app/admin/audit",
-    icon: "Activity",
-    label: "Audit Logs",
-    description: "Compliance evidence, admin events, and platform activity.",
-  },
-  {
-    href: "/app/admin/kyc",
-    icon: "CheckCircle",
-    label: "KYC Queue",
-    description: "KYC review queue and decisioning.",
-  },
-  {
-    href: "/app/admin/approvals",
-    icon: "ClipboardList",
-    label: "Approvals",
-    description: "Operational approvals and manual reviews.",
-  },
-  {
-    href: "/app/admin/users",
-    icon: "Users",
-    label: "Users",
-    description: "User management and role administration.",
-  },
-  {
-    href: "/app/admin/allocations",
-    icon: "PieChart",
-    label: "Allocations",
-    description: "Allocation, entitlement, and portfolio administration.",
-  },
-  {
-    href: "/app/admin/campaigns",
-    icon: "Mail",
-    label: "Campaigns",
-    description: "Email campaign management and delivery.",
-  },
-  {
-    href: "/app/admin/news",
-    icon: "Rss",
-    label: "News Ingestion",
-    description: "Intelligence source management and ingestion run history.",
+    label: "Operations & evidence",
+    items: [
+      {
+        href: "/app/admin/api",
+        icon: "Activity",
+        label: "API Operations",
+        description: "Operational API domains, OpenAPI descriptor, connector status, and guardrails.",
+      },
+      {
+        href: "/app/admin/audit",
+        icon: "Activity",
+        label: "Audit Logs",
+        description: "Compliance evidence, admin events, and platform activity.",
+      },
+      {
+        href: "/app/admin/campaigns",
+        icon: "Mail",
+        label: "Campaigns",
+        description: "Email campaign management and controlled delivery.",
+      },
+      {
+        href: "/app/admin/news",
+        icon: "Rss",
+        label: "News Ingestion",
+        description: "Intelligence source management and ingestion run history.",
+      },
+    ],
   },
 ];
+
+export const adminPortalNavItems: PlatformNavItem[] = adminPortalNavGroups.flatMap(
+  (group) => group.items,
+);
+
+export const adminPrimaryNavItems: PlatformNavItem[] = adminPortalNavItems.filter(
+  (item) =>
+    [
+      "/app/admin",
+      "/app/admin/organization-reports",
+      "/app/admin/workspace-access",
+      "/app/admin/api",
+      "/app/admin/audit",
+    ].includes(item.href),
+);
 
 export function resolvePreferredSurface(destination?: string | null) {
   if (!destination) return "marketing-mobile" as const;

@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { HomeStoreShowcase } from "@/components/store/HomeStoreShowcase";
 import { InteractiveEarthShowcase } from "@/components/home/InteractiveEarthShowcase";
+import { ProjectWorkspaceShowcase } from "@/components/home/ProjectWorkspaceShowcase";
 
 export const metadata = {
   title: "GEM Enterprise | Defend. Protect. Prevail.",
@@ -190,6 +191,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <ProjectWorkspaceShowcase />
 
       <section className="container mx-auto max-w-7xl px-6 py-24">
         <div className="mb-16 text-center">

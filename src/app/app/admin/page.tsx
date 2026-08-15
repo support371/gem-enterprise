@@ -1,347 +1,252 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { platformOrigins } from '@/lib/platform-origins'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
+import { useEffect, useMemo, useState, type ComponentType } from "react";
+import Link from "next/link";
 import {
-  Users,
+  Activity,
+  ArrowRight,
+  Building2,
   CheckCircle,
   ClipboardList,
+  Mail,
   PieChart,
-  Shield,
-  AlertCircle,
-  Clock,
-  TrendingUp,
-  Activity,
-  ArrowUpRight,
-  ArrowDownRight,
-  FileText,
-  ShieldCheck,
   Rss,
-  Database,
-  Fingerprint,
-  KeyRound,
-  LockKeyhole,
-  Network,
+  Shield,
+  ShieldCheck,
   UserCheck,
-  Zap,
-  ExternalLink,
-} from 'lucide-react'
-
-const adminModules = [
-  {
-    href: '/app/admin/kyc',
-    icon: CheckCircle,
-    label: 'KYC Queue',
-    desc: 'Review identity, entity, and document submissions.',
-    count: 4,
-    countColor: 'text-yellow-400',
-    colorText: 'text-[hsl(var(--svc-financial))]',
-    colorBg: 'bg-[hsl(var(--svc-financial-muted))]',
-    cardClass: 'svc-financial-card',
-  },
-  {
-    href: '/app/admin/approvals',
-    icon: ClipboardList,
-    label: 'Approvals',
-    desc: 'Handle manual decisions and approval exceptions.',
-    count: 7,
-    countColor: 'text-red-400',
-    colorText: 'text-[hsl(var(--svc-cyber))]',
-    colorBg: 'bg-[hsl(var(--svc-cyber-muted))]',
-    cardClass: 'svc-cyber-card',
-  },
-  {
-    href: '/app/admin/users',
-    icon: Users,
-    label: 'Users',
-    desc: 'Manage accounts, roles, status, and client access.',
-    count: 128,
-    countColor: 'text-white',
-    colorText: 'text-[hsl(var(--svc-realty))]',
-    colorBg: 'bg-[hsl(var(--svc-realty-muted))]',
-    cardClass: 'svc-realty-card',
-  },
-  {
-    href: '/app/admin/allocations',
-    icon: PieChart,
-    label: 'Allocations',
-    desc: 'Review product access and portfolio-level exposure.',
-    count: null,
-    countColor: '',
-    colorText: 'text-green-400',
-    colorBg: 'bg-green-500/10',
-    cardClass: '',
-  },
-  {
-    href: '/app/admin/news',
-    icon: Rss,
-    label: 'News Ingestion',
-    desc: 'Manage sources, AI summaries, and ingestion run history.',
-    count: null,
-    countColor: '',
-    colorText: 'text-[hsl(var(--svc-cyber))]',
-    colorBg: 'bg-[hsl(var(--svc-cyber-muted))]',
-    cardClass: 'svc-cyber-card',
-  },
-]
-
-const reviewQueues = [
-  {
-    label: 'Identity Verification',
-    value: '4',
-    caption: 'KYC files pending analyst review',
-    icon: Fingerprint,
-    className: 'text-yellow-400 bg-yellow-500/10',
-  },
-  {
-    label: 'Manual Approvals',
-    value: '7',
-    caption: 'Requires admin decision before entitlement',
-    icon: UserCheck,
-    className: 'text-red-400 bg-red-500/10',
-  },
-  {
-    label: 'Entitlement Changes',
-    value: '3',
-    caption: 'Product access updates awaiting validation',
-    icon: KeyRound,
-    className: 'text-[hsl(var(--svc-cyber))] bg-[hsl(var(--svc-cyber-muted))]',
-  },
-  {
-    label: 'Evidence Events',
-    value: '42',
-    caption: 'Audit events captured during current review window',
-    icon: Database,
-    className: 'text-green-400 bg-green-500/10',
-  },
-]
-
-const governanceControls = [
-  {
-    title: 'Access Gate',
-    status: 'Active',
-    description: 'Protected routes require authenticated sessions and approved access state.',
-    icon: LockKeyhole,
-  },
-  {
-    title: 'Compliance Evidence',
-    status: 'Recording',
-    description: 'KYC, approvals, support, and admin actions maintain traceable operational state.',
-    icon: ShieldCheck,
-  },
-  {
-    title: 'Ops Routing',
-    status: 'Online',
-    description: 'Queues route identity, entitlement, intelligence, and support decisions into admin surfaces.',
-    icon: Network,
-  },
-]
-
-const recentEvents = [
-  { icon: CheckCircle, color: 'text-green-400', bg: 'bg-green-500/10', text: 'KYC approved — Priya Sharma', time: '12 min ago' },
-  { icon: AlertCircle, color: 'text-red-400', bg: 'bg-red-500/10', text: 'Approval escalated — Investment allocation #38', time: '41 min ago' },
-  { icon: Users, color: 'text-[hsl(var(--svc-financial))]', bg: 'bg-[hsl(var(--svc-financial-muted))]', text: 'New user onboarded — Kwame Asante', time: '1h ago' },
-  { icon: ShieldCheck, color: 'text-[hsl(var(--svc-cyber))]', bg: 'bg-[hsl(var(--svc-cyber-muted))]', text: 'Compliance review signed off — C-007', time: '2h ago' },
-  { icon: FileText, color: 'text-slate-400', bg: 'bg-slate-500/10', text: 'Document uploaded — Q1 Portfolio Statement', time: '3h ago' },
-]
+  Users,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  adminPortalNavGroups,
+  type PlatformNavIcon,
+} from "@/lib/platformNavigation";
 
 interface AdminStats {
-  totalUsers: number
-  pendingKyc: number
-  openApprovals: number
-  openTickets: number
+  totalUsers: number;
+  pendingKyc: number;
+  openApprovals: number;
+  openTickets: number;
 }
 
+const iconMap: Partial<Record<PlatformNavIcon, ComponentType<{ className?: string }>>> = {
+  Activity,
+  Building2,
+  CheckCircle,
+  ClipboardList,
+  Mail,
+  PieChart,
+  Rss,
+  Shield,
+  ShieldCheck,
+  UserCheck,
+  Users,
+};
+
+const groupDescriptions: Record<string, string> = {
+  "Organizations & access":
+    "Manage tenant workspaces, weekly reporting, memberships, and plan-level operating views.",
+  "Identity & decisions":
+    "Move applicants and members through intake, verification, approval, and entitlement review.",
+  "Operations & evidence":
+    "Inspect platform APIs, audit evidence, communications, and automated intelligence operations.",
+};
+
 export default function AdminPage() {
-  const [stats, setStats] = useState<AdminStats | null>(null)
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [viewerRole, setViewerRole] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/admin/stats')
-      .then((r) => r.json())
-      .then((d) => setStats(d))
-      .catch(() => {})
-  }, [])
+    let active = true;
+    void Promise.all([
+      fetch("/api/admin/stats", { cache: "no-store" }).then((response) =>
+        response.ok ? response.json() : null,
+      ),
+      fetch("/api/auth/session", { cache: "no-store" }).then((response) =>
+        response.ok ? response.json() : null,
+      ),
+    ])
+      .then(([statsResult, sessionResult]) => {
+        if (!active) return;
+        setStats(statsResult);
+        setViewerRole(sessionResult?.role ?? null);
+      })
+      .catch(() => {
+        if (active) setStats(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const platformStats = [
-    { label: 'Total Users', value: stats ? String(stats.totalUsers) : '—', delta: 'active accounts', up: true, icon: Users, colorText: 'text-[hsl(var(--svc-cyber))]', colorBg: 'bg-[hsl(var(--svc-cyber-muted))]' },
-    { label: 'Pending KYC', value: stats ? String(stats.pendingKyc) : '—', delta: 'awaiting review', up: false, icon: CheckCircle, colorText: 'text-yellow-400', colorBg: 'bg-yellow-500/10' },
-    { label: 'Open Approvals', value: stats ? String(stats.openApprovals) : '—', delta: 'manual review', up: false, icon: ClipboardList, colorText: 'text-red-400', colorBg: 'bg-red-500/10' },
-    { label: 'Open Tickets', value: stats ? String(stats.openTickets) : '—', delta: 'support queue', up: false, icon: TrendingUp, colorText: 'text-green-400', colorBg: 'bg-green-500/10' },
-  ]
+    {
+      label: "Users",
+      value: stats?.totalUsers,
+      helper: "active accounts",
+      href: "/app/admin/users",
+      icon: Users,
+      tone: "text-cyan-300 bg-cyan-400/10",
+    },
+    {
+      label: "KYC review",
+      value: stats?.pendingKyc,
+      helper: "awaiting review",
+      href: "/app/admin/kyc",
+      icon: CheckCircle,
+      tone: "text-amber-300 bg-amber-400/10",
+    },
+    {
+      label: "Approvals",
+      value: stats?.openApprovals,
+      helper: "manual decisions",
+      href: "/app/admin/approvals",
+      icon: ClipboardList,
+      tone: "text-rose-300 bg-rose-400/10",
+    },
+    {
+      label: "Support",
+      value: stats?.openTickets,
+      helper: "open tickets",
+      href: "/app/support",
+      icon: ShieldCheck,
+      tone: "text-emerald-300 bg-emerald-400/10",
+    },
+  ];
+
+  const visibleGroups = useMemo(
+    () =>
+      adminPortalNavGroups.map((group) => ({
+        ...group,
+        items: group.items.filter(
+          (item) => !item.ownerOnly || viewerRole === "super_admin",
+        ),
+      })),
+    [viewerRole],
+  );
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div>
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-3 py-1 text-xs font-mono uppercase tracking-wider text-[hsl(var(--svc-cyber))]">
-            <Activity className="h-3 w-3" />
-            Operations Command
-          </div>
-          <h1 className="flex items-center gap-2 text-2xl font-bold text-white">
-            <Shield className="h-6 w-6 text-[hsl(var(--svc-cyber))]" />
-            Admin Center
-          </h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-400">
-            Platform governance, verification queues, entitlement control, support escalation, and operational audit visibility.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge className="gap-1.5 border-0 bg-[hsl(var(--svc-cyber-muted))] px-3 py-1 text-[hsl(var(--svc-cyber))]">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-[hsl(var(--svc-cyber))] animate-pulse-slow" />
-            Operations Live
-          </Badge>
-          <Badge className="gap-1.5 border-green-500/25 bg-green-500/15 px-3 py-1 text-green-400">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Audit Ready
-          </Badge>
-          <Button asChild className="gap-2 bg-[hsl(var(--svc-cyber))] text-slate-950 hover:bg-[hsl(var(--svc-cyber))]/90">
-            <a
-              href={platformOrigins.adminCommandCenter}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Open the protected GEM Enterprise Command Center"
-            >
-              <Shield className="h-4 w-4" />
-              Enterprise Command Center
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          </Button>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {platformStats.map(({ label, value, delta, up, icon: Icon, colorText, colorBg }) => (
-          <div key={label} className="glass-panel bento-card flex flex-col gap-3 rounded-xl p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</p>
-              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${colorBg}`}>
-                <Icon className={`h-4 w-4 ${colorText}`} />
-              </div>
+      <header className="overflow-hidden rounded-3xl border border-cyan-400/15 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_42%),rgba(255,255,255,0.035)] p-6 sm:p-8">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <div className="max-w-3xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
+              <Activity className="h-3.5 w-3.5" aria-hidden="true" />
+              Enterprise administration
             </div>
-            <p className="text-3xl font-bold text-white">{value}</p>
-            <p className={`flex items-center gap-1 text-xs ${up ? 'text-green-400' : 'text-red-400'}`}>
-              {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-              {delta}
+            <h1 className="flex items-center gap-3 text-3xl font-bold text-white sm:text-4xl">
+              <Shield className="h-8 w-8 text-cyan-300" aria-hidden="true" />
+              Admin Center
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
+              Choose the workspace you need, complete the task on its dedicated page, and return here for the next administrative workflow.
             </p>
           </div>
-        ))}
-      </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge className="border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-cyan-300">
+              <span className="mr-2 h-1.5 w-1.5 rounded-full bg-cyan-300" />
+              Protected admin surface
+            </Badge>
+            <Button asChild variant="outline" className="border-white/15 bg-white/[0.03] text-white hover:bg-white/[0.08]">
+              <Link href="/app/command-center">Open enterprise analytics</Link>
+            </Button>
+          </div>
+        </div>
+      </header>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {reviewQueues.map(({ label, value, caption, icon: Icon, className }) => {
-          const [textClass, bgClass] = className.split(' ')
-
-          return (
-            <div key={label} className="rounded-xl border border-white/10 bg-white/5 p-5">
-              <div className="mb-4 flex items-center justify-between">
-                <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${bgClass}`}>
-                  <Icon className={`h-5 w-5 ${textClass}`} />
-                </div>
-                <p className="font-mono text-2xl font-bold text-white">{value}</p>
-              </div>
-              <p className="text-sm font-semibold text-white">{label}</p>
-              <p className="mt-1 text-xs leading-relaxed text-slate-400">{caption}</p>
-            </div>
-          )
-        })}
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {adminModules.map(({ href, icon: Icon, label, desc, count, countColor, colorText, colorBg, cardClass }) => (
-          <Link key={href} href={href}>
-            <div className={`glass-panel bento-card h-full rounded-xl p-5 ${cardClass}`}>
-              <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-lg ${colorBg}`}>
-                <Icon className={`h-5 w-5 ${colorText}`} />
-              </div>
-              <p className="text-sm font-semibold text-white">{label}</p>
-              <p className="mb-4 mt-1 text-xs text-slate-400">{desc}</p>
-              <div className="flex items-center justify-between">
-                {count !== null && <span className={`text-2xl font-bold ${countColor}`}>{count}</span>}
-                <ChevronRight className="ml-auto h-4 w-4 text-slate-500" />
-              </div>
-            </div>
+      <section aria-labelledby="admin-priority-title">
+        <div className="mb-4 flex items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">Current workload</p>
+            <h2 id="admin-priority-title" className="mt-1 text-xl font-bold text-white">Priority queues</h2>
+          </div>
+          <Link href="/app/admin/audit" className="hidden items-center gap-2 text-sm font-semibold text-cyan-300 hover:text-cyan-200 sm:flex">
+            Review audit evidence <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Link>
-        ))}
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card className="border-white/10 bg-card">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm text-white">
-              <Activity className="h-4 w-4 text-[hsl(var(--svc-cyber))]" />
-              Recent Admin Events
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recentEvents.map(({ icon: Icon, color, bg, text, time }, i) => (
-              <div key={i}>
-                <div className="flex items-center gap-3 py-3">
-                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${bg}`}>
-                    <Icon className={`h-4 w-4 ${color}`} />
-                  </div>
-                  <p className="flex-1 text-sm text-slate-300">{text}</p>
-                  <span className="shrink-0 text-xs text-slate-500">{time}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {platformStats.map(({ label, value, helper, href, icon: Icon, tone }) => {
+            const [textClass, backgroundClass] = tone.split(" ");
+            return (
+              <Link
+                key={label}
+                href={href}
+                className="group rounded-2xl border border-white/10 bg-white/[0.035] p-4 transition hover:-translate-y-0.5 hover:border-cyan-400/30 hover:bg-white/[0.055] sm:p-5"
+              >
+                <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${backgroundClass}`}>
+                  <Icon className={`h-5 w-5 ${textClass}`} aria-hidden="true" />
                 </div>
-                {i < recentEvents.length - 1 && <Separator className="bg-white/5" />}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+                <p className="text-2xl font-bold text-white sm:text-3xl">{value ?? "—"}</p>
+                <p className="mt-1 text-sm font-semibold text-slate-200">{label}</p>
+                <p className="mt-1 text-xs text-slate-500">{helper}</p>
+                <span className="mt-4 flex items-center gap-1 text-xs font-semibold text-cyan-300 opacity-80 transition group-hover:opacity-100">
+                  Open page <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
 
-        <div className="space-y-4">
-          {governanceControls.map(({ title, status, description, icon: Icon }) => (
-            <div key={title} className="rounded-xl border border-white/10 bg-white/5 p-5">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
-                  <Icon className="h-4 w-4 text-[hsl(var(--svc-cyber))]" />
-                  <p className="text-sm font-semibold text-white">{title}</p>
-                </div>
-                <Badge className="border-green-500/25 bg-green-500/15 text-xs text-green-400">{status}</Badge>
-              </div>
-              <p className="text-xs leading-relaxed text-slate-400">{description}</p>
+      {viewerRole === "super_admin" && (
+        <section aria-labelledby="governance-loop-title" className="rounded-3xl border border-amber-400/20 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,.1),transparent_42%),rgba(255,255,255,.025)] p-5 sm:p-7">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-xs font-semibold uppercase tracking-[.18em] text-amber-300">Super-admin governance loop</p>
+              <h2 id="governance-loop-title" className="mt-2 text-2xl font-bold text-white">Assign access, oversee delivery, receive approved reporting</h2>
+              <p className="mt-3 text-sm leading-7 text-slate-400">This is the central governance surface for organizations, workspaces, projects, roles, and reporting. Membership remains the authority: oversight does not silently impersonate a client or expose another organization.</p>
             </div>
+            <Badge className="w-fit border-amber-400/25 bg-amber-400/10 text-amber-200">Super admin only</Badge>
+          </div>
+          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {[
+              {label:"Workspace access",detail:"Assign users and controlled workspace roles.",href:"/app/admin/workspace-access"},
+              {label:"Organization highlights",detail:"Receive approved weekly project reporting.",href:"/app/admin/organization-reports"},
+              {label:"Users",detail:"Manage official platform account state.",href:"/app/admin/users"},
+              {label:"Audit evidence",detail:"Review traceable administrative activity.",href:"/app/admin/audit"},
+            ].map((item)=><Link key={item.href} href={item.href} className="group rounded-xl border border-white/10 bg-black/15 p-4 transition hover:border-amber-400/25"><div className="flex items-center justify-between"><p className="text-sm font-semibold text-white">{item.label}</p><ArrowRight className="h-4 w-4 text-slate-600 group-hover:text-amber-300"/></div><p className="mt-2 text-xs leading-5 text-slate-500">{item.detail}</p></Link>)}
+          </div>
+        </section>
+      )}
+
+      <section aria-labelledby="admin-directory-title">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">Page directory</p>
+        <h2 id="admin-directory-title" className="mt-1 text-xl font-bold text-white">Administrative workspaces</h2>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+          Every area below opens independently, keeps its own task context, and links back to related workflows.
+        </p>
+
+        <div className="mt-5 grid gap-5 xl:grid-cols-3">
+          {visibleGroups.map((group) => (
+            <article key={group.label} className="rounded-2xl border border-white/10 bg-white/[0.025] p-4 sm:p-5">
+              <h3 className="text-base font-bold text-white">{group.label}</h3>
+              <p className="mt-2 min-h-12 text-xs leading-6 text-slate-500">{groupDescriptions[group.label]}</p>
+              <div className="mt-4 space-y-2">
+                {group.items.map((item) => {
+                  const Icon = iconMap[item.icon] ?? Shield;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="group flex items-center gap-3 rounded-xl border border-white/[0.07] bg-black/10 p-3.5 transition hover:border-cyan-400/25 hover:bg-cyan-400/[0.045]"
+                    >
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cyan-400/10 text-cyan-300">
+                        <Icon className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-semibold text-slate-100">{item.label}</span>
+                        <span className="mt-0.5 block truncate text-xs text-slate-500">{item.description}</span>
+                      </span>
+                      <ArrowRight className="h-4 w-4 shrink-0 text-slate-600 transition group-hover:translate-x-0.5 group-hover:text-cyan-300" aria-hidden="true" />
+                    </Link>
+                  );
+                })}
+              </div>
+            </article>
           ))}
         </div>
-      </div>
-
-      <Card className="border-white/10 bg-card">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-sm text-white">
-            <Zap className="h-4 w-4 text-[hsl(var(--svc-realty))]" />
-            System Health
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            { label: 'Auth Service', ok: true },
-            { label: 'Database', ok: true },
-            { label: 'Storage', ok: true },
-            { label: 'Email / SMS', ok: true },
-            { label: 'AI Assistant', ok: false, note: 'Degraded' },
-            { label: 'Analytics', ok: true },
-          ].map(({ label, ok, note }) => (
-            <div key={label} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 px-4 py-3">
-              <span className="text-sm text-slate-300">{label}</span>
-              <Badge className={ok ? 'border-green-500/25 bg-green-500/15 text-xs text-green-400' : 'border-yellow-500/25 bg-yellow-500/15 text-xs text-yellow-400'}>
-                {note ?? (ok ? 'Operational' : 'Down')}
-              </Badge>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
+      </section>
     </div>
-  )
-}
-
-function ChevronRight({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 18l6-6-6-6" />
-    </svg>
-  )
+  );
 }
