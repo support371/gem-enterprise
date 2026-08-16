@@ -12,6 +12,7 @@ supabase/functions/*
 !supabase/functions/gem-tokmetric-agent-gateway/
 !supabase/functions/gem-workspace-gateway/
 !supabase/functions/gem-news-gateway/
+!supabase/functions/gem-workspace-owner-invitations/
 
 supabase/functions/gem-auth-gateway/*
 !supabase/functions/gem-auth-gateway/index.ts
@@ -35,6 +36,9 @@ supabase/functions/gem-workspace-gateway/*
 supabase/functions/gem-news-gateway/*
 !supabase/functions/gem-news-gateway/index.ts
 !supabase/functions/gem-news-gateway/deno.json
+
+supabase/functions/gem-workspace-owner-invitations/*
+!supabase/functions/gem-workspace-owner-invitations/index.ts
 
 supabase/migrations/*
 !supabase/migrations/20260716140000_create_tokmetric_gpt_credentials.sql
