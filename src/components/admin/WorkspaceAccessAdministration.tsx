@@ -201,6 +201,21 @@ export function WorkspaceAccessAdministration({
   const [projectName, setProjectName] = useState("");
   const [projectSummary, setProjectSummary] = useState("");
   const [provisionReason, setProvisionReason] = useState("");
+  const [inviteFirstName, setInviteFirstName] = useState("");
+  const [inviteLastName, setInviteLastName] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteConfirmEmail, setInviteConfirmEmail] = useState("");
+  const [inviteOrganizationName, setInviteOrganizationName] = useState("");
+  const [inviteWorkspaceName, setInviteWorkspaceName] = useState("Main Workspace");
+  const [inviteProjectName, setInviteProjectName] = useState("");
+  const [inviteProjectSummary, setInviteProjectSummary] = useState("");
+  const [inviteReason, setInviteReason] = useState("");
+  const [issuedInvitation, setIssuedInvitation] = useState<{
+    setupUrl: string;
+    email: string;
+    organizationName: string;
+    expiresAt: string;
+  } | null>(null);
 
   const roleWorkspace = workspaces.find((workspace) => workspace.id === roleWorkspaceId) ?? null;
   const assignmentWorkspace =
@@ -301,6 +316,76 @@ export function WorkspaceAccessAdministration({
     setOrganizationName(""); setWorkspaceName("Main Workspace"); setOwnerEmail(""); setConfirmOwnerEmail(""); setProjectName(""); setProjectSummary(""); setProvisionReason("");
   }
 
+  async function submitOwnerInvitation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setNotice(null);
+    setIssuedInvitation(null);
+    try {
+      const response = await fetch("/api/admin/workspace-invitations", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName: inviteFirstName,
+          lastName: inviteLastName,
+          email: inviteEmail,
+          confirmEmail: inviteConfirmEmail,
+          organizationName: inviteOrganizationName,
+          workspaceName: inviteWorkspaceName,
+          projectName: inviteProjectName || null,
+          projectSummary: inviteProjectSummary || null,
+          reason: inviteReason,
+          expiresMinutes: 1440,
+        }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        setupUrl?: string;
+        invitation?: {
+          email?: string;
+          organizationName?: string;
+          expiresAt?: string;
+        };
+      };
+      if (
+        !response.ok ||
+        !data.setupUrl ||
+        !data.invitation?.email ||
+        !data.invitation.organizationName ||
+        !data.invitation.expiresAt
+      ) {
+        throw new Error(data.error ?? "Workspace owner invitation could not be created.");
+      }
+      setIssuedInvitation({
+        setupUrl: data.setupUrl,
+        email: data.invitation.email,
+        organizationName: data.invitation.organizationName,
+        expiresAt: data.invitation.expiresAt,
+      });
+      setNotice({
+        kind: "success",
+        message: "One-time organization-owner invitation created. Copy it now; the capability is not stored in plaintext.",
+      });
+      setInviteFirstName("");
+      setInviteLastName("");
+      setInviteEmail("");
+      setInviteConfirmEmail("");
+      setInviteOrganizationName("");
+      setInviteWorkspaceName("Main Workspace");
+      setInviteProjectName("");
+      setInviteProjectSummary("");
+      setInviteReason("");
+    } catch (error) {
+      setNotice({
+        kind: "error",
+        message: error instanceof Error ? error.message : "Workspace owner invitation could not be created.",
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const totalRoles = workspaces.reduce((sum, workspace) => sum + workspace.roles.length, 0);
   const totalMemberships = workspaces.reduce((sum, workspace) => sum + workspace.members.length, 0);
 
@@ -361,6 +446,91 @@ export function WorkspaceAccessAdministration({
               client. Access removal suspends a membership rather than deleting its history.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-cyan-400/25 bg-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base text-white">
+            <UserPlus className="h-4 w-4 text-cyan-300" /> Invite a new organization owner
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4 text-sm leading-6 text-slate-400">
+            Creates a one-time setup link for a new client. Acceptance atomically creates the client
+            account, organization, main workspace, Organization Owner role, membership, optional
+            first project, and audit record. It cannot grant GEM administrator authority.
+          </p>
+          <form onSubmit={submitOwnerInvitation} className="grid gap-4 lg:grid-cols-2">
+            <label className="space-y-1.5 text-xs text-slate-400">
+              Owner first name
+              <input className={fieldClass} autoComplete="off" value={inviteFirstName} onChange={(event) => setInviteFirstName(event.target.value)} required />
+            </label>
+            <label className="space-y-1.5 text-xs text-slate-400">
+              Owner last name
+              <input className={fieldClass} autoComplete="off" value={inviteLastName} onChange={(event) => setInviteLastName(event.target.value)} required />
+            </label>
+            <label className="space-y-1.5 text-xs text-slate-400">
+              Owner email
+              <input className={fieldClass} type="email" autoComplete="off" value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} required />
+            </label>
+            <label className="space-y-1.5 text-xs text-slate-400">
+              Confirm owner email
+              <input className={fieldClass} type="email" autoComplete="off" value={inviteConfirmEmail} onChange={(event) => setInviteConfirmEmail(event.target.value)} required />
+            </label>
+            <label className="space-y-1.5 text-xs text-slate-400">
+              Organization name
+              <input className={fieldClass} value={inviteOrganizationName} onChange={(event) => setInviteOrganizationName(event.target.value)} placeholder="Infinite Wealth & Well-Being" required />
+            </label>
+            <label className="space-y-1.5 text-xs text-slate-400">
+              Workspace name
+              <input className={fieldClass} value={inviteWorkspaceName} onChange={(event) => setInviteWorkspaceName(event.target.value)} required />
+            </label>
+            <label className="space-y-1.5 text-xs text-slate-400">
+              First project, optional
+              <input className={fieldClass} value={inviteProjectName} onChange={(event) => setInviteProjectName(event.target.value)} placeholder="Infinite Wealth & Well-Being" />
+            </label>
+            <label className="space-y-1.5 text-xs text-slate-400">
+              Written reason
+              <input className={fieldClass} minLength={12} maxLength={500} value={inviteReason} onChange={(event) => setInviteReason(event.target.value)} placeholder="Approved organization-owner onboarding" required />
+            </label>
+            <label className="space-y-1.5 text-xs text-slate-400 lg:col-span-2">
+              Project summary, optional
+              <textarea className={textareaClass} value={inviteProjectSummary} onChange={(event) => setInviteProjectSummary(event.target.value)} maxLength={2000} />
+            </label>
+            <div className="lg:col-span-2">
+              <Button
+                disabled={busy || !inviteEmail || inviteEmail.toLowerCase() !== inviteConfirmEmail.toLowerCase()}
+                className="bg-cyan-300 text-slate-950 hover:bg-cyan-200"
+              >
+                <UserPlus className="mr-2 h-4 w-4" /> Create protected owner invitation
+              </Button>
+            </div>
+          </form>
+
+          {issuedInvitation ? (
+            <div className="mt-6 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.06] p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-300" />
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-emerald-100">One-time setup link ready</p>
+                  <p className="mt-1 text-xs leading-5 text-emerald-50/70">
+                    {issuedInvitation.email} · {issuedInvitation.organizationName} · expires {new Date(issuedInvitation.expiresAt).toLocaleString()}
+                  </p>
+                  <input
+                    aria-label="One-time workspace setup link"
+                    className={`${fieldClass} mt-3 font-mono text-xs`}
+                    readOnly
+                    value={issuedInvitation.setupUrl}
+                    onFocus={(event) => event.currentTarget.select()}
+                  />
+                  <p className="mt-2 text-xs leading-5 text-slate-500">
+                    Send this link through your approved secure channel. Anyone holding it before expiry can complete the invited account, so do not place it in tickets, logs, or public messages.
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </CardContent>
       </Card>
 

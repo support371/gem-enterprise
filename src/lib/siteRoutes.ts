@@ -349,6 +349,18 @@ export const canonicalRoutes: SiteRoute[] = [
     showInFooter: false,
   },
   {
+    path: "/workspace-invitation",
+    label: "Organization Workspace Invitation",
+    category: "auth",
+    description: "Protected one-time organization-owner workspace activation",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "none",
+    owner: "auth",
+    showInNav: false,
+    showInFooter: false,
+  },
+  {
     path: "/portal",
     label: "Portal",
     category: "auth",
