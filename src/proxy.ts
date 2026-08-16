@@ -50,6 +50,7 @@ const ALWAYS_PUBLIC = [
   "/cookie-policy",
   "/trust-center",
   "/client-login",
+  "/workspace-invitation",
   "/forgot-password",
   "/reset-password",
   "/api/health",
