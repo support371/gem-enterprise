@@ -1,0 +1,85 @@
+name: Copilot Patch Apply
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch_name:
+        description: "Branch name to create/update"
+        required: true
+        type: string
+        default: "copilot/patch"
+      commit_message:
+        description: "Commit message"
+        required: true
+        type: string
+        default: "chore: apply Copilot patch"
+      patch_base64:
+        description: "Base64-encoded git patch"
+        required: true
+        type: string
+      open_pr:
+        description: "Open a pull request"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  apply-patch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Configure Git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create working branch
+        run: |
+          git checkout -B "${{ inputs.branch_name }}"
+
+      - name: Decode patch
+        run: |
+          echo "${{ inputs.patch_base64 }}" | base64 --decode > copilot.patch
+
+      - name: Apply patch
+        run: |
+          git apply --check copilot.patch
+          git apply copilot.patch
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run validation
+        run: |
+          npm run lint
+          npm run build
+
+      - name: Commit changes
+        run: |
+          git add .
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "${{ inputs.commit_message }}"
+
+      - name: Push branch
+        run: |
+          git push origin "${{ inputs.branch_name }}" --force-with-lease
+
+      - name: Open pull request
+        if: ${{ inputs.open_pr }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create 
+            --title "${{ inputs.commit_message }}" 
+            --body "Automated patch prepared through a controlled GitHub Actions workflow." 
+            --base main 
+            --head "${{ inputs.branch_name }}" || true
