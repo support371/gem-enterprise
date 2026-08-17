@@ -15,7 +15,7 @@ on:
 
 jobs:
   copilot-setup-steps:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 20
     permissions:
       contents: read
@@ -38,8 +38,8 @@ jobs:
 
       - name: Generate Prisma client
         env:
-          POSTGRES_PRISMA_URL: postgresql://copilot:copilot@localhost:5432/gem_copilot
-          POSTGRES_URL_NON_POOLING: postgresql://copilot:copilot@localhost:5432/gem_copilot
+          POSTGRES_PRISMA_URL: postgresql://schema:validation@127.0.0.1:5432/schema_validation
+          POSTGRES_URL_NON_POOLING: postgresql://schema:validation@127.0.0.1:5432/schema_validation
         run: pnpm exec prisma generate
 
       - name: Install Chromium for Playwright
