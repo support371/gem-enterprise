@@ -1,0 +1,46 @@
+name: Copilot Setup Steps
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+      - package.json
+      - pnpm-lock.yaml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+      - package.json
+      - pnpm-lock.yaml
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        env:
+          POSTGRES_PRISMA_URL: postgresql://copilot:copilot@localhost:5432/gem_copilot
+          POSTGRES_URL_NON_POOLING: postgresql://copilot:copilot@localhost:5432/gem_copilot
+        run: pnpm exec prisma generate
+
+      - name: Install Chromium for Playwright
+        run: pnpm exec playwright install --with-deps chromium
