@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       branch_name:
-        description: "Branch name to create/update"
+        description: "New copilot/* branch name"
         required: true
         type: string
         default: "copilot/patch"
@@ -18,66 +18,230 @@ on:
         required: true
         type: string
       open_pr:
-        description: "Open a pull request after applying the patch"
+        description: "Open a pull request after all gates pass"
         required: true
         type: boolean
         default: true
 
-permissions:
-  contents: write
-  pull-requests: write
+concurrency:
+  group: copilot-patch-${{ inputs.branch_name }}
+  cancel-in-progress: false
 
 jobs:
-  apply-patch:
-    name: Apply Copilot Patch
-    runs-on: ubuntu-latest
+  validate-patch:
+    name: Validate and Test Copilot Patch
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Checkout main without write credentials
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          ref: main
+          persist-credentials: false
+
+      - name: Validate workflow inputs
+        env:
+          BRANCH_NAME: ${{ inputs.branch_name }}
+          COMMIT_MESSAGE: ${{ inputs.commit_message }}
+        run: |
+          set -euo pipefail
+          git check-ref-format --branch "$BRANCH_NAME" >/dev/null
+          case "$BRANCH_NAME" in
+            copilot/*) ;;
+            *)
+              echo "::error::branch_name must start with copilot/"
+              exit 1
+              ;;
+          esac
+          if [[ "$COMMIT_MESSAGE" == *$'\n'* || "$COMMIT_MESSAGE" == *$'\r'* ]]; then
+            echo "::error::commit_message must be a single line"
+            exit 1
+          fi
+          if (( ${#COMMIT_MESSAGE} > 120 )); then
+            echo "::error::commit_message must be 120 characters or fewer"
+            exit 1
+          fi
+          if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
+            echo "::error::Remote branch already exists. Use a new copilot/* branch."
+            exit 1
+          fi
+
+      - name: Decode and validate patch
+        env:
+          PATCH_BASE64: ${{ inputs.patch_base64 }}
+        run: |
+          set -euo pipefail
+          PATCH_FILE="$RUNNER_TEMP/copilot.patch"
+          umask 077
+          printf '%s' "$PATCH_BASE64" | base64 --decode > "$PATCH_FILE"
+          test -s "$PATCH_FILE" || { echo "::error::Decoded patch is empty"; exit 1; }
+          PATCH_SIZE="$(wc -c < "$PATCH_FILE")"
+          if (( PATCH_SIZE > 1048576 )); then
+            echo "::error::Patch exceeds the 1 MiB safety limit"
+            exit 1
+          fi
+          if grep -Eq '^(GIT binary patch|Binary files )' "$PATCH_FILE"; then
+            echo "::error::Binary patches are not accepted"
+            exit 1
+          fi
+          git apply --check "$PATCH_FILE"
+          git apply --index "$PATCH_FILE"
+
+      - name: Enforce protected paths
+        run: |
+          set -euo pipefail
+          if git diff --cached --quiet; then
+            echo "::error::Patch contains no changes"
+            exit 1
+          fi
+
+          blocked=0
+          while IFS= read -r -d '' path; do
+            case "$path" in
+              .github/workflows/*|.github/actions/*|.github/copilot-instructions.md|.env|.env.*|*.pem|*.key|*.p12|*.pfx|id_rsa*|id_ed25519*)
+                echo "::error file=$path::Copilot patch may not modify this protected path"
+                blocked=1
+                ;;
+            esac
+          done < <(git diff --cached --name-only -z)
+
+          if git diff --cached --summary | grep -q 'mode 120000'; then
+            echo "::error::Copilot patches may not add symlinks"
+            blocked=1
+          fi
+
+          exit "$blocked"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run repository verification
+        run: pnpm run verify
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-test-secret-min-32-characters-long-placeholder
+          POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost:5432/gem_ci
+          POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost:5432/gem_ci
+          NEXT_PUBLIC_APP_URL: https://www.gemcybersecurityassist.com
+          NEXT_PUBLIC_APP_NAME: GEM Enterprise
+          NEXT_PUBLIC_AI_DISCLOSURE_TEXT: GEM Concierge is an AI assistant. Responses are informational and require human review for sensitive decisions.
+          AUDIT_ENABLED: "true"
+          SMTP_HOST: ""
+          SMTP_PORT: "587"
+          SMTP_USER: ""
+          SMTP_PASS: ""
+          CRON_SECRET: ci-cron-secret
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Playwright smoke tests
+        run: pnpm exec playwright test --grep @smoke
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci-test-secret-min-32-characters-long-placeholder
+          POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost:5432/gem_ci
+          POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost:5432/gem_ci
+          NEXT_PUBLIC_APP_URL: https://www.gemcybersecurityassist.com
+          NEXT_PUBLIC_APP_NAME: GEM Enterprise
+          NEXT_PUBLIC_AI_DISCLOSURE_TEXT: GEM Concierge is an AI assistant. Responses are informational and require human review for sensitive decisions.
+          AUDIT_ENABLED: "true"
+          SMTP_HOST: ""
+          SMTP_PORT: "587"
+          SMTP_USER: ""
+          SMTP_PASS: ""
+          CRON_SECRET: ci-cron-secret
+
+      - name: Preserve validated patch
+        uses: actions/upload-artifact@v4
+        with:
+          name: validated-copilot-patch-${{ github.run_id }}
+          path: ${{ runner.temp }}/copilot.patch
+          if-no-files-found: error
+          retention-days: 1
+
+  publish-patch:
+    name: Publish Validated Copilot Patch
+    needs: validate-patch
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           ref: main
 
-      - name: Configure Git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Download validated patch
+        uses: actions/download-artifact@v4
+        with:
+          name: validated-copilot-patch-${{ github.run_id }}
+          path: ${{ runner.temp }}/validated-patch
 
-      - name: Create or switch to working branch
+      - name: Revalidate branch and apply patch
+        env:
+          BRANCH_NAME: ${{ inputs.branch_name }}
         run: |
-          if git show-ref --verify --quiet refs/heads/${{ inputs.branch_name }}; then
-            git checkout ${{ inputs.branch_name }}
-          else
-            git checkout -b ${{ inputs.branch_name }}
+          set -euo pipefail
+          git check-ref-format --branch "$BRANCH_NAME" >/dev/null
+          case "$BRANCH_NAME" in
+            copilot/*) ;;
+            *)
+              echo "::error::branch_name must start with copilot/"
+              exit 1
+              ;;
+          esac
+          if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
+            echo "::error::Remote branch now exists; refusing to overwrite it."
+            exit 1
           fi
 
-      - name: Decode patch
-        run: |
-          echo "${{ inputs.patch_base64 }}" | base64 --decode > copilot.patch
+          PATCH_FILE="$RUNNER_TEMP/validated-patch/copilot.patch"
+          test -s "$PATCH_FILE" || { echo "::error::Validated patch artifact is missing"; exit 1; }
+          git checkout -b "$BRANCH_NAME" origin/main
+          git apply --check "$PATCH_FILE"
+          git apply --index "$PATCH_FILE"
 
-      - name: Validate patch
+      - name: Commit validated changes
+        env:
+          COMMIT_MESSAGE: ${{ inputs.commit_message }}
         run: |
-          git apply --check copilot.patch
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "$COMMIT_MESSAGE"
 
-      - name: Apply patch
-        run: |
-          git apply copilot.patch
+      - name: Push validated branch
+        env:
+          BRANCH_NAME: ${{ inputs.branch_name }}
+        run: git push --set-upstream origin "$BRANCH_NAME"
 
-      - name: Commit changes
-        run: |
-          git add -A
-          git commit -m "${{ inputs.commit_message }}" || echo "No changes to commit"
-
-      - name: Push branch
-        run: |
-          git push origin ${{ inputs.branch_name }}
-
-      - name: Open Pull Request (optional)
+      - name: Open pull request
         if: ${{ inputs.open_pr == true }}
-        uses: peter-evans/create-pull-request@v6
-        with:
-          branch: ${{ inputs.branch_name }}
-          title: ${{ inputs.commit_message }}
-          body: "This PR was automatically generated by the Copilot Patch Apply workflow."
-          base: main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH_NAME: ${{ inputs.branch_name }}
+          COMMIT_MESSAGE: ${{ inputs.commit_message }}
+        run: |
+          gh pr create \
+            --base main \
+            --head "$BRANCH_NAME" \
+            --title "$COMMIT_MESSAGE" \
+            --body "Automated Copilot patch. Pre-push gates passed: repository verification and Playwright smoke tests."
