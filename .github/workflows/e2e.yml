@@ -34,7 +34,36 @@ jobs:
   playwright:
     name: Public Onboarding E2E
     runs-on: ubuntu-22.04
-    timeout-minutes: 20
+    timeout-minutes: 25
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: e2e
+          POSTGRES_PASSWORD: e2e
+          POSTGRES_DB: gem_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U e2e -d gem_e2e"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      JWT_SECRET: TEST_ONLY_E2E_JWT_SECRET_DO_NOT_REUSE_1234567890
+      POSTGRES_PRISMA_URL: postgresql://e2e:e2e@127.0.0.1:5432/gem_e2e
+      POSTGRES_URL_NON_POOLING: postgresql://e2e:e2e@127.0.0.1:5432/gem_e2e
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      NEXT_PUBLIC_APP_NAME: GEM Enterprise
+      NEXT_PUBLIC_AI_DISCLOSURE_TEXT: GEM Concierge is an AI assistant. Responses are informational and require human review for sensitive decisions.
+      AUDIT_ENABLED: "true"
+      SMTP_HOST: ""
+      SMTP_PORT: "587"
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      CRON_SECRET: TEST_ONLY_E2E_CRON_SECRET_DO_NOT_REUSE
 
     steps:
       - name: Checkout repository
@@ -51,6 +80,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Prepare test database
+        run: pnpm run db:push
 
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
