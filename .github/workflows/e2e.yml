@@ -1,0 +1,77 @@
+name: End-to-End Verification
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: Playwright Smoke
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+
+    env:
+      NODE_ENV: test
+      JWT_SECRET: ci-test-secret-min-32-characters-long-placeholder
+      POSTGRES_PRISMA_URL: postgresql://ci:ci@localhost:5432/gem_ci
+      POSTGRES_URL_NON_POOLING: postgresql://ci:ci@localhost:5432/gem_ci
+      NEXT_PUBLIC_APP_URL: https://www.gemcybersecurityassist.com
+      NEXT_PUBLIC_APP_NAME: GEM Enterprise
+      NEXT_PUBLIC_AI_DISCLOSURE_TEXT: GEM Concierge is an AI assistant. Responses are informational and require human review for sensitive decisions.
+      AUDIT_ENABLED: "true"
+      SMTP_HOST: ""
+      SMTP_PORT: "587"
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      CRON_SECRET: ci-cron-secret
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare Prisma client
+        run: pnpm run db:generate
+
+      - name: Build application
+        run: pnpm run build
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run smoke tests
+        run: pnpm exec playwright test --grep @smoke
+
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
