@@ -85,4 +85,29 @@ describe("unified GEM owner terminal flow", () => {
     expect(script).not.toContain("value = $script:ProductionEnvironment[$_]");
     expect(documentation).toContain("It never includes secret values");
   });
+
+  it("keeps audit read-only and gates production changes on exact evidence", () => {
+    expect(script).toContain("Invoke-DependencyInspection");
+    expect(script).toContain("Audit mode recorded the condition and did not install anything");
+    expect(script).toContain("Assert-RepositoryBoundary");
+    expect(script).toContain("Assert-ExactHeadPreview");
+    expect(script).toContain("PreviewCommit");
+    expect(script).toContain("do not have the same Git tree");
+    expect(script).toContain("APPLY APPROVED GEM CONFIGURATION");
+    expect(script).toContain("DEPLOY VERIFIED GEM PRODUCTION");
+    expect(script).toContain("INSTALL LOCKED DEPENDENCIES");
+    expect(script).toContain("last-commands.json");
+    expect(script).toContain("WINDOWS_CURRENT_USER_DPAPI");
+    expect(script).toContain("ROLL BACK GEM PRODUCTION");
+    expect(entry).toContain('"Rollback"');
+  });
+
+  it("keeps public platform video separate and owner-approved", () => {
+    expect(script).toContain("ENTERPRISE_SOLUTIONS_VIDEO_URL");
+    expect(script).toContain("ENTERPRISE_SOLUTIONS_VIDEO_APPROVED");
+    expect(script).toContain("PUBLISH APPROVED VIDEO");
+    expect(entry).toContain("PlatformVideoUrl");
+    expect(entry).toContain("ApprovePlatformVideo");
+    expect(documentation).toContain("Private workspace media is never selected automatically");
+  });
 });

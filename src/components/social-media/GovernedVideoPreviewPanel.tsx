@@ -43,6 +43,11 @@ type PreviewResponse = {
   error?: { message?: string };
 };
 
+type LibraryResponse = {
+  items?: PreviewData[];
+  error?: { message?: string };
+};
+
 function formatBytes(value: number) {
   if (!Number.isFinite(value) || value <= 0) return "Unknown size";
   const units = ["B", "KB", "MB", "GB"];
@@ -60,6 +65,7 @@ function label(value: string | null | undefined, fallback: string) {
 export function GovernedVideoPreviewPanel() {
   const [workspaceId, setWorkspaceId] = useState("");
   const [contentId, setContentId] = useState("");
+  const [library, setLibrary] = useState<PreviewData[]>([]);
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(
@@ -76,6 +82,41 @@ export function GovernedVideoPreviewPanel() {
       window.localStorage.setItem("gem-social-workspace-id", workspaceId);
     }
   }, [workspaceId]);
+
+  async function loadLibrary() {
+    if (!workspaceId.trim()) {
+      setLibrary([]);
+      setPreview(null);
+      setMessage("Enter the authorized workspace ID to load its video library.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+    try {
+      const response = await fetch(
+        `/api/video/library?workspaceId=${encodeURIComponent(workspaceId.trim())}&limit=50`,
+        { cache: "no-store" },
+      );
+      const payload = (await response.json()) as LibraryResponse;
+      if (!response.ok) {
+        throw new Error(payload.error?.message || "The governed video library could not be loaded.");
+      }
+      const items = payload.items ?? [];
+      setLibrary(items);
+      setPreview(items[0] ?? null);
+      setContentId(items[0]?.content.id ?? "");
+      setMessage(items.length
+        ? `${items.length} current-version video asset${items.length === 1 ? "" : "s"} loaded for private review.`
+        : "No finalized current-version video assets are available in this workspace.");
+    } catch (error) {
+      setLibrary([]);
+      setPreview(null);
+      setMessage(error instanceof Error ? error.message : "The governed video library could not be loaded.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function loadPreview() {
     if (!workspaceId.trim() || !contentId.trim()) {
@@ -121,7 +162,7 @@ export function GovernedVideoPreviewPanel() {
             <h2 className="text-lg font-bold text-white">Governed video preview</h2>
           </div>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-            Watch the verified video attached to an exact content version before approval or publishing. Access remains limited to an authenticated member of the same workspace.
+            Browse verified current-version assets in one authorized workspace, or use an exact content ID for audit support. Access remains limited to an authenticated member of the same workspace.
           </p>
         </div>
         <div className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-2 text-xs text-emerald-200/80">
@@ -130,13 +171,27 @@ export function GovernedVideoPreviewPanel() {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+      <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto]">
         <input
           value={workspaceId}
           onChange={(event) => setWorkspaceId(event.target.value)}
           placeholder="TokMetric workspace ID"
           className="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none focus:border-violet-500/40"
         />
+        <button
+          type="button"
+          onClick={loadLibrary}
+          disabled={loading}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-400 px-4 py-2.5 text-sm font-semibold text-black hover:bg-violet-300 disabled:opacity-50"
+        >
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Load video library
+        </button>
+      </div>
+
+      <details className="mt-3 rounded-xl border border-white/10 bg-black/10 p-3">
+        <summary className="cursor-pointer text-xs font-semibold text-slate-300">Exact content-ID lookup</summary>
+        <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto]">
         <input
           value={contentId}
           onChange={(event) => setContentId(event.target.value)}
@@ -159,11 +214,37 @@ export function GovernedVideoPreviewPanel() {
           )}
           Load preview
         </button>
-      </div>
+        </div>
+      </details>
 
       {message ? (
         <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.025] px-4 py-3 text-sm text-slate-300">
           {message}
+        </div>
+      ) : null}
+
+      {library.length ? (
+        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {library.map((item) => (
+            <button
+              key={`${item.content.id}:${item.version.id}:${item.asset.id}`}
+              type="button"
+              onClick={() => {
+                setPreview(item);
+                setContentId(item.content.id);
+                setMessage("Selected current-version asset for private review. No publication action was taken.");
+              }}
+              className={`rounded-xl border p-4 text-left transition ${preview?.asset.id === item.asset.id ? "border-violet-400/50 bg-violet-400/[0.08]" : "border-white/10 bg-white/[0.025] hover:bg-white/[0.05]"}`}
+            >
+              <div className="truncate text-sm font-semibold text-white">{item.content.title}</div>
+              <div className="mt-2 truncate text-xs text-slate-400">{item.asset.fileName}</div>
+              <div className="mt-3 flex flex-wrap gap-2 text-[10px] uppercase tracking-wide text-slate-400">
+                <span>Version {item.version.number}</span>
+                <span>{label(item.governance.complianceResult, "Not reviewed")}</span>
+                <span>{label(item.governance.approvalState, "Not approved")}</span>
+              </div>
+            </button>
+          ))}
         </div>
       ) : null}
 

@@ -22,6 +22,12 @@ describe("official enterprise solutions access", () => {
     expect(page).toContain('href: "/client-login"');
     expect(page).toContain('href: "/trust-center"');
     expect(page).toContain('rel="noopener noreferrer"');
+    expect(page).toContain("ENTERPRISE_SOLUTIONS_VIDEO_APPROVED");
+    expect(page).toContain("ENTERPRISE_SOLUTIONS_VIDEO_URL");
+    expect(page).toContain('parsed.protocol !== "https:"');
+    expect(page).toContain("parsed.username || parsed.password");
+    expect(page).toContain("Public video awaiting approval");
+    expect(page).toContain("No demo or private workspace media is substituted");
   });
 
   it("exposes the gateway through primary discovery surfaces", () => {
