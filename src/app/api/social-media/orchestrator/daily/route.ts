@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { governedCampaignTitle } from "@/lib/social-media/orchestration/campaign-identity";
 import { orchestrateDailyContent } from "@/lib/social-media/orchestration/orchestrator";
 import { socialMediaProviderIds } from "@/lib/social-media/providers";
 import {
@@ -40,6 +41,7 @@ type SourcePayload = {
 type RequestPayload = {
   workspaceId: string;
   planDate?: string;
+  campaignKey?: string;
   enabledProviders: ProviderId[];
   marketSignals?: SignalPayload[];
   approvedSources?: SourcePayload[];
@@ -54,6 +56,12 @@ type RequestPayload = {
 };
 
 const providerSchema = z.enum(socialMediaProviderIds);
+const campaignKeySchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(80)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 const signalSchema = z.object({
   id: z.string().trim().min(1).max(300),
   topic: z.string().trim().min(1).max(500),
@@ -79,6 +87,7 @@ const sourceSchema = z.object({
 const requestSchema = z.object({
   workspaceId: z.string().trim().min(1),
   planDate: z.string().datetime().optional(),
+  campaignKey: campaignKeySchema.optional(),
   enabledProviders: z
     .array(providerSchema)
     .min(1)
@@ -119,6 +128,7 @@ export async function GET(request: NextRequest) {
     const session = await requireTokMetricSession(request);
     const workspaceId = request.nextUrl.searchParams.get("workspaceId")?.trim();
     const planDate = request.nextUrl.searchParams.get("planDate")?.trim();
+    const campaignKeyValue = request.nextUrl.searchParams.get("campaignKey")?.trim();
     if (!workspaceId || !planDate || !/^\d{4}-\d{2}-\d{2}$/.test(planDate)) {
       throw new TokMetricError(
         400,
@@ -126,11 +136,14 @@ export async function GET(request: NextRequest) {
         "workspaceId and planDate in YYYY-MM-DD format are required.",
       );
     }
+    const campaignKey = campaignKeyValue
+      ? campaignKeySchema.parse(campaignKeyValue)
+      : undefined;
     await requireWorkspaceAccess(workspaceId, session);
     const campaign = await db.campaign.findFirst({
       where: {
         workspaceId,
-        title: `GEM Adaptive Content Plan ${planDate}`,
+        title: governedCampaignTitle(planDate, campaignKey),
       },
       include: {
         contents: {
@@ -194,6 +207,7 @@ export async function POST(request: NextRequest) {
           actorId: session.userId,
           correlationId: cid,
           planDate,
+          campaignKey: input.campaignKey,
           enabledProviders: input.enabledProviders,
           marketSignals: input.marketSignals?.map((signal) => ({
             ...signal,
