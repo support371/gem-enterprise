@@ -3,17 +3,26 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Mail, Menu, X, MapPin, Phone, LogIn } from "lucide-react";
+import { Mail, Menu, X, MapPin, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
+  { href: "/atr", label: "Home" },
   { href: "/atr/buy", label: "Buy" },
   { href: "/atr/sell", label: "Sell" },
   { href: "/atr/invest", label: "Invest" },
+  { href: "/atr/property-management", label: "Property Management" },
+  { href: "/atr/affiliate", label: "Affiliate Program" },
+  { href: "/atr/investment-plan", label: "Investment Plan" },
   { href: "/atr/packages", label: "Packages" },
+  { href: "/atr/portfolio", label: "Portfolio" },
   { href: "/atr/qfs", label: "QFS" },
-  { href: "/atr", label: "About" },
+  { href: "/atr/enterprise", label: "Enterprise" },
+  { href: "/atr/for-beginners", label: "For Beginners" },
+  { href: "/atr/about", label: "About" },
+  { href: "/atr/resources", label: "Resources" },
+  { href: "/atr/contact", label: "Contact" },
 ];
 
 const CONTACT_INFO = {
@@ -28,7 +37,6 @@ function ATRHeader() {
 
   return (
     <header className="w-full bg-white border-b border-[hsl(214.3,31.8%,91.4%)] sticky top-0 z-50">
-      {/* Top Bar */}
       <div className="bg-[hsl(222,47%,11%)] text-white py-2 px-4 text-sm">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center gap-2">
@@ -41,10 +49,8 @@ function ATRHeader() {
         </div>
       </div>
 
-      {/* Main Header */}
-      <div className="container mx-auto px-4 h-20 flex items-center justify-between">
-        {/* Logo */}
-        <Link href="/atr" className="flex items-center gap-2">
+      <div className="container mx-auto px-4 min-h-20 flex items-center justify-between gap-4">
+        <Link href="/atr" className="flex items-center gap-2 shrink-0 py-4">
           <div className="flex flex-col leading-none">
             <span
               className="text-lg font-black tracking-tight"
@@ -58,14 +64,13 @@ function ATRHeader() {
           </div>
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden lg:flex items-center gap-6">
+        <nav className="hidden xl:flex flex-wrap items-center justify-end gap-x-4 gap-y-2 py-3">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "text-sm font-medium transition-colors hover:text-[hsl(45,29%,47%)] uppercase tracking-wide",
+                "text-xs font-medium transition-colors hover:text-[hsl(45,29%,47%)] uppercase tracking-wide whitespace-nowrap",
                 pathname === item.href
                   ? "text-[hsl(222,47%,11%)] font-bold border-b-2 border-[hsl(45,29%,47%)]"
                   : "text-[hsl(215.4,16.3%,46.9%)]"
@@ -76,44 +81,44 @@ function ATRHeader() {
           ))}
         </nav>
 
-        {/* Actions */}
-        <div className="hidden lg:flex items-center gap-4">
+        <div className="hidden xl:flex items-center gap-3 shrink-0">
           <Link href="/atr/login">
             <Button variant="ghost" className="font-semibold uppercase tracking-wide text-xs">
               Login
             </Button>
           </Link>
           <Link href="/atr/register">
-            <Button className="bg-[hsl(45,29%,47%)] hover:bg-[hsl(45,29%,40%)] text-white font-bold uppercase tracking-wide text-xs px-6">
+            <Button className="bg-[hsl(45,29%,47%)] hover:bg-[hsl(45,29%,40%)] text-white font-bold uppercase tracking-wide text-xs px-5">
               Join Now
             </Button>
           </Link>
         </div>
 
-        {/* Mobile Menu Button */}
         <button
-          className="lg:hidden p-2 text-[hsl(222,47%,11%)] hover:bg-gray-100 rounded-md transition-colors"
+          className="xl:hidden p-2 text-[hsl(222,47%,11%)] hover:bg-gray-100 rounded-md transition-colors"
           onClick={() => setIsOpen((prev) => !prev)}
           aria-label={isOpen ? "Close menu" : "Open menu"}
+          aria-expanded={isOpen}
+          aria-controls="atr-mobile-navigation"
         >
           {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
 
-      {/* Mobile Menu */}
       <div
+        id="atr-mobile-navigation"
         className={cn(
-          "lg:hidden overflow-hidden transition-all duration-300",
-          isOpen ? "max-h-[32rem]" : "max-h-0"
+          "xl:hidden overflow-y-auto transition-all duration-300 bg-white",
+          isOpen ? "max-h-[75vh] border-t border-[hsl(214.3,31.8%,91.4%)]" : "max-h-0"
         )}
       >
-        <nav className="bg-white border-t border-[hsl(214.3,31.8%,91.4%)] px-4 py-6 flex flex-col gap-4">
+        <nav className="px-5 py-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "text-lg font-medium transition-colors hover:text-[hsl(45,29%,47%)]",
+                "py-3 text-base font-medium transition-colors hover:text-[hsl(45,29%,47%)] border-b border-gray-100",
                 pathname === item.href
                   ? "text-[hsl(222,47%,11%)] font-bold"
                   : "text-[hsl(215.4,16.3%,46.9%)]"
@@ -123,11 +128,11 @@ function ATRHeader() {
               {item.label}
             </Link>
           ))}
-          <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-[hsl(214.3,31.8%,91.4%)]">
-            <Link href="/atr/login" onClick={() => setIsOpen(false)}>
+          <div className="sm:col-span-2 flex flex-col sm:flex-row gap-2 mt-4 pt-4 border-t border-[hsl(214.3,31.8%,91.4%)]">
+            <Link className="flex-1" href="/atr/login" onClick={() => setIsOpen(false)}>
               <Button variant="outline" className="w-full uppercase">Login</Button>
             </Link>
-            <Link href="/atr/register" onClick={() => setIsOpen(false)}>
+            <Link className="flex-1" href="/atr/register" onClick={() => setIsOpen(false)}>
               <Button className="w-full bg-[hsl(45,29%,47%)] hover:bg-[hsl(45,29%,40%)] text-white uppercase font-bold">
                 Join Now
               </Button>
@@ -161,15 +166,8 @@ function ATRFooter() {
       }}
     >
       <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-12">
-        {/* Contact Block */}
         <div className="space-y-6">
-          <h3
-            className="text-xl font-bold"
-            style={{
-              color: "hsl(45,29%,47%)",
-              fontFamily: "var(--font-serif, 'Playfair Display', serif)",
-            }}
-          >
+          <h3 className="text-xl font-bold" style={{ color: "hsl(45,29%,47%)", fontFamily: "var(--font-serif, 'Playfair Display', serif)" }}>
             Contact Us
           </h3>
           <ul className="space-y-4 text-sm text-gray-300">
@@ -188,20 +186,11 @@ function ATRFooter() {
           </ul>
         </div>
 
-        {/* Newsletter Block */}
         <div className="space-y-6">
-          <h3
-            className="text-xl font-bold"
-            style={{
-              color: "hsl(45,29%,47%)",
-              fontFamily: "var(--font-serif, 'Playfair Display', serif)",
-            }}
-          >
+          <h3 className="text-xl font-bold" style={{ color: "hsl(45,29%,47%)", fontFamily: "var(--font-serif, 'Playfair Display', serif)" }}>
             Newsletter
           </h3>
-          <p className="text-sm text-gray-300">
-            Subscribe to receive the latest market intelligence and real estate opportunities.
-          </p>
+          <p className="text-sm text-gray-300">Subscribe to receive the latest market intelligence and real estate opportunities.</p>
           <form className="space-y-3" onSubmit={handleSubscribe}>
             <input
               type="email"
@@ -221,27 +210,14 @@ function ATRFooter() {
           </form>
         </div>
 
-        {/* About Block */}
         <div className="space-y-6">
-          <h3
-            className="text-xl font-bold"
-            style={{
-              color: "hsl(45,29%,47%)",
-              fontFamily: "var(--font-serif, 'Playfair Display', serif)",
-            }}
-          >
+          <h3 className="text-xl font-bold" style={{ color: "hsl(45,29%,47%)", fontFamily: "var(--font-serif, 'Playfair Display', serif)" }}>
             About Us
           </h3>
           <p className="text-sm text-gray-300 leading-relaxed">
-            Alliance Trust Realty is a premier real estate investment platform dedicated to providing
-            institutional-grade opportunities to individual investors. We combine market intelligence
-            with strategic asset allocation.
+            Alliance Trust Realty operates as GEM Enterprise&apos;s real-estate division, combining property guidance, investor access, and controlled client workflows under GEM governance.
           </p>
-          <Link
-            href="/atr"
-            className="inline-block text-sm font-bold uppercase tracking-wide border-b pb-1 transition-colors hover:text-white"
-            style={{ color: "hsl(45,29%,47%)", borderBottomColor: "hsl(45,29%,47%)" }}
-          >
+          <Link href="/atr/about" className="inline-block text-sm font-bold uppercase tracking-wide border-b pb-1 transition-colors hover:text-white" style={{ color: "hsl(45,29%,47%)", borderBottomColor: "hsl(45,29%,47%)" }}>
             Read More
           </Link>
         </div>
