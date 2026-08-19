@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFromRequest, resolveAccessDestination } from "@/lib/auth";
+import { isAtrManagedHost, toAtrInternalPath } from "@/lib/atrOperationalConfig";
 
 const ADMIN_PREFIXES = [
   "/app/admin",
@@ -77,14 +78,28 @@ function isAuthRoute(pathname: string): boolean {
   return pathname === "/client-login";
 }
 
-export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  if (
+function isStaticOrApiPath(pathname: string): boolean {
+  return (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api/") ||
     pathname.includes(".")
-  ) {
+  );
+}
+
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const host = request.headers.get("host");
+
+  // GEM-controlled ATR host routing. This is intentionally independent of
+  // alliancetrustrealty.com so the real-estate division can remain operational
+  // while registrar/DNS control of that external domain is unresolved.
+  if (isAtrManagedHost(host) && !isStaticOrApiPath(pathname)) {
+    const destination = request.nextUrl.clone();
+    destination.pathname = toAtrInternalPath(pathname);
+    return NextResponse.rewrite(destination);
+  }
+
+  if (isStaticOrApiPath(pathname)) {
     return NextResponse.next();
   }
 
