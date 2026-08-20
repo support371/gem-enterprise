@@ -11,6 +11,8 @@ authenticated member
   -> ordinary request: verified GEM knowledge retrieval
   -> Vercel AI Gateway ToolLoopAgent
   -> deterministic fallback on any provider failure
+  -> explicit human request: durable support ticket and case conversation
+  -> authorized staff claim, reply, status update, and resolution
 ```
 
 The browser never receives a provider credential. The support widget sends only to authenticated same-origin GEM routes.
@@ -32,11 +34,22 @@ The browser never receives a provider credential. The support widget sends only 
 - No private workspace records are retrieved for the model in this release.
 - Gateway user attribution is pseudonymous.
 - Passwords, one-time codes, tokens, private keys, seed phrases, complete payment-card data, and identity-document numbers must not be entered into chat.
+- Credential-like values and valid payment-card numbers are rejected before model invocation or persistence.
+- All assistant, ticket, escalation, and case-message mutations require an explicit same-origin browser request.
 - Legal, financial, investment, tax, identity, fraud, and incident-closure decisions require human review.
 
 ## Readiness
 
 Repository tests prove policy routing, deterministic fallback, route grounding, disclosure gating, and real local-ticket handoff behavior without calling a production model. Physical production acceptance additionally requires an authenticated smoke test and Gateway observability evidence from the canonical Vercel project.
+
+## Human-support lifecycle
+
+- A client may request human support directly from the assistant or open a case in `/app/support`.
+- Every successful handoff returns a real local ticket ID or a real configured external issue key; the UI never fabricates agent presence.
+- Clients open the case conversation from Support and receive recorded staff replies and status updates.
+- Analysts, administrators, internal operators, and super administrators use `/app/support/operations` to review the queue, claim cases, reply, mark a case waiting on the client, and resolve it.
+- Case conversations poll the durable server record on a bounded interval. Closing the browser does not erase the ticket or its messages.
+- `open`, `in_progress`, `waiting_on_client`, `resolved`, and `closed` are factual case states. None of them implies a contractual response time.
 
 ## Rollback
 

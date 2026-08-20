@@ -31,6 +31,8 @@ interface ChatMessage {
   role: "user" | "assistant" | "system";
   text: string;
   links?: KnowledgeLink[];
+  responseSource?: "gateway" | "fallback" | "policy";
+  providerStatus?: "available" | "disabled" | "budget_limited" | "rate_limited" | "unavailable";
 }
 
 interface HandoffState {
@@ -124,8 +126,8 @@ function EscalationScreen({
       ) : null}
       <div className="grid gap-2">
         <Button asChild className="min-h-11 bg-cyan-400 font-semibold text-slate-950 hover:bg-cyan-300">
-          <Link href="/app/support">
-            Open support center <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+          <Link href={handoff.ticketId ? `/app/support?ticket=${encodeURIComponent(handoff.ticketId)}` : "/app/support"}>
+            Reply and track updates <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
           </Link>
         </Button>
         <Button asChild variant="outline" className="min-h-11 border-white/10 text-slate-200">
@@ -213,7 +215,19 @@ export function AIChatWidget({
 
       setAiRunId(aiData.sessionId);
       setSessionId(supportData.sessionId);
-      setMessages([{ id: "system-start", role: "system", text: greeting }]);
+      const resumedMessages = Array.isArray(supportData.messages)
+        ? supportData.messages
+            .filter((message: ChatMessage) => message && typeof message.id === "string" && typeof message.text === "string")
+            .map((message: ChatMessage) => ({
+              id: message.id,
+              role: message.role,
+              text: message.text,
+            }))
+        : [];
+      setMessages([
+        { id: "system-start", role: "system", text: supportData.isExisting ? "Your secure support session has been resumed." : greeting },
+        ...resumedMessages,
+      ]);
       setPhase("active");
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to start the secure support session.");
@@ -253,6 +267,8 @@ export function AIChatWidget({
           role: "assistant",
           text: data.reply,
           links: Array.isArray(data.knowledgeLinks) ? data.knowledgeLinks : [],
+          responseSource: data.responseSource,
+          providerStatus: data.providerStatus,
         },
       ]);
 
@@ -360,6 +376,17 @@ export function AIChatWidget({
                         </Link>
                       ))}
                     </div>
+                  ) : null}
+                  {message.role === "assistant" && message.responseSource ? (
+                    <p className="mt-2 border-t border-white/10 pt-2 text-[10px] font-medium uppercase tracking-[0.12em] text-slate-500">
+                      {message.responseSource === "gateway"
+                        ? "AI Gateway · verified GEM context"
+                        : message.responseSource === "policy"
+                          ? "GEM policy routing"
+                          : message.providerStatus === "budget_limited" || message.providerStatus === "rate_limited"
+                            ? "Verified GEM guidance · AI capacity limited"
+                            : "Verified GEM guidance · continuity mode"}
+                    </p>
                   ) : null}
                 </div>
               </div>

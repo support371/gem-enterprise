@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import { APICallError, stepCountIs, ToolLoopAgent } from "ai";
 import {
   formatSupportKnowledge,
+  createDeterministicSupportReply,
   retrieveSupportKnowledge,
   toSupportKnowledgeLinks,
   type SupportKnowledgeLink,
@@ -69,19 +70,11 @@ function cleanHistory(history: readonly SupportConversationMessage[]) {
     .filter((entry) => entry.content.length > 0);
 }
 
-function fallbackText(message: string, links: readonly SupportKnowledgeLink[]) {
-  const normalized = message.toLowerCase();
-
-  if (/\b(thank|thanks)\b/.test(normalized)) {
+function fallbackText(message: string) {
+  if (/\b(thank|thanks)\b/i.test(message)) {
     return "You're welcome. I can help you navigate your GEM workspace or connect you with human support whenever you need it.";
   }
-
-  if (links.length > 0) {
-    const primary = links[0];
-    return `${primary.description} Open ${primary.title} in your portal for the verified next step. If that does not resolve the issue, ask me to create a human-support handoff.`;
-  }
-
-  return "I can help with account access, organization workspaces, requests, verification, documents, products, portfolios, meetings, notifications, and GEM News. Tell me which area you are working in, or ask for human support and I will create a tracked handoff.";
+  return createDeterministicSupportReply(message, retrieveSupportKnowledge(message));
 }
 
 function providerStatus(error: unknown): GemSupportReply["providerStatus"] {
@@ -97,7 +90,7 @@ export async function generateGemSupportReply(
   const knowledge = retrieveSupportKnowledge(input.message);
   const knowledgeLinks = toSupportKnowledgeLinks(knowledge);
   const model = resolveModelId();
-  const fallback = fallbackText(input.message, knowledgeLinks);
+  const fallback = fallbackText(input.message);
 
   if (process.env.GEM_AI_PROVIDER_ENABLED === "false") {
     return {

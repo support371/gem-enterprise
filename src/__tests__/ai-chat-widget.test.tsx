@@ -60,7 +60,7 @@ describe("AIChatWidget", () => {
     fireEvent.click(screen.getByRole("button", { name: "Request human support" }));
     expect(await screen.findByRole("heading", { name: "Human-support request recorded" })).toBeTruthy();
     expect(screen.getByText("ticket-123")).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Open support center/i }).getAttribute("href")).toBe("/app/support");
+    expect(screen.getByRole("link", { name: /Reply and track updates/i }).getAttribute("href")).toBe("/app/support?ticket=ticket-123");
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(

@@ -5,6 +5,7 @@ import { mapQueueToAtlassian } from "@/lib/atlassian/map-queue-to-atlassian";
 import { createEscalationIssue } from "@/lib/atlassian/create-escalation-issue";
 import { resolveQueue } from "@/lib/policy/resolve-queue";
 import type { EscalationReason, AtlassianHandoffPayload } from "@/types/support";
+import { db } from "@/lib/db";
 
 export interface EscalateSessionResult {
   success: boolean;
@@ -30,11 +31,15 @@ export async function escalateSession(
   });
 
   const transcript = generateSessionSummary(session);
+  const resolvedEmail = session.userEmail || (await db.user.findUnique({
+    where: { id: session.userId },
+    select: { email: true },
+  }))?.email || "unavailable";
   const payload = mapQueueToAtlassian(
     queue,
     sessionId,
     session.userId,
-    session.userEmail,
+    resolvedEmail,
     transcript,
     reason
   );

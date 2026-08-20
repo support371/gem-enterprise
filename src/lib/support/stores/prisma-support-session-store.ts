@@ -91,7 +91,7 @@ class PrismaSupportSessionStore {
         subject: ticket.subject,
         description: ticket.description,
         status: "open",
-        priority: "medium",
+        priority: ticket.priority,
       },
     });
     return ticket;
@@ -102,12 +102,14 @@ class PrismaSupportSessionStore {
     if (!row) return null;
     return {
       id: row.id,
+      sessionId: "",
       userId: row.userId,
       subject: row.subject,
       description: row.description,
       status: row.status as SupportTicket["status"],
+      priority: row.priority as SupportTicket["priority"],
       createdAt: row.createdAt.toISOString(),
-    } as SupportTicket;
+    };
   }
 
   // ── Bookings ─────────────────────────────────────────────────────────────────

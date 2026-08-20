@@ -7,6 +7,11 @@ import { generateSupportResponse } from "@/lib/support/generate-response";
 import { escalateSession } from "@/lib/support/escalate-session";
 import { evaluatePolicy } from "@/lib/policy/evaluate-policy";
 import { GatewayRequestError, workspaceGateway } from "@/lib/supabase-gateway";
+import {
+  assertSafeSupportInput,
+  requireSameOriginSupportRequest,
+  SupportSecurityError,
+} from "@/lib/support/security";
 import { z } from "zod";
 
 const schema = z.object({
@@ -26,6 +31,15 @@ function json(body: unknown, status = 200, headers?: Record<string, string>) {
 }
 
 export async function POST(request: NextRequest) {
+  try {
+    requireSameOriginSupportRequest(request);
+  } catch (error) {
+    if (error instanceof SupportSecurityError) {
+      return json({ error: error.message, code: error.code }, error.statusCode);
+    }
+    throw error;
+  }
+
   const auth = await getSession();
   if (!auth) {
     return json({ error: "Unauthorized" }, 401);
@@ -44,6 +58,14 @@ export async function POST(request: NextRequest) {
   }
 
   const { sessionId, aiRunId, message } = parsed.data;
+  try {
+    assertSafeSupportInput(message);
+  } catch (error) {
+    if (error instanceof SupportSecurityError) {
+      return json({ error: error.message, code: error.code }, error.statusCode);
+    }
+    throw error;
+  }
   const session = await supportStore.getSession(sessionId);
 
   if (!session || session.userId !== auth.userId) {

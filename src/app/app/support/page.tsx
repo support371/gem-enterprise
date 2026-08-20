@@ -13,11 +13,13 @@ import {
   MessageSquare,
   ShieldCheck,
   Ticket,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SupportCaseConversation } from "@/components/support/SupportCaseConversation";
 
 type TicketRecord = {
   id: string;
@@ -54,23 +56,39 @@ export default function SupportPage() {
   const [tickets, setTickets] = useState<TicketRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
   const [topic, setTopic] = useState("general_support");
   const [subject, setSubject] = useState("");
   const [description, setDescription] = useState("");
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [canOperate, setCanOperate] = useState(false);
 
   async function loadTickets() {
     setLoading(true);
     try {
-      const response = await fetch("/api/ticket");
+      const response = await fetch("/api/support", { cache: "no-store" });
       const data = await response.json();
-      if (Array.isArray(data.tickets)) setTickets(data.tickets);
+      if (Array.isArray(data.tickets)) {
+        setTickets(data.tickets);
+        setSelectedTicketId((current) => {
+          if (current) return current;
+          if (typeof window !== "undefined") {
+            const requested = new URLSearchParams(window.location.search).get("ticket");
+            if (requested && data.tickets.some((ticket: TicketRecord) => ticket.id === requested)) return requested;
+          }
+          return null;
+        });
+      }
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadTickets();
+    void loadTickets();
+    void fetch("/api/support/operations", { cache: "no-store" })
+      .then((response) => setCanOperate(response.ok))
+      .catch(() => setCanOperate(false));
   }, []);
 
   const summary = useMemo(() => ({
@@ -84,8 +102,9 @@ export default function SupportPage() {
     event.preventDefault();
     if (!subject.trim() || !description.trim()) return;
     setCreating(true);
+    setCreateError(null);
     try {
-      const response = await fetch("/api/ticket/create", {
+      const response = await fetch("/api/support", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -94,12 +113,22 @@ export default function SupportPage() {
           priority: topic === "kyc_compliance" || topic === "account_access" ? "high" : "medium",
         }),
       });
+      const data = await response.json();
       if (response.ok) {
         setSubject("");
         setDescription("");
         setTopic("general_support");
         await loadTickets();
+        if (data.ticket?.id) setSelectedTicketId(data.ticket.id);
+      } else {
+        setCreateError(
+          typeof data.error === "string"
+            ? data.error
+            : "The support case could not be opened. Please review the details and try again.",
+        );
       }
+    } catch {
+      setCreateError("The support service is temporarily unavailable. Please try again shortly.");
     } finally {
       setCreating(false);
     }
@@ -124,9 +153,16 @@ export default function SupportPage() {
             Open tickets, route issues, request escalation, and connect support into meetings, requests, compliance, and portfolio workflows.
           </p>
         </div>
-        <Badge className="border-green-500/25 bg-green-500/15 text-green-400">
-          <ShieldCheck className="mr-1 h-3.5 w-3.5" /> Governed Support
-        </Badge>
+        <div className="flex flex-wrap gap-2">
+          {canOperate ? (
+            <Button asChild variant="outline" className="border-cyan-400/20 text-cyan-200">
+              <Link href="/app/support/operations"><Users className="mr-2 h-4 w-4" /> Agent operations</Link>
+            </Button>
+          ) : null}
+          <Badge className="border-green-500/25 bg-green-500/15 text-green-400">
+            <ShieldCheck className="mr-1 h-3.5 w-3.5" /> Governed Support
+          </Badge>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
@@ -154,8 +190,13 @@ export default function SupportPage() {
                   </button>
                 ))}
               </div>
-              <input value={subject} onChange={(event) => setSubject(event.target.value)} className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-500/40" placeholder="Short support issue" />
-              <textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={5} className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-500/40" placeholder="Describe the issue, affected service, desired outcome, and urgency." />
+              <input value={subject} onChange={(event) => setSubject(event.target.value)} maxLength={160} className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-500/40" placeholder="Short support issue" />
+              <textarea value={description} onChange={(event) => setDescription(event.target.value)} maxLength={4000} rows={5} className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-600 focus:border-cyan-500/40" placeholder="Describe the issue, affected service, desired outcome, and urgency." />
+              {createError ? (
+                <div role="alert" className="rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                  {createError}
+                </div>
+              ) : null}
               <Button type="submit" disabled={creating || !subject.trim() || !description.trim()} className="w-full rounded-xl bg-cyan-400 text-black hover:bg-cyan-300">
                 {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ArrowRight className="mr-2 h-4 w-4" />}
                 {creating ? "Opening Ticket" : "Open Ticket"}
@@ -195,11 +236,14 @@ export default function SupportPage() {
               ) : (
                 <div className="space-y-3">
                   {tickets.map((ticket) => (
-                    <div key={ticket.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <div key={ticket.id} className={`rounded-2xl border p-4 ${selectedTicketId === ticket.id ? "border-cyan-400/40 bg-cyan-400/10" : "border-white/10 bg-white/5"}`}>
                       <div className="flex items-start justify-between gap-3">
                         <div><p className="text-sm font-semibold text-white">{ticket.subject}</p><p className="mt-1 line-clamp-2 text-xs text-slate-400">{ticket.description || "No description provided."}</p></div>
                         <Badge className={statusClass(ticket.status)}>{formatLabel(ticket.status)}</Badge>
                       </div>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedTicketId(ticket.id)} className="mt-3 w-full text-cyan-200 hover:bg-cyan-400/10 hover:text-cyan-100">
+                        Open conversation <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
                     </div>
                   ))}
                 </div>
@@ -208,6 +252,13 @@ export default function SupportPage() {
           </Card>
         </div>
       </div>
+
+      {selectedTicketId ? (
+        <Card className="border-cyan-400/15 bg-card">
+          <CardHeader><CardTitle className="flex items-center gap-2 text-white"><MessageSquare className="h-5 w-5 text-cyan-300" /> Support conversation</CardTitle></CardHeader>
+          <CardContent><SupportCaseConversation ticketId={selectedTicketId} onChanged={() => void loadTickets()} /></CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

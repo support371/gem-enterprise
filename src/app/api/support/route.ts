@@ -9,6 +9,11 @@ import {
   badRequest,
   serverError,
 } from "@/lib/api/auth-helpers";
+import {
+  assertSafeSupportInput,
+  requireSameOriginSupportRequest,
+  SupportSecurityError,
+} from "@/lib/support/security";
 
 // ─── GET /api/support ─────────────────────────────────────────────────────────
 //
@@ -58,6 +63,18 @@ const createSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  try {
+    requireSameOriginSupportRequest(req);
+  } catch (error) {
+    if (error instanceof SupportSecurityError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+    throw error;
+  }
+
   const gate = await requireSession();
   if (!gate.ok) return (gate as { ok: false; response: any }).response;
   const session = gate.session;
@@ -73,6 +90,18 @@ export async function POST(req: NextRequest) {
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
     return badRequest("Validation failed", parsed.error.flatten().fieldErrors);
+  }
+
+  try {
+    assertSafeSupportInput(`${parsed.data.subject}\n${parsed.data.description}`);
+  } catch (error) {
+    if (error instanceof SupportSecurityError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+    throw error;
   }
 
   try {

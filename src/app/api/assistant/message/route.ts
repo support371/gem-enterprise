@@ -6,6 +6,11 @@ import { getGatewaySessionToken, getSession } from "@/lib/auth";
 import { generateGemSupportReply } from "@/lib/ai/gem-support-agent";
 import { evaluatePolicy } from "@/lib/policy/evaluate-policy";
 import { GatewayRequestError, workspaceGateway } from "@/lib/supabase-gateway";
+import {
+  assertSafeSupportInput,
+  requireSameOriginSupportRequest,
+  SupportSecurityError,
+} from "@/lib/support/security";
 
 const schema = z.object({
   sessionId: z.string().min(1).max(128),
@@ -20,6 +25,15 @@ function json(body: unknown, status = 200, headers?: Record<string, string>) {
 }
 
 export async function POST(req: NextRequest) {
+  try {
+    requireSameOriginSupportRequest(req);
+  } catch (error) {
+    if (error instanceof SupportSecurityError) {
+      return json({ error: error.message, code: error.code }, error.statusCode);
+    }
+    throw error;
+  }
+
   const session = await getSession();
   if (!session) return json({ error: "Unauthorized" }, 401);
 
@@ -34,6 +48,14 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return json({ error: "Invalid request" }, 400);
 
   const { sessionId, message } = parsed.data;
+  try {
+    assertSafeSupportInput(message);
+  } catch (error) {
+    if (error instanceof SupportSecurityError) {
+      return json({ error: error.message, code: error.code }, error.statusCode);
+    }
+    throw error;
+  }
   const policy = evaluatePolicy(message);
 
   try {

@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import { supportStore } from "@/lib/support/store-instance";
 import { escalateSession } from "@/lib/support/escalate-session";
 import { z } from "zod";
+import { requireSameOriginSupportRequest, SupportSecurityError } from "@/lib/support/security";
 
 const schema = z.object({
   sessionId: z.string().min(1).max(128),
@@ -23,6 +24,15 @@ function json(body: unknown, status = 200) {
 }
 
 export async function POST(request: NextRequest) {
+  try {
+    requireSameOriginSupportRequest(request);
+  } catch (error) {
+    if (error instanceof SupportSecurityError) {
+      return json({ error: error.message, code: error.code }, error.statusCode);
+    }
+    throw error;
+  }
+
   const auth = await getSession();
   if (!auth) {
     return json({ error: "Unauthorized" }, 401);

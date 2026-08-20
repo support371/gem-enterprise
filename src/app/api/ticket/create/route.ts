@@ -3,6 +3,11 @@ import { getSession } from "@/lib/auth";
 import { supportStore } from "@/lib/support/store-instance";
 import { createSupportTicket } from "@/lib/support/create-ticket";
 import { z } from "zod";
+import {
+  assertSafeSupportInput,
+  requireSameOriginSupportRequest,
+  SupportSecurityError,
+} from "@/lib/support/security";
 
 const schema = z.object({
   sessionId: z.string().min(1),
@@ -12,6 +17,18 @@ const schema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  try {
+    requireSameOriginSupportRequest(request);
+  } catch (error) {
+    if (error instanceof SupportSecurityError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+    throw error;
+  }
+
   const auth = await getSession();
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -27,6 +44,18 @@ export async function POST(request: NextRequest) {
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request", details: parsed.error.flatten() }, { status: 400 });
+  }
+
+  try {
+    assertSafeSupportInput(`${parsed.data.subject}\n${parsed.data.description}`);
+  } catch (error) {
+    if (error instanceof SupportSecurityError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.statusCode, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+    throw error;
   }
 
   const session = await supportStore.getSession(parsed.data.sessionId);
@@ -50,7 +79,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       ticketId: ticket.id,
-      message: `Ticket ${ticket.id} has been created. Our support team will respond within one business day.`,
+      message: `Ticket ${ticket.id} has been created. Review the Support Center for assignment and response updates.`,
     });
   } catch (err) {
     console.error("[ticket/create]", err);

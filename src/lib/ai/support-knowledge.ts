@@ -98,6 +98,46 @@ const SUPPORT_KNOWLEDGE: readonly SupportKnowledgeEntry[] = [
     guidance:
       "Direct members to Notifications for account and workflow updates. Do not claim that an email, SMS, or external alert was sent without verified delivery evidence.",
   },
+  {
+    title: "Command Center",
+    href: "/app/command-center",
+    description: "Open the role-scoped operational overview and its dedicated work areas.",
+    keywords: ["command center", "dashboard", "operations", "overview", "admin dashboard"],
+    guidance:
+      "Use the Command Center as the authenticated operational overview. Dedicated production, development, marketing, sales, finance, support, and administration work remains separated into role-scoped pages.",
+  },
+  {
+    title: "Social Media Hub",
+    href: "/app/social-media",
+    description: "Manage governed content, connected channels, approvals, and publishing activity.",
+    keywords: ["social media", "tiktok", "facebook", "instagram", "youtube", "campaign", "publish", "post"],
+    guidance:
+      "Use the Social Media Hub for channel connections, content governance, approvals, publishing queues, and analytics. Provider posting stays disabled until the required official authorization and approval evidence exist.",
+  },
+  {
+    title: "Video Studio",
+    href: "/app/social-media/video",
+    description: "Review, render, approve, and publish governed video assets.",
+    keywords: ["video studio", "create video", "render", "comfyui", "obs", "video upload", "video publish"],
+    guidance:
+      "Use Video Studio for approved video content and publishing preparation. Cloud workflows can manage content and approvals; physical OBS, camera, microphone, GPU, and ComfyUI acceptance remains a Windows-host step.",
+  },
+  {
+    title: "Access intake",
+    href: "/eligibility",
+    description: "Start or review the controlled access and eligibility path.",
+    keywords: ["signup", "sign up", "register", "eligibility", "application", "apply", "onboarding"],
+    guidance:
+      "Use Access Intake to select the supported applicant track and begin the controlled onboarding flow. Applicant input cannot grant a privileged role or entitlement.",
+  },
+  {
+    title: "Administration",
+    href: "/app/admin",
+    description: "Manage authorized users and operational controls when your role permits it.",
+    keywords: ["admin", "administrator", "role", "permission", "assign access", "user management"],
+    guidance:
+      "Administration is role-scoped. Only authorized administrators can manage users or access, and routing input never changes a member's authority.",
+  },
 ] as const;
 
 function normalize(value: string) {
@@ -138,4 +178,54 @@ export function toSupportKnowledgeLinks(
   entries: readonly SupportKnowledgeEntry[],
 ): SupportKnowledgeLink[] {
   return entries.map(({ title, href, description }) => ({ title, href, description }));
+}
+
+const DETERMINISTIC_RESPONSES: Readonly<Record<string, string>> = {
+  "Account security":
+    "For login or account access, open Account Security and use the protected recovery or access controls there. Do not place a password, one-time code, recovery code, or session token in this chat.",
+  "Organization workspace":
+    "Open Organization Workspace to manage the projects, workstreams, and members assigned to your organization. What you can view or change is determined by your verified membership and workspace role.",
+  Requests:
+    "Open Requests to create a durable service case or review an existing one. The case status is the source of truth for assignment and follow-up.",
+  "Human support":
+    "You can request human support at any time. I will create a tracked GEM case, show its real reference, and route it to the appropriate queue without pretending that an unavailable agent is already connected.",
+  "Verification status":
+    "Open Compliance to review your current verification status and any documented next step. Identity, fraud, eligibility, and compliance decisions must come from an authorized reviewer.",
+  Documents:
+    "Open Documents to review records currently available to your account. Only use an approved private upload flow for sensitive files; do not paste document numbers into chat.",
+  "Products and services":
+    "Open Products and Services to review what is available to your account. A displayed service is not active until its eligibility, scope, provider, jurisdiction, and contract checks pass.",
+  Portfolios:
+    "Open Portfolios to review information already assigned to your account. I can explain navigation and records, but investment or allocation decisions require an authorized human advisor.",
+  Meetings:
+    "Open Meetings to request a consultation and provide the preferred time and topic. The meeting remains requested until a GEM team member confirms it.",
+  "GEM News":
+    "Open GEM News for the native news, newsletter, saved-story, and video experience. Material claims should still be checked against the original publisher before acting on them.",
+  Notifications:
+    "Open Notifications to review account alerts and workflow updates. An update shown there is recorded platform activity; I will not claim that an external email or SMS was delivered without evidence.",
+  "Command Center":
+    "Open Command Center for your role-scoped operational overview. Use its dedicated work areas for production, development, marketing, sales, finance, support, and administration instead of treating one crowded dashboard as every tool.",
+  "Social Media Hub":
+    "Open Social Media Hub to manage content, connected channels, approvals, publishing queues, and analytics. Provider posting remains fail-closed until official authorization and approval evidence are present.",
+  "Video Studio":
+    "Open Video Studio to select approved content, verify the exact media asset, and prepare governed publishing. Local OBS, camera, microphone, GPU, and ComfyUI checks still require the prepared Windows media host.",
+  "Access intake":
+    "Open Access Intake to choose the supported applicant track and continue onboarding. That choice controls routing only; it cannot grant an administrator role or entitlement.",
+  Administration:
+    "Open Administration if your verified role permits it. User, role, and access changes remain server-authorized and cannot be elevated through chat or routing input.",
+};
+
+export function createDeterministicSupportReply(
+  query: string,
+  entries: readonly SupportKnowledgeEntry[],
+) {
+  const normalized = normalize(query);
+  if (/^(hi|hello|hey|good morning|good afternoon|good evening)\b/.test(normalized)) {
+    return "Hello — I can help with your organization workspace, account access, projects, requests, verification, products, GEM News, social media, video, or a tracked human-support case. Tell me the outcome you are trying to reach.";
+  }
+
+  const primary = entries[0];
+  if (primary) return DETERMINISTIC_RESPONSES[primary.title] ?? primary.description;
+
+  return "I can help with your GEM account, organization workspace, project tools, requests, verification, products, meetings, news, social media, video, and human-support cases. Tell me what you were trying to do and what happened on the screen, and I will route you to the verified next step.";
 }
