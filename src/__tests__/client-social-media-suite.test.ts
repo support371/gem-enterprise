@@ -34,6 +34,8 @@ describe("client-facing Social Media Suite", () => {
     expect(accountsSource).toContain("SocialConnectorPanel");
     expect(contentSource).toContain("ContentOrchestratorPanel");
     expect(videoSource).toContain("GovernedVideoPreviewPanel");
+    expect(videoSource).toContain("TokMetricVideoPublisher");
+    expect(videoSource).toContain("Approved video distribution");
     expect(approvalsSource).toContain("Mandatory publication checks");
     expect(calendarSource).toContain("Publishing calendar and queue preparation");
     expect(analyticsSource).toContain("Metric source labels");
