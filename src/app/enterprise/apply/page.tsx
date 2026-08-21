@@ -8,6 +8,13 @@ export const metadata: Metadata = {
     "Submit a non-binding enterprise qualification request for cybersecurity, compliance readiness, financial-risk, real-estate, or advisory support.",
 };
 
+interface EnterpriseApplicationPageProps {
+  searchParams: Promise<{
+    track?: string | string[];
+    [key: string]: string | string[] | undefined;
+  }>;
+}
+
 const principles = [
   {
     icon: ClipboardCheck,
@@ -26,7 +33,10 @@ const principles = [
   },
 ];
 
-export default function EnterpriseApplicationPage() {
+export default async function EnterpriseApplicationPage({ searchParams }: EnterpriseApplicationPageProps) {
+  const params = await searchParams;
+  const initialTrack = params.track;
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <section className="border-b border-border/60 px-6 py-20 cyber-grid">
@@ -56,7 +66,7 @@ export default function EnterpriseApplicationPage() {
 
       <section className="mx-auto max-w-4xl px-6 pb-24">
         <div className="rounded-2xl border border-border/70 bg-card/70 p-6 sm:p-8">
-          <PublicIntakeForm kind="ENTERPRISE" />
+          <PublicIntakeForm kind="ENTERPRISE" initialTrack={initialTrack} />
         </div>
       </section>
     </main>

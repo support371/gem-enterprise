@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { eligibilityApplicationHref, EligibilityTrack } from "@/lib/eligibilityTracks";
 import {
   UserCheck,
   Building2,
@@ -21,8 +22,19 @@ import {
 
 export const metadata: Metadata = { title: "Eligibility Check" };
 
-const entityTypes = [
+interface EntityTypeCard {
+  track: EligibilityTrack;
+  icon: typeof UserCheck;
+  title: string;
+  subtitle: string;
+  description: string;
+  requirements: string[];
+  badge: string;
+}
+
+const entityTypes: EntityTypeCard[] = [
   {
+    track: "individual",
     icon: UserCheck,
     title: "Individual",
     subtitle: "Accredited Investor",
@@ -37,9 +49,9 @@ const entityTypes = [
       "Accredited investor certification",
     ],
     badge: "Individual",
-    href: "/client-login",
   },
   {
+    track: "company",
     icon: Building2,
     title: "Business",
     subtitle: "Corporate Entity",
@@ -54,9 +66,9 @@ const entityTypes = [
       "Beneficial ownership disclosure (for applicable entities)",
     ],
     badge: "Business",
-    href: "/client-login",
   },
   {
+    track: "trust",
     icon: Shield,
     title: "Trust",
     subtitle: "Qualified Trust",
@@ -71,9 +83,9 @@ const entityTypes = [
       "Tax identification documentation",
     ],
     badge: "Trust",
-    href: "/client-login",
   },
   {
+    track: "family_office",
     icon: Users,
     title: "Family Office",
     subtitle: "Single or Multi-Family",
@@ -88,7 +100,6 @@ const entityTypes = [
       "Compliance officer or designated contact",
     ],
     badge: "Family Office",
-    href: "/client-login",
   },
 ];
 
@@ -249,7 +260,7 @@ export default function EligibilityPage() {
                         ))}
                       </ul>
                     </div>
-                    <Link href={entity.href}>
+                    <Link href={eligibilityApplicationHref(entity.track)}>
                       <Button className="w-full gap-2">
                         Start Application <ArrowRight className="h-4 w-4" />
                       </Button>
@@ -395,7 +406,7 @@ export default function EligibilityPage() {
               If you have questions about eligibility, our compliance team is available to assist.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/client-login">
+              <Link href="/enterprise/apply">
                 <Button size="lg" className="gap-2 glow-cyan">
                   Start Application <ArrowRight className="h-4 w-4" />
                 </Button>

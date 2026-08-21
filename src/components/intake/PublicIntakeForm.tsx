@@ -2,9 +2,10 @@
 
 import { useRef, useState } from "react";
 import { ArrowRight, CheckCircle2, Loader2, ShieldAlert } from "lucide-react";
+import { normalizeEligibilityTrack } from "@/lib/eligibilityTracks";
 
 type IntakeFormProps =
-  | { kind: "ENTERPRISE" }
+  | { kind: "ENTERPRISE"; defaultOrganizationType?: string; initialTrack?: string | string[] }
   | { kind: "COMMUNITY" }
   | {
       kind: "PRODUCT_REQUEST";
@@ -41,6 +42,11 @@ export function PublicIntakeForm(props: IntakeFormProps) {
   const [reference, setReference] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
+
+  const defaultTrack =
+    props.kind === "ENTERPRISE"
+      ? normalizeEligibilityTrack(props.initialTrack ?? props.defaultOrganizationType)
+      : null;
 
   function toggle(value: string) {
     setSelected((current) =>
@@ -181,10 +187,17 @@ export function PublicIntakeForm(props: IntakeFormProps) {
       {props.kind === "ENTERPRISE" && (
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="space-y-2 text-sm">
-            <span className="font-medium">Organization type</span>
-            <select name="organizationType" required className="w-full rounded-xl border border-border bg-background px-4 py-3">
+            <span className="font-medium">Applicant or organization type</span>
+            <select
+              name="organizationType"
+              required
+              defaultValue={defaultTrack ?? ""}
+              className="w-full rounded-xl border border-border bg-background px-4 py-3"
+            >
               <option value="">Select one</option>
+              <option value="individual">Individual</option>
               <option value="company">Company</option>
+              <option value="trust">Trust</option>
               <option value="nonprofit">Nonprofit</option>
               <option value="government">Government</option>
               <option value="family_office">Family office</option>
