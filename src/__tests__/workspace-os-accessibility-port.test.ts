@@ -25,7 +25,8 @@ describe("Workspace OS accessibility port", () => {
     expect(navigation).toContain('aria-modal="true"');
     expect(navigation).toContain('event.key === "Escape"');
     expect(navigation).toContain('event.key !== "Tab"');
-    expect(navigation).toContain("triggerRef.current?.focus()");
+    expect(navigation).toContain("const trigger = triggerRef.current");
+    expect(navigation).toContain("trigger?.focus()");
   });
 
   it("adds skip navigation and real breadcrumbs to the project shell", () => {
