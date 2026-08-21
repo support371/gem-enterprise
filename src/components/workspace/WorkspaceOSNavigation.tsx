@@ -147,7 +147,7 @@ export function WorkspaceOSNavigation(props: WorkspaceOSNavigationProps) {
   useEffect(() => {
     if (!open) return;
     const drawer = drawerRef.current;
-    const trigger = triggerRef.current;
+    const focusReturnTarget = triggerRef.current;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.setTimeout(() => searchRef.current?.focus(), 0);
@@ -178,7 +178,7 @@ export function WorkspaceOSNavigation(props: WorkspaceOSNavigationProps) {
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
-      trigger?.focus();
+      focusReturnTarget?.focus();
     };
   }, [open]);
 
