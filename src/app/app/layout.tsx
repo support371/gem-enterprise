@@ -68,6 +68,54 @@ const roleLabels: Record<string, string> = {
   client: "Client Workspace",
 };
 
+const surfaceShells = {
+  client: {
+    brand: "GEM Portal",
+    context: "Organization workspace",
+    home: "/app/workspace",
+    accent: "text-cyan-300",
+    panel: "border-cyan-400/20 bg-cyan-400/10",
+  },
+  analyst: {
+    brand: "GEM Team",
+    context: "Assigned delivery",
+    home: "/review/verification",
+    accent: "text-emerald-300",
+    panel: "border-emerald-400/20 bg-emerald-400/10",
+  },
+  admin: {
+    brand: "GEM Admin",
+    context: "Scoped administration",
+    home: "/app/admin",
+    accent: "text-amber-300",
+    panel: "border-amber-400/20 bg-amber-400/10",
+  },
+  super_admin: {
+    brand: "GEM Control",
+    context: "Owner governance",
+    home: "/app/admin",
+    accent: "text-violet-300",
+    panel: "border-violet-400/20 bg-violet-400/10",
+  },
+  internal: {
+    brand: "GEM Admin",
+    context: "Internal operations",
+    home: "/app/admin",
+    accent: "text-amber-300",
+    panel: "border-amber-400/20 bg-amber-400/10",
+  },
+} as const;
+
+function surfaceShell(role: string | null, pathname = "") {
+  if (role && role in surfaceShells) {
+    return surfaceShells[role as keyof typeof surfaceShells];
+  }
+  if (pathname.startsWith("/app/admin") || pathname.startsWith("/app/command-center")) {
+    return surfaceShells.admin;
+  }
+  return surfaceShells.client;
+}
+
 function navigationForRole(role: string | null): PlatformNavGroup[] {
   const allClientItems = clientPortalNavGroups.flatMap((group) => group.items);
   const allAdminItems = adminPortalNavGroups.flatMap((group) => group.items);
@@ -183,20 +231,24 @@ function SidebarContent({
   viewerRole: string | null;
 }) {
   const visibleGroups = navigationForRole(viewerRole);
+  const shell = surfaceShell(viewerRole, pathname);
 
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-white/10 px-4 py-5">
-        <Link href="/app/dashboard" className="flex items-center gap-2.5">
+        <Link href={shell.home} className="flex items-center gap-2.5">
           <div
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
             style={{ background: "hsl(185 100% 45%)" }}
           >
             <span className="text-sm font-bold text-black">G</span>
           </div>
-          <span className="truncate text-sm font-semibold text-white">GEM Enterprise</span>
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold text-white">{shell.brand}</span>
+            <span className={`mt-0.5 block text-[10px] font-semibold uppercase tracking-[.14em] ${shell.accent}`}>{shell.context}</span>
+          </span>
         </Link>
-        <div className="mt-4 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-3">
+        <div className={`mt-4 rounded-xl border p-3 ${shell.panel}`}>
           <div className="mb-1 flex items-center gap-2">
             <Activity className="h-3.5 w-3.5 text-cyan-400" />
             <span className="text-xs font-semibold text-cyan-400">Operations Online</span>
@@ -265,10 +317,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const canAccessAdmin = ADMIN_ROLES.has(viewerRole ?? "");
   const isAdminSurface =
     pathname.startsWith("/app/admin") || pathname.startsWith("/app/command-center");
-  const hideFloatingSupport =
-    pathname.startsWith("/app/admin/workspace-access") ||
-    pathname.startsWith("/app/admin/users") ||
-    pathname.startsWith("/app/admin/allocations");
+  const hideFloatingSupport = isAdminSurface;
+  const shell = surfaceShell(viewerRole, pathname);
 
   useEffect(() => {
     let active = true;
@@ -299,7 +349,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className={`flex min-h-screen bg-background ${isAdminSurface ? "management-surface" : "workspace-surface"}`} data-management-surface={viewerRole ?? (isAdminSurface ? "admin" : "client")}>
       <aside className="glass-panel sticky top-0 hidden h-screen w-56 shrink-0 overflow-hidden border-r border-white/10 lg:flex xl:w-64">
         {sidebar}
       </aside>
@@ -319,7 +369,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </Sheet>
 
             <nav className="hidden items-center gap-1.5 text-sm text-slate-400 sm:flex">
-              <span className="text-slate-500">GEM Enterprise</span>
+              <span className={shell.accent}>{shell.brand}</span>
               <ChevronRight className="h-3 w-3" />
               <span className="font-medium text-white">{pageTitle}</span>
             </nav>

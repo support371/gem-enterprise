@@ -5,20 +5,21 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Building2, ShieldCheck, Users, UserRoundCog } from "lucide-react";
+import { ArrowLeft, Building2, KeyRound, ShieldCheck, Users, UserRoundCog } from "lucide-react";
 import { z } from "zod";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export type LoginPortalKind = "client" | "team" | "admin" | "super_admin";
+export type LoginPortalKind = "identity" | "client" | "team" | "admin" | "super_admin";
 
 const portalConfig = {
-  client: { eyebrow: "Client access", title: "Client & organization portal", description: "Open the organization, projects, services, documents, and reporting assigned to your account.", Icon: Building2, iconClass: "border-cyan-400/20 bg-cyan-400/10 text-cyan-300" },
-  team: { eyebrow: "Team access", title: "Assigned team workspace", description: "Open your assigned project environments, tasks, tools, meetings, and weekly reporting.", Icon: Users, iconClass: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300" },
-  admin: { eyebrow: "Administration access", title: "Organization administration", description: "Manage approved accounts, reviews, operations, and evidence within your administrative scope.", Icon: UserRoundCog, iconClass: "border-amber-400/20 bg-amber-400/10 text-amber-300" },
-  super_admin: { eyebrow: "Platform owner access", title: "Super Admin control center", description: "Enter the protected GEM governance surface for organizations, access, system operations, and audit oversight.", Icon: ShieldCheck, iconClass: "border-violet-400/20 bg-violet-400/10 text-violet-300" },
+  identity: { eyebrow: "Secure identity", title: "Sign in to GEM", description: "GEM verifies your account, then opens only the organization and operating surface assigned to you.", Icon: KeyRound, iconClass: "border-cyan-400/20 bg-cyan-400/10 text-cyan-300", accent: "text-cyan-300", button: "bg-cyan-300 hover:bg-cyan-200" },
+  client: { eyebrow: "Client access", title: "Client & organization portal", description: "Open the organization, projects, services, documents, and reporting assigned to your account.", Icon: Building2, iconClass: "border-cyan-400/20 bg-cyan-400/10 text-cyan-300", accent: "text-cyan-300", button: "bg-cyan-300 hover:bg-cyan-200" },
+  team: { eyebrow: "Team operations", title: "Assigned team workspace", description: "Open assigned projects, tasks, tools, meetings, and weekly reporting without client or owner controls.", Icon: Users, iconClass: "border-emerald-400/20 bg-emerald-400/10 text-emerald-300", accent: "text-emerald-300", button: "bg-emerald-300 hover:bg-emerald-200" },
+  admin: { eyebrow: "Scoped administration", title: "Administrator console", description: "Manage approved accounts, reviews, operations, and evidence within your delegated administrative scope.", Icon: UserRoundCog, iconClass: "border-amber-400/20 bg-amber-400/10 text-amber-300", accent: "text-amber-300", button: "bg-amber-300 hover:bg-amber-200" },
+  super_admin: { eyebrow: "Restricted owner access", title: "Owner control plane", description: "Govern organizations, administrators, access policy, system operations, and audit evidence from the isolated owner surface.", Icon: ShieldCheck, iconClass: "border-violet-400/20 bg-violet-400/10 text-violet-300", accent: "text-violet-300", button: "bg-violet-300 hover:bg-violet-200" },
 } as const;
 
 const loginSchema = z.object({
@@ -44,6 +45,14 @@ function canUseRequestedDestination(role: string | undefined, destination: strin
   return true;
 }
 
+function canUsePortal(role: string | undefined, portal: LoginPortalKind) {
+  if (portal === "identity") return true;
+  if (portal === "client") return role === "client";
+  if (portal === "team") return role === "analyst";
+  if (portal === "admin") return role === "admin" || role === "internal";
+  return role === "super_admin";
+}
+
 export function RoleLoginPortal({ portal }: { portal: LoginPortalKind }) {
   const config = portalConfig[portal];
   const Icon = config.Icon;
@@ -62,6 +71,11 @@ export function RoleLoginPortal({ portal }: { portal: LoginPortalKind }) {
         setServerError(body.error || "Invalid credentials. Check your email and password.");
         return;
       }
+      if (!canUsePortal(body.role, portal)) {
+        await fetch("/api/auth/logout", { method: "POST" }).catch(() => null);
+        setServerError("This account belongs to a different protected workspace. Use the official access link assigned to your account.");
+        return;
+      }
       const requested = safeRedirectTarget(searchParams.get("next"));
       const authoritative = safeRedirectTarget(body.redirect) ?? "/access/continue";
       router.replace(requested && canUseRequestedDestination(body.role, requested) ? requested : authoritative);
@@ -70,13 +84,6 @@ export function RoleLoginPortal({ portal }: { portal: LoginPortalKind }) {
       setServerError("The sign-in service could not be reached. Please try again.");
     }
   }
-
-  const portalLinks: Array<{ href: string; label: string; kind: LoginPortalKind }> = [
-    { href: "/client-login", label: "Client", kind: "client" },
-    { href: "/team-login", label: "Team", kind: "team" },
-    { href: "/admin-login", label: "Admin", kind: "admin" },
-    { href: "/super-admin-login", label: "Super Admin", kind: "super_admin" },
-  ];
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-background cyber-grid">
@@ -90,11 +97,11 @@ export function RoleLoginPortal({ portal }: { portal: LoginPortalKind }) {
         </section>
 
         <section className="mx-auto w-full max-w-md">
-          <div className="mb-5 flex gap-2 overflow-x-auto pb-1" aria-label="Choose sign-in portal">{portalLinks.map((item) => <Link key={item.kind} href={item.href} className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition ${item.kind === portal ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-200" : "border-white/10 bg-white/[0.03] text-slate-400 hover:text-white"}`}>{item.label}</Link>)}</div>
+          <Link href="/" className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-slate-400 transition hover:text-white"><ArrowLeft className="h-4 w-4" aria-hidden="true" /> Return to GEM Enterprise</Link>
           <div className="glass-panel rounded-3xl border border-white/10 p-6 shadow-2xl sm:p-8">
             <div className="mb-7">
               <span className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${config.iconClass}`}><Icon className="h-6 w-6" aria-hidden="true" /></span>
-              <p className="mt-5 text-xs font-semibold uppercase tracking-[.18em] text-cyan-300">{config.eyebrow}</p>
+              <p className={`mt-5 text-xs font-semibold uppercase tracking-[.18em] ${config.accent}`}>{config.eyebrow}</p>
               <h1 className="mt-2 text-2xl font-bold text-white">{config.title}</h1>
               <p className="mt-2 text-sm leading-6 text-slate-400">{config.description}</p>
             </div>
@@ -103,9 +110,9 @@ export function RoleLoginPortal({ portal }: { portal: LoginPortalKind }) {
             <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
               <div className="space-y-2"><Label htmlFor={`${portal}-email`}>Email address</Label><Input id={`${portal}-email`} type="email" autoComplete="email" placeholder="you@example.com" {...register("email")} aria-invalid={Boolean(errors.email)} className="min-h-11 border-white/10 bg-white/5" />{errors.email ? <p className="text-xs text-red-300">{errors.email.message}</p> : null}</div>
               <div className="space-y-2"><div className="flex items-center justify-between"><Label htmlFor={`${portal}-password`}>Password</Label><Link href="/forgot-password" className="text-xs text-cyan-300 hover:underline">Forgot password?</Link></div><Input id={`${portal}-password`} type="password" autoComplete="current-password" placeholder="••••••••" {...register("password")} aria-invalid={Boolean(errors.password)} className="min-h-11 border-white/10 bg-white/5" />{errors.password ? <p className="text-xs text-red-300">{errors.password.message}</p> : null}</div>
-              <Button type="submit" disabled={isSubmitting} className="min-h-11 w-full bg-cyan-300 font-semibold text-slate-950 hover:bg-cyan-200">{isSubmitting ? "Verifying access…" : `Continue to ${config.title}`}</Button>
+              <Button type="submit" disabled={isSubmitting} className={`min-h-11 w-full font-semibold text-slate-950 ${config.button}`}>{isSubmitting ? "Verifying access…" : portal === "identity" ? "Verify account and continue" : `Continue to ${config.title}`}</Button>
             </form>
-            <p className="mt-5 text-center text-xs leading-5 text-slate-500">Official access is resolved from the authenticated account and active workspace membership.</p>
+            <p className="mt-5 text-center text-xs leading-5 text-slate-500">No role is selected here. Official access comes only from the authenticated account and active workspace membership.</p>
           </div>
         </section>
       </div>

@@ -38,7 +38,7 @@ export default function UnauthorizedPage() {
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button asChild size="lg" className="bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] hover:opacity-90">
-            <Link href="/client-login">Sign In</Link>
+            <Link href="/login">Sign In</Link>
           </Button>
           <Button asChild size="lg" variant="outline" className="border-[hsl(var(--border))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--secondary))]">
             <Link href="/">Return Home</Link>

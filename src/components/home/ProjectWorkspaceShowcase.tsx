@@ -41,7 +41,7 @@ export function ProjectWorkspaceShowcase() {
           <div className="mt-8 space-y-3 text-sm text-slate-300">
             {["Organization membership defines the data boundary","Project roles define what each person can view or manage","Super-admin governance assigns access and receives approved reporting"].map((item)=><div key={item} className="flex gap-3 rounded-xl border border-white/10 bg-black/15 p-4"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-cyan-300"/><span>{item}</span></div>)}
           </div>
-          <div className="mt-8 flex flex-wrap gap-3"><Button asChild className="bg-cyan-300 text-slate-950 hover:bg-cyan-200"><Link href="/get-started">Create your access path <ArrowRight className="ml-2 h-4 w-4"/></Link></Button><Button asChild variant="outline" className="border-white/15 text-white"><Link href="/client-login">Open your workspace</Link></Button></div>
+          <div className="mt-8 flex flex-wrap gap-3"><Button asChild className="bg-cyan-300 text-slate-950 hover:bg-cyan-200"><Link href="/get-started">Create your access path <ArrowRight className="ml-2 h-4 w-4"/></Link></Button><Button asChild variant="outline" className="border-white/15 text-white"><Link href="/login">Open your workspace</Link></Button></div>
         </div>
 
         <div>

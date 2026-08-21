@@ -337,6 +337,18 @@ export const canonicalRoutes: SiteRoute[] = [
 
   // AUTH
   {
+    path: "/login",
+    label: "Workspace Sign In",
+    category: "auth",
+    description: "Neutral identity gateway for every approved GEM account",
+    isPublic: true,
+    isCanonical: true,
+    menuGroup: "utility",
+    owner: "auth",
+    showInNav: true,
+    showInFooter: false,
+  },
+  {
     path: "/client-login",
     label: "Client Login",
     category: "auth",
@@ -345,7 +357,7 @@ export const canonicalRoutes: SiteRoute[] = [
     isCanonical: true,
     menuGroup: "utility",
     owner: "auth",
-    showInNav: true,
+    showInNav: false,
     showInFooter: false,
   },
   {
@@ -883,7 +895,6 @@ export const legacyRedirects: LegacyRedirect[] = [
   { source: "/solutions", destination: "/services", permanent: true, reason: "renamed to /services" },
   { source: "/pricing", destination: "/get-started", permanent: true, reason: "pricing entry is /get-started" },
   { source: "/blog", destination: "/resources", permanent: true, reason: "blog content merged into /resources" },
-  { source: "/login", destination: "/client-login", permanent: true, reason: "canonical auth is /client-login" },
   { source: "/dashboard", destination: "/app/dashboard", permanent: true, reason: "dashboard is under /app" },
   { source: "/portal", destination: "/app/dashboard", permanent: true, reason: "portal is /app/dashboard" },
 ];
@@ -969,7 +980,7 @@ export const navigationMenu: NavSection[] = [
       { label: "Documents", path: "/hub#documents", description: "Platform documents and agreements" },
       { label: "Support Access", path: "/hub#support", description: "Connect with enterprise support" },
       { label: "Requests", path: "/hub#requests", description: "Submit service requests" },
-      { label: "Client Portal", path: "/client-login", description: "Authenticated client access" },
+      { label: "Workspace Sign In", path: "/login", description: "Authenticated role-directed access" },
     ],
   },
   {

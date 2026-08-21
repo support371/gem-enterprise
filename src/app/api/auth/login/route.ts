@@ -18,6 +18,7 @@ import {
   shouldUseSupabaseGateway,
   wrapGatewayToken,
 } from "@/lib/supabase-gateway";
+import { surfaceForRole } from "@/lib/managementSurfaces";
 
 const loginSchema = z.object({
   email: z.string().email("Invalid email address").max(254),
@@ -100,6 +101,7 @@ async function issueCanonicalSession(
     role: sessionPayload.role,
     kycStatus: sessionPayload.kycStatus,
     redirect: resolveAccessDestination(sessionPayload),
+    assignedSurface: surfaceForRole(sessionPayload.role).id,
   });
   return setSessionCookie(response, token);
 }
@@ -111,6 +113,7 @@ function issueGatewaySession(session: IssuedSessionPayload, token: string) {
       role: session.role,
       kycStatus: session.kycStatus,
       redirect: resolveAccessDestination(session),
+      assignedSurface: surfaceForRole(session.role).id,
     },
     { headers: { "Cache-Control": "no-store" } },
   );
