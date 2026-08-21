@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MANAGEMENT_SURFACES,
+  isManagementAccessPath,
   loginPathForSurface,
   normalizeRequestHostname,
   officialSurfaceUrl,
@@ -53,5 +54,15 @@ describe("management surface registry", () => {
     expect(MANAGEMENT_SURFACES.admin.publicDirectory).toBe(false);
     expect(officialSurfaceUrl("client", "/app/workspace"))
       .toBe("https://portal.gemcybersecurityassist.com/app/workspace");
+  });
+
+  it("keeps every management sign-in outside the public-site chrome", () => {
+    expect(isManagementAccessPath("/login")).toBe(true);
+    expect(isManagementAccessPath("/client-login")).toBe(true);
+    expect(isManagementAccessPath("/team-login")).toBe(true);
+    expect(isManagementAccessPath("/admin-login")).toBe(true);
+    expect(isManagementAccessPath("/super-admin-login")).toBe(true);
+    expect(isManagementAccessPath("/")).toBe(false);
+    expect(isManagementAccessPath("/services")).toBe(false);
   });
 });

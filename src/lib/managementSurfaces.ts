@@ -77,6 +77,10 @@ export const MANAGEMENT_SURFACES: Record<ManagementSurfaceId, ManagementSurface>
   },
 };
 
+const MANAGEMENT_ACCESS_PATHS = new Set(
+  Object.values(MANAGEMENT_SURFACES).map((surface) => surface.loginPath),
+);
+
 export function normalizeRequestHostname(host: string | null | undefined): string {
   if (!host) return "";
   const first = host.split(",", 1)[0]?.trim().toLowerCase() ?? "";
@@ -113,6 +117,10 @@ export function surfaceForRole(role: AuthRole): ManagementSurface {
 
 export function loginPathForSurface(surface: ManagementSurface | null): string {
   return surface?.loginPath ?? "/login";
+}
+
+export function isManagementAccessPath(pathname: string): boolean {
+  return MANAGEMENT_ACCESS_PATHS.has(pathname);
 }
 
 export function officialSurfaceUrl(
