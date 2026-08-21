@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { ChevronRight, Menu, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -103,7 +103,7 @@ function SidebarContent({
   query: string;
   setQuery: (value: string) => void;
   onNavigate?: () => void;
-  searchRef?: React.RefObject<HTMLInputElement | null>;
+  searchRef?: RefObject<HTMLInputElement | null>;
 }) {
   return (
     <>
@@ -147,6 +147,7 @@ export function WorkspaceOSNavigation(props: WorkspaceOSNavigationProps) {
   useEffect(() => {
     if (!open) return;
     const drawer = drawerRef.current;
+    const trigger = triggerRef.current;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.setTimeout(() => searchRef.current?.focus(), 0);
@@ -177,7 +178,7 @@ export function WorkspaceOSNavigation(props: WorkspaceOSNavigationProps) {
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
-      triggerRef.current?.focus();
+      trigger?.focus();
     };
   }, [open]);
 
