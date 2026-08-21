@@ -50,4 +50,16 @@ describe("Workspace OS accessibility port", () => {
       expect(shell).toContain(expected);
     }
   });
+
+  it("upgrades assigned workspaces into a searchable real-data directory", () => {
+    const page = source("src/app/app/workspace/page.tsx");
+    const directory = source("src/components/workspace/WorkspaceDirectory.tsx");
+    expect(page).toContain("<WorkspaceDirectory workspaces={resolution.workspaces} selectedId={selected.id} />");
+    expect(directory).toContain("Workspace directory");
+    expect(directory).toContain('placeholder="Search organization or workspace"');
+    expect(directory).toContain("workspace.counts.members");
+    expect(directory).toContain("workspace.counts.connectors");
+    expect(directory).toContain("workspace.counts.approvalRecords");
+    expect(directory).toContain('aria-current={active ? "page" : undefined}');
+  });
 });
