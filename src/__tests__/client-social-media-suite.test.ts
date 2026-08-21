@@ -25,7 +25,9 @@ describe("client-facing Social Media Suite", () => {
   it("keeps the Command Center administrator-only in navigation and middleware", () => {
     expect(navigationSource).toContain('label: "Command Center"');
     expect(navigationSource).toContain("adminOnly: true");
-    expect(appLayoutSource).toContain("!group.adminOnly || canAccessAdmin");
+    expect(appLayoutSource).toContain("if (ADMIN_ROLES.has(role ?? \"\"))");
+    expect(appLayoutSource).toContain('label: "Operations"');
+    expect(appLayoutSource).toContain('"/app/command-center"');
     expect(proxySource).toContain('"/app/command-center"');
     expect(proxySource).toContain('["admin", "super_admin", "internal"]');
   });

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { supportStore } from "@/lib/support/store-instance";
+import { supportSessionStoreFor } from "@/lib/support/support-session-store";
 import { z } from "zod";
 import { requireSameOriginSupportRequest, SupportSecurityError } from "@/lib/support/security";
 
@@ -44,22 +44,28 @@ export async function POST(request: NextRequest) {
   }
 
   const { sessionId, accepted } = parsed.data;
-  const session = await supportStore.getSession(sessionId);
+  try {
+    const supportStore = await supportSessionStoreFor(auth);
+    const session = await supportStore.getSession(sessionId);
 
-  if (!session || session.userId !== auth.userId) {
-    return json({ error: "Session not found" }, 404);
+    if (!session || session.userId !== auth.userId) {
+      return json({ error: "Session not found" }, 404);
+    }
+
+    if (!accepted) {
+      await supportStore.closeSession(sessionId);
+      return json({ success: false, greeting: "" });
+    }
+
+    await supportStore.updateSession(sessionId, {
+      consentAccepted: true,
+      consentAcceptedAt: new Date().toISOString(),
+      status: "active",
+    });
+
+    return json({ success: true, greeting: GREETING });
+  } catch (error) {
+    console.error("[support/session/consent]", error);
+    return json({ error: "Failed to update session" }, 500);
   }
-
-  if (!accepted) {
-    await supportStore.closeSession(sessionId);
-    return json({ success: false, greeting: "" });
-  }
-
-  await supportStore.updateSession(sessionId, {
-    consentAccepted: true,
-    consentAcceptedAt: new Date().toISOString(),
-    status: "active",
-  });
-
-  return json({ success: true, greeting: GREETING });
 }

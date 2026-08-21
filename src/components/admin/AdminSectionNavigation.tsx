@@ -43,6 +43,8 @@ export function AdminSectionNavigation() {
     [viewerRole],
   );
 
+  if (pathname === "/app/admin") return null;
+
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-3 sm:p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

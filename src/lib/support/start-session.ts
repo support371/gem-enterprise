@@ -1,7 +1,8 @@
 import { randomUUID } from "crypto";
-import { supportStore } from "./store-instance";
 import type { SupportSession, SupportQueue } from "@/types/support";
 import type { SessionPayload } from "@/lib/auth";
+import type { SupportSessionStore } from "./support-session-store";
+import { supportStore } from "./store-instance";
 
 export interface StartSessionResult {
   session: SupportSession;
@@ -9,10 +10,11 @@ export interface StartSessionResult {
 }
 
 export async function startSupportSession(
-  user: SessionPayload
+  user: SessionPayload,
+  store: SupportSessionStore = supportStore,
 ): Promise<StartSessionResult> {
   // Resume active session if one exists for this user
-  const existing = await supportStore.getSessionByUserId(user.userId);
+  const existing = await store.getSessionByUserId(user.userId);
   if (existing && existing.status !== "closed") {
     return { session: existing, isExisting: true };
   }
@@ -35,12 +37,12 @@ export async function startSupportSession(
     userTier,
   };
 
-  await supportStore.createSession(session);
+  await store.createSession(session);
   return { session, isExisting: false };
 }
 
 function resolveUserTier(user: SessionPayload): "vip" | "premium" | "standard" {
-  if (user.role === "admin" || user.role === "internal") return "vip";
+  if (["admin", "super_admin", "internal"].includes(user.role)) return "vip";
   if (user.entitlements.length > 1) return "premium";
   return "standard";
 }

@@ -225,6 +225,7 @@ export type WorkspaceGatewayAction =
   | "provision"
   | "ai_session"
   | "ai_message_event"
+  | "support_session"
   | "create_project"
   | "add_member"
   | "create_update"

@@ -596,12 +596,14 @@ export function WorkspaceAccessAdministration({
                   <div className="grid gap-2 sm:grid-cols-2">
                     {snapshot.permissionCatalog.map((permission) => {
                       const key = `${permission.scope}:${permission.action}`;
+                      const label = permission.label || `${permission.action} ${permission.scope}`.replace(/_/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
+                      const description = permission.description || `Allows ${permission.action} access within the ${permission.scope.replace(/_/g, " ")} scope only.`;
                       return (
                         <label key={key} className="flex cursor-pointer items-start gap-3 rounded-lg border border-white/8 bg-white/[0.02] p-3">
                           <input type="checkbox" className="mt-1" checked={permissionKeys.includes(key)} onChange={() => togglePermission(key)} />
                           <span>
-                            <span className="block text-sm font-medium text-white">{permission.label}</span>
-                            <span className="mt-1 block text-xs leading-5 text-slate-500">{permission.description}</span>
+                            <span className="block text-sm font-medium text-white">{label}</span>
+                            <span className="mt-1 block text-xs leading-5 text-slate-400">{description}</span>
                           </span>
                         </label>
                       );

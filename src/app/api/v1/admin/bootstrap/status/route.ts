@@ -22,7 +22,7 @@ function response(admin: {
       admin,
       nextSteps: admin
         ? [
-            "Sign in at /client-login.",
+            "Sign in at /super-admin-login.",
             "Admin accounts route to /app/admin after authentication.",
             "Keep SMTP and owner alert variables configured for request-access notifications.",
           ]

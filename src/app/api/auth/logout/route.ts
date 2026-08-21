@@ -8,15 +8,21 @@ export async function POST(request: NextRequest) {
 
   if (session) {
     const { ipAddress, userAgent } = getRequestContext(request);
-    await emitAuditLog({
-      userId: session.userId,
-      action: "logout",
-      resource: "user",
-      resourceId: session.userId,
-      metadata: { email: session.email },
-      ipAddress,
-      userAgent,
-    });
+    try {
+      await emitAuditLog({
+        userId: session.userId,
+        action: "logout",
+        resource: "user",
+        resourceId: session.userId,
+        metadata: { email: session.email },
+        ipAddress,
+        userAgent,
+      });
+    } catch (error) {
+      // Session termination must remain available during an audit-store outage.
+      // The failure is recorded server-side without retaining the user's cookie.
+      console.error("[POST /api/auth/logout] audit persistence failed", error);
+    }
   }
 
   const response = NextResponse.json({ success: true });

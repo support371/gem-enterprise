@@ -146,6 +146,13 @@ const NAV_SECTIONS_DATA: NavSection[] = [
 
 const navSections = NAV_SECTIONS_DATA;
 
+const accessPortals = [
+  { label: "Client portal", path: "/client-login", description: "Organization and project access" },
+  { label: "Team portal", path: "/team-login", description: "Assigned work and reporting" },
+  { label: "Admin portal", path: "/admin-login", description: "Scoped administration" },
+  { label: "Super Admin", path: "/super-admin-login", description: "Platform governance" },
+] as const;
+
 function NavigationContent() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -225,9 +232,21 @@ function NavigationContent() {
           <Link href="/contact" className="rounded-md px-3 py-2 text-sm font-medium text-white/55 transition-colors hover:bg-white/5 hover:text-white">
             Contact
           </Link>
-          <Button asChild variant="ghost" size="sm" className="border border-white/10 bg-transparent text-white/70 hover:border-white/20 hover:bg-white/5 hover:text-white">
-            <Link href="/client-login">Client Login</Link>
-          </Button>
+          <div className="group relative">
+            <Button variant="ghost" size="sm" className="border border-white/10 bg-transparent text-white/70 hover:border-white/20 hover:bg-white/5 hover:text-white" aria-haspopup="menu">
+              Sign in <ChevronDown className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
+            </Button>
+            <div className="invisible absolute right-0 top-full z-50 w-64 translate-y-1 pt-2 opacity-0 transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+              <div className="rounded-2xl border border-white/10 bg-[#101722] p-2 shadow-2xl" role="menu">
+                {accessPortals.map((item) => (
+                  <Link key={item.path} href={item.path} role="menuitem" className="block rounded-xl px-3 py-3 hover:bg-white/5">
+                    <span className="block text-sm font-semibold text-white/80">{item.label}</span>
+                    <span className="mt-0.5 block text-xs text-white/40">{item.description}</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
           <Button asChild size="sm" className="bg-[hsl(185,100%,45%)] font-semibold text-[#131a26] shadow-[0_0_20px_hsl(185,100%,45%,0.35)] transition-all hover:bg-[hsl(185,100%,50%)] hover:shadow-[0_0_28px_hsl(185,100%,45%,0.5)]">
             <Link href="/get-started">Get Started</Link>
           </Button>
@@ -308,9 +327,17 @@ function NavigationContent() {
               <Button asChild variant="outline" className="h-14 justify-center border-cyan-400/30 bg-cyan-400/5 text-base font-semibold text-cyan-200 hover:border-cyan-300/50 hover:bg-cyan-400/10 hover:text-cyan-100">
                 <Link href="/enterprise-solutions" onClick={closeMobile}>Enterprise Solutions</Link>
               </Button>
-              <Button asChild variant="ghost" className="h-14 justify-center border border-white/10 bg-transparent text-base font-semibold text-white/70 hover:border-white/20 hover:bg-white/5 hover:text-white">
-                <Link href="/client-login" onClick={closeMobile}>Client Login</Link>
-              </Button>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-2">
+                <p className="px-3 pb-2 pt-1 text-xs font-bold uppercase tracking-[0.2em] text-white/35">Choose your sign-in</p>
+                <div className="grid gap-1 sm:grid-cols-2">
+                  {accessPortals.map((item) => (
+                    <Link key={item.path} href={item.path} onClick={closeMobile} className="rounded-xl px-3 py-3 transition-colors hover:bg-white/5">
+                      <span className="block text-sm font-semibold text-white/75">{item.label}</span>
+                      <span className="mt-0.5 block text-xs text-white/35">{item.description}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
               <Button asChild className="h-14 bg-[hsl(185,100%,45%)] text-base font-bold text-[#131a26] shadow-[0_0_25px_hsl(185,100%,45%,0.35)] hover:bg-[hsl(185,100%,50%)]">
                 <Link href="/get-started" onClick={closeMobile}>Get Started</Link>
               </Button>

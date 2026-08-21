@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGatewaySessionToken, getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { emitAuditLog } from "@/lib/audit";
-import { supportStore } from "@/lib/support/store-instance";
+import { supportSessionStoreFor } from "@/lib/support/support-session-store";
 import { generateSupportResponse } from "@/lib/support/generate-response";
 import { escalateSession } from "@/lib/support/escalate-session";
 import { evaluatePolicy } from "@/lib/policy/evaluate-policy";
@@ -66,40 +66,41 @@ export async function POST(request: NextRequest) {
     }
     throw error;
   }
-  const session = await supportStore.getSession(sessionId);
-
-  if (!session || session.userId !== auth.userId) {
-    return json({ error: "Session not found" }, 404);
-  }
-
-  if (!session.consentAccepted) {
-    return json({ error: "Consent required" }, 403);
-  }
-
-  if (
-    session.status === "closed" ||
-    session.status === "escalated" ||
-    session.status === "ticket_created"
-  ) {
-    return json({ error: "This session is no longer accepting AI messages." }, 409);
-  }
-
-  const rateWindowStart = Date.now() - RATE_WINDOW_MS;
-  const recentUserMessages = session.messages.filter(
-    (entry) =>
-      entry.role === "user" &&
-      Number.isFinite(Date.parse(entry.timestamp)) &&
-      Date.parse(entry.timestamp) >= rateWindowStart,
-  ).length;
-  if (recentUserMessages >= RATE_WINDOW_MESSAGES) {
-    return json(
-      { error: "Please pause briefly before sending another support message.", code: "SUPPORT_RATE_LIMITED" },
-      429,
-      { "Retry-After": "300" },
-    );
-  }
-
   try {
+    const supportStore = await supportSessionStoreFor(auth);
+    const session = await supportStore.getSession(sessionId);
+
+    if (!session || session.userId !== auth.userId) {
+      return json({ error: "Session not found" }, 404);
+    }
+
+    if (!session.consentAccepted) {
+      return json({ error: "Consent required" }, 403);
+    }
+
+    if (
+      session.status === "closed" ||
+      session.status === "escalated" ||
+      session.status === "ticket_created"
+    ) {
+      return json({ error: "This session is no longer accepting AI messages." }, 409);
+    }
+
+    const rateWindowStart = Date.now() - RATE_WINDOW_MS;
+    const recentUserMessages = session.messages.filter(
+      (entry) =>
+        entry.role === "user" &&
+        Number.isFinite(Date.parse(entry.timestamp)) &&
+        Date.parse(entry.timestamp) >= rateWindowStart,
+    ).length;
+    if (recentUserMessages >= RATE_WINDOW_MESSAGES) {
+      return json(
+        { error: "Please pause briefly before sending another support message.", code: "SUPPORT_RATE_LIMITED" },
+        429,
+        { "Retry-After": "300" },
+      );
+    }
+
     const policy = evaluatePolicy(message);
 
     if (aiRunId) {
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const result = await generateSupportResponse(sessionId, message);
+    const result = await generateSupportResponse(sessionId, message, supportStore);
     if (!result) {
       return json({ error: "Session not found" }, 404);
     }
@@ -130,6 +131,8 @@ export async function POST(request: NextRequest) {
       handoff = await escalateSession(
         sessionId,
         result.orchestration.escalationReason ?? "policy_triggered",
+        supportStore,
+        auth.email,
       );
     }
 
@@ -145,17 +148,19 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    await emitAuditLog({
-      action: result.orchestration.shouldEscalate ? "restricted_class_detected" : "ai_message_sent",
-      resource: "support_session",
-      resourceId: sessionId,
-      metadata: {
-        messageLength: message.length,
-        responseSource: result.orchestration.responseSource,
-        providerStatus: result.orchestration.providerStatus,
-        handoffChannel: handoff?.handoffChannel,
-      },
-    });
+    if (auth.authSource !== "supabase_gateway") {
+      await emitAuditLog({
+        action: result.orchestration.shouldEscalate ? "restricted_class_detected" : "ai_message_sent",
+        resource: "support_session",
+        resourceId: sessionId,
+        metadata: {
+          messageLength: message.length,
+          responseSource: result.orchestration.responseSource,
+          providerStatus: result.orchestration.providerStatus,
+          handoffChannel: handoff?.handoffChannel,
+        },
+      });
+    }
 
     return json({
       messageId: result.assistantMessage.id,

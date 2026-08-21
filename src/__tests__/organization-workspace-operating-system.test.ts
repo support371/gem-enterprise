@@ -45,7 +45,7 @@ describe("organization workspace operating system", () => {
     expect(migration).toContain('REFERENCES "tokmetric_workspaces"'); expect(migration).not.toMatch(/DROP\s+(TABLE|COLUMN|TYPE)/i);
   });
   it("keeps login official and routes assigned members before ordinary onboarding", () => {
-    const login=source("src/app/client-login/page.tsx"); const continuation=source("src/app/access/continue/page.tsx");
+    const login=source("src/components/auth/RoleLoginPortal.tsx"); const continuation=source("src/app/access/continue/page.tsx");
     expect(login).toContain('/api/auth/login'); expect(continuation).toContain("resolveWorkspaceAccess(userId)"); expect(continuation).toContain("/app/workspace?workspace=");
   });
   it("forwards only organization-approved summaries to platform-owner oversight", () => {

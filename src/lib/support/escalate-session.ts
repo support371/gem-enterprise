@@ -6,6 +6,7 @@ import { createEscalationIssue } from "@/lib/atlassian/create-escalation-issue";
 import { resolveQueue } from "@/lib/policy/resolve-queue";
 import type { EscalationReason, AtlassianHandoffPayload } from "@/types/support";
 import { db } from "@/lib/db";
+import type { SupportSessionStore } from "./support-session-store";
 
 export interface EscalateSessionResult {
   success: boolean;
@@ -20,9 +21,11 @@ export interface EscalateSessionResult {
 
 export async function escalateSession(
   sessionId: string,
-  reason: EscalationReason = "user_requested"
+  reason: EscalationReason = "user_requested",
+  store: SupportSessionStore = supportStore,
+  authenticatedEmail?: string,
 ): Promise<EscalateSessionResult | null> {
-  const session = await supportStore.getSession(sessionId);
+  const session = await store.getSession(sessionId);
   if (!session) return null;
 
   const queue = resolveQueue({
@@ -31,10 +34,10 @@ export async function escalateSession(
   });
 
   const transcript = generateSessionSummary(session);
-  const resolvedEmail = session.userEmail || (await db.user.findUnique({
-    where: { id: session.userId },
-    select: { email: true },
-  }))?.email || "unavailable";
+  const resolvedEmail = session.userEmail || authenticatedEmail || (await db.user.findUnique({
+      where: { id: session.userId },
+      select: { email: true },
+    }))?.email || "unavailable";
   const payload = mapQueueToAtlassian(
     queue,
     sessionId,
@@ -49,7 +52,7 @@ export async function escalateSession(
   let ticketId: string | undefined;
   if (!atlassianResult.success) {
     ticketId = `TKT-${randomUUID().slice(0, 8).toUpperCase()}`;
-    await supportStore.createTicket({
+    await store.createTicket({
       id: ticketId,
       sessionId,
       userId: session.userId,
@@ -62,7 +65,7 @@ export async function escalateSession(
   }
 
   // Update session
-  await supportStore.updateSession(sessionId, {
+  await store.updateSession(sessionId, {
     status: "escalated",
     escalationReason: reason,
     escalatedAt: new Date().toISOString(),

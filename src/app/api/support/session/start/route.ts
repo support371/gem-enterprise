@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { startSupportSession } from "@/lib/support/start-session";
+import { supportSessionStoreFor } from "@/lib/support/support-session-store";
 import { requireSameOriginSupportRequest, SupportSecurityError } from "@/lib/support/security";
 
 export async function POST(request: NextRequest) {
@@ -22,7 +23,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { session: supportSession, isExisting } = await startSupportSession(session);
+    const store = await supportSessionStoreFor(session);
+    const { session: supportSession, isExisting } = await startSupportSession(session, store);
 
     return NextResponse.json({
       sessionId: supportSession.id,

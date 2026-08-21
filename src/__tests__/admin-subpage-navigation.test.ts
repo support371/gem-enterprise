@@ -40,7 +40,8 @@ describe("enterprise admin sub-page navigation", () => {
       "/app/admin/audit",
     ]);
     const appLayout = source("src/app/app/layout.tsx");
-    expect(appLayout).toContain("adminPrimaryNavItems");
+    expect(appLayout).toContain("adminPortalNavGroups");
+    expect(appLayout).toContain("navigationForRole");
     expect(appLayout).toContain('href === "/app/admin"');
   });
 

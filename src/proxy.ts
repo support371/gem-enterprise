@@ -51,6 +51,9 @@ const ALWAYS_PUBLIC = [
   "/cookie-policy",
   "/trust-center",
   "/client-login",
+  "/team-login",
+  "/admin-login",
+  "/super-admin-login",
   "/workspace-invitation",
   "/forgot-password",
   "/reset-password",
@@ -75,7 +78,19 @@ function isReviewRoute(pathname: string): boolean {
 }
 
 function isAuthRoute(pathname: string): boolean {
-  return pathname === "/client-login";
+  return ["/client-login", "/team-login", "/admin-login", "/super-admin-login"].includes(pathname);
+}
+
+function loginPathFor(pathname: string): string {
+  if (
+    pathname.startsWith("/app/admin/workspace-access") ||
+    pathname.startsWith("/app/admin/plan-workspaces")
+  ) {
+    return "/super-admin-login";
+  }
+  if (isAdminRoute(pathname)) return "/admin-login";
+  if (isReviewRoute(pathname)) return "/team-login";
+  return "/client-login";
 }
 
 function isStaticOrApiPath(pathname: string): boolean {
@@ -103,7 +118,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (ALWAYS_PUBLIC.includes(pathname)) return NextResponse.next();
+  const authRoute = isAuthRoute(pathname);
+  if (ALWAYS_PUBLIC.includes(pathname) && !authRoute) return NextResponse.next();
 
   let session = null;
   try {
@@ -112,13 +128,19 @@ export async function proxy(request: NextRequest) {
     console.error("[middleware] session read failed:", error);
   }
 
-  if (isAuthRoute(pathname) && session) {
-    return NextResponse.redirect(new URL(resolveAccessDestination(session), request.url));
+  if (authRoute) {
+    if (session) {
+      return NextResponse.redirect(new URL(resolveAccessDestination(session), request.url));
+    }
+
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-is-portal", "1");
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   if (isProtected(pathname)) {
     if (!session) {
-      const loginUrl = new URL("/client-login", request.url);
+      const loginUrl = new URL(loginPathFor(pathname), request.url);
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
     }

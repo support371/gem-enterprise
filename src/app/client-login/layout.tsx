@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: { absolute: "Client Portal Access | GEM Enterprise" },
-  description: "Sign in to an authorized GEM Enterprise client or administrator account.",
+  description: "Sign in to an authorized GEM Enterprise client or organization workspace.",
   robots: { index: false, follow: false, nocache: true },
 };
 

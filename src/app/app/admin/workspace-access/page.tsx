@@ -23,7 +23,7 @@ export default async function WorkspaceAccessPage() {
   const gate = await requirePlatformOwner();
   if (!gate.ok) {
     if (gate.response.status === 401) {
-      redirect("/client-login?next=/app/admin/workspace-access");
+      redirect("/super-admin-login?next=/app/admin/workspace-access");
     }
     redirect("/app/admin?ownerAccess=required");
   }
@@ -32,7 +32,7 @@ export default async function WorkspaceAccessPage() {
   if (gate.session.authSource === "supabase_gateway") {
     const token = await getGatewaySessionToken();
     if (!token) {
-      redirect("/client-login?next=/app/admin/workspace-access");
+      redirect("/super-admin-login?next=/app/admin/workspace-access");
     }
     snapshot = await workspaceGateway<WorkspaceAdministrationSnapshot>(
       "admin_snapshot",

@@ -19,7 +19,7 @@ describe("workspace access administration", () => {
     expect(pageSource).toContain("requirePlatformOwner()");
     expect(apiSource).not.toContain("requireAdmin()");
     expect(pageSource).not.toContain("requireAdmin()");
-    expect(pageSource).toContain("/client-login?next=/app/admin/workspace-access");
+    expect(pageSource).toContain("/super-admin-login?next=/app/admin/workspace-access");
   });
 
   it("loads the owner snapshot through the authenticated gateway when Prisma is unavailable", () => {

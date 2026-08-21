@@ -133,14 +133,16 @@ export default function AdminPage() {
           <div className="max-w-3xl">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
               <Activity className="h-3.5 w-3.5" aria-hidden="true" />
-              Enterprise administration
+              {viewerRole === "super_admin" ? "Platform owner governance" : "Enterprise administration"}
             </div>
             <h1 className="flex items-center gap-3 text-3xl font-bold text-white sm:text-4xl">
               <Shield className="h-8 w-8 text-cyan-300" aria-hidden="true" />
-              Admin Center
+              {viewerRole === "super_admin" ? "Super Admin Control Center" : "Admin Center"}
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base">
-              Choose the workspace you need, complete the task on its dedicated page, and return here for the next administrative workflow.
+              {viewerRole === "super_admin"
+                ? "Govern organizations, administrators, client workspaces, system operations, and audit evidence from one protected control plane."
+                : "Open the dedicated administrative workspace for the task you need, then return here for the next scoped workflow."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
