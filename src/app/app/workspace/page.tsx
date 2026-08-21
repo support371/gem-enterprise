@@ -20,6 +20,7 @@ import { resolveWorkspaceAccess } from "@/lib/workspaceAccess";
 import { cn } from "@/lib/utils";
 import { getOrganizationWorkspaceOverview } from "@/lib/organizationWorkspace";
 import { OrganizationWorkspaceOperatingSystem } from "@/components/workspace/OrganizationWorkspaceOperatingSystem";
+import { WorkspaceDirectory } from "@/components/workspace/WorkspaceDirectory";
 import { getGatewaySessionToken } from "@/lib/auth";
 import { workspaceGateway } from "@/lib/supabase-gateway";
 
@@ -75,8 +76,13 @@ export default async function WorkspacePage({ searchParams }: WorkspacePageProps
   const accessNotice = firstString(params.access);
   const gatewayToken = gate.session.authSource === "supabase_gateway" ? await getGatewaySessionToken() : null;
   const resolution = gatewayToken
-    ? await workspaceGateway<{workspaces: Awaited<ReturnType<typeof resolveWorkspaceAccess>>["workspaces"]}>("access",gatewayToken).then(({workspaces})=>({workspaces,selected:requestedWorkspaceId?workspaces.find(workspace=>workspace.id===requestedWorkspaceId)??null:workspaces[0]??null,requestedWorkspaceId,requestedDenied:Boolean(requestedWorkspaceId&&!workspaces.some(workspace=>workspace.id===requestedWorkspaceId))}))
-    : await resolveWorkspaceAccess(gate.session.userId,requestedWorkspaceId);
+    ? await workspaceGateway<{ workspaces: Awaited<ReturnType<typeof resolveWorkspaceAccess>>["workspaces"] }>("access", gatewayToken).then(({ workspaces }) => ({
+        workspaces,
+        selected: requestedWorkspaceId ? workspaces.find((workspace) => workspace.id === requestedWorkspaceId) ?? null : workspaces[0] ?? null,
+        requestedWorkspaceId,
+        requestedDenied: Boolean(requestedWorkspaceId && !workspaces.some((workspace) => workspace.id === requestedWorkspaceId)),
+      }))
+    : await resolveWorkspaceAccess(gate.session.userId, requestedWorkspaceId);
 
   if (resolution.requestedDenied) {
     redirect("/app/workspace?access=denied");
@@ -124,7 +130,7 @@ export default async function WorkspacePage({ searchParams }: WorkspacePageProps
   }
 
   const operatingOverview = gatewayToken
-    ? await workspaceGateway<Awaited<ReturnType<typeof getOrganizationWorkspaceOverview>>>("overview",gatewayToken,{workspaceId:selected.id})
+    ? await workspaceGateway<Awaited<ReturnType<typeof getOrganizationWorkspaceOverview>>>("overview", gatewayToken, { workspaceId: selected.id })
     : await getOrganizationWorkspaceOverview(gate.session.userId, selected.id);
 
   const controls = [
@@ -187,31 +193,7 @@ export default async function WorkspacePage({ searchParams }: WorkspacePageProps
         </div>
       </section>
 
-      {resolution.workspaces.length > 1 && (
-        <Card className="border-white/10 bg-card">
-          <CardHeader>
-            <CardTitle className="text-sm text-white">Your assigned workspaces</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {resolution.workspaces.map((workspace) => (
-              <Link
-                key={workspace.id}
-                href={`/app/workspace?workspace=${encodeURIComponent(workspace.id)}`}
-                className={cn(
-                  "rounded-xl border p-4 transition",
-                  workspace.id === selected.id
-                    ? "border-cyan-400/35 bg-cyan-400/10"
-                    : "border-white/10 bg-white/[0.02] hover:border-white/20",
-                )}
-              >
-                <p className="text-xs text-slate-500">{workspace.organization.name}</p>
-                <p className="mt-1 font-semibold text-white">{workspace.name}</p>
-                <p className="mt-2 text-xs text-slate-400">{workspace.role.name}</p>
-              </Link>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+      <WorkspaceDirectory workspaces={resolution.workspaces} selectedId={selected.id} />
 
       <section className="grid gap-4 sm:grid-cols-3">
         {metrics.map(({ label, value, Icon }) => (

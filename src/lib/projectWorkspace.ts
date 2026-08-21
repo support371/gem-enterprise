@@ -30,6 +30,7 @@ export const projectEnvironments: ProjectEnvironment[] = [
     { label: "Video production", description: "Create, preview, and review governed project video.", href: "/app/social-media/video" },
     { label: "Content operations", description: "Prepare project content and publishing work.", href: "/app/social-media/content" },
     { label: "Approvals", description: "Review controlled publishing decisions.", href: "/app/social-media/approvals" },
+    { label: "TikTok governed publisher", description: "Move an approved exact media asset into the governed TikTok publishing flow.", href: "/tokmetric/publishing" },
   ] },
   { id: "development", label: "Development", description: "Coordinate technical delivery, APIs, integrations, testing, documentation, and release readiness for this project.", audience: "Engineering and technical delivery", destinations: [
     { label: "Developer center", description: "Open project API and integration documentation.", href: "/developers" },
@@ -37,15 +38,18 @@ export const projectEnvironments: ProjectEnvironment[] = [
     { label: "Technical documentation", description: "Review architecture, authentication, errors, and guides.", href: "/docs" },
     { label: "Integration readiness", description: "Review connected project services and tool health.", href: "/app/command-center/integrations" },
   ] },
-  { id: "marketing", label: "Marketing", description: "Run project campaigns, social distribution, news, and audience engagement separately from production.", audience: "Marketing and communications", destinations: [
+  { id: "marketing", label: "Marketing", description: "Run project campaigns, social distribution, news, AI-assisted content, and audience engagement separately from production.", audience: "Marketing and communications", destinations: [
     { label: "Social media suite", description: "Manage connected channels and governed content.", href: "/app/social-media" },
+    { label: "AI-assisted content studio", description: "Prepare governed project copy and media packages for review.", href: "/app/social-media/content" },
     { label: "Publishing calendar", description: "Coordinate campaign and content schedules.", href: "/app/social-media/calendar" },
+    { label: "TokMetric operations", description: "Review TikTok signals, publishing readiness, and campaign operations.", href: "/app/social-media/tokmetric" },
     { label: "News intelligence", description: "Use current intelligence in project communications.", href: "/intel/news" },
   ] },
   { id: "sales", label: "Sales", description: "Keep opportunities, client requests, service conversations, and commercial follow-through together.", audience: "Sales and client success", destinations: [
     { label: "Service requests", description: "Track project-scoped needs and delivery requests.", href: "/app/requests" },
     { label: "Services", description: "Review services available to the project.", href: "/app/services" },
     { label: "Messages", description: "Continue secure client conversations.", href: "/app/messages" },
+    { label: "Community", description: "Continue approved member and relationship engagement.", href: "/app/community" },
   ] },
   { id: "finance", label: "Finance", description: "Coordinate project budgets, approved products, allocations, financial-security controls, documents, and reporting.", audience: "Finance leads and authorized owners", destinations: [
     { label: "Portfolio", description: "Review authorized project portfolio information.", href: "/app/portfolios" },
@@ -57,30 +61,37 @@ export const projectEnvironments: ProjectEnvironment[] = [
     { label: "Meetings", description: "Schedule project consultations and reviews.", href: "/app/meetings" },
     { label: "Messages", description: "Open secure team conversations.", href: "/app/messages" },
     { label: "Documents", description: "Use the controlled document workspace.", href: "/app/documents" },
+    { label: "Community", description: "Reach the approved community and relationship surface.", href: "/app/community" },
   ] },
   { id: "client", label: "Client view", description: "A clear client-facing view of progress, decisions, deliverables, and requests without internal administration noise.", audience: "Client owners and approved client members", destinations: [
     { label: "Project requests", description: "Submit and follow project requests.", href: "/app/requests" },
     { label: "Documents", description: "Review approved project documents.", href: "/app/documents" },
+    { label: "Community", description: "Open the approved member and relationship surface.", href: "/app/community" },
     { label: "Support", description: "Reach AI-assisted and human support.", href: "/app/support" },
   ] },
-  { id: "services", label: "Services", description: "Open the cybersecurity, financial-security, property-risk, and professional services assigned to this project.", audience: "Authorized project members", destinations: [
+  { id: "services", label: "Services", description: "Open the cybersecurity, financial-security, property-risk, real-estate, and professional services assigned to this project.", audience: "Authorized project members", destinations: [
     { label: "Service catalog", description: "Review available and activated services.", href: "/app/services" },
     { label: "Products", description: "Review controlled product access.", href: "/app/products" },
+    { label: "ATR Property Trust", description: "Open the real-estate and property-risk service environment.", href: "/app/products/real-estate" },
+    { label: "Financial security", description: "Open controlled financial-security capabilities.", href: "/app/products/financial" },
     { label: "Compliance", description: "Open disclosures and compliance workflow.", href: "/app/compliance" },
   ] },
-  { id: "tools", label: "Tools & integrations", description: "Reach project tools and connected services from one controlled environment.", audience: "Authorized operators", destinations: [
+  { id: "tools", label: "Tools & integrations", description: "Reach project tools, AI assistance, connected channels, and integration surfaces from one controlled environment.", audience: "Authorized operators", destinations: [
     { label: "Social accounts", description: "Review connected publishing accounts.", href: "/app/social-media/accounts" },
+    { label: "Content and AI tools", description: "Use governed content preparation and AI-assisted workflows.", href: "/app/social-media/content" },
     { label: "Analytics", description: "Review project channel performance.", href: "/app/social-media/analytics" },
-    { label: "Support tools", description: "Open assistance and escalation channels.", href: "/app/support" },
+    { label: "Support AI", description: "Open the governed GEM support assistant and escalation flow.", href: "/app/support" },
   ] },
-  { id: "monitoring", label: "Monitoring", description: "Follow project activity, notifications, intelligence, delivery signals, and readiness.", audience: "Owners and delivery leads", destinations: [
+  { id: "monitoring", label: "Monitoring", description: "Follow GEM Sentinel-style project activity, notifications, intelligence, delivery signals, and readiness.", audience: "Owners and delivery leads", destinations: [
     { label: "Notifications", description: "Review project and account alerts.", href: "/app/notifications" },
-    { label: "Intelligence", description: "Open cross-domain monitoring and trends.", href: "/intel" },
+    { label: "GEM Sentinel intelligence", description: "Open cross-domain security monitoring, intelligence, and trends.", href: "/intel" },
+    { label: "News intelligence", description: "Review the native GEM news and intelligence feed.", href: "/intel/news" },
     { label: "Analytics", description: "Review channel and content performance.", href: "/app/social-media/analytics" },
   ] },
-  { id: "admin", label: "Project administration", description: "Manage project membership, workspace controls, reporting, and governed configuration.", audience: "Workspace owners and authorized managers", permission: { action: "manage", scope: "projects" }, destinations: [
+  { id: "admin", label: "Project administration", description: "Manage project membership, workspace controls, reporting, security, and governed configuration.", audience: "Workspace owners and authorized managers", permission: { action: "manage", scope: "projects" }, destinations: [
     { label: "Workspace administration", description: "Return to member, project, and reporting controls.", href: "/app/workspace" },
     { label: "Security", description: "Review account security controls.", href: "/app/security" },
+    { label: "Compliance", description: "Review disclosures and controlled compliance workflows.", href: "/app/compliance" },
     { label: "Settings", description: "Review account and workspace preferences.", href: "/app/settings" },
   ] },
 ];
