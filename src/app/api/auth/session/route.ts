@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolveAccessDestination } from "@/lib/auth";
 import { requireSession } from "@/lib/api/auth-helpers";
 import { platformSurfaces, resolvePreferredSurface } from "@/lib/platformNavigation";
+import { surfaceForRole } from "@/lib/managementSurfaces";
 
 export async function GET(_request: NextRequest) {
   try {
@@ -11,6 +12,7 @@ export async function GET(_request: NextRequest) {
     const session = gate.session;
     const recommendedPath = resolveAccessDestination(session);
     const preferredSurface = resolvePreferredSurface(recommendedPath);
+    const assignedManagementSurface = surfaceForRole(session.role);
 
     return NextResponse.json(
       {
@@ -24,6 +26,11 @@ export async function GET(_request: NextRequest) {
         portfolioId: session.portfolioId ?? null,
         organizationId: session.organizationId ?? null,
         preferredSurface,
+        assignedManagementSurface: {
+          id: assignedManagementSurface.id,
+          label: assignedManagementSurface.label,
+          hostname: assignedManagementSurface.hostname,
+        },
         recommendedPath,
         availableSurfaces: platformSurfaces,
         reauthenticationRecommended: gate.claimsChanged,

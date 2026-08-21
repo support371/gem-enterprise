@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionFromRequest, resolveAccessDestination } from "@/lib/auth";
 import { isAtrManagedHost, toAtrInternalPath } from "@/lib/atrOperationalConfig";
+import {
+  loginPathForSurface,
+  resolveManagementSurface,
+  surfaceAllowsRole,
+} from "@/lib/managementSurfaces";
 
 const ADMIN_PREFIXES = [
   "/app/admin",
@@ -54,6 +59,7 @@ const ALWAYS_PUBLIC = [
   "/team-login",
   "/admin-login",
   "/super-admin-login",
+  "/login",
   "/workspace-invitation",
   "/forgot-password",
   "/reset-password",
@@ -78,7 +84,7 @@ function isReviewRoute(pathname: string): boolean {
 }
 
 function isAuthRoute(pathname: string): boolean {
-  return ["/client-login", "/team-login", "/admin-login", "/super-admin-login"].includes(pathname);
+  return ["/login", "/client-login", "/team-login", "/admin-login", "/super-admin-login"].includes(pathname);
 }
 
 function loginPathFor(pathname: string): string {
@@ -104,6 +110,7 @@ function isStaticOrApiPath(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const host = request.headers.get("host");
+  const managementSurface = resolveManagementSurface(host);
 
   // GEM-controlled ATR host routing. This is intentionally independent of
   // alliancetrustrealty.com so the real-estate division can remain operational
@@ -119,7 +126,13 @@ export async function proxy(request: NextRequest) {
   }
 
   const authRoute = isAuthRoute(pathname);
-  if (ALWAYS_PUBLIC.includes(pathname) && !authRoute) return NextResponse.next();
+  const surfaceEntry =
+    pathname === "/" &&
+    managementSurface !== null &&
+    managementSurface.id !== "public";
+  if (ALWAYS_PUBLIC.includes(pathname) && !authRoute && !surfaceEntry) {
+    return NextResponse.next();
+  }
 
   let session = null;
   try {
@@ -128,21 +141,63 @@ export async function proxy(request: NextRequest) {
     console.error("[middleware] session read failed:", error);
   }
 
-  if (authRoute) {
+  if (surfaceEntry) {
     if (session) {
+      if (!surfaceAllowsRole(managementSurface, session.role)) {
+        return NextResponse.redirect(new URL("/unauthorized", request.url));
+      }
+      return NextResponse.redirect(
+        new URL(resolveAccessDestination(session), request.url),
+      );
+    }
+
+    const destination = request.nextUrl.clone();
+    destination.pathname = loginPathForSurface(managementSurface);
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-is-portal", "1");
+    requestHeaders.set("x-gem-surface", managementSurface.id);
+    return NextResponse.rewrite(destination, { request: { headers: requestHeaders } });
+  }
+
+  if (authRoute) {
+    if (
+      managementSurface &&
+      managementSurface.id !== "public" &&
+      pathname !== managementSurface.loginPath
+    ) {
+      return NextResponse.redirect(
+        new URL(managementSurface.loginPath, request.url),
+      );
+    }
+
+    if (session) {
+      if (!surfaceAllowsRole(managementSurface, session.role)) {
+        return NextResponse.redirect(new URL("/unauthorized", request.url));
+      }
       return NextResponse.redirect(new URL(resolveAccessDestination(session), request.url));
     }
 
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-is-portal", "1");
+    if (managementSurface) {
+      requestHeaders.set("x-gem-surface", managementSurface.id);
+    }
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
   if (isProtected(pathname)) {
     if (!session) {
-      const loginUrl = new URL(loginPathFor(pathname), request.url);
+      const loginPath =
+        managementSurface && managementSurface.id !== "public"
+          ? loginPathForSurface(managementSurface)
+          : loginPathFor(pathname);
+      const loginUrl = new URL(loginPath, request.url);
       loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
+    }
+
+    if (!surfaceAllowsRole(managementSurface, session.role)) {
+      return NextResponse.redirect(new URL("/unauthorized", request.url));
     }
 
     if (
@@ -165,6 +220,9 @@ export async function proxy(request: NextRequest) {
     requestHeaders.set("x-user-role", session.role);
     requestHeaders.set("x-kyc-status", session.kycStatus);
     requestHeaders.set("x-user-entitlements", session.entitlements.join(","));
+    if (managementSurface) {
+      requestHeaders.set("x-gem-surface", managementSurface.id);
+    }
 
     if (session.kycApplicationId) {
       requestHeaders.set("x-kyc-application-id", session.kycApplicationId);

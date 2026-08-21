@@ -25,7 +25,7 @@ const legalLinks = [
 ];
 
 const clientAccessLinks = [
-  { label: "Client Login", path: "/client-login" },
+  { label: "Workspace Sign In", path: "/login" },
   { label: "Eligibility Status", path: "/eligibility/status" },
   { label: "Get Started", path: "/get-started" },
   { label: "Contact", path: "/contact" },

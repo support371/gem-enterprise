@@ -2,9 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import { Navigation } from "@/components/Navigation";
-import { Footer } from "@/components/Footer";
-import { ProductionDisclosure } from "@/components/ProductionDisclosure";
+import { PublicSiteFrame } from "@/components/PublicSiteFrame";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -63,20 +61,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="bg-[#0d121b] text-white antialiased">
         <Providers>
-          {!isPortal && (
-            <a
-              href="#main-content"
-              className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-cyan-300 focus:px-4 focus:py-2 focus:font-bold focus:text-[#071019]"
-            >
-              Skip to main content
-            </a>
-          )}
-          {!isPortal && <Navigation />}
-          {!isPortal && <ProductionDisclosure />}
-          <main id="main-content" className={isPortal ? undefined : "min-h-screen"}>
-            {children}
-          </main>
-          {!isPortal && <Footer />}
+          <PublicSiteFrame isPortal={isPortal}>{children}</PublicSiteFrame>
         </Providers>
         <SpeedInsights />
         <Analytics />

@@ -16,7 +16,7 @@ export default async function AccessContinuePage() {
   const userRole = headersList.get("x-user-role") as AuthRole | null;
 
   if (!userId) {
-    redirect("/client-login");
+    redirect("/login");
   }
 
   const session: SessionPayload = (await getSession()) ?? {
