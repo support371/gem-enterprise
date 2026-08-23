@@ -19,7 +19,7 @@ describe("Workspace OS wayfinding follow-up", () => {
     expect(directory).toContain('aria-label="Clear project search"');
     expect(directory).toContain('role="progressbar"');
     expect(directory).toContain('aria-valuenow={project.progress}');
-    expect(directory).toContain('aria-label={\`Open \${project.name} project workspace\`}');
+    expect(directory).toContain('aria-label={`Open ${project.name} project workspace`}');
   });
 
   it("preserves organization management and reporting around the new directory", () => {
