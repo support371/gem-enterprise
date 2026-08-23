@@ -13,6 +13,13 @@ describe("Workspace OS wayfinding follow-up", () => {
     expect(navigation).toContain('onNavigate={markRouteNavigation}');
   });
 
+  it("keeps mobile focus restoration lint-safe and bound to the opening trigger", () => {
+    const navigation = source("src/components/workspace/WorkspaceOSNavigation.tsx");
+    expect(navigation).toContain('const trigger = triggerRef.current;');
+    expect(navigation).toContain('trigger?.focus();');
+    expect(navigation).not.toContain('triggerRef.current?.focus();');
+  });
+
   it("adds searchable, keyboard-visible project wayfinding", () => {
     const directory = source("src/components/workspace/WorkspaceProjectDirectory.tsx");
     expect(directory).toContain('placeholder="Search projects"');
