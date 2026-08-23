@@ -31,8 +31,11 @@ describe("project-centered workspace", () => {
 
   it("makes project cards open the project workspace", () => {
     const workspace = source("src/components/workspace/OrganizationWorkspaceOperatingSystem.tsx");
-    expect(workspace).toContain("/app/workspace/projects/");
-    expect(workspace).toContain("Open project workspace");
+    const directory = source("src/components/workspace/WorkspaceProjectDirectory.tsx");
+    expect(workspace).toContain("WorkspaceProjectDirectory");
+    expect(directory).toContain("/app/workspace/projects/");
+    expect(directory).toContain("Open project workspace");
+    expect(directory).toContain('role="progressbar"');
   });
 
   it("renders every environment as a Bentley-style full operations dashboard", () => {
