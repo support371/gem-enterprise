@@ -119,6 +119,19 @@ export async function getOrganizationProjectWorkspace(userId: string, projectId:
         include: {
           organization: true,
           _count: { select: { members: true, connectors: true, approvalRequests: true } },
+          connectors: {
+            orderBy: { updatedAt: "desc" },
+            take: 12,
+            select: {
+              id: true,
+              provider: true,
+              state: true,
+              displayName: true,
+              externalAccountId: true,
+              disabledAt: true,
+              lastHealthAt: true,
+            },
+          },
         },
       },
     },

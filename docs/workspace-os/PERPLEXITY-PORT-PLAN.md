@@ -239,3 +239,13 @@ Required deterministic checks:
 Start with `src/components/workspace/ProjectWorkspaceShell.tsx` plus the `/app/workspace` directory surface. Port the shell/navigation/accessibility model first while keeping all existing server data and authorization contracts unchanged.
 
 Only after that passes tests should module-specific visual surfaces be migrated.
+
+## Completion reconciliation
+
+The shell, directory, accessibility, grouped module mapping, searchable integration catalogue, and accessible detail dialog were merged through PRs #320–#322. This follow-up completes the project-scoped live-data layer:
+
+- the Tools environment lists persisted connector records and their recorded health state;
+- an empty connector registry stays explicitly unconfigured rather than showing prototype data;
+- the Monitoring environment renders GEM Sentinel from workspace emergency, publishing, advertising, store, and connector controls;
+- connector and approval counts remain authoritative database records;
+- provider authorization, compliance, approval, and external action gates remain unchanged and fail closed.

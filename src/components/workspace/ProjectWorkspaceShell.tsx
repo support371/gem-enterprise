@@ -17,6 +17,7 @@ import {
   Users,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { ProjectWorkspaceModuleSurfaces } from "@/components/workspace/ProjectWorkspaceModuleSurfaces";
 import { WorkspaceOSNavigation } from "@/components/workspace/WorkspaceOSNavigation";
 import { canOpenProjectEnvironment, projectEnvironments, type ProjectEnvironmentId } from "@/lib/projectWorkspace";
 
@@ -41,6 +42,15 @@ interface ProjectWorkspaceShellProps {
     advertisingDisabled: boolean;
     shopWriteDisabled: boolean;
     connectorDisabled: boolean;
+    connectors: Array<{
+      id: string;
+      provider: string;
+      state: string;
+      displayName: string;
+      externalAccountId: string | null;
+      disabledAt: Date | null;
+      lastHealthAt: Date | null;
+    }>;
     _count: { members: number; connectors: number; approvalRequests: number };
   };
   membership: { role: { name: string } | null };
@@ -155,6 +165,19 @@ export function ProjectWorkspaceShell({ environment, project, workspace, members
               </article>
             ))}
           </section>
+
+          <ProjectWorkspaceModuleSurfaces
+            environment={current.id}
+            workspaceId={workspace.id}
+            projectId={project.id}
+            connectors={workspace.connectors}
+            approvalCount={workspace._count.approvalRequests}
+            globalEmergencyLock={workspace.globalEmergencyLock}
+            publishingDisabled={workspace.publishingDisabled}
+            advertisingDisabled={workspace.advertisingDisabled}
+            shopWriteDisabled={workspace.shopWriteDisabled}
+            connectorDisabled={workspace.connectorDisabled}
+          />
 
           <section className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
             <div className="space-y-5">
