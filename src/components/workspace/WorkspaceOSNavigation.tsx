@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { ChevronRight, Menu, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,8 @@ export interface WorkspaceOSNavItem {
   description: string;
   href: string;
 }
+
+const pendingFocusKey = "gem:workspace-navigation-focus";
 
 interface WorkspaceOSNavigationProps {
   items: WorkspaceOSNavItem[];
@@ -138,6 +141,7 @@ function SidebarContent({
 }
 
 export function WorkspaceOSNavigation(props: WorkspaceOSNavigationProps) {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -182,6 +186,25 @@ export function WorkspaceOSNavigation(props: WorkspaceOSNavigationProps) {
     };
   }, [open]);
 
+  useEffect(() => {
+    try {
+      if (window.sessionStorage.getItem(pendingFocusKey) === "true") {
+        window.sessionStorage.removeItem(pendingFocusKey);
+        window.requestAnimationFrame(() => document.getElementById("workspace-main-content")?.focus());
+      }
+    } catch {
+      // Focus restoration remains a progressive enhancement when storage is unavailable.
+    }
+  }, [pathname]);
+
+  function markRouteNavigation() {
+    try {
+      window.sessionStorage.setItem(pendingFocusKey, "true");
+    } catch {
+      // Navigation remains fully functional when storage is unavailable.
+    }
+  }
+
   const current = props.items.find((item) => item.id === props.currentId) ?? props.items[0];
 
   return (
@@ -205,7 +228,7 @@ export function WorkspaceOSNavigation(props: WorkspaceOSNavigationProps) {
       </div>
 
       <aside className="sticky top-24 hidden h-[calc(100vh-7rem)] min-h-[560px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-950/75 shadow-2xl backdrop-blur xl:flex">
-        <SidebarContent {...props} query={query} setQuery={setQuery} />
+        <SidebarContent {...props} query={query} setQuery={setQuery} onNavigate={markRouteNavigation} />
       </aside>
 
       {open && (
@@ -242,7 +265,10 @@ export function WorkspaceOSNavigation(props: WorkspaceOSNavigationProps) {
               {...props}
               query={query}
               setQuery={setQuery}
-              onNavigate={() => setOpen(false)}
+              onNavigate={() => {
+                markRouteNavigation();
+                setOpen(false);
+              }}
               searchRef={searchRef}
             />
           </div>
