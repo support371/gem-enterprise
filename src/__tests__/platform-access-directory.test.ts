@@ -25,7 +25,7 @@ describe("GEM platform access directory", () => {
 
   it("renders the same access directory on home, login, and enterprise solutions", () => {
     expect(source("src/app/page.tsx")).toContain("<PlatformAccessDirectory />");
-    expect(source("src/app/login/page.tsx")).toContain('<PlatformAccessDirectory exclude="login" compact />');
+    expect(source("src/app/login/page.tsx")).toContain('<PlatformAccessDirectory exclude="login" compact headingLevel={1} />');
     expect(source("src/app/enterprise-solutions/page.tsx")).toContain("<PlatformAccessDirectory />");
   });
 
@@ -48,5 +48,15 @@ describe("GEM platform access directory", () => {
     const proxy = source("src/proxy.ts");
     expect(proxy).toContain('["/login", "/client-login", "/team-login", "/admin-login", "/super-admin-login"]');
     expect(proxy).toContain('requestHeaders.set("x-is-portal", "1")');
+  });
+
+  it("keeps access-page heading order and portal navigation accessible", () => {
+    const directory = source("src/components/home/PlatformAccessDirectory.tsx");
+    const login = source("src/components/auth/RoleLoginPortal.tsx");
+    expect(directory).toContain('const Heading = headingLevel === 1 ? "h1" : "h2"');
+    expect(directory).toContain("scroll-mt-24");
+    expect(login).toContain('<nav className="mb-5 flex gap-2 overflow-x-auto pb-1" aria-label="Choose sign-in portal">');
+    expect(login).toContain('aria-current={item.kind === portal ? "page" : undefined}');
+    expect(login).not.toContain('<h2 className="mt-8 max-w-xl');
   });
 });
