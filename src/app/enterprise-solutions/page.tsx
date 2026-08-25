@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { platformOrigins } from "@/lib/platform-origins";
+import { PlatformAccessDirectory } from "@/components/home/PlatformAccessDirectory";
 
 export const metadata: Metadata = {
   title: "Enterprise Solutions",
@@ -110,6 +111,8 @@ export default function EnterpriseSolutionsPage() {
           </div>
         </div>
       </section>
+
+      <PlatformAccessDirectory />
 
       <section className="mx-auto max-w-6xl px-6 py-20">
         <div className="max-w-3xl">

@@ -50,6 +50,7 @@ const ALWAYS_PUBLIC = [
   "/compliance-notice",
   "/cookie-policy",
   "/trust-center",
+  "/login",
   "/client-login",
   "/team-login",
   "/admin-login",
@@ -78,7 +79,7 @@ function isReviewRoute(pathname: string): boolean {
 }
 
 function isAuthRoute(pathname: string): boolean {
-  return ["/client-login", "/team-login", "/admin-login", "/super-admin-login"].includes(pathname);
+  return ["/login", "/client-login", "/team-login", "/admin-login", "/super-admin-login"].includes(pathname);
 }
 
 function loginPathFor(pathname: string): string {
