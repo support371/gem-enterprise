@@ -17,7 +17,7 @@ export default function LoginDirectoryPage() {
           </span>
         </div>
       </header>
-      <PlatformAccessDirectory exclude="login" compact />
+      <PlatformAccessDirectory exclude="login" compact headingLevel={1} />
     </div>
   );
 }
