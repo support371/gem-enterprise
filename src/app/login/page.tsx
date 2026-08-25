@@ -1,19 +1,23 @@
-import { redirect } from "next/navigation";
+import Link from "next/link";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { PlatformAccessDirectory } from "@/components/home/PlatformAccessDirectory";
 
-type LoginPageProps = {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-};
-
-function safeInternalPath(value: string | string[] | undefined): string {
-  const candidate = Array.isArray(value) ? value[0] : value;
-  if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//")) {
-    return "/access/continue";
-  }
-  return candidate;
-}
-
-export default async function LoginRedirectPage({ searchParams }: LoginPageProps) {
-  const params = await searchParams;
-  const target = safeInternalPath(params.next ?? params.returnTo);
-  redirect(`/client-login?next=${encodeURIComponent(target)}`);
+export default function LoginDirectoryPage() {
+  return (
+    <div className="min-h-screen bg-background text-white">
+      <header className="border-b border-white/10 px-6 py-5">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-300 hover:text-white">
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            GEM Enterprise home
+          </Link>
+          <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[.18em] text-cyan-300">
+            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+            Secure access directory
+          </span>
+        </div>
+      </header>
+      <PlatformAccessDirectory exclude="login" compact />
+    </div>
+  );
 }

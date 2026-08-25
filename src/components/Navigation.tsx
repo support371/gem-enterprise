@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { ArrowRight, ChevronDown, Menu, Shield, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { accessPortalEntries } from "@/lib/accessPortals";
 
 type NavItem = {
   label: string;
@@ -146,13 +147,6 @@ const NAV_SECTIONS_DATA: NavSection[] = [
 
 const navSections = NAV_SECTIONS_DATA;
 
-const accessPortals = [
-  { label: "Client portal", path: "/client-login", description: "Organization and project access" },
-  { label: "Team portal", path: "/team-login", description: "Assigned work and reporting" },
-  { label: "Admin portal", path: "/admin-login", description: "Scoped administration" },
-  { label: "Super Admin", path: "/super-admin-login", description: "Platform governance" },
-] as const;
-
 function NavigationContent() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -238,9 +232,9 @@ function NavigationContent() {
             </Button>
             <div className="invisible absolute right-0 top-full z-50 w-64 translate-y-1 pt-2 opacity-0 transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
               <div className="rounded-2xl border border-white/10 bg-[#101722] p-2 shadow-2xl" role="menu">
-                {accessPortals.map((item) => (
-                  <Link key={item.path} href={item.path} role="menuitem" className="block rounded-xl px-3 py-3 hover:bg-white/5">
-                    <span className="block text-sm font-semibold text-white/80">{item.label}</span>
+                {accessPortalEntries.map((item) => (
+                  <Link key={item.id} href={item.href} role="menuitem" className="block rounded-xl px-3 py-3 hover:bg-white/5">
+                    <span className="block text-sm font-semibold text-white/80">{item.shortLabel}</span>
                     <span className="mt-0.5 block text-xs text-white/40">{item.description}</span>
                   </Link>
                 ))}
@@ -330,9 +324,9 @@ function NavigationContent() {
               <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-2">
                 <p className="px-3 pb-2 pt-1 text-xs font-bold uppercase tracking-[0.2em] text-white/35">Choose your sign-in</p>
                 <div className="grid gap-1 sm:grid-cols-2">
-                  {accessPortals.map((item) => (
-                    <Link key={item.path} href={item.path} onClick={closeMobile} className="rounded-xl px-3 py-3 transition-colors hover:bg-white/5">
-                      <span className="block text-sm font-semibold text-white/75">{item.label}</span>
+                  {accessPortalEntries.map((item) => (
+                    <Link key={item.id} href={item.href} onClick={closeMobile} className="rounded-xl px-3 py-3 transition-colors hover:bg-white/5">
+                      <span className="block text-sm font-semibold text-white/75">{item.shortLabel}</span>
                       <span className="mt-0.5 block text-xs text-white/35">{item.description}</span>
                     </Link>
                   ))}

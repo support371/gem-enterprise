@@ -41,4 +41,20 @@ describe("Workspace OS phase 3 integration surfaces", () => {
       expect(page).toContain(label);
     }
   });
+
+  it("expands the catalogue with governed provider and delivery connectors", () => {
+    const page = source("src/app/app/command-center/integrations/page.tsx");
+    expect(page).toContain("...socialProviders.map");
+    expect(page).toContain("providerReadiness(provider.state)");
+    for (const label of [
+      "GitHub source control",
+      "Vercel deployment",
+      "Cloudflare edge services",
+      "Supabase data services",
+      "ComfyUI render worker",
+      "OBS media bridge",
+    ]) {
+      expect(page).toContain(label);
+    }
+  });
 });

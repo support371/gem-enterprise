@@ -1,0 +1,52 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import { accessPortalEntries } from "@/lib/accessPortals";
+import { canonicalRoutes, legacyRedirects } from "@/lib/siteRoutes";
+
+const source = (path: string) => readFileSync(path, "utf8");
+
+describe("GEM platform access directory", () => {
+  it("defines a stable public doorway for every platform role", () => {
+    expect(accessPortalEntries.map((portal) => portal.id)).toEqual([
+      "login",
+      "client",
+      "team",
+      "admin",
+      "super_admin",
+    ]);
+    expect(accessPortalEntries.map((portal) => portal.href)).toEqual([
+      "/login",
+      "/client-login?next=%2Fapp%2Fworkspace",
+      "/team-login?next=%2Fapp%2Fworkspace",
+      "/admin-login?next=%2Fapp%2Fadmin",
+      "/super-admin-login?next=%2Fapp%2Fadmin",
+    ]);
+  });
+
+  it("renders the same access directory on home, login, and enterprise solutions", () => {
+    expect(source("src/app/page.tsx")).toContain("<PlatformAccessDirectory />");
+    expect(source("src/app/login/page.tsx")).toContain('<PlatformAccessDirectory exclude="login" compact />');
+    expect(source("src/app/enterprise-solutions/page.tsx")).toContain("<PlatformAccessDirectory />");
+  });
+
+  it("keeps sign-in and Workspace OS routes canonical", () => {
+    const routes = new Set(canonicalRoutes.map((route) => route.path));
+    for (const path of [
+      "/login",
+      "/client-login",
+      "/team-login",
+      "/admin-login",
+      "/super-admin-login",
+      "/app/workspace",
+    ]) {
+      expect(routes.has(path)).toBe(true);
+    }
+    expect(legacyRedirects.some((redirect) => redirect.source === "/login")).toBe(false);
+  });
+
+  it("keeps every login page outside the public navigation chrome", () => {
+    const proxy = source("src/proxy.ts");
+    expect(proxy).toContain('["/login", "/client-login", "/team-login", "/admin-login", "/super-admin-login"]');
+    expect(proxy).toContain('requestHeaders.set("x-is-portal", "1")');
+  });
+});

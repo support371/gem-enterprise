@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { HomeStoreShowcase } from "@/components/store/HomeStoreShowcase";
 import { InteractiveEarthShowcase } from "@/components/home/InteractiveEarthShowcase";
 import { ProjectWorkspaceShowcase } from "@/components/home/ProjectWorkspaceShowcase";
+import { PlatformAccessDirectory } from "@/components/home/PlatformAccessDirectory";
 
 export const metadata = {
   title: "GEM Enterprise | Defend. Protect. Prevail.",
@@ -193,6 +194,8 @@ export default function HomePage() {
       </section>
 
       <ProjectWorkspaceShowcase />
+
+      <PlatformAccessDirectory />
 
       <section className="container mx-auto max-w-7xl px-6 py-24">
         <div className="mb-16 text-center">

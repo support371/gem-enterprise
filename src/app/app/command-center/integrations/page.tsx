@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2, KeyRound, Plug, ShieldCheck } from "lucide-react";
 import { WorkspaceIntegrationCatalog, type WorkspaceIntegrationItem } from "@/components/command-center/WorkspaceIntegrationCatalog";
 import { getSocialMediaProviderReadiness } from "@/lib/social-media/providers";
+import type { SocialMediaReadinessState } from "@/lib/social-media/providers";
 
 export const metadata: Metadata = {
   title: "Integrations | GEM Enterprise Command Center",
@@ -11,6 +12,16 @@ export const metadata: Metadata = {
 
 function firstString(value: string | string[] | undefined) {
   return typeof value === "string" ? value : null;
+}
+
+function providerReadiness(state: SocialMediaReadinessState): WorkspaceIntegrationItem["readiness"] {
+  if (state === "HIRING_WORKFLOW_ONLY") return "PARTIAL";
+  if (state === "CONFIGURATION_REQUIRED") return "BLOCKED";
+  return "HUMAN_REQUIRED";
+}
+
+function providerStateLabel(state: SocialMediaReadinessState) {
+  return state.toLowerCase().replaceAll("_", " ");
 }
 
 export default async function IntegrationsCommandCenterPage({
@@ -72,6 +83,62 @@ export default async function IntegrationsCommandCenterPage({
       category: "Security",
       status: "Read-only intelligence surface available",
       readiness: "READY",
+    },
+    ...socialProviders.map((provider) => ({
+      href: `/app/social-media/accounts?provider=${encodeURIComponent(provider.id)}`,
+      title: `${provider.label} connector`,
+      description: `${provider.purpose} Supported content: ${provider.supportedContent.join(", ").toLowerCase()}.`,
+      category: "Provider apps",
+      status: `${provider.connectionMode === "OAUTH" ? "OAuth" : "Employer feed"} · ${providerStateLabel(provider.state)}`,
+      readiness: providerReadiness(provider.state),
+    })),
+    {
+      href: "/app/command-center/development",
+      title: "GitHub source control",
+      description: "Repository, pull-request, review, and release evidence entry point for governed development work.",
+      category: "Development & delivery",
+      status: "Connection authority remains in the approved GitHub installation",
+      readiness: "HUMAN_REQUIRED",
+    },
+    {
+      href: "/app/command-center/development",
+      title: "Vercel deployment",
+      description: "Canonical preview and production delivery surface for the GEM Next.js application.",
+      category: "Development & delivery",
+      status: "Production delivery remains Git-integration controlled",
+      readiness: "HUMAN_REQUIRED",
+    },
+    {
+      href: "/app/command-center/monitoring",
+      title: "Cloudflare edge services",
+      description: "Edge, DNS, security, worker, storage, and operational health entry point.",
+      category: "Infrastructure",
+      status: "Account authorization and resource health are verified separately",
+      readiness: "HUMAN_REQUIRED",
+    },
+    {
+      href: "/app/command-center/development",
+      title: "Supabase data services",
+      description: "Workspace data, identity gateway, private storage, and backend operations entry point.",
+      category: "Data & identity",
+      status: "Database, identity, and storage readiness remain independently gated",
+      readiness: "HUMAN_REQUIRED",
+    },
+    {
+      href: "/app/social-media/video",
+      title: "ComfyUI render worker",
+      description: "Private Windows-hosted AI video generation and verified render return path for GEM campaigns.",
+      category: "AI & Media",
+      status: "Requires a healthy owner-controlled Windows renderer",
+      readiness: "HUMAN_REQUIRED",
+    },
+    {
+      href: "/app/social-media/video",
+      title: "OBS media bridge",
+      description: "Governed live-video composition and Virtual Camera bridge for approved GEM call and showcase workflows.",
+      category: "AI & Media",
+      status: "Requires local OBS, WebSocket, camera, and device acceptance",
+      readiness: "HUMAN_REQUIRED",
     },
   ];
 
