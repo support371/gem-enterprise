@@ -84,13 +84,13 @@ export function RoleLoginPortal({ portal }: { portal: LoginPortalKind }) {
       <div className="relative mx-auto grid min-h-screen w-full max-w-6xl items-center gap-8 px-4 py-10 lg:grid-cols-[1.05fr_.95fr] lg:px-8">
         <section className="hidden rounded-3xl border border-white/10 bg-white/[0.035] p-8 lg:block">
           <span className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold uppercase tracking-[.18em] text-cyan-300"><ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" /> GEM Enterprise</span>
-          <h2 className="mt-8 max-w-xl text-4xl font-bold leading-tight text-white">One platform. Separate authority. Clear workspaces.</h2>
+          <p className="mt-8 max-w-xl text-4xl font-bold leading-tight text-white">One platform. Separate authority. Clear workspaces.</p>
           <p className="mt-5 max-w-xl text-base leading-8 text-slate-400">Your credentials determine your real role on the server. This page only opens the correct doorway; it cannot grant permissions, memberships, or administrative authority.</p>
           <div className="mt-10 grid gap-3 sm:grid-cols-2">{["Role-specific navigation", "Membership-scoped projects", "Dedicated tool environments", "Audited owner controls"].map((item) => <div key={item} className="rounded-xl border border-white/10 bg-black/15 p-4 text-sm font-medium text-slate-200">{item}</div>)}</div>
         </section>
 
         <section className="mx-auto w-full max-w-md">
-          <div className="mb-5 flex gap-2 overflow-x-auto pb-1" aria-label="Choose sign-in portal">{portalLinks.map((item) => <Link key={item.kind} href={item.href} className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition ${item.kind === portal ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-200" : "border-white/10 bg-white/[0.03] text-slate-400 hover:text-white"}`}>{item.label}</Link>)}</div>
+          <nav className="mb-5 flex gap-2 overflow-x-auto pb-1" aria-label="Choose sign-in portal">{portalLinks.map((item) => <Link key={item.kind} href={item.href} aria-current={item.kind === portal ? "page" : undefined} className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition ${item.kind === portal ? "border-cyan-300/40 bg-cyan-300/10 text-cyan-200" : "border-white/10 bg-white/[0.03] text-slate-400 hover:text-white"}`}>{item.label}</Link>)}</nav>
           <div className="glass-panel rounded-3xl border border-white/10 p-6 shadow-2xl sm:p-8">
             <div className="mb-7">
               <span className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${config.iconClass}`}><Icon className="h-6 w-6" aria-hidden="true" /></span>
