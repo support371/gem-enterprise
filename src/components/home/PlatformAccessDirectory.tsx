@@ -29,18 +29,22 @@ const tones = {
 export function PlatformAccessDirectory({
   exclude,
   compact = false,
+  headingLevel = 2,
 }: {
   exclude?: AccessPortalId;
   compact?: boolean;
+  headingLevel?: 1 | 2;
 }) {
   const portals = accessPortalEntries.filter((portal) => portal.id !== exclude);
+  const Heading = headingLevel === 1 ? "h1" : "h2";
+  const CardHeading = headingLevel === 1 ? "h2" : "h3";
 
   return (
     <section
       id="platform-access"
       aria-labelledby="platform-access-heading"
       className={cn(
-        "border-y border-white/10 bg-[radial-gradient(circle_at_top,rgba(34,211,238,.08),transparent_38%),rgba(255,255,255,.015)]",
+        "scroll-mt-24 border-y border-white/10 bg-[radial-gradient(circle_at_top,rgba(34,211,238,.08),transparent_38%),rgba(255,255,255,.015)]",
         compact ? "px-4 py-10" : "py-20",
       )}
     >
@@ -49,9 +53,9 @@ export function PlatformAccessDirectory({
           <Badge className="border-cyan-400/25 bg-cyan-400/10 text-cyan-300">
             GEM PLATFORM ACCESS
           </Badge>
-          <h2 id="platform-access-heading" className="mt-4 text-3xl font-black text-white md:text-4xl">
+          <Heading id="platform-access-heading" className="mt-4 text-3xl font-black text-white md:text-4xl">
             One platform. The correct doorway for every role.
-          </h2>
+          </Heading>
           <p className="mt-4 max-w-2xl leading-7 text-slate-400">
             Each entrance uses the same server-authoritative identity and Workspace OS. The page you choose never grants a role; your verified account and active workspace membership decide what opens.
           </p>
@@ -72,7 +76,7 @@ export function PlatformAccessDirectory({
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-black/20">
                   <Icon className="h-5 w-5" aria-hidden="true" />
                 </span>
-                <h3 className="mt-5 text-lg font-bold text-white">{portal.label}</h3>
+                <CardHeading className="mt-5 text-lg font-bold text-white">{portal.label}</CardHeading>
                 <p className="mt-1 text-xs font-semibold uppercase tracking-[.13em] opacity-80">
                   {portal.destination}
                 </p>
