@@ -54,6 +54,9 @@ describe("GEM platform access directory", () => {
     const directory = source("src/components/home/PlatformAccessDirectory.tsx");
     const login = source("src/components/auth/RoleLoginPortal.tsx");
     expect(directory).toContain('const Heading = headingLevel === 1 ? "h1" : "h2"');
+    expect(directory).toContain('const CardHeading = headingLevel === 1 ? "h2" : "h3"');
+    expect(directory).toContain('<CardHeading className="mt-5 text-lg font-bold text-white">');
+    expect(directory).not.toContain('<h3 className="mt-5 text-lg font-bold text-white">');
     expect(directory).toContain("scroll-mt-24");
     expect(login).toContain('<nav className="mb-5 flex gap-2 overflow-x-auto pb-1" aria-label="Choose sign-in portal">');
     expect(login).toContain('aria-current={item.kind === portal ? "page" : undefined}');
