@@ -1,3 +1,7 @@
+"use client";
+
+
+
 // GEM Intel — media-rich article card. Handles image, video thumbnail, and
 
 // text-only variants. Designed to read equally well in a 1-up hero row or a
@@ -236,7 +240,7 @@ export function NewsArticleCard({
         
           <div className="pointer-events-none absolute top-3 left-3 z-30 flex items-center gap-2">
           
-            <Badge className="bg-background/80 backdrop-blur-sm text-foreground border-border/60 text-xs font-mono uppercase t</Card>
+            <Badge className="bg-background/80 backdrop-blur-sm text-foreground border-border/60 text-xs</Card>
 
 
 
