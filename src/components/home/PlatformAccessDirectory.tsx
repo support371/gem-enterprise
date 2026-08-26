@@ -37,6 +37,7 @@ export function PlatformAccessDirectory({
 }) {
   const portals = accessPortalEntries.filter((portal) => portal.id !== exclude);
   const Heading = headingLevel === 1 ? "h1" : "h2";
+  const CardHeading = headingLevel === 1 ? "h2" : "h3";
 
   return (
     <section
@@ -75,7 +76,7 @@ export function PlatformAccessDirectory({
                 <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-black/20">
                   <Icon className="h-5 w-5" aria-hidden="true" />
                 </span>
-                <h3 className="mt-5 text-lg font-bold text-white">{portal.label}</h3>
+                <CardHeading className="mt-5 text-lg font-bold text-white">{portal.label}</CardHeading>
                 <p className="mt-1 text-xs font-semibold uppercase tracking-[.13em] opacity-80">
                   {portal.destination}
                 </p>
