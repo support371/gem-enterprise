@@ -16,7 +16,7 @@ type GemVideoPlayerProps = {
   externalUrl?: string | null;
   allowLocalObjectUrl?: boolean;
   showDescription?: boolean;
-  /** Automatically play media when it enters the viewport. */
+  /** Automatically play muted media when it enters the viewport. */
   autoPlayOnScroll?: boolean;
   className?: string;
 };
@@ -48,7 +48,8 @@ export function GemVideoPlayer({
   src,
   title,
   description,
-  poster,\n  providerHint,
+  poster,
+  providerHint,
   mimeType,
   captionsUrl,
   externalUrl,
@@ -66,7 +67,7 @@ export function GemVideoPlayer({
   useEffect(() => {
     if (!autoPlayOnScroll || !mediaRef.current || typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver(
-      ([entry] => setInView(Boolean(entry?.isIntersection)),
+      ([entry]) => setInView(Boolean(entry?.isIntersecting)),
       { threshold: 0.55 },
     );
     observer.observe(mediaRef.current);
@@ -100,7 +101,7 @@ export function GemVideoPlayer({
       <div ref={mediaRef} className="relative aspect-video w-full overflow-hidden bg-black">
         {playback.kind === "native" && playback.sourceUrl ? (
           <video
-            key={playback.sourceUrl }
+            key={playback.sourceUrl}
             src={playback.sourceUrl}
             poster={poster ?? undefined}
             controls
@@ -116,9 +117,9 @@ export function GemVideoPlayer({
             aria-describedby={descriptionId}
             className="h-full w-full object-contain"
           >
-             {captionSource ? (
-              <track kind="captions" src={captionSource} srclang="en" label="English" default />
-             ) : null}
+            {captionSource ? (
+              <track kind="captions" src={captionSource} srcLang="en" label="English" default />
+            ) : null}
             Your browser does not support embedded video.
           </video>
         ) : null}
@@ -141,18 +142,18 @@ export function GemVideoPlayer({
               onClick={() => setActivated(true)}
               aria-label={`Play ${title}`}
               aria-describedby={descriptionId}
-              className="group absolute inset-0 flex h-full w-full items-it-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.2),transparent_62%)]"
+              className="group absolute inset-0 flex h-full w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.2),transparent_62%)]"
             >
               {poster ? (
                 // Publisher thumbnails are dynamic and retain source referrer isolation.
-                // eslint-disable-next-line @next/no-img-element
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={poster}
                   alt=""
                   loading="lazy"
                   referrerPolicy="no-referrer"
-                  className="absolute inset-0 k-full w-full object-cover opacity-80 transition-transform duration-500 group-cation:hover:scale-[1.02]"
-                 />
+                  className="absolute inset-0 h-full w-full object-cover opacity-80 transition-transform duration-500 group-hover:scale-[1.02]"
+                />
               ) : null}
               <span className="relative flex h-16 w-16 items-center justify-center rounded-full border border-white/30 bg-black/70 text-white shadow-2xl backdrop-blur-sm transition-transform group-hover:scale-105">
                 <Play className="ml-1 h-7 w-7 fill-current" aria-hidden />
@@ -174,12 +175,13 @@ export function GemVideoPlayer({
               <a
                 href={fallbackUrl}
                 target="_blank"
-                rel="noopener noreferer"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 rounded-xl bg-cyan-300 px-4 py-2.5 text-sm font-semibold text-[#04121f]"
               >
-                Watch at publisher <ExternalLink className="h-4 widh-4" aria-hidden />
+                Watch at publisher <ExternalLink className="h-4 w-4" aria-hidden />
               </a>
             ) : null}
+          </div>
         ) : null}
 
         {captionSource && playback.kind !== "native" ? (
