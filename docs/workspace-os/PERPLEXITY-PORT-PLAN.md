@@ -81,14 +81,14 @@ Required in the Next.js port:
 - Focus management when route/environment changes.
 - Keyboard-operable tabs using the ARIA tablist/tab/tabpanel pattern.
 - ArrowLeft/ArrowRight/Home/End tab navigation.
-- Keyboard-operable switches with `aria-checked` and Space/Enter support.
+- Keyboard-operable switches with `aria-checked` and Space/Enter support where a genuine interactive switch exists.
 - Integration drawer as an accessible dialog with focus trap, Escape close, and focus restore.
 - Toast/status announcements through an `aria-live` region.
 - Mobile sidebar backdrop/scrim, Escape-to-close, and correct `aria-expanded` state.
 - Sidebar/module/workspace search/filter.
 - `prefers-reduced-motion` support.
 - Visible `:focus-visible` treatment.
-- Theme toggle with `aria-pressed`.
+- Theme controls use pressed-state semantics when offered.
 - No hidden-tab controls left keyboard-focusable.
 
 ### Important source discrepancy
@@ -135,23 +135,17 @@ Additional domain modules from the prototype should be introduced as permission-
 
 ### Component level
 
-Recommended new/reworked reusable components:
+Reusable implementation surfaces now include:
 
-- `WorkspaceDirectoryShell`
-- `WorkspaceSidebar`
-- `WorkspaceTopbar`
-- `WorkspaceBreadcrumbs`
-- `WorkspaceModuleSearch`
-- `WorkspaceKpiGrid`
-- `WorkspaceQuickActions`
-- `WorkspaceHealthPanel`
-- `AccessibleTabs`
-- `AccessibleIntegrationDrawer`
+- `WorkspaceDirectory`
+- `WorkspaceProjectDirectory`
+- `WorkspaceOSNavigation`
+- `WorkspaceOSModuleDirectory`
+- `ProjectWorkspaceShell`
+- `ProjectWorkspaceModuleSurfaces`
 - `WorkspaceIntegrationCatalog`
-- `WorkspaceCommandBar`
-- `MobileWorkspaceNavigation`
 
-The existing `ProjectWorkspaceShell` should be evolved rather than discarded.
+The existing `ProjectWorkspaceShell` remains the authoritative project shell rather than being discarded.
 
 ## Visual direction
 
@@ -187,9 +181,10 @@ Keep GEM's current production brand/security tone. Do not copy Perplexity brandi
 3. Add workspace/module search.
 4. Implement mobile drawer/scrim behavior.
 5. Add skip link and focus management.
-6. Add fully accessible tabs and switches.
-7. Add accessible integration drawer behavior.
-8. Preserve all current route guards and server data loading.
+6. Add fully accessible tabs for real module filters and tabbed content.
+7. Keep switches only where the underlying operation is real and permission-gated.
+8. Add accessible integration drawer behavior.
+9. Preserve all current route guards and server data loading.
 
 ### Phase 2 — Workspace directory and module mapping
 
@@ -217,7 +212,7 @@ Required deterministic checks:
 - drawer focus trap/restore;
 - mobile sidebar Escape/backdrop behavior;
 - 320px/390px/768px/desktop visual QA;
-- light/dark contrast checks if both themes are enabled;
+- contrast checks for every supported theme;
 - no console errors;
 - production Next.js build;
 - secret scan;
@@ -234,18 +229,17 @@ Required deterministic checks:
 - No removal of current video, AI-support, social-media, workspace-owner, or governance capabilities.
 - No merge until preview QA proves the new shell preserves current functionality.
 
-## First implementation target
-
-Start with `src/components/workspace/ProjectWorkspaceShell.tsx` plus the `/app/workspace` directory surface. Port the shell/navigation/accessibility model first while keeping all existing server data and authorization contracts unchanged.
-
-Only after that passes tests should module-specific visual surfaces be migrated.
-
 ## Completion reconciliation
 
-The shell, directory, accessibility, grouped module mapping, searchable integration catalogue, and accessible detail dialog were merged through PRs #320–#322. This follow-up completes the project-scoped live-data layer:
+The shell, directory, accessibility, grouped module mapping, searchable integration catalogue, accessible detail dialog, and project-scoped live-data surfaces were merged through PRs #320–#323.
 
-- the Tools environment lists persisted connector records and their recorded health state;
-- an empty connector registry stays explicitly unconfigured rather than showing prototype data;
-- the Monitoring environment renders GEM Sentinel from workspace emergency, publishing, advertising, store, and connector controls;
-- connector and approval counts remain authoritative database records;
-- provider authorization, compliance, approval, and external action gates remain unchanged and fail closed.
+The current finalization lane completes the remaining accessibility gap from the supplied Perplexity specification without removing any current Workspace OS capability:
+
+- `/app/workspace` now exposes a searchable Workspace OS module directory over the authoritative organization module states;
+- the directory implements a proper ARIA `tablist` / `tab` / `tabpanel` pattern;
+- ArrowLeft, ArrowRight, Home, and End move between module-filter tabs and preserve roving tab focus;
+- result-count and save notices are announced through polite live regions;
+- available, setup-in-progress, and not-activated states remain explicit and fail closed;
+- real modules link only to existing GEM routes or same-page anchored controls;
+- team and weekly-reporting anchors make module navigation land on the existing operating surfaces;
+- project creation, team assignment, weekly reporting, permission checks, connectors, video, AI support, and governance remain unchanged.
