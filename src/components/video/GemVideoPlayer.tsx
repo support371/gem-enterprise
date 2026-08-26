@@ -17,7 +17,7 @@ type GemVideoPlayerProps = {
   allowLocalObjectUrl?: boolean;
   showDescription?: boolean;
   /** Automatically play media when it enters the viewport. */
-  autoPlayOnScrollO> boolean;
+  autoPlayOnScroll?: boolean;
   className?: string;
 };
 
