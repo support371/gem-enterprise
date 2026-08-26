@@ -240,11 +240,21 @@ export function CuratedNewsFeed({
 
       {!state.loading && state.items.length > 0 && (
         <>
-          {heroArticle && <NewsArticleCard article={heroArticle} variant="hero" />}
+          {heroArticle && (
+            <NewsArticleCard
+              article={heroArticle}
+              variant="hero"
+              autoPlayOnScroll={videoOnly}
+            />
+          )}
           {gridArticles.length > 0 && (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
               {gridArticles.map((article) => (
-                <NewsArticleCard key={article.id} article={article} />
+                <NewsArticleCard
+                  key={article.id}
+                  article={article}
+                  autoPlayOnScroll={videoOnly}
+                />
               ))}
             </div>
           )}

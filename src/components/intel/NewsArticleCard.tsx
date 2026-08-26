@@ -67,9 +67,11 @@ function timeAgo(iso: string): string {
 export function NewsArticleCard({
   article,
   variant = "default",
+  autoPlayOnScroll = false,
 }: {
   article: NewsArticleCardData;
   variant?: "default" | "hero" | "compact";
+  autoPlayOnScroll?: boolean;
 }) {
   const isHero = variant === "hero";
   const isCompact = variant === "compact";
@@ -103,6 +105,7 @@ export function NewsArticleCard({
               poster={article.videoThumbnail ?? article.imageUrl}
               providerHint={article.videoProvider}
               externalUrl={article.externalUrl}
+              autoPlayOnScroll={autoPlayOnScroll}
               className="relative z-20 h-full rounded-none border-0"
             />
           ) : (

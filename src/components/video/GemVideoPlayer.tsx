@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Captions, ExternalLink, Play, VideoOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { addPlaybackAutoplay, resolveVideoPlayback } from "@/lib/video/playback";
@@ -16,6 +16,8 @@ type GemVideoPlayerProps = {
   externalUrl?: string | null;
   allowLocalObjectUrl?: boolean;
   showDescription?: boolean;
+  /** Automatically play muted media when it enters the viewport. */
+  autoPlayOnScroll?: boolean;
   className?: string;
 };
 
@@ -53,10 +55,38 @@ export function GemVideoPlayer({
   externalUrl,
   allowLocalObjectUrl = false,
   showDescription = false,
+  autoPlayOnScroll = false,
   className,
 }: GemVideoPlayerProps) {
   const [activated, setActivated] = useState(false);
+  const [inView, setInView] = useState(false);
   const descriptionId = useId();
+  const mediaRef = useRef<HTMLDivElement | null>(null);
+  const nativeVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    if (!autoPlayOnScroll || !mediaRef.current || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setInView(Boolean(entry?.isIntersecting)),
+      { threshold: 0.55 },
+    );
+    observer.observe(mediaRef.current);
+    return () => observer.disconnect();
+  }, [autoPlayOnScroll]);
+
+  useEffect(() => {
+    const video = nativeVideoRef.current;
+    if (!autoPlayOnScroll || !video) return;
+    if (inView) {
+      video.muted = true;
+      void video.play().catch(() => {
+        // Autoplay can still be blocked by browser policy; controls remain available.
+      });
+    } else {
+      video.pause();
+    }
+  }, [autoPlayOnScroll, inView]);
+
   const playback = useMemo(
     () => resolveVideoPlayback(src, { providerHint, mimeType, allowLocalObjectUrl }),
     [allowLocalObjectUrl, mimeType, providerHint, src],
@@ -68,7 +98,7 @@ export function GemVideoPlayer({
 
   return (
     <figure className={cn("overflow-hidden rounded-2xl border border-white/10 bg-black", className)}>
-      <div className="relative aspect-video w-full overflow-hidden bg-black">
+      <div ref={mediaRef} className="relative aspect-video w-full overflow-hidden bg-black">
         {playback.kind === "native" && playback.sourceUrl ? (
           <video
             key={playback.sourceUrl}
@@ -76,7 +106,13 @@ export function GemVideoPlayer({
             poster={poster ?? undefined}
             controls
             playsInline
-            preload="metadata"
+            muted={autoPlayOnScroll}
+            autoPlay={autoPlayOnScroll && inView}
+            preload={autoPlayOnScroll ? "auto" : "metadata"}
+            onLoadedMetadata={(event) => {
+              if (autoPlayOnScroll) event.currentTarget.muted = true;
+            }}
+            ref={nativeVideoRef}
             aria-label={title}
             aria-describedby={descriptionId}
             className="h-full w-full object-contain"
@@ -89,7 +125,7 @@ export function GemVideoPlayer({
         ) : null}
 
         {(playback.kind === "youtube" || playback.kind === "vimeo") && playback.embedUrl ? (
-          activated ? (
+          (activated || (autoPlayOnScroll && inView)) ? (
             <iframe
               src={addPlaybackAutoplay(playback.embedUrl)}
               title={title}
