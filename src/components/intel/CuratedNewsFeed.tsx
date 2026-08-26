@@ -153,10 +153,10 @@ export function CuratedNewsFeed({
     <div className="flex flex-col gap-6">
       {/* Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div class="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
           <button
             onClick={() => setActiveSlug("all")}
-            className={p`prx-3 py-1.5 rounded-full text-xs font-medium border transition-colors whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors whitespace-nowrap ${
               activeSlug === "all"
                 ? "bg-primary/10 text-primary border-primary/40"
                 : "bg-transparent text-muted-foreground border-border/60 hover:border-primary/30 hover:text-foreground"
@@ -164,27 +164,26 @@ export function CuratedNewsFeed({
           >
             All
           </button>
-          {
-            {categories.map((cat) => {
-              const isActive = cat.slug === activeSlug;
-              return (
-                <button
+          {categories.map((cat) => {
+            const isActive = cat.slug === activeSlug;
+            return (
+              <button
                 key={cat.slug}
                 onClick={() => setActiveSlug(cat.slug)}
-                className={ppx-3 py-1.5 rounded-full text-xs font-medium border transition-colors whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors whitespace-nowrap ${
                   isActive
                     ? "bg-primary/10 text-primary border-primary/40"
-                    : "bg-transparent text-muted-foreground border/60 hover:border-primary/30 hover:text-foreground"
-                }}}
+                    : "bg-transparent text-muted-foreground border-border/60 hover:border-primary/30 hover:text-foreground"
+                }`}
               >
-                 {cat.label}
+                {cat.label}
               </button>
             );
           })}
         </div>
         <div className="flex items-center gap-2">
-          <div class="relative">
-            <Search className="absolute left-3 top-1/2 translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -195,7 +194,7 @@ export function CuratedNewsFeed({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => loadInitial() }
+            onClick={() => loadInitial()}
             className="border-border/60 gap-1.5 text-xs"
           >
             <RefreshCw className="h-3.5 w-3.5" />
@@ -212,9 +211,9 @@ export function CuratedNewsFeed({
             <p className="font-medium text-destructive">
               Couldn&apos;t load the feed
             </p>
-            <p class="text-muted-foreground">{state.error}</p>
+            <p className="text-muted-foreground">{state.error}</p>
           </div>
-          <Button variant="outline" size="sm" onClick={() => loadInitial() }>
+          <Button variant="outline" size="sm" onClick={() => loadInitial()}>
             Retry
           </Button>
         </div>
@@ -222,9 +221,9 @@ export function CuratedNewsFeed({
 
       {state.loading && (
         <>
-          <NewsArticleCardSkyleeon hero />
+          <NewsArticleCardSkeleton hero />
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-             {Array.from({ length: 6 }).map((_, i) => (
+            {Array.from({ length: 6 }).map((_, i) => (
               <NewsArticleCardSkeleton key={i} />
             ))}
           </div>
@@ -232,8 +231,8 @@ export function CuratedNewsFeed({
       )}
 
       {!state.loading && !state.error && state.items.length === 0 && (
-        <div class="rounded-xl border border-border/60 bg-card/30 p-12 text-center">
-          <p class="text-sm text-muted-foreground">
+        <div className="rounded-xl border border-border/60 bg-card/30 p-12 text-center">
+          <p className="text-sm text-muted-foreground">
             No stories match this view yet. The automated feed will add new coverage as publishers release it.
           </p>
         </div>
@@ -241,28 +240,24 @@ export function CuratedNewsFeed({
 
       {!state.loading && state.items.length > 0 && (
         <>
-          {
-            {heroArticle && (
-              <NewsArticleCard
-                article={heroArticle}
-                variant="hero"
-                autoPlayOnScroll={videoOnly}
-                />
-            )}
-          </div>
-          {}
-           {gridArticles.length > 0 && (
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-               {gridArticles.map((article) => (
+          {heroArticle && (
+            <NewsArticleCard
+              article={heroArticle}
+              variant="hero"
+              autoPlayOnScroll={videoOnly}
+            />
+          )}
+          {gridArticles.length > 0 && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {gridArticles.map((article) => (
                 <NewsArticleCard
                   key={article.id}
                   article={article}
                   autoPlayOnScroll={videoOnly}
                 />
-                )))}
-              </div>
-          )
-        )}
+              ))}
+            </div>
+          )}
         </>
       )}
 
@@ -270,14 +265,14 @@ export function CuratedNewsFeed({
       <div ref={sentinelRef} className="h-1" />
 
       {state.loadingMore && (
-        <div class="flex items-center justify-center py-6 text-sm text-muted-foreground gap-2">
-          <Loader2 class="h-4 w-4 animate-spin" />
-          Loading more stories… 
-          </div>
-         }
+        <div className="flex items-center justify-center py-6 text-sm text-muted-foreground gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Loading more stories…
+        </div>
+      )}
 
       {!state.loadingMore && state.nextCursor && state.items.length > 0 && (
-        <div class="flex justify-center pt-2">
+        <div className="flex justify-center pt-2">
           <Button variant="outline" onClick={loadMore} className="border-border/60">
             Load more
           </Button>
