@@ -27,6 +27,10 @@ export default async function AccessContinuePage() {
     entitlements: [],
   };
 
+  if (session.role !== "client") {
+    redirect(resolveAccessDestination(session));
+  }
+
   const gatewayToken = session.authSource === "supabase_gateway" ? await getGatewaySessionToken() : null;
   const workspaceAccess = gatewayToken
     ? await workspaceGateway<{workspaces:Array<{id:string}>}>("access",gatewayToken).then(({workspaces})=>({workspaces,selected:workspaces[0]??null,requestedWorkspaceId:null,requestedDenied:false}))
