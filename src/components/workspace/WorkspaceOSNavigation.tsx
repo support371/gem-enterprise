@@ -14,6 +14,26 @@ export interface WorkspaceOSNavItem {
 }
 
 const pendingFocusKey = "gem:workspace-navigation-focus";
+const navigationGroupOrder = ["Workspace", "Platform", "Governance"] as const;
+type NavigationGroup = (typeof navigationGroupOrder)[number];
+
+const workspaceEnvironmentIds = new Set([
+  "overview",
+  "production",
+  "development",
+  "marketing",
+  "sales",
+  "finance",
+  "team",
+  "client",
+]);
+const platformEnvironmentIds = new Set(["services", "tools", "monitoring"]);
+
+function navigationGroupFor(item: WorkspaceOSNavItem): NavigationGroup {
+  if (workspaceEnvironmentIds.has(item.id)) return "Workspace";
+  if (platformEnvironmentIds.has(item.id)) return "Platform";
+  return "Governance";
+}
 
 interface WorkspaceOSNavigationProps {
   items: WorkspaceOSNavItem[];
@@ -39,48 +59,62 @@ function NavigationList({
     const normalized = query.trim().toLowerCase();
     if (!normalized) return items;
     return items.filter((item) =>
-      `${item.label} ${item.description}`.toLowerCase().includes(normalized),
+      `${item.label} ${item.description} ${navigationGroupFor(item)}`.toLowerCase().includes(normalized),
     );
   }, [items, query]);
 
+  const grouped = useMemo(() => navigationGroupOrder.map((group) => ({
+    group,
+    items: filtered.filter((item) => navigationGroupFor(item) === group),
+  })).filter((entry) => entry.items.length > 0), [filtered]);
+
   return (
     <nav aria-label="Project environments" className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
-      <p className="px-2 pb-2 pt-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-        Environments
-      </p>
-      <div className="space-y-1">
-        {filtered.map((item) => {
-          const active = item.id === currentId;
-          return (
-            <Link
-              key={item.id}
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              onClick={onNavigate}
-              className={cn(
-                "group flex min-h-12 items-center gap-3 rounded-xl border px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300",
-                active
-                  ? "border-cyan-300/30 bg-cyan-300 text-slate-950 shadow-[0_10px_30px_rgba(34,211,238,.12)]"
-                  : "border-transparent text-slate-300 hover:border-white/10 hover:bg-white/[.05] hover:text-white",
-              )}
+      <div className="space-y-4 pt-1">
+        {grouped.map(({ group, items: groupItems }) => (
+          <section key={group} aria-labelledby={`workspace-os-nav-${group.toLowerCase()}`}>
+            <p
+              id={`workspace-os-nav-${group.toLowerCase()}`}
+              className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500"
             >
-              <span
-                aria-hidden="true"
-                className={cn(
-                  "h-2 w-2 shrink-0 rounded-full",
-                  active ? "bg-slate-950" : "bg-slate-600 group-hover:bg-cyan-300",
-                )}
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold">{item.label}</span>
-                <span className={cn("mt-0.5 block line-clamp-1 text-[11px]", active ? "text-slate-800" : "text-slate-500")}>
-                  {item.description}
-                </span>
-              </span>
-              <ChevronRight className={cn("h-4 w-4 shrink-0", active ? "text-slate-800" : "text-slate-600 group-hover:text-cyan-300")} />
-            </Link>
-          );
-        })}
+              {group}
+            </p>
+            <div className="space-y-1">
+              {groupItems.map((item) => {
+                const active = item.id === currentId;
+                return (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    onClick={onNavigate}
+                    className={cn(
+                      "group flex min-h-12 items-center gap-3 rounded-xl border px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300",
+                      active
+                        ? "border-cyan-300/30 bg-cyan-300 text-slate-950 shadow-[0_10px_30px_rgba(34,211,238,.12)]"
+                        : "border-transparent text-slate-300 hover:border-white/10 hover:bg-white/[.05] hover:text-white",
+                    )}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "h-2 w-2 shrink-0 rounded-full",
+                        active ? "bg-slate-950" : "bg-slate-600 group-hover:bg-cyan-300",
+                      )}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold">{item.label}</span>
+                      <span className={cn("mt-0.5 block line-clamp-1 text-[11px]", active ? "text-slate-800" : "text-slate-500")}>
+                        {item.description}
+                      </span>
+                    </span>
+                    <ChevronRight className={cn("h-4 w-4 shrink-0", active ? "text-slate-800" : "text-slate-600 group-hover:text-cyan-300")} />
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        ))}
         {!filtered.length && (
           <p className="rounded-xl border border-dashed border-white/10 p-4 text-center text-xs text-slate-500">
             No environment matches “{query}”.
