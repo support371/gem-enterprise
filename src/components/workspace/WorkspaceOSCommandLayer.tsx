@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  BellRing,
   Bot,
   Clapperboard,
   Command,
@@ -19,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { cn } from "@/lib/utils";
 import type { WorkspaceOSNavItem } from "@/components/workspace/WorkspaceOSNavigation";
 
@@ -30,6 +32,7 @@ interface WorkspaceOSCommandLayerProps {
   workspaceHref: string;
   workspaceId: string;
   projectId: string;
+  updateCount: number;
 }
 
 interface CommandDestination {
@@ -53,6 +56,7 @@ export function WorkspaceOSCommandLayer({
   workspaceHref,
   workspaceId,
   projectId,
+  updateCount,
 }: WorkspaceOSCommandLayerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -93,8 +97,8 @@ export function WorkspaceOSCommandLayer({
       {
         id: "platform:news",
         label: "News automation",
-        description: "Open GEM news and media intelligence surfaces.",
-        href: appendScope("/intel/news", workspaceId, projectId),
+        description: "Open GEM source ingestion, attributed stories, video discovery, and native news operations.",
+        href: appendScope("/app/command-center/integrations/news", workspaceId, projectId),
         category: "Platform" as const,
       },
       {
@@ -169,6 +173,16 @@ export function WorkspaceOSCommandLayer({
             </span>
           </button>
 
+          <a
+            href="#project-reporting-feed"
+            aria-label={`${updateCount} project updates. Jump to project reporting feed.`}
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 px-3 text-xs font-semibold text-slate-300 transition hover:border-cyan-300/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+          >
+            <BellRing className="h-4 w-4 text-cyan-300" aria-hidden="true" />
+            <span>{updateCount}</span>
+            <span className="sr-only">project updates</span>
+          </a>
+
           <Link
             href={appendScope("/app/support", workspaceId, projectId)}
             className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 px-3 text-xs font-semibold text-slate-300 transition hover:border-cyan-300/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
@@ -176,6 +190,10 @@ export function WorkspaceOSCommandLayer({
             <Bot className="h-4 w-4 text-cyan-300" aria-hidden="true" />
             AI support
           </Link>
+
+          <div className="flex h-10 items-center rounded-xl border border-white/10 px-0.5">
+            <ThemeToggle />
+          </div>
         </div>
       </div>
 
