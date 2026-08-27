@@ -153,6 +153,10 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
+    if (pathname === "/app/admin" && session.role === "super_admin") {
+      return NextResponse.redirect(new URL("/app/super-admin", request.url));
+    }
+
     if (isSuperAdminRoute(pathname) && session.role !== "super_admin") {
       return NextResponse.redirect(
         new URL(resolveAccessDestination(session), request.url),
