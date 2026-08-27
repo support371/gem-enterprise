@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ProjectWorkspaceModuleSurfaces } from "@/components/workspace/ProjectWorkspaceModuleSurfaces";
+import { WorkspaceOSCommandLayer } from "@/components/workspace/WorkspaceOSCommandLayer";
 import { WorkspaceOSNavigation } from "@/components/workspace/WorkspaceOSNavigation";
 import { canOpenProjectEnvironment, projectEnvironments, type ProjectEnvironmentId } from "@/lib/projectWorkspace";
 
@@ -105,6 +106,16 @@ export function ProjectWorkspaceShell({ environment, project, workspace, members
         />
 
         <main id="workspace-main-content" tabIndex={-1} className="min-w-0 space-y-5 outline-none">
+          <WorkspaceOSCommandLayer
+            items={navItems}
+            currentId={current.id}
+            workspaceName={workspace.name}
+            projectName={project.name}
+            workspaceHref={workspaceHref}
+            workspaceId={workspace.id}
+            projectId={project.id}
+          />
+
           <header className="rounded-2xl border border-white/10 bg-slate-950/70 p-4 sm:p-5">
             <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
               <Link href="/app/workspace" className="rounded px-1 py-0.5 hover:text-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
