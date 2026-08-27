@@ -49,6 +49,30 @@ describe("strict role portal isolation", () => {
     expect(continuation).toContain("redirect(resolveAccessDestination(session))");
   });
 
+  it("keeps top-level and nested Workspace OS routes client-only", () => {
+    const workspace = source("src/app/app/workspace/page.tsx");
+    const project = source(
+      "src/app/app/workspace/projects/[projectId]/[[...environment]]/page.tsx",
+    );
+
+    expect(workspace).toContain('if (gate.session.role !== "client")');
+    expect(project).toContain('if (gate.session.role !== "client")');
+    expect(workspace).toContain("redirect(resolveAccessDestination(gate.session))");
+    expect(project).toContain("redirect(resolveAccessDestination(gate.session))");
+  });
+
+  it("restores the reference directory-first navigation model", () => {
+    const workspace = source("src/app/app/workspace/page.tsx");
+    const directory = source("src/components/workspace/WorkspaceDirectory.tsx");
+
+    expect(workspace).toContain("!requestedWorkspaceId && resolution.workspaces.length > 0");
+    expect(workspace).toContain("Manage every service in one flow.");
+    expect(workspace).toContain('<WorkspaceDirectory workspaces={resolution.workspaces} />');
+    expect(workspace).toContain('href="/app/workspace"');
+    expect(workspace).toContain("All workspaces");
+    expect(directory).toContain("selectedId?: string | null");
+  });
+
   it("protects the super admin center separately", () => {
     const proxy = source("src/proxy.ts");
     expect(proxy).toContain(
