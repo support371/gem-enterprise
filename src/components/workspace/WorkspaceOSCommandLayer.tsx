@@ -32,7 +32,7 @@ interface WorkspaceOSCommandLayerProps {
   workspaceHref: string;
   workspaceId: string;
   projectId: string;
-  updateCount: number;
+  updateCount?: number;
 }
 
 interface CommandDestination {
@@ -173,15 +173,17 @@ export function WorkspaceOSCommandLayer({
             </span>
           </button>
 
-          <a
-            href="#project-reporting-feed"
-            aria-label={`${updateCount} project updates. Jump to project reporting feed.`}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 px-3 text-xs font-semibold text-slate-300 transition hover:border-cyan-300/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-          >
-            <BellRing className="h-4 w-4 text-cyan-300" aria-hidden="true" />
-            <span>{updateCount}</span>
-            <span className="sr-only">project updates</span>
-          </a>
+          {typeof updateCount === "number" ? (
+            <a
+              href="#project-reporting-feed"
+              aria-label={`${updateCount} project updates. Jump to project reporting feed.`}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 px-3 text-xs font-semibold text-slate-300 transition hover:border-cyan-300/25 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+            >
+              <BellRing className="h-4 w-4 text-cyan-300" aria-hidden="true" />
+              <span>{updateCount}</span>
+              <span className="sr-only">project updates</span>
+            </a>
+          ) : null}
 
           <Link
             href={appendScope("/app/support", workspaceId, projectId)}
