@@ -24,6 +24,7 @@ describe("Workspace OS organization command layer", () => {
     expect(commandLayer).toContain("projects.map((project)");
     expect(commandLayer).toContain("modules.map((module)");
     expect(commandLayer).toContain('module.state === "AVAILABLE"');
+    expect(commandLayer).toContain('module.state === "SETUP_IN_PROGRESS"');
     expect(commandLayer).toContain("The module remains fail-closed.");
     expect(commandLayer).toContain('/app/command-center/integrations');
     expect(commandLayer).toContain('/app/social-media/video');
@@ -46,8 +47,8 @@ describe("Workspace OS organization command layer", () => {
   it("keeps unavailable modules explicit and does not grant new authority", () => {
     const commandLayer = source("src/components/workspace/OrganizationWorkspaceCommandLayer.tsx");
 
-    expect(commandLayer).toContain("NOT_ACTIVATED");
-    expect(commandLayer).toContain("SETUP_IN_PROGRESS");
+    expect(commandLayer).toContain("Not activated. The module remains fail-closed.");
+    expect(commandLayer).toContain("Workspace setup is in progress; provider and permission gates remain authoritative.");
     expect(commandLayer).toContain("Visibility here never grants a new role, workspace, provider authorization, or entitlement.");
     expect(commandLayer).toContain('role="status" aria-live="polite"');
     expect(commandLayer).toContain("ThemeToggle");
