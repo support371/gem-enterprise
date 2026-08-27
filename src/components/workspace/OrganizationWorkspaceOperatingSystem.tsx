@@ -6,6 +6,7 @@ import { Activity, AlertTriangle, Plus, Send, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { OrganizationWorkspaceCommandLayer } from "@/components/workspace/OrganizationWorkspaceCommandLayer";
 import { WorkspaceOSModuleDirectory } from "@/components/workspace/WorkspaceOSModuleDirectory";
 import { WorkspaceProjectDirectory } from "@/components/workspace/WorkspaceProjectDirectory";
 
@@ -69,6 +70,14 @@ export function OrganizationWorkspaceOperatingSystem({ overview }: { overview: O
           {notice}
         </div>
       ) : null}
+
+      <OrganizationWorkspaceCommandLayer
+        workspaceId={overview.workspace.id}
+        workspaceName={overview.workspace.name}
+        projects={overview.projects}
+        modules={overview.modules}
+        updateCount={overview.updates.length}
+      />
 
       <WorkspaceOSModuleDirectory modules={overview.modules} />
 
