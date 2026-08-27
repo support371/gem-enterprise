@@ -10,6 +10,8 @@ describe("Workspace OS command layer", () => {
 
     expect(shell).toContain("WorkspaceOSNavigation");
     expect(shell).toContain("WorkspaceOSCommandLayer");
+    expect(shell).toContain("const available = projectEnvironments.filter");
+    expect(shell).toContain("const navItems = available.map");
     expect(commandLayer).toContain('event.key === "/"');
     expect(commandLayer).toContain('event.key.toLowerCase() === "k"');
     expect(commandLayer).toContain('aria-haspopup="dialog"');
@@ -21,8 +23,9 @@ describe("Workspace OS command layer", () => {
 
     expect(commandLayer).toContain('/app/command-center/integrations');
     expect(commandLayer).toContain('/app/social-media/video');
-    expect(commandLayer).toContain('/intel/news');
+    expect(commandLayer).toContain('/app/command-center/integrations/news');
     expect(commandLayer).toContain('/app/support');
+    expect(commandLayer).not.toContain('appendScope("/intel/news"');
     expect(commandLayer).toContain('This search does not grant new permissions.');
   });
 
@@ -32,5 +35,15 @@ describe("Workspace OS command layer", () => {
     expect(commandLayer).toContain('workspace=${encodeURIComponent(workspaceId)}');
     expect(commandLayer).toContain('project=${encodeURIComponent(projectId)}');
     expect(commandLayer).toContain('role="status" aria-live="polite"');
+  });
+
+  it("adds the existing theme control with pressed-state semantics", () => {
+    const commandLayer = source("src/components/workspace/WorkspaceOSCommandLayer.tsx");
+    const themeToggle = source("src/components/ThemeToggle.tsx");
+
+    expect(commandLayer).toContain("ThemeToggle");
+    expect(themeToggle).toContain("aria-pressed={dark}");
+    expect(themeToggle).toContain("Dark theme active");
+    expect(themeToggle).toContain("Light theme active");
   });
 });
