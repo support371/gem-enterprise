@@ -13,6 +13,7 @@ import {
   Plug,
   Scale,
   ShieldAlert,
+  Boxes,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -55,6 +56,20 @@ function sectionHref(section: CommandCenterSection) {
 export function CommandCenterDirectory() {
   return (
     <div className="space-y-8">
+      <section aria-labelledby="product-directory-title" className="rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/[0.08] via-white/[0.025] to-cyan-500/[0.06] p-5 sm:p-6">
+        <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
+          <div className="flex items-start gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-500/10 text-violet-300"><Boxes className="h-5 w-5" aria-hidden="true" /></div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-300">Enterprise products</p>
+              <h2 id="product-directory-title" className="mt-1 text-xl font-bold text-white">Open a governed product boundary</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">Launch IWW or review the GEM, AI, integration, and crypto product boundaries without combining repositories, identities, or customer data.</p>
+            </div>
+          </div>
+          <Link href="/app/platform-products" className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-violet-300 hover:text-violet-200">Open product directory <ArrowRight className="h-4 w-4" aria-hidden="true" /></Link>
+        </div>
+      </section>
+
       <section aria-labelledby="role-directions-title">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">Start in the right place</p>
         <h2 id="role-directions-title" className="mt-1 text-xl font-bold text-white">Directions by responsibility</h2>
