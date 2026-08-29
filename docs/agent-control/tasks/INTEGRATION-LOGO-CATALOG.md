@@ -50,6 +50,7 @@ catalogue requirement.
 - `src/components/command-center/WorkspaceIntegrationCatalog.tsx`
 - `src/app/app/command-center/integrations/page.tsx`
 - `src/__tests__/workspace-integration-catalog.test.ts`
+- `src/__tests__/workspace-integration-catalog-ui.test.tsx`
 - `src/__tests__/workspace-os-phase3.test.ts`
 - `docs/agent-control/tasks/INTEGRATION-LOGO-CATALOG.md`
 - `docs/agent-control/ACTIVE-WORK.md` (this entry only)
@@ -117,9 +118,9 @@ production remains owned by the canonical Vercel Git integration.
 
 ## LOCAL VERIFICATION
 
-- Focused catalogue and Workspace OS tests: 9 passed.
+- Focused catalogue, interaction, and Workspace OS tests: 11 passed.
 - Repository lint and TypeScript: passed.
-- Full test suite: 114 files and 679 tests passed.
+- Full test suite: 115 files and 681 tests passed.
 - Prisma schema validation and client generation: passed.
 - Next.js production build: passed; 358 static pages generated.
 - `git diff --check`: passed.
