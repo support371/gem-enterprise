@@ -102,8 +102,10 @@ export function resolveVideoPlayback(
   return { kind: "external", sourceUrl: url.toString(), embedUrl: null, provider: "Publisher" };
 }
 
-export function addPlaybackAutoplay(embedUrl: string): string {
+export function addPlaybackAutoplay(embedUrl: string, { muted = false }: { muted?: boolean } = {}): string {
   const url = new URL(embedUrl);
   url.searchParams.set("autoplay", "1");
+  if (muted && url.hostname === "www.youtube-nocookie.com") url.searchParams.set("mute", "1");
+  if (muted && url.hostname === "player.vimeo.com") url.searchParams.set("muted", "1");
   return url.toString();
 }

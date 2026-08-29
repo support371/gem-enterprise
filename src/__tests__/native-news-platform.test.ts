@@ -30,6 +30,17 @@ describe("native GEM News platform", () => {
     expect(player).toContain("playsInline");
     expect(gateway).toContain("videoThumbnail,videoProvider");
   });
+  it("coordinates scroll previews and refreshes visible feeds without manual action", () => {
+    const feed = source("src/components/intel/CuratedNewsFeed.tsx");
+    const player = source("src/components/video/GemVideoPlayer.tsx");
+    expect(feed).toContain("VIDEO_AUTOPLAY_THRESHOLD");
+    expect(feed).toContain("activeVideoId");
+    expect(feed).toContain("FEED_REFRESH_INTERVAL_MS");
+    expect(feed).toContain('document.visibilityState === "visible"');
+    expect(player).toContain("prefers-reduced-motion: reduce");
+    expect(player).toContain("saveData");
+    expect(player).toContain("video.pause()");
+  });
   it("keeps ingestion protected by a server-side authorization hash", () => {
     const gateway = source("supabase/functions/gem-news-gateway/index.ts");
     expect(gateway).toContain('token_hash');
@@ -43,7 +54,14 @@ describe("native GEM News platform", () => {
   });
   it("schedules autonomous refreshes and denies direct table access", () => {
     const migration = source("scripts/news-003-native-production.sql");
+    const cadence = source("supabase/migrations/20260829120000_news_refresh_cadence.sql");
+    const gateway = source("supabase/functions/gem-news-gateway/index.ts");
     expect(migration).toContain("gem-news-ingest-every-two-hours");
+    expect(cadence).toContain("gem-news-due-source-check");
+    expect(cadence).toContain("*/15 * * * *");
+    expect(cadence).toContain('"pollIntervalMinutes" = 30');
+    expect(gateway).toContain("sourceIsDue");
+    expect(gateway).toContain("pollIntervalMinutes,lastFetchedAt");
     expect(migration).toContain("ENABLE ROW LEVEL SECURITY");
     expect(migration).toContain("REVOKE ALL");
   });

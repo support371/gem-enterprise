@@ -12,7 +12,14 @@ const slugify = (value: string) => clean(value).toLowerCase().normalize("NFKD").
 const hash = async (value: string) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)))).map((byte) => byte.toString(16).padStart(2, "0")).join("");
 const tagsFor = (title: string) => [...new Set(title.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((word) => word.length > 4 && !["about", "after", "their", "there", "which", "would", "could"].includes(word)))].slice(0, 8);
 
-type Source = { id: string; name: string; feedUrl: string; category: string };
+type Source = { id: string; name: string; feedUrl: string; category: string; pollIntervalMinutes: number; lastFetchedAt: string | null };
+const sourceIsDue = (source: Source, now = Date.now()) => {
+  if (!source.lastFetchedAt) return true;
+  const lastFetched = new Date(source.lastFetchedAt).getTime();
+  if (Number.isNaN(lastFetched)) return true;
+  const intervalMs = Math.max(5, source.pollIntervalMinutes || 120) * 60_000;
+  return now - lastFetched >= intervalMs;
+};
 async function ingestSource(db: ReturnType<typeof createClient>, source: Source) {
   const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 12000);
   try {
@@ -59,11 +66,12 @@ Deno.serve(async (request) => {
   if (action === "status") { const { count } = await db.from("news_articles").select("id", { count: "exact", head: true }).eq("status", "published"); return json({ ok: true, service: "gem-news-gateway", published: count || 0 }); }
   if (action === "ingest") {
     const token = String(input.token || ""); if (token.length < 32) return json({ error: "Unauthorized" }, 401); const tokenHash = await hash(token); const { data: authorization } = await db.from("news_ingestion_authorizations").select("id").eq("token_hash", tokenHash).eq("is_active", true).maybeSingle(); if (!authorization) return json({ error: "Unauthorized" }, 401);
-    const started = Date.now(); const { data: sources, error } = await db.from("news_sources").select("id,name,feedUrl,category").eq("isActive", true); if (error) return json({ error: "Sources unavailable" }, 503);
-    const runId = crypto.randomUUID(); await db.from("news_ingestion_runs").insert({ id: runId, status: "running", triggeredBy: "supabase_cron", sourcesAttempted: sources?.length || 0 });
-    const results = await Promise.all((sources || []).map((source) => ingestSource(db, source))); const failed = results.filter((item) => "error" in item).length; const created = results.reduce((total, item) => total + item.created, 0); const found = results.reduce((total, item) => total + item.found, 0); const skipped = results.reduce((total, item) => total + item.skipped, 0); const status = failed === 0 ? "success" : failed === results.length ? "failed" : "partial";
+    const started = Date.now(); const { data: availableSources, error } = await db.from("news_sources").select("id,name,feedUrl,category,pollIntervalMinutes,lastFetchedAt").eq("isActive", true); if (error) return json({ error: "Sources unavailable" }, 503);
+    const sources = ((availableSources || []) as Source[]).filter((source) => sourceIsDue(source, started)); const deferred = (availableSources?.length || 0) - sources.length;
+    const runId = crypto.randomUUID(); await db.from("news_ingestion_runs").insert({ id: runId, status: "running", triggeredBy: "supabase_cron", sourcesAttempted: sources.length });
+    const results = await Promise.all(sources.map((source) => ingestSource(db, source))); const failed = results.filter((item) => "error" in item).length; const created = results.reduce((total, item) => total + item.created, 0); const found = results.reduce((total, item) => total + item.found, 0); const skipped = results.reduce((total, item) => total + item.skipped, 0); const status = results.length === 0 || failed === 0 ? "success" : failed === results.length ? "failed" : "partial";
     await db.from("news_ingestion_runs").update({ status, sourcesSucceeded: results.length - failed, sourcesFailed: failed, articlesFound: found, articlesCreated: created, articlesSkipped: skipped, durationMs: Date.now() - started, completedAt: new Date().toISOString() }).eq("id", runId);
-    return json({ ok: status !== "failed", runId, status, sources: results.length, created, failed });
+    return json({ ok: status !== "failed", runId, status, sources: results.length, deferred, created, failed });
   }
   return json({ error: "Unknown action" }, 400);
 });

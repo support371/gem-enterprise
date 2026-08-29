@@ -2,6 +2,22 @@
 
 Snapshot: 2026-08-11 UTC. Refresh live GitHub state before mutation.
 
+## GEM News Scroll Autoplay
+
+| Field | Value |
+|---|---|
+| TASK | [NEWS-SCROLL-AUTOPLAY](tasks/NEWS-SCROLL-AUTOPLAY.md) |
+| OWNER | Codex / GEM News experience lane |
+| SOURCE PR/ISSUE | User-directed owner pre-production finishing |
+| BASE SHA | `f084e96457ffa8480be9fadfbb0698bf489da5cd` |
+| WORKING BRANCH | `codex/news-scroll-autoplay` |
+| OWNED FILES/SCOPE | News feed/player coordination, playback URL controls, due-aware gateway ingestion, cadence SQL, focused tests, this task record |
+| FORBIDDEN OVERLAP | PR #291/#292/#252 files; auth; Prisma; credentials; PR #334 catalogue files; IWW repository |
+| STATUS | IMPLEMENTED — LOCAL GATES PASSED |
+| BLOCKER CLASS | PROVIDER ACCESS (Supabase activation only) |
+| LAST VERIFIED HEAD | `f084e96457ffa8480be9fadfbb0698bf489da5cd` |
+| NEXT SAFE ACTION | Publish the exact frontend/gateway head and validate its canonical Vercel preview; keep Supabase activation blocked until project permission is available. |
+
 ## PR #291
 
 | Field | Value |

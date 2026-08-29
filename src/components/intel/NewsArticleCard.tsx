@@ -83,6 +83,7 @@ export function NewsArticleCard({
 
   return (
     <Card
+      data-news-video-id={hasVideo ? article.id : undefined}
       className={`glass-panel bento-card relative border-border/50 overflow-hidden group transition-all hover:border-primary/40 ${
         isHero ? "md:flex md:flex-row" : "flex flex-col"
       }`}
@@ -125,6 +126,11 @@ export function NewsArticleCard({
             {article.isEditorsPick && (
               <Badge className="bg-primary/90 text-primary-foreground border-0 text-xs gap-1">
                 <Star className="h-3 w-3 fill-current" /> Editor&apos;s Pick
+              </Badge>
+            )}
+            {autoPlayOnScroll && (
+              <Badge className="border-cyan-300/30 bg-black/75 text-xs text-cyan-100 backdrop-blur-sm">
+                Muted preview
               </Badge>
             )}
           </div>
