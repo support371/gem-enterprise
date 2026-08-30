@@ -21,6 +21,15 @@ type GemVideoPlayerProps = {
   className?: string;
 };
 
+type NetworkInformationLike = EventTarget & {
+  saveData?: boolean;
+  effectiveType?: string;
+};
+
+function networkInformation(): NetworkInformationLike | null {
+  return (navigator as Navigator & { connection?: NetworkInformationLike }).connection ?? null;
+}
+
 function safeCaptionUrl(value: string | null | undefined): string | undefined {
   const source = value?.trim();
   if (!source) return undefined;
@@ -60,32 +69,61 @@ export function GemVideoPlayer({
 }: GemVideoPlayerProps) {
   const [activated, setActivated] = useState(false);
   const [inView, setInView] = useState(false);
+  const [autoplayAllowed, setAutoplayAllowed] = useState(false);
   const descriptionId = useId();
   const mediaRef = useRef<HTMLDivElement | null>(null);
   const nativeVideoRef = useRef<HTMLVideoElement | null>(null);
+  const autoPlayedRef = useRef(false);
 
   useEffect(() => {
-    if (!autoPlayOnScroll || !mediaRef.current || typeof IntersectionObserver === "undefined") return;
+    const motionPreference = typeof window.matchMedia === "function"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)")
+      : null;
+    const connection = networkInformation();
+    const updatePermission = () => {
+      const constrainedConnection =
+        connection?.saveData === true || ["slow-2g", "2g"].includes(connection?.effectiveType ?? "");
+      setAutoplayAllowed(
+        !motionPreference?.matches && !constrainedConnection && document.visibilityState === "visible",
+      );
+    };
+    updatePermission();
+    motionPreference?.addEventListener("change", updatePermission);
+    connection?.addEventListener("change", updatePermission);
+    document.addEventListener("visibilitychange", updatePermission);
+    return () => {
+      motionPreference?.removeEventListener("change", updatePermission);
+      connection?.removeEventListener("change", updatePermission);
+      document.removeEventListener("visibilitychange", updatePermission);
+    };
+  }, []);
+
+  const shouldAutoPlay = autoPlayOnScroll && autoplayAllowed;
+
+  useEffect(() => {
+    if (!shouldAutoPlay || !mediaRef.current || typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver(
       ([entry]) => setInView(Boolean(entry?.isIntersecting)),
       { threshold: 0.55 },
     );
     observer.observe(mediaRef.current);
     return () => observer.disconnect();
-  }, [autoPlayOnScroll]);
+  }, [shouldAutoPlay]);
 
   useEffect(() => {
     const video = nativeVideoRef.current;
-    if (!autoPlayOnScroll || !video) return;
-    if (inView) {
+    if (!video) return;
+    if (shouldAutoPlay && inView) {
       video.muted = true;
+      autoPlayedRef.current = true;
       void video.play().catch(() => {
         // Autoplay can still be blocked by browser policy; controls remain available.
       });
-    } else {
+    } else if (autoPlayedRef.current) {
       video.pause();
+      autoPlayedRef.current = false;
     }
-  }, [autoPlayOnScroll, inView]);
+  }, [inView, shouldAutoPlay]);
 
   const playback = useMemo(
     () => resolveVideoPlayback(src, { providerHint, mimeType, allowLocalObjectUrl }),
@@ -106,11 +144,11 @@ export function GemVideoPlayer({
             poster={poster ?? undefined}
             controls
             playsInline
-            muted={autoPlayOnScroll}
-            autoPlay={autoPlayOnScroll && inView}
-            preload={autoPlayOnScroll ? "auto" : "metadata"}
+            muted={shouldAutoPlay}
+            autoPlay={shouldAutoPlay && inView}
+            preload={shouldAutoPlay ? "auto" : "metadata"}
             onLoadedMetadata={(event) => {
-              if (autoPlayOnScroll) event.currentTarget.muted = true;
+              if (shouldAutoPlay) event.currentTarget.muted = true;
             }}
             ref={nativeVideoRef}
             aria-label={title}
@@ -125,9 +163,9 @@ export function GemVideoPlayer({
         ) : null}
 
         {(playback.kind === "youtube" || playback.kind === "vimeo") && playback.embedUrl ? (
-          (activated || (autoPlayOnScroll && inView)) ? (
+          (activated || (shouldAutoPlay && inView)) ? (
             <iframe
-              src={addPlaybackAutoplay(playback.embedUrl)}
+              src={addPlaybackAutoplay(playback.embedUrl, { muted: shouldAutoPlay && inView && !activated })}
               title={title}
               loading="lazy"
               allow="autoplay; encrypted-media; picture-in-picture; fullscreen"

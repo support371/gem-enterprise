@@ -35,6 +35,10 @@ const INITIAL_STATE: FetchState = {
   error: null,
 };
 
+const FEED_REFRESH_INTERVAL_MS = 5 * 60 * 1_000;
+const VIDEO_AUTOPLAY_THRESHOLD = 0.55;
+const VIDEO_OBSERVER_THRESHOLDS = [0, 0.25, VIDEO_AUTOPLAY_THRESHOLD, 0.7, 0.85, 1];
+
 export function CuratedNewsFeed({
   categories,
   initialCategory,
@@ -50,6 +54,9 @@ export function CuratedNewsFeed({
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [state, setState] = useState<FetchState>(INITIAL_STATE);
+  const [activeVideoId, setActiveVideoId] = useState<string | null>(null);
+  const feedRef = useRef<HTMLDivElement | null>(null);
+  const lastRefreshAtRef = useRef(0);
 
   // Debounce search to avoid hammering the API.
   useEffect(() => {
@@ -57,8 +64,8 @@ export function CuratedNewsFeed({
     return () => clearTimeout(t);
   }, [search]);
 
-  const loadInitial = useCallback(async () => {
-    setState({ ...INITIAL_STATE, loading: true });
+  const loadInitial = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) setState({ ...INITIAL_STATE, loading: true });
     try {
       const params = new URLSearchParams();
       if (activeSlug !== "all") params.set("category", activeSlug);
@@ -81,7 +88,9 @@ export function CuratedNewsFeed({
         loadingMore: false,
         error: null,
       });
+      lastRefreshAtRef.current = Date.now();
     } catch (err) {
+      if (silent) return;
       setState({
         items: [],
         nextCursor: null,
@@ -94,6 +103,23 @@ export function CuratedNewsFeed({
 
   useEffect(() => {
     void loadInitial();
+  }, [loadInitial]);
+
+  useEffect(() => {
+    const refreshIfDue = () => {
+      if (
+        document.visibilityState === "visible" &&
+        Date.now() - lastRefreshAtRef.current >= FEED_REFRESH_INTERVAL_MS
+      ) {
+        void loadInitial({ silent: true });
+      }
+    };
+    const interval = window.setInterval(refreshIfDue, FEED_REFRESH_INTERVAL_MS);
+    document.addEventListener("visibilitychange", refreshIfDue);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshIfDue);
+    };
   }, [loadInitial]);
 
   const loadMore = useCallback(async () => {
@@ -149,8 +175,47 @@ export function CuratedNewsFeed({
   const heroArticle = state.items[0];
   const gridArticles = useMemo(() => state.items.slice(1), [state.items]);
 
+  useEffect(() => {
+    const container = feedRef.current;
+    if (!container || typeof IntersectionObserver === "undefined") return;
+    const videoCards = Array.from(
+      container.querySelectorAll<HTMLElement>("[data-news-video-id]"),
+    );
+    if (!videoCards.length) {
+      setActiveVideoId(null);
+      return;
+    }
+
+    const ratios = new Map<Element, number>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) ratios.set(entry.target, entry.intersectionRatio);
+
+        const viewportCenter = window.innerHeight / 2;
+        let nextId: string | null = null;
+        let nextRatio = 0;
+        let nextCenterDistance = Number.POSITIVE_INFINITY;
+        for (const card of videoCards) {
+          const ratio = ratios.get(card) ?? 0;
+          if (ratio < VIDEO_AUTOPLAY_THRESHOLD) continue;
+          const bounds = card.getBoundingClientRect();
+          const centerDistance = Math.abs(bounds.top + bounds.height / 2 - viewportCenter);
+          if (ratio > nextRatio || (ratio === nextRatio && centerDistance < nextCenterDistance)) {
+            nextId = card.dataset.newsVideoId ?? null;
+            nextRatio = ratio;
+            nextCenterDistance = centerDistance;
+          }
+        }
+        setActiveVideoId((current) => current === nextId ? current : nextId);
+      },
+      { rootMargin: "-8% 0px -8%", threshold: VIDEO_OBSERVER_THRESHOLDS },
+    );
+    for (const card of videoCards) observer.observe(card);
+    return () => observer.disconnect();
+  }, [state.items]);
+
   return (
-    <div className="flex flex-col gap-6">
+    <div ref={feedRef} className="flex flex-col gap-6">
       {/* Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
@@ -244,7 +309,7 @@ export function CuratedNewsFeed({
             <NewsArticleCard
               article={heroArticle}
               variant="hero"
-              autoPlayOnScroll={videoOnly}
+              autoPlayOnScroll={heroArticle.id === activeVideoId}
             />
           )}
           {gridArticles.length > 0 && (
@@ -253,7 +318,7 @@ export function CuratedNewsFeed({
                 <NewsArticleCard
                   key={article.id}
                   article={article}
-                  autoPlayOnScroll={videoOnly}
+                  autoPlayOnScroll={article.id === activeVideoId}
                 />
               ))}
             </div>
