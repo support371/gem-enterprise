@@ -8,7 +8,7 @@ import {
   LockKeyhole,
   ShieldCheck,
 } from "lucide-react";
-import { PublicIntakeForm } from "@/components/intake/PublicIntakeForm";
+import { BusinessReviewIntakeForm } from "@/components/market/BusinessReviewIntakeForm";
 import { foundingBusinessReviewOffer } from "@/lib/market/launchOffer";
 
 export const metadata: Metadata = {
@@ -146,11 +146,11 @@ export default function BusinessReviewPage() {
           <p className="text-sm font-semibold uppercase tracking-wider text-primary">Start here</p>
           <h2 className="mt-2 text-3xl font-bold">Request your business review</h2>
           <p className="mt-3 leading-7 text-muted-foreground">
-            Select Cybersecurity and Advisory in the requested areas and describe the main business concern. GEM will qualify the request before any paid scope or workspace activation.
+            Tell GEM what is happening. The request is automatically attributed to the founding Business Security & Operations Review and enters the governed enterprise qualification queue.
           </p>
         </div>
         <div className="rounded-2xl border border-border/70 bg-card/70 p-6 sm:p-8">
-          <PublicIntakeForm kind="ENTERPRISE" />
+          <BusinessReviewIntakeForm />
         </div>
       </section>
     </main>
