@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   createProposalToken,
+  GEM_MARKET_PAYMENT_LINK_ID,
+  GEM_MARKET_PAYMENT_LINK_URL,
   GEM_MARKET_STRIPE_ACCOUNT_ID,
   getMarketPaymentReadiness,
   verifyProposalToken,
@@ -25,11 +27,10 @@ describe("market proposal and payment handoff", () => {
     expect(verifyProposalToken(`${token}tampered`, secret)).toBeNull();
   });
 
-  it("derives proposal signing from JWT_SECRET and keeps live checkout production-only", () => {
+  it("derives proposal signing from JWT_SECRET and requires only webhook readiness in production", () => {
     const preview = getMarketPaymentReadiness({
       VERCEL_ENV: "preview",
       JWT_SECRET: secret,
-      GEM_STRIPE_SECRET_KEY: "sk_live_example",
       GEM_STRIPE_WEBHOOK_SECRET: "whsec_example",
     });
     expect(preview.proposalSigningReady).toBe(true);
@@ -39,27 +40,26 @@ describe("market proposal and payment handoff", () => {
     const ready = getMarketPaymentReadiness({
       VERCEL_ENV: "production",
       JWT_SECRET: secret,
-      GEM_STRIPE_SECRET_KEY: "sk_live_example",
       GEM_STRIPE_WEBHOOK_SECRET: "whsec_example",
     });
     expect(ready.checkoutReady).toBe(true);
+    expect(ready.stripeWebhookReady).toBe(true);
     expect(ready.stripeAccountPinned).toBe(true);
     expect(ready.stripeAccountVerified).toBe(true);
+    expect(ready.paymentLinkPinned).toBe(true);
     expect(ready.stripeMode).toBe("live");
   });
 
-  it("rejects contradictory merchant configuration and non-live Stripe keys", () => {
+  it("rejects contradictory merchant configuration", () => {
     const blocked = getMarketPaymentReadiness({
       VERCEL_ENV: "production",
       JWT_SECRET: secret,
-      GEM_STRIPE_SECRET_KEY: "sk_test_example",
       GEM_STRIPE_WEBHOOK_SECRET: "whsec_example",
       GEM_STRIPE_ACCOUNT_ID: "acct_wrong",
       GEM_STRIPE_MODE: "test",
       GEM_STRIPE_ACCOUNT_VERIFIED: "false",
     });
     expect(blocked.checkoutReady).toBe(false);
-    expect(blocked.blockers).toContain("GEM_STRIPE_SECRET_KEY must be a live Stripe secret key.");
     expect(blocked.blockers).toContain(
       "GEM_STRIPE_ACCOUNT_ID conflicts with the authorized live merchant account.",
     );
@@ -91,13 +91,18 @@ describe("market proposal and payment handoff", () => {
     ).toBe(false);
   });
 
-  it("locks checkout to approved intake and pins the merchant account before session creation", () => {
+  it("locks checkout to approved intake and routes only to the pinned live Payment Link", () => {
     const checkout = readFileSync("src/app/api/market/checkout/route.ts", "utf8");
     const webhook = readFileSync("src/app/api/market/stripe/webhook/route.ts", "utf8");
     expect(checkout).toContain('result.submission.status !== "APPROVED"');
-    expect(checkout).toContain("account.id !== GEM_MARKET_STRIPE_ACCOUNT_ID");
+    expect(checkout).toContain("GEM_MARKET_PAYMENT_LINK_URL");
+    expect(checkout).toContain('paymentUrl.searchParams.set("client_reference_id"');
+    expect(checkout).not.toContain("GEM_STRIPE_SECRET_KEY");
     expect(GEM_MARKET_STRIPE_ACCOUNT_ID).toBe("acct_1TkrtxCKnPeVL2Jw");
-    expect(checkout).toContain('"Idempotency-Key"');
+    expect(GEM_MARKET_PAYMENT_LINK_ID).toBe("plink_1UAeuoCKnPeVL2JwrLMswd31");
+    expect(GEM_MARKET_PAYMENT_LINK_URL).toBe("https://buy.stripe.com/eVqfZgeQ58DX9wC7I9b3q00");
+    expect(webhook).toContain("GEM_MARKET_PAYMENT_LINK_ID");
+    expect(webhook).toContain("paymentLinkMatches");
     expect(webhook).toContain("verifyStripeWebhookSignature");
     expect(webhook).toContain("amountMatches");
     expect(webhook).toContain("convertApprovedIntakeAfterVerifiedPayment");
