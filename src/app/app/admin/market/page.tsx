@@ -14,6 +14,11 @@ function formatDate(value: Date | string) {
   return new Date(value).toLocaleString();
 }
 
+function payloadText(submission: IntakeSubmissionRecord, key: string) {
+  const value = submission.payload?.[key];
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
 export default function AdminMarketPage() {
   const [submissions, setSubmissions] = useState<IntakeSubmissionRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +54,15 @@ export default function AdminMarketPage() {
       })),
     [submissions],
   );
+
+  const sourceMix = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const submission of submissions) {
+      const source = payloadText(submission, "leadSource") || "unattributed";
+      counts.set(source, (counts.get(source) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [submissions]);
 
   const qualifiedCount = submissions.filter((submission) =>
     ["QUALIFIED", "APPROVED", "CONVERTED"].includes(submission.status),
@@ -93,6 +107,19 @@ export default function AdminMarketPage() {
         </div>
       </div>
 
+      {!loading && sourceMix.length > 0 && (
+        <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="mr-1 text-xs font-semibold uppercase tracking-[.14em] text-slate-500">Acquisition source</span>
+            {sourceMix.map(([source, count]) => (
+              <Badge key={source} variant="outline" className="border-white/10 bg-black/10 text-slate-300">
+                {source} · {count}
+              </Badge>
+            ))}
+          </div>
+        </section>
+      )}
+
       {error && (
         <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
           {error}
@@ -125,6 +152,8 @@ export default function AdminMarketPage() {
                   <div className="space-y-3">
                     {stage.opportunities.map((submission) => {
                       const proposalReady = proposalStatuses.has(submission.status);
+                      const leadSource = payloadText(submission, "leadSource");
+                      const campaignCode = payloadText(submission, "campaignCode");
                       return (
                         <a
                           key={submission.id}
@@ -147,6 +176,12 @@ export default function AdminMarketPage() {
                               <p className="mt-1 text-xs text-slate-500">
                                 {submission.name} · {submission.email}
                               </p>
+                              {(leadSource || campaignCode) && (
+                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                  {leadSource && <Badge variant="outline" className="border-white/10 text-[10px] text-slate-400">source: {leadSource}</Badge>}
+                                  {campaignCode && <Badge variant="outline" className="border-cyan-500/20 text-[10px] text-cyan-300">campaign: {campaignCode}</Badge>}
+                                </div>
+                              )}
                             </div>
                             <span className="font-mono text-[11px] text-cyan-300">{submission.publicId}</span>
                           </div>
