@@ -27,6 +27,25 @@ const concerns = [
 
 const urgencyOptions = ["Immediate concern", "This week", "This month", "Planning ahead"] as const;
 
+type LeadSource =
+  | "direct"
+  | "campaign"
+  | "referral"
+  | "social"
+  | "search"
+  | "partner"
+  | "event"
+  | "outbound"
+  | "other";
+
+export type BusinessReviewAttribution = {
+  leadSource?: LeadSource;
+  campaignCode?: string;
+  utmSource?: string;
+  utmMedium?: string;
+  utmCampaign?: string;
+};
+
 type SubmitResult = {
   ok?: boolean;
   reference?: string;
@@ -34,7 +53,7 @@ type SubmitResult = {
   error?: string;
 };
 
-export function BusinessReviewIntakeForm() {
+export function BusinessReviewIntakeForm({ attribution = {} }: { attribution?: BusinessReviewAttribution }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reference, setReference] = useState<string | null>(null);
@@ -87,6 +106,11 @@ export function BusinessReviewIntakeForm() {
             "",
             summary,
           ].join("\n"),
+          leadSource: attribution.leadSource ?? "direct",
+          campaignCode: attribution.campaignCode,
+          utmSource: attribution.utmSource,
+          utmMedium: attribution.utmMedium,
+          utmCampaign: attribution.utmCampaign,
           consentGiven,
           privacyAccepted,
           honeypot,
@@ -147,82 +171,46 @@ export function BusinessReviewIntakeForm() {
         </label>
         <label className="text-sm font-medium">
           Work email
-          <input
-            className={inputClass}
-            name="email"
-            type="email"
-            required
-            maxLength={254}
-            autoComplete="email"
-          />
+          <input className={inputClass} name="email" type="email" required maxLength={254} autoComplete="email" />
         </label>
         <label className="text-sm font-medium">
           Business or organization
-          <input
-            className={inputClass}
-            name="organization"
-            required
-            minLength={2}
-            maxLength={160}
-            autoComplete="organization"
-          />
+          <input className={inputClass} name="organization" required minLength={2} maxLength={160} autoComplete="organization" />
         </label>
         <label className="text-sm font-medium">
           Your role or title
-          <input
-            className={inputClass}
-            name="title"
-            required
-            minLength={2}
-            maxLength={120}
-            autoComplete="organization-title"
-          />
+          <input className={inputClass} name="title" required minLength={2} maxLength={120} autoComplete="organization-title" />
         </label>
         <label className="text-sm font-medium">
           Operating jurisdiction
-          <input
-            className={inputClass}
-            name="jurisdiction"
-            required
-            minLength={2}
-            maxLength={120}
-            placeholder="e.g. United States / New Jersey"
-          />
+          <input className={inputClass} name="jurisdiction" required minLength={2} maxLength={120} placeholder="e.g. United States / New Jersey" />
         </label>
         <label className="text-sm font-medium">
           Organization type
           <select className={inputClass} name="organizationType" required defaultValue="">
             <option value="" disabled>Select type</option>
-            {organizationTypes.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
+            {organizationTypes.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
         </label>
         <label className="text-sm font-medium">
           Team size
           <select className={inputClass} name="employeeRange" required defaultValue="">
             <option value="" disabled>Select size</option>
-            {employeeRanges.map((value) => (
-              <option key={value} value={value}>{value}</option>
-            ))}
+            {employeeRanges.map((value) => <option key={value} value={value}>{value}</option>)}
           </select>
         </label>
         <label className="text-sm font-medium">
           Main concern
           <select className={inputClass} name="primaryConcern" required defaultValue="">
             <option value="" disabled>Select the closest match</option>
-            {concerns.map((value) => (
-              <option key={value} value={value}>{value}</option>
-            ))}
+            {concerns.map((value) => <option key={value} value={value}>{value}</option>)}
           </select>
         </label>
         <label className="text-sm font-medium sm:col-span-2">
           Urgency
           <select className={inputClass} name="urgency" required defaultValue="">
             <option value="" disabled>Select urgency</option>
-            {urgencyOptions.map((value) => (
-              <option key={value} value={value}>{value}</option>
-            ))}
+            {urgencyOptions.map((value) => <option key={value} value={value}>{value}</option>)}
           </select>
         </label>
       </div>
@@ -250,11 +238,7 @@ export function BusinessReviewIntakeForm() {
         </label>
       </div>
 
-      {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200" role="alert">
-          {error}
-        </div>
-      )}
+      {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200" role="alert">{error}</div>}
 
       <button
         type="submit"
