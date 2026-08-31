@@ -10,18 +10,22 @@ export type PaymentConversionResult =
   | { outcome: "not_found" };
 
 export async function convertApprovedIntakeAfterVerifiedPayment(input: {
-  intakeId: string;
+  intakeId?: string | null;
   publicId: string;
   stripeSessionId: string;
   stripePaymentIntentId?: string | null;
 }): Promise<PaymentConversionResult> {
   return db.$transaction(async (transaction) => {
+    const lookup = input.intakeId
+      ? Prisma.sql`id = ${input.intakeId} AND public_id = ${input.publicId}`
+      : Prisma.sql`public_id = ${input.publicId}`;
+
     const records = await transaction.$queryRaw<
       Array<{ id: string; publicId: string; status: string; kind: string }>
     >(Prisma.sql`
       SELECT id, public_id AS "publicId", status::text AS status, kind::text AS kind
       FROM intake_submissions
-      WHERE id = ${input.intakeId}
+      WHERE ${lookup}
       FOR UPDATE
     `);
     const current = records[0];
@@ -37,7 +41,7 @@ export async function convertApprovedIntakeAfterVerifiedPayment(input: {
     await transaction.$executeRaw(Prisma.sql`
       UPDATE intake_submissions
       SET status = CAST('CONVERTED' AS "IntakeSubmissionStatus"), updated_at = ${now}
-      WHERE id = ${input.intakeId}
+      WHERE id = ${current.id}
     `);
 
     await transaction.$executeRaw(Prisma.sql`
@@ -52,7 +56,7 @@ export async function convertApprovedIntakeAfterVerifiedPayment(input: {
         created_at
       ) VALUES (
         ${randomUUID()},
-        ${input.intakeId},
+        ${current.id},
         CAST('APPROVED' AS "IntakeSubmissionStatus"),
         CAST('CONVERTED' AS "IntakeSubmissionStatus"),
         NULL,
