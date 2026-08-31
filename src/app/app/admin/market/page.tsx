@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { IntakeSubmissionRecord } from "@/lib/intake/types";
 import { marketLabelForStatus, marketPipeline } from "@/lib/market/launchOffer";
 
+const proposalStatuses = new Set(["QUALIFIED", "APPROVED", "CONVERTED"]);
+
 function formatDate(value: Date | string) {
   return new Date(value).toLocaleString();
 }
@@ -121,33 +123,40 @@ export default function AdminMarketPage() {
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {stage.opportunities.map((submission) => (
-                      <a
-                        key={submission.id}
-                        href="/app/admin/intake"
-                        className="block rounded-xl border border-white/10 bg-white/5 p-4 transition hover:border-cyan-500/30 hover:bg-cyan-500/5"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <Building2 className="h-4 w-4 text-cyan-300" />
-                              <p className="text-sm font-semibold text-white">
-                                {submission.organization || submission.name}
+                    {stage.opportunities.map((submission) => {
+                      const proposalReady = proposalStatuses.has(submission.status);
+                      return (
+                        <a
+                          key={submission.id}
+                          href={
+                            proposalReady
+                              ? `/app/admin/market/proposal?intakeId=${encodeURIComponent(submission.id)}`
+                              : "/app/admin/intake"
+                          }
+                          className="block rounded-xl border border-white/10 bg-white/5 p-4 transition hover:border-cyan-500/30 hover:bg-cyan-500/5"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4 text-cyan-300" />
+                                <p className="text-sm font-semibold text-white">
+                                  {submission.organization || submission.name}
+                                </p>
+                              </div>
+                              <p className="mt-2 text-sm text-slate-300">{submission.subject}</p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {submission.name} · {submission.email}
                               </p>
                             </div>
-                            <p className="mt-2 text-sm text-slate-300">{submission.subject}</p>
-                            <p className="mt-1 text-xs text-slate-500">
-                              {submission.name} · {submission.email}
-                            </p>
+                            <span className="font-mono text-[11px] text-cyan-300">{submission.publicId}</span>
                           </div>
-                          <span className="font-mono text-[11px] text-cyan-300">{submission.publicId}</span>
-                        </div>
-                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-                          <span>{marketLabelForStatus(submission.status)}</span>
-                          <span>{formatDate(submission.createdAt)}</span>
-                        </div>
-                      </a>
-                    ))}
+                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                            <span>{marketLabelForStatus(submission.status)}</span>
+                            <span>{proposalReady ? "Open commercial handoff →" : formatDate(submission.createdAt)}</span>
+                          </div>
+                        </a>
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>
