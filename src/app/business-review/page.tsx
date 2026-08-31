@@ -8,7 +8,10 @@ import {
   LockKeyhole,
   ShieldCheck,
 } from "lucide-react";
-import { BusinessReviewIntakeForm } from "@/components/market/BusinessReviewIntakeForm";
+import {
+  BusinessReviewIntakeForm,
+  type BusinessReviewAttribution,
+} from "@/components/market/BusinessReviewIntakeForm";
 import { foundingBusinessReviewOffer } from "@/lib/market/launchOffer";
 
 export const metadata: Metadata = {
@@ -44,7 +47,47 @@ const reviewAreas = [
   },
 ];
 
-export default function BusinessReviewPage() {
+const leadSources = new Set<NonNullable<BusinessReviewAttribution["leadSource"]>>([
+  "direct",
+  "campaign",
+  "referral",
+  "social",
+  "search",
+  "partner",
+  "event",
+  "outbound",
+  "other",
+]);
+
+type PageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function first(value: string | string[] | undefined, max: number) {
+  const source = typeof value === "string" ? value.trim() : "";
+  return source ? source.slice(0, max) : undefined;
+}
+
+export default async function BusinessReviewPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const requestedLeadSource = first(params.lead ?? params.source, 40);
+  const utmSource = first(params.utm_source, 120);
+  const utmMedium = first(params.utm_medium, 120);
+  const utmCampaign = first(params.utm_campaign, 160);
+  const campaignCode = first(params.campaign, 120);
+  const leadSource = requestedLeadSource && leadSources.has(requestedLeadSource as NonNullable<BusinessReviewAttribution["leadSource"]>)
+    ? (requestedLeadSource as NonNullable<BusinessReviewAttribution["leadSource"]>)
+    : campaignCode || utmSource || utmCampaign
+      ? "campaign"
+      : "direct";
+  const attribution: BusinessReviewAttribution = {
+    leadSource,
+    campaignCode,
+    utmSource,
+    utmMedium,
+    utmCampaign,
+  };
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <section className="border-b border-border/60 px-6 py-20 cyber-grid">
@@ -150,7 +193,7 @@ export default function BusinessReviewPage() {
           </p>
         </div>
         <div className="rounded-2xl border border-border/70 bg-card/70 p-6 sm:p-8">
-          <BusinessReviewIntakeForm />
+          <BusinessReviewIntakeForm attribution={attribution} />
         </div>
       </section>
     </main>
