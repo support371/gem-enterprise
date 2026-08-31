@@ -73,6 +73,13 @@ export const enterpriseApplicationSchema = rejectSensitiveContent(
       .array(z.enum(["cybersecurity", "compliance", "financial_risk", "real_estate", "advisory"]))
       .min(1)
       .max(5),
+    leadSource: z
+      .enum(["direct", "campaign", "referral", "social", "search", "partner", "event", "outbound", "other"])
+      .optional(),
+    campaignCode: z.string().trim().max(120).optional(),
+    utmSource: z.string().trim().max(120).optional(),
+    utmMedium: z.string().trim().max(120).optional(),
+    utmCampaign: z.string().trim().max(160).optional(),
   }),
 );
 
