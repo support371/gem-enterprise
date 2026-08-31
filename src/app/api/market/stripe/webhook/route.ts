@@ -2,13 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { createEvidenceItem } from "@/lib/evidence";
 import { foundingBusinessReviewOffer } from "@/lib/market/launchOffer";
 import { convertApprovedIntakeAfterVerifiedPayment } from "@/lib/market/paymentConversion";
-import { getMarketPaymentReadiness, verifyStripeWebhookSignature } from "@/lib/market/proposal";
+import {
+  GEM_MARKET_PAYMENT_LINK_ID,
+  getMarketPaymentReadiness,
+  verifyStripeWebhookSignature,
+} from "@/lib/market/proposal";
 
 type StripeCheckoutSession = {
   id?: string;
   livemode?: boolean;
   payment_status?: string;
   payment_intent?: string | null;
+  payment_link?: string | { id?: string } | null;
   client_reference_id?: string | null;
   amount_total?: number | null;
   currency?: string | null;
@@ -26,6 +31,11 @@ function json(body: unknown, status = 200) {
   return NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
 }
 
+function paymentLinkId(value: StripeCheckoutSession["payment_link"]) {
+  if (typeof value === "string") return value;
+  return value?.id ?? null;
+}
+
 export async function POST(request: NextRequest) {
   const payload = await request.text();
   const signature = request.headers.get("stripe-signature");
@@ -34,7 +44,12 @@ export async function POST(request: NextRequest) {
   }
 
   const readiness = getMarketPaymentReadiness();
-  if (!readiness.stripeWebhookReady || !readiness.stripeAccountPinned || !readiness.stripeAccountVerified || !readiness.stripeMode) {
+  if (
+    !readiness.stripeWebhookReady ||
+    !readiness.stripeAccountPinned ||
+    !readiness.stripeAccountVerified ||
+    !readiness.paymentLinkPinned
+  ) {
     return json({ error: "GEM Stripe webhook processing is not fully configured." }, 503);
   }
 
@@ -52,26 +67,32 @@ export async function POST(request: NextRequest) {
   const session = event.data?.object;
   if (!session?.id || !session.metadata) return json({ received: true, ignored: true });
 
-  const expectedLive = readiness.stripeMode === "live";
-  if (Boolean(event.livemode ?? session.livemode) !== expectedLive) {
+  if (Boolean(event.livemode ?? session.livemode) !== true) {
     return json({ error: "Stripe event mode does not match GEM checkout mode." }, 409);
   }
   if (session.payment_status !== "paid") return json({ received: true, pending: true });
 
-  const intakeId = session.metadata.intakeId;
-  const publicId = session.metadata.publicId;
+  const publicId = session.client_reference_id?.trim() || "";
   const offerCode = session.metadata.offerCode;
+  const service = session.metadata.service;
   const amountMatches = session.amount_total === foundingBusinessReviewOffer.priceUsd * 100;
   const currencyMatches = session.currency?.toLowerCase() === "usd";
-  const referenceMatches = session.client_reference_id === publicId;
+  const paymentLinkMatches = paymentLinkId(session.payment_link) === GEM_MARKET_PAYMENT_LINK_ID;
+  const referenceLooksValid = /^GEM-ENT-[A-Z0-9-]+$/.test(publicId) && publicId.length <= 160;
 
-  if (!intakeId || !publicId || offerCode !== foundingBusinessReviewOffer.code || !amountMatches || !currencyMatches || !referenceMatches) {
+  if (
+    !referenceLooksValid ||
+    offerCode !== foundingBusinessReviewOffer.code ||
+    service !== "gem-enterprise" ||
+    !amountMatches ||
+    !currencyMatches ||
+    !paymentLinkMatches
+  ) {
     return json({ error: "Stripe payment metadata does not match the GEM founding offer." }, 409);
   }
 
   try {
     const conversion = await convertApprovedIntakeAfterVerifiedPayment({
-      intakeId,
       publicId,
       stripeSessionId: session.id,
       stripePaymentIntentId: session.payment_intent ?? null,
@@ -83,6 +104,7 @@ export async function POST(request: NextRequest) {
       data: {
         stripeEventId: event.id ?? null,
         stripeSessionId: session.id,
+        stripePaymentLinkId: GEM_MARKET_PAYMENT_LINK_ID,
         publicId,
         offerCode,
         amountUsd: foundingBusinessReviewOffer.priceUsd,
