@@ -5,15 +5,15 @@ import { CheckCircle2, Loader2, Send } from "lucide-react";
 import { foundingBusinessReviewOffer } from "@/lib/market/launchOffer";
 
 const organizationTypes = [
-  "Corporation",
-  "LLC",
-  "Partnership",
-  "Nonprofit",
-  "Government/Public Sector",
-  "Other",
+  { value: "company", label: "Company" },
+  { value: "nonprofit", label: "Nonprofit" },
+  { value: "government", label: "Government / Public Sector" },
+  { value: "family_office", label: "Family Office" },
+  { value: "professional_services", label: "Professional Services" },
+  { value: "other", label: "Other" },
 ] as const;
 
-const employeeRanges = ["1-10", "11-50", "51-200", "201-500", "501-1000", "1000+"] as const;
+const employeeRanges = ["1-10", "11-50", "51-200", "201-1000", "1000+"] as const;
 
 const concerns = [
   "Account access and identity",
@@ -29,7 +29,7 @@ const urgencyOptions = ["Immediate concern", "This week", "This month", "Plannin
 
 type SubmitResult = {
   ok?: boolean;
-  publicId?: string;
+  reference?: string;
   message?: string;
   error?: string;
 };
@@ -37,7 +37,8 @@ type SubmitResult = {
 export function BusinessReviewIntakeForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [publicId, setPublicId] = useState<string | null>(null);
+  const [reference, setReference] = useState<string | null>(null);
+  const [startedAt] = useState(() => Date.now());
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -48,14 +49,16 @@ export function BusinessReviewIntakeForm() {
     const name = String(form.get("name") || "").trim();
     const email = String(form.get("email") || "").trim();
     const organization = String(form.get("organization") || "").trim();
+    const title = String(form.get("title") || "").trim();
     const organizationType = String(form.get("organizationType") || "").trim();
     const employeeRange = String(form.get("employeeRange") || "").trim();
-    const operatingCountry = String(form.get("operatingCountry") || "").trim();
+    const jurisdiction = String(form.get("jurisdiction") || "").trim();
     const primaryConcern = String(form.get("primaryConcern") || "").trim();
     const urgency = String(form.get("urgency") || "").trim();
     const summary = String(form.get("summary") || "").trim();
+    const consentGiven = form.get("consentGiven") === "on";
     const privacyAccepted = form.get("privacyAccepted") === "on";
-    const website = String(form.get("website") || "").trim();
+    const honeypot = String(form.get("honeypot") || "").trim();
 
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 15_000);
@@ -69,10 +72,11 @@ export function BusinessReviewIntakeForm() {
           name,
           email,
           organization,
+          title,
+          jurisdiction,
           organizationType,
           employeeRange,
-          serviceAreas: ["Cybersecurity", "Advisory"],
-          operatingCountry,
+          serviceAreas: ["cybersecurity", "advisory"],
           subject: `[Founding Business Review] ${primaryConcern}`,
           message: [
             `Offer: ${foundingBusinessReviewOffer.name}`,
@@ -83,8 +87,10 @@ export function BusinessReviewIntakeForm() {
             "",
             summary,
           ].join("\n"),
+          consentGiven,
           privacyAccepted,
-          website,
+          honeypot,
+          startedAt,
         }),
       });
 
@@ -93,7 +99,7 @@ export function BusinessReviewIntakeForm() {
         throw new Error(result.error || result.message || "Unable to submit the review request.");
       }
 
-      setPublicId(result.publicId || "Submitted");
+      setReference(result.reference || "Submitted");
       event.currentTarget.reset();
     } catch (caught) {
       if (caught instanceof DOMException && caught.name === "AbortError") {
@@ -107,7 +113,7 @@ export function BusinessReviewIntakeForm() {
     }
   }
 
-  if (publicId) {
+  if (reference) {
     return (
       <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-6" role="status">
         <CheckCircle2 className="h-7 w-7 text-emerald-400" aria-hidden="true" />
@@ -115,7 +121,7 @@ export function BusinessReviewIntakeForm() {
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
           GEM will qualify the request before confirming the paid review scope or activating a client workspace.
         </p>
-        <p className="mt-4 font-mono text-sm text-emerald-300">Reference: {publicId}</p>
+        <p className="mt-4 font-mono text-sm text-emerald-300">Reference: {reference}</p>
       </div>
     );
   }
@@ -127,7 +133,7 @@ export function BusinessReviewIntakeForm() {
     <form onSubmit={handleSubmit} className="space-y-6">
       <input
         type="text"
-        name="website"
+        name="honeypot"
         tabIndex={-1}
         autoComplete="off"
         aria-hidden="true"
@@ -137,7 +143,7 @@ export function BusinessReviewIntakeForm() {
       <div className="grid gap-5 sm:grid-cols-2">
         <label className="text-sm font-medium">
           Your name
-          <input className={inputClass} name="name" required maxLength={120} autoComplete="name" />
+          <input className={inputClass} name="name" required minLength={2} maxLength={120} autoComplete="name" />
         </label>
         <label className="text-sm font-medium">
           Work email
@@ -146,7 +152,7 @@ export function BusinessReviewIntakeForm() {
             name="email"
             type="email"
             required
-            maxLength={160}
+            maxLength={254}
             autoComplete="email"
           />
         </label>
@@ -156,33 +162,46 @@ export function BusinessReviewIntakeForm() {
             className={inputClass}
             name="organization"
             required
+            minLength={2}
             maxLength={160}
             autoComplete="organization"
           />
         </label>
         <label className="text-sm font-medium">
-          Operating country
+          Your role or title
           <input
             className={inputClass}
-            name="operatingCountry"
+            name="title"
             required
-            maxLength={80}
-            autoComplete="country-name"
+            minLength={2}
+            maxLength={120}
+            autoComplete="organization-title"
+          />
+        </label>
+        <label className="text-sm font-medium">
+          Operating jurisdiction
+          <input
+            className={inputClass}
+            name="jurisdiction"
+            required
+            minLength={2}
+            maxLength={120}
+            placeholder="e.g. United States / New Jersey"
           />
         </label>
         <label className="text-sm font-medium">
           Organization type
           <select className={inputClass} name="organizationType" required defaultValue="">
             <option value="" disabled>Select type</option>
-            {organizationTypes.map((value) => (
-              <option key={value} value={value}>{value}</option>
+            {organizationTypes.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>
         </label>
         <label className="text-sm font-medium">
           Team size
-          <select className={inputClass} name="employeeRange" required defaultValue="">
-            <option value="" disabled>Select size</option>
+          <select className={inputClass} name="employeeRange" defaultValue="">
+            <option value="">Prefer not to say</option>
             {employeeRanges.map((value) => (
               <option key={value} value={value}>{value}</option>
             ))}
@@ -197,7 +216,7 @@ export function BusinessReviewIntakeForm() {
             ))}
           </select>
         </label>
-        <label className="text-sm font-medium">
+        <label className="text-sm font-medium sm:col-span-2">
           Urgency
           <select className={inputClass} name="urgency" required defaultValue="">
             <option value="" disabled>Select urgency</option>
@@ -214,18 +233,22 @@ export function BusinessReviewIntakeForm() {
           className={`${inputClass} min-h-32 resize-y`}
           name="summary"
           required
-          minLength={20}
+          minLength={40}
           maxLength={4000}
-          placeholder="Describe the concern, the systems involved, and the outcome you want. Do not include passwords, API keys, or other credentials."
+          placeholder="Describe the concern, the systems involved, and the outcome you want. Do not include credentials or sensitive financial or identity information."
         />
       </label>
 
-      <label className="flex items-start gap-3 rounded-xl border border-border/70 bg-background/60 p-4 text-sm leading-6">
-        <input name="privacyAccepted" type="checkbox" required className="mt-1" />
-        <span>
-          I agree that GEM may process this information to qualify and respond to this business review request.
-        </span>
-      </label>
+      <div className="space-y-3">
+        <label className="flex items-start gap-3 rounded-xl border border-border/70 bg-background/60 p-4 text-sm leading-6">
+          <input name="consentGiven" type="checkbox" required className="mt-1" />
+          <span>I consent to GEM reviewing this request for qualification and contacting me about the requested business review.</span>
+        </label>
+        <label className="flex items-start gap-3 rounded-xl border border-border/70 bg-background/60 p-4 text-sm leading-6">
+          <input name="privacyAccepted" type="checkbox" required className="mt-1" />
+          <span>I accept the applicable privacy terms for processing this request.</span>
+        </label>
+      </div>
 
       {error && (
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200" role="alert">
