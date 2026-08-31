@@ -3,6 +3,8 @@ import { z } from "zod";
 
 export const GEM_MARKET_STRIPE_ACCOUNT_ID = "acct_1TkrtxCKnPeVL2Jw";
 export const GEM_MARKET_STRIPE_MODE = "live" as const;
+export const GEM_MARKET_PAYMENT_LINK_ID = "plink_1UAeuoCKnPeVL2JwrLMswd31";
+export const GEM_MARKET_PAYMENT_LINK_URL = "https://buy.stripe.com/eVqfZgeQ58DX9wC7I9b3q00";
 
 const proposalPayloadSchema = z.object({
   v: z.literal(1),
@@ -15,11 +17,11 @@ export type ProposalTokenPayload = z.infer<typeof proposalPayloadSchema>;
 
 export type MarketPaymentReadiness = {
   proposalSigningReady: boolean;
-  stripeSecretReady: boolean;
   stripeWebhookReady: boolean;
   stripeAccountPinned: boolean;
   stripeAccountVerified: boolean;
-  stripeMode: "test" | "live" | null;
+  stripeMode: "live";
+  paymentLinkPinned: boolean;
   checkoutReady: boolean;
   blockers: string[];
 };
@@ -97,23 +99,17 @@ export function getMarketPaymentReadiness(
   env: MarketEnvironment = process.env,
 ): MarketPaymentReadiness {
   const proposalSigningReady = Boolean(proposalSecretFromEnv(env));
-  const stripeSecret = env.GEM_STRIPE_SECRET_KEY?.trim() || "";
-  const stripeSecretReady = stripeSecret.startsWith("sk_live_");
   const stripeWebhookReady = Boolean(env.GEM_STRIPE_WEBHOOK_SECRET?.trim());
   const stripeAccountPinned = true;
   const stripeAccountVerified = true;
   const stripeMode = GEM_MARKET_STRIPE_MODE;
+  const paymentLinkPinned = true;
 
   const blockers: string[] = [];
   if (!proposalSigningReady) {
     blockers.push(
       "Proposal signing is unavailable. Configure JWT_SECRET or MARKET_PROPOSAL_SECRET with at least 32 characters.",
     );
-  }
-  if (!stripeSecret) {
-    blockers.push("GEM_STRIPE_SECRET_KEY is not configured.");
-  } else if (!stripeSecretReady) {
-    blockers.push("GEM_STRIPE_SECRET_KEY must be a live Stripe secret key.");
   }
   if (!stripeWebhookReady) blockers.push("GEM_STRIPE_WEBHOOK_SECRET is not configured.");
 
@@ -131,17 +127,17 @@ export function getMarketPaymentReadiness(
   ) {
     blockers.push("GEM_STRIPE_ACCOUNT_VERIFIED conflicts with the authorized merchant record.");
   }
-  if (env.VERCEL_ENV && env.VERCEL_ENV !== "production") {
+  if (env.VERCEL_ENV !== "production") {
     blockers.push("Live market checkout is available only in production.");
   }
 
   return {
     proposalSigningReady,
-    stripeSecretReady,
     stripeWebhookReady,
     stripeAccountPinned,
     stripeAccountVerified,
     stripeMode,
+    paymentLinkPinned,
     checkoutReady: blockers.length === 0,
     blockers,
   };
