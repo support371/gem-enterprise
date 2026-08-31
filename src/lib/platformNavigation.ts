@@ -323,6 +323,12 @@ export const adminPortalNavGroups: PlatformNavGroup[] = [
     label: "Identity & decisions",
     items: [
       {
+        href: "/app/admin/market",
+        icon: "ClipboardList",
+        label: "Market Pipeline",
+        description: "Track enterprise leads from first request through qualification and conversion.",
+      },
+      {
         href: "/app/admin/intake",
         icon: "ClipboardList",
         label: "Intake Queue",
