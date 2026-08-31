@@ -200,8 +200,8 @@ export function BusinessReviewIntakeForm() {
         </label>
         <label className="text-sm font-medium">
           Team size
-          <select className={inputClass} name="employeeRange" defaultValue="">
-            <option value="">Prefer not to say</option>
+          <select className={inputClass} name="employeeRange" required defaultValue="">
+            <option value="" disabled>Select size</option>
             {employeeRanges.map((value) => (
               <option key={value} value={value}>{value}</option>
             ))}
