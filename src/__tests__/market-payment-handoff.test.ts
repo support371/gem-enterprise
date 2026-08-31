@@ -85,4 +85,17 @@ describe("market proposal and payment handoff", () => {
     expect(webhook).toContain("amountMatches");
     expect(webhook).toContain("convertApprovedIntakeAfterVerifiedPayment");
   });
+
+  it("never turns a Stripe webhook directly into workspace access", () => {
+    const webhook = readFileSync("src/app/api/market/stripe/webhook/route.ts", "utf8");
+    const onboarding = readFileSync("src/components/market/ConvertedClientOnboarding.tsx", "utf8");
+    const invitationRoute = readFileSync("src/app/api/admin/workspace-invitations/route.ts", "utf8");
+
+    expect(webhook).not.toContain("workspace-invitations");
+    expect(webhook).not.toContain("workspaceOwnerInvitationGateway");
+    expect(onboarding).toContain('viewerRole === "super_admin"');
+    expect(onboarding).toContain('/api/admin/workspace-invitations');
+    expect(onboarding).toContain("Confirm owner email exactly");
+    expect(invitationRoute).toContain("requirePlatformOwner");
+  });
 });
