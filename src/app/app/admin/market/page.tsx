@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Loader2, RefreshCw, TrendingUp } from "lucide-react";
+import { Building2, Check, Copy, ExternalLink, Loader2, RefreshCw, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,8 @@ import type { IntakeSubmissionRecord } from "@/lib/intake/types";
 import { marketLabelForStatus, marketPipeline } from "@/lib/market/launchOffer";
 
 const proposalStatuses = new Set(["QUALIFIED", "APPROVED", "CONVERTED"]);
+const first20CampaignPath =
+  "/business-review?lead=outbound&campaign=founding-first-20&utm_source=direct-outreach&utm_medium=one-to-one&utm_campaign=first-20-businesses";
 
 function formatDate(value: Date | string) {
   return new Date(value).toLocaleString();
@@ -23,6 +25,7 @@ export default function AdminMarketPage() {
   const [submissions, setSubmissions] = useState<IntakeSubmissionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [campaignCopied, setCampaignCopied] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,6 +72,16 @@ export default function AdminMarketPage() {
   ).length;
   const convertedCount = submissions.filter((submission) => submission.status === "CONVERTED").length;
 
+  async function copyFirst20Link() {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}${first20CampaignPath}`);
+      setCampaignCopied(true);
+      window.setTimeout(() => setCampaignCopied(false), 2_000);
+    } catch {
+      setCampaignCopied(false);
+    }
+  }
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -106,6 +119,29 @@ export default function AdminMarketPage() {
           <p className="mt-4 text-3xl font-bold text-white">{loading ? "—" : convertedCount}</p>
         </div>
       </div>
+
+      <section className="rounded-2xl border border-cyan-400/20 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,.09),transparent_45%),rgba(255,255,255,.025)] p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-xs font-semibold uppercase tracking-[.16em] text-cyan-300">Controlled first outreach</p>
+            <h2 className="mt-1 text-lg font-semibold text-white">First 20 businesses — tracked entry link</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-400">
+              Use this URL for the initial one-to-one outreach batch. A business that submits through it is recorded as an outbound lead under campaign <span className="font-mono text-cyan-300">founding-first-20</span>. Copying the link does not send any message or contact anyone automatically.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button type="button" onClick={() => void copyFirst20Link()} className="gap-2">
+              {campaignCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {campaignCopied ? "Copied" : "Copy campaign link"}
+            </Button>
+            <Button asChild variant="outline" className="gap-2">
+              <a href={first20CampaignPath} target="_blank" rel="noreferrer">
+                Open landing page <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+          </div>
+        </div>
+      </section>
 
       {!loading && sourceMix.length > 0 && (
         <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
