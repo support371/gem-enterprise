@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getIntakeSubmission, IntakeStoreUnavailableError } from "@/lib/intake/repository";
 import { foundingBusinessReviewOffer } from "@/lib/market/launchOffer";
-import { getMarketPaymentReadiness, verifyProposalToken } from "@/lib/market/proposal";
+import {
+  GEM_MARKET_STRIPE_ACCOUNT_ID,
+  getMarketPaymentReadiness,
+  verifyProposalToken,
+} from "@/lib/market/proposal";
 
 const bodySchema = z.object({ token: z.string().trim().min(20).max(4_000) });
 
@@ -39,11 +43,11 @@ export async function POST(request: NextRequest) {
   }
 
   const secretKey = process.env.GEM_STRIPE_SECRET_KEY!.trim();
-  if (readiness.stripeMode === "live" && !secretKey.startsWith("sk_live_")) {
-    return json({ error: "Live checkout is not backed by a live Stripe secret.", code: "STRIPE_MODE_MISMATCH" }, 503);
-  }
-  if (readiness.stripeMode === "test" && !secretKey.startsWith("sk_test_")) {
-    return json({ error: "Test checkout is not backed by a test Stripe secret.", code: "STRIPE_MODE_MISMATCH" }, 503);
+  if (!secretKey.startsWith("sk_live_")) {
+    return json(
+      { error: "Live checkout is not backed by a live Stripe secret.", code: "STRIPE_MODE_MISMATCH" },
+      503,
+    );
   }
 
   try {
@@ -70,7 +74,7 @@ export async function POST(request: NextRequest) {
       return json({ error: "The configured GEM payment account could not be verified.", code: "STRIPE_ACCOUNT_UNAVAILABLE" }, 503);
     }
     const account = (await accountResponse.json()) as StripeAccount;
-    if (!account.id || account.id !== process.env.GEM_STRIPE_ACCOUNT_ID?.trim()) {
+    if (!account.id || account.id !== GEM_MARKET_STRIPE_ACCOUNT_ID) {
       return json(
         {
           error: "The connected Stripe account does not match the pinned GEM Enterprise merchant account.",
