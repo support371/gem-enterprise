@@ -21,6 +21,8 @@ export type MarketPaymentReadiness = {
   blockers: string[];
 };
 
+type MarketEnvironment = Record<string, string | undefined>;
+
 function proposalSecret() {
   return process.env.MARKET_PROPOSAL_SECRET?.trim() || null;
 }
@@ -75,7 +77,7 @@ export function verifyProposalToken(token: string, secretOverride?: string): Pro
 }
 
 export function getMarketPaymentReadiness(
-  env: NodeJS.ProcessEnv = process.env,
+  env: MarketEnvironment = process.env,
 ): MarketPaymentReadiness {
   const proposalSigningReady = (env.MARKET_PROPOSAL_SECRET?.trim().length ?? 0) >= 32;
   const stripeSecretReady = Boolean(env.GEM_STRIPE_SECRET_KEY?.trim());
