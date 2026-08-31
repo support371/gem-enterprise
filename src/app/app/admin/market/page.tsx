@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { IntakeSubmissionRecord } from "@/lib/intake/types";
 import { marketLabelForStatus, marketPipeline } from "@/lib/market/launchOffer";
+import { foundingMarketTarget } from "@/lib/market/launchTarget";
 
 const proposalStatuses = new Set(["QUALIFIED", "APPROVED", "CONVERTED"]);
 const first20CampaignPath =
-  "/business-review?lead=outbound&campaign=founding-first-20&utm_source=direct-outreach&utm_medium=one-to-one&utm_campaign=first-20-businesses";
+  `/business-review?lead=outbound&campaign=${foundingMarketTarget.campaignCode}&utm_source=direct-outreach&utm_medium=one-to-one&utm_campaign=first-20-businesses`;
 
 function formatDate(value: Date | string) {
   return new Date(value).toLocaleString();
@@ -124,9 +125,9 @@ export default function AdminMarketPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-3xl">
             <p className="text-xs font-semibold uppercase tracking-[.16em] text-cyan-300">Controlled first outreach</p>
-            <h2 className="mt-1 text-lg font-semibold text-white">First 20 businesses — tracked entry link</h2>
+            <h2 className="mt-1 text-lg font-semibold text-white">First {foundingMarketTarget.batchSize} businesses — tracked entry link</h2>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              Use this URL for the initial one-to-one outreach batch. A business that submits through it is recorded as an outbound lead under campaign <span className="font-mono text-cyan-300">founding-first-20</span>. Copying the link does not send any message or contact anyone automatically.
+              Use this URL for the initial one-to-one outreach batch. A business that submits through it is recorded as an outbound lead under campaign <span className="font-mono text-cyan-300">{foundingMarketTarget.campaignCode}</span>. Copying the link does not send any message or contact anyone automatically.
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
@@ -141,6 +142,36 @@ export default function AdminMarketPage() {
             </Button>
           </div>
         </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-2">
+        <Card className="border-white/10 bg-card">
+          <CardHeader>
+            <CardTitle className="text-base text-white">Who to approach first</CardTitle>
+            <p className="text-xs leading-5 text-slate-500">{foundingMarketTarget.objective}</p>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {foundingMarketTarget.preferredSegments.map((segment) => (
+              <div key={segment} className="rounded-xl border border-white/8 bg-white/[0.025] px-4 py-3 text-sm text-slate-300">
+                {segment}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+        <Card className="border-white/10 bg-card">
+          <CardHeader>
+            <CardTitle className="text-base text-white">Minimum fit before outreach</CardTitle>
+            <p className="text-xs leading-5 text-slate-500">Select businesses where several of these signals are visible or reasonably confirmable.</p>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {foundingMarketTarget.fitSignals.map((signal) => (
+              <div key={signal} className="flex gap-3 rounded-xl border border-white/8 bg-white/[0.025] px-4 py-3 text-sm leading-6 text-slate-300">
+                <Check className="mt-1 h-4 w-4 shrink-0 text-emerald-300" aria-hidden="true" />
+                <span>{signal}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       </section>
 
       {!loading && sourceMix.length > 0 && (
