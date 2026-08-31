@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { foundingBusinessReviewOffer } from "@/lib/market/launchOffer";
 
 export const metadata = {
   title: "Services",
@@ -112,6 +113,24 @@ export default function ServicesPage() {
             jurisdiction, security, and contractual requirements have been confirmed.
             Public descriptions do not create an SLA or guarantee availability.
           </p>
+        </div>
+      </section>
+
+      <section className="container mx-auto max-w-7xl px-6 pb-12">
+        <div className="grid gap-6 rounded-3xl border border-cyan-400/20 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.12),transparent_45%),rgba(255,255,255,0.025)] p-6 sm:p-8 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="max-w-3xl">
+            <Badge className="border-cyan-400/25 bg-cyan-400/10 text-cyan-300">Founding market offer</Badge>
+            <h2 className="mt-4 text-3xl font-black text-white">{foundingBusinessReviewOffer.name}</h2>
+            <p className="mt-3 leading-7 text-slate-400">{foundingBusinessReviewOffer.promise}</p>
+            <p className="mt-3 text-sm text-slate-500">Qualification comes first. A request does not create an account, contract, entitlement, or automatic service activation.</p>
+          </div>
+          <div className="rounded-2xl border border-cyan-400/20 bg-black/20 p-5 lg:min-w-64">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Founding price</p>
+            <p className="mt-2 text-4xl font-black text-white">${foundingBusinessReviewOffer.priceUsd}</p>
+            <Button asChild className="mt-5 w-full bg-cyan-400 font-semibold text-black hover:bg-cyan-300">
+              <Link href="/business-review">Review scope <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
+          </div>
         </div>
       </section>
 
