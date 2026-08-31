@@ -43,6 +43,7 @@ supabase/functions/gem-workspace-owner-invitations/*
 supabase/migrations/*
 !supabase/migrations/20260716140000_create_tokmetric_gpt_credentials.sql
 !supabase/migrations/20260813123000_organization_workspace_operating_system.sql
+!supabase/migrations/20260829120000_news_refresh_cadence.sql
 
 # Documentation is excluded from deployment bundles
 *.md
