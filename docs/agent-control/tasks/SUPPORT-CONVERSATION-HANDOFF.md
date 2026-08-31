@@ -27,6 +27,7 @@ pretending that a human is connected before an authorized operator joins.
 - `src/types/support.ts`
 - `src/components/AIChatWidget.tsx`
 - `src/components/support/SupportCaseConversation.tsx`
+- `.vercelignore` (retain the existing News cadence migration required by preview verification)
 - focused support tests
 - `design-qa.md` (support-flow section)
 - this task record
