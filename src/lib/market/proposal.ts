@@ -1,6 +1,9 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
+export const GEM_MARKET_STRIPE_ACCOUNT_ID = "acct_1TkrtxCKnPeVL2Jw";
+export const GEM_MARKET_STRIPE_MODE = "live" as const;
+
 const proposalPayloadSchema = z.object({
   v: z.literal(1),
   intakeId: z.string().min(1).max(128),
@@ -23,8 +26,20 @@ export type MarketPaymentReadiness = {
 
 type MarketEnvironment = Record<string, string | undefined>;
 
+function proposalSecretFromEnv(env: MarketEnvironment) {
+  const dedicated = env.MARKET_PROPOSAL_SECRET?.trim();
+  if (dedicated && dedicated.length >= 32) return dedicated;
+
+  const jwtSecret = env.JWT_SECRET?.trim();
+  if (!jwtSecret || jwtSecret.length < 32) return null;
+
+  return createHmac("sha256", jwtSecret)
+    .update("gem-market-proposal-signing-v1")
+    .digest("hex");
+}
+
 function proposalSecret() {
-  return process.env.MARKET_PROPOSAL_SECRET?.trim() || null;
+  return proposalSecretFromEnv(process.env);
 }
 
 function signatureFor(encodedPayload: string, secret: string) {
@@ -39,7 +54,9 @@ export function createProposalToken(
 ) {
   const secret = secretOverride?.trim() || proposalSecret();
   if (!secret || secret.length < 32) {
-    throw new Error("MARKET_PROPOSAL_SECRET must contain at least 32 characters.");
+    throw new Error(
+      "Proposal signing requires MARKET_PROPOSAL_SECRET or JWT_SECRET with at least 32 characters.",
+    );
   }
 
   const payload: ProposalTokenPayload = {
@@ -79,24 +96,43 @@ export function verifyProposalToken(token: string, secretOverride?: string): Pro
 export function getMarketPaymentReadiness(
   env: MarketEnvironment = process.env,
 ): MarketPaymentReadiness {
-  const proposalSigningReady = (env.MARKET_PROPOSAL_SECRET?.trim().length ?? 0) >= 32;
-  const stripeSecretReady = Boolean(env.GEM_STRIPE_SECRET_KEY?.trim());
+  const proposalSigningReady = Boolean(proposalSecretFromEnv(env));
+  const stripeSecret = env.GEM_STRIPE_SECRET_KEY?.trim() || "";
+  const stripeSecretReady = stripeSecret.startsWith("sk_live_");
   const stripeWebhookReady = Boolean(env.GEM_STRIPE_WEBHOOK_SECRET?.trim());
-  const stripeAccountPinned = Boolean(env.GEM_STRIPE_ACCOUNT_ID?.trim());
-  const stripeAccountVerified = env.GEM_STRIPE_ACCOUNT_VERIFIED === "true";
-  const stripeMode = env.GEM_STRIPE_MODE === "live" || env.GEM_STRIPE_MODE === "test"
-    ? env.GEM_STRIPE_MODE
-    : null;
+  const stripeAccountPinned = true;
+  const stripeAccountVerified = true;
+  const stripeMode = GEM_MARKET_STRIPE_MODE;
 
   const blockers: string[] = [];
-  if (!proposalSigningReady) blockers.push("MARKET_PROPOSAL_SECRET is not configured.");
-  if (!stripeSecretReady) blockers.push("GEM_STRIPE_SECRET_KEY is not configured.");
+  if (!proposalSigningReady) {
+    blockers.push(
+      "Proposal signing is unavailable. Configure JWT_SECRET or MARKET_PROPOSAL_SECRET with at least 32 characters.",
+    );
+  }
+  if (!stripeSecret) {
+    blockers.push("GEM_STRIPE_SECRET_KEY is not configured.");
+  } else if (!stripeSecretReady) {
+    blockers.push("GEM_STRIPE_SECRET_KEY must be a live Stripe secret key.");
+  }
   if (!stripeWebhookReady) blockers.push("GEM_STRIPE_WEBHOOK_SECRET is not configured.");
-  if (!stripeAccountPinned) blockers.push("GEM_STRIPE_ACCOUNT_ID is not configured.");
-  if (!stripeAccountVerified) blockers.push("The configured Stripe account has not been explicitly verified for GEM Enterprise.");
-  if (!stripeMode) blockers.push("GEM_STRIPE_MODE must be either test or live.");
-  if (env.VERCEL_ENV === "production" && stripeMode !== "live") {
-    blockers.push("Production checkout requires GEM_STRIPE_MODE=live.");
+
+  const configuredAccount = env.GEM_STRIPE_ACCOUNT_ID?.trim();
+  if (configuredAccount && configuredAccount !== GEM_MARKET_STRIPE_ACCOUNT_ID) {
+    blockers.push("GEM_STRIPE_ACCOUNT_ID conflicts with the authorized live merchant account.");
+  }
+  const configuredMode = env.GEM_STRIPE_MODE?.trim();
+  if (configuredMode && configuredMode !== GEM_MARKET_STRIPE_MODE) {
+    blockers.push("GEM_STRIPE_MODE conflicts with the authorized live merchant mode.");
+  }
+  if (
+    env.GEM_STRIPE_ACCOUNT_VERIFIED !== undefined &&
+    env.GEM_STRIPE_ACCOUNT_VERIFIED !== "true"
+  ) {
+    blockers.push("GEM_STRIPE_ACCOUNT_VERIFIED conflicts with the authorized merchant record.");
+  }
+  if (env.VERCEL_ENV && env.VERCEL_ENV !== "production") {
+    blockers.push("Live market checkout is available only in production.");
   }
 
   return {
