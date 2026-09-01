@@ -28,6 +28,7 @@ pretending that a human is connected before an authorized operator joins.
 - `src/components/AIChatWidget.tsx`
 - `src/components/support/SupportCaseConversation.tsx`
 - `.vercelignore` (retain the existing News cadence migration required by preview verification)
+- `src/components/auth/RoleLoginPortal.tsx` and `src/lib/supabase-gateway.ts` (normalize the hosted authentication error that blocked preview acceptance)
 - focused support tests
 - `design-qa.md` (support-flow section)
 - this task record
