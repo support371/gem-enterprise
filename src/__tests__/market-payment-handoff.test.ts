@@ -108,7 +108,7 @@ describe("market proposal and payment handoff", () => {
     expect(webhook).toContain("convertApprovedIntakeAfterVerifiedPayment");
   });
 
-  it("adds a fail-closed Klarna app handoff without wrapping Klarna's universal URL", () => {
+  it("adds a fail-closed Klarna app handoff with direct and provider-backed transports", () => {
     const handoff = readFileSync("src/app/api/market/klarna/handoff/route.ts", "utf8");
     const button = readFileSync("src/components/market/ProposalCheckoutButton.tsx", "utf8");
 
@@ -119,6 +119,11 @@ describe("market proposal and payment handoff", () => {
     expect(handoff).toContain('url.hostname === "pay.test.klarna.com"');
     expect(handoff).toContain('handoff: "klarna_app"');
     expect(handoff).toContain("KLARNA_APP_HANDOFF_NOT_CONFIGURED");
+    expect(handoff).toContain("GEM_KLARNA_PROVIDER_HANDOFF_URL");
+    expect(handoff).toContain("GEM_KLARNA_PROVIDER_TOKEN");
+    expect(handoff).toContain('mode: "provider"');
+    expect(handoff).toContain('mode: "direct"');
+    expect(handoff).toContain("return provider || direct");
     expect(handoff).not.toContain("window.location");
     expect(button).toContain('/api/market/klarna/handoff');
     expect(button).toContain("Open Klarna app");
