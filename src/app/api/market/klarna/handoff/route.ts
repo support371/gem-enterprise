@@ -8,6 +8,22 @@ const bodySchema = z.object({ token: z.string().trim().min(20).max(4_000) });
 const KLARNA_AMOUNT_CENTS = 29_900;
 const KLARNA_CURRENCY = "USD";
 
+type DirectKlarnaConfig = {
+  mode: "direct";
+  partnerAccountId: string;
+  authorization: string;
+  apiBase: string;
+  environment: "test" | "live";
+};
+
+type ProviderKlarnaConfig = {
+  mode: "provider";
+  endpoint: string;
+  authorization?: string;
+};
+
+type KlarnaTransportConfig = DirectKlarnaConfig | ProviderKlarnaConfig;
+
 function json(body: unknown, status = 200) {
   return NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
 }
@@ -22,14 +38,49 @@ function getBasicAuthorization() {
   return `Basic ${Buffer.from(`${username}:${password}`, "utf8").toString("base64")}`;
 }
 
-function getKlarnaConfig() {
+function getDirectKlarnaConfig(): DirectKlarnaConfig | null {
   const partnerAccountId = process.env.GEM_KLARNA_PARTNER_ACCOUNT_ID?.trim();
   const authorization = getBasicAuthorization();
   const environment = process.env.GEM_KLARNA_ENV === "live" ? "live" : "test";
-  const apiBase = environment === "live" ? "https://api-global.klarna.com" : "https://api-global.test.klarna.com";
+  const apiBase =
+    environment === "live"
+      ? "https://api-global.klarna.com"
+      : "https://api-global.test.klarna.com";
 
   if (!partnerAccountId || !authorization) return null;
-  return { partnerAccountId, authorization, apiBase, environment };
+  return { mode: "direct", partnerAccountId, authorization, apiBase, environment };
+}
+
+function getProviderKlarnaConfig(): ProviderKlarnaConfig | null {
+  const rawEndpoint = process.env.GEM_KLARNA_PROVIDER_HANDOFF_URL?.trim();
+  if (!rawEndpoint) return null;
+
+  let endpoint: URL;
+  try {
+    endpoint = new URL(rawEndpoint);
+  } catch {
+    return null;
+  }
+  if (endpoint.protocol !== "https:") return null;
+
+  const suppliedAuth = process.env.GEM_KLARNA_PROVIDER_AUTH?.trim();
+  const bearerToken = process.env.GEM_KLARNA_PROVIDER_TOKEN?.trim();
+  const authorization = suppliedAuth || (bearerToken ? `Bearer ${bearerToken}` : undefined);
+
+  return { mode: "provider", endpoint: endpoint.toString(), authorization };
+}
+
+function getKlarnaTransportConfig(): KlarnaTransportConfig | null {
+  const requested = process.env.GEM_KLARNA_HANDOFF_MODE?.trim().toLowerCase();
+  const provider = getProviderKlarnaConfig();
+  const direct = getDirectKlarnaConfig();
+
+  if (requested === "provider") return provider;
+  if (requested === "direct") return direct;
+
+  // Prefer provider-backed mode when configured. This removes the requirement for GEM itself
+  // to own Klarna Partner credentials while still requiring an upstream authorized provider.
+  return provider || direct;
 }
 
 function isTrustedKlarnaHandoffUrl(value: unknown): value is string {
@@ -43,6 +94,139 @@ function isTrustedKlarnaHandoffUrl(value: unknown): value is string {
   } catch {
     return false;
   }
+}
+
+async function authorizeViaProvider(input: {
+  config: ProviderKlarnaConfig;
+  publicId: string;
+  paymentTransactionReference: string;
+  returnUrl: string;
+  appReturnUrl?: string;
+}) {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    "Idempotency-Key": input.paymentTransactionReference,
+  };
+  if (input.config.authorization) headers.Authorization = input.config.authorization;
+
+  const response = await fetch(input.config.endpoint, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      provider: "klarna",
+      handoff: "app",
+      currency: KLARNA_CURRENCY,
+      amount: KLARNA_AMOUNT_CENTS,
+      reference: input.publicId,
+      payment_transaction_reference: input.paymentTransactionReference,
+      return_url: input.returnUrl,
+      app_return_url: input.appReturnUrl,
+      line_items: [
+        {
+          name: "GEM Rapid Security Assessment",
+          quantity: 1,
+          unit_price: KLARNA_AMOUNT_CENTS,
+          total_amount: KLARNA_AMOUNT_CENTS,
+        },
+      ],
+    }),
+    cache: "no-store",
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | {
+        status?: string;
+        payment_request_url?: string;
+        payment_request?: { payment_request_url?: string };
+      }
+    | null;
+
+  if (!response.ok || !payload) {
+    console.error("[Klarna provider handoff] authorization failed", response.status);
+    return { kind: "error" as const };
+  }
+
+  const handoffUrl = payload.payment_request_url || payload.payment_request?.payment_request_url;
+  if (handoffUrl) {
+    if (!isTrustedKlarnaHandoffUrl(handoffUrl)) return { kind: "invalid_url" as const };
+    return { kind: "handoff" as const, url: handoffUrl };
+  }
+
+  if (payload.status?.toLowerCase() === "approved") return { kind: "approved" as const };
+  if (payload.status?.toLowerCase() === "declined") return { kind: "declined" as const };
+  return { kind: "unknown" as const };
+}
+
+async function authorizeDirect(input: {
+  config: DirectKlarnaConfig;
+  publicId: string;
+  paymentTransactionReference: string;
+  returnUrl: string;
+  appReturnUrl?: string;
+}) {
+  const customerInteractionConfig: Record<string, string> = {
+    return_url: input.returnUrl,
+  };
+  if (input.appReturnUrl) customerInteractionConfig.app_return_url = input.appReturnUrl;
+
+  const response = await fetch(
+    `${input.config.apiBase}/v2/accounts/${encodeURIComponent(input.config.partnerAccountId)}/payment/authorize`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: input.config.authorization,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "Idempotency-Key": input.paymentTransactionReference,
+      },
+      body: JSON.stringify({
+        currency: KLARNA_CURRENCY,
+        supplementary_purchase_data: {
+          purchase_reference: input.publicId,
+          line_items: [
+            {
+              name: "GEM Rapid Security Assessment",
+              quantity: 1,
+              unit_price: KLARNA_AMOUNT_CENTS,
+              total_amount: KLARNA_AMOUNT_CENTS,
+            },
+          ],
+        },
+        request_payment_transaction: {
+          amount: KLARNA_AMOUNT_CENTS,
+          payment_transaction_reference: input.paymentTransactionReference,
+        },
+        step_up_config: {
+          type: "HANDOVER",
+          customer_interaction_config: customerInteractionConfig,
+        },
+      }),
+      cache: "no-store",
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as
+    | {
+        payment_transaction_response?: { result?: string };
+        payment_request?: { payment_request_url?: string };
+      }
+    | null;
+
+  if (!response.ok || !payload) {
+    console.error("[Klarna direct handoff] authorization failed", response.status);
+    return { kind: "error" as const };
+  }
+
+  const outcome = payload.payment_transaction_response?.result;
+  if (outcome === "STEP_UP_REQUIRED") {
+    const paymentRequestUrl = payload.payment_request?.payment_request_url;
+    if (!isTrustedKlarnaHandoffUrl(paymentRequestUrl)) return { kind: "invalid_url" as const };
+    return { kind: "handoff" as const, url: paymentRequestUrl };
+  }
+  if (outcome === "APPROVED") return { kind: "approved" as const };
+  if (outcome === "DECLINED") return { kind: "declined" as const };
+  return { kind: "unknown" as const };
 }
 
 export async function POST(request: NextRequest) {
@@ -64,11 +248,11 @@ export async function POST(request: NextRequest) {
     return json({ error: "GEM secure payment authorization is unavailable." }, 503);
   }
 
-  const klarna = getKlarnaConfig();
-  if (!klarna) {
+  const transport = getKlarnaTransportConfig();
+  if (!transport) {
     return json(
       {
-        error: "Klarna app handoff is not activated for this merchant yet.",
+        error: "Klarna app handoff is not activated yet. Configure an authorized payment provider or direct Klarna merchant credentials.",
         code: "KLARNA_APP_HANDOFF_NOT_CONFIGURED",
       },
       503,
@@ -100,90 +284,46 @@ export async function POST(request: NextRequest) {
     returnUrl.searchParams.set("provider", "klarna");
 
     const appReturnUrl = process.env.GEM_KLARNA_APP_RETURN_URL?.trim();
-    const customerInteractionConfig: Record<string, string> = {
-      return_url: returnUrl.toString(),
-    };
-    if (appReturnUrl) customerInteractionConfig.app_return_url = appReturnUrl;
-
     const paymentTransactionReference = `gem-${result.submission.publicId}`.slice(0, 128);
 
-    const response = await fetch(
-      `${klarna.apiBase}/v2/accounts/${encodeURIComponent(klarna.partnerAccountId)}/payment/authorize`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: klarna.authorization,
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          "Idempotency-Key": paymentTransactionReference,
-        },
-        body: JSON.stringify({
-          currency: KLARNA_CURRENCY,
-          supplementary_purchase_data: {
-            purchase_reference: result.submission.publicId,
-            line_items: [
-              {
-                name: "GEM Rapid Security Assessment",
-                quantity: 1,
-                unit_price: KLARNA_AMOUNT_CENTS,
-                total_amount: KLARNA_AMOUNT_CENTS,
-              },
-            ],
-          },
-          request_payment_transaction: {
-            amount: KLARNA_AMOUNT_CENTS,
-            payment_transaction_reference: paymentTransactionReference,
-          },
-          step_up_config: {
-            type: "HANDOVER",
-            customer_interaction_config: customerInteractionConfig,
-          },
-        }),
-        cache: "no-store",
-      },
-    );
+    const authorization =
+      transport.mode === "provider"
+        ? await authorizeViaProvider({
+            config: transport,
+            publicId: result.submission.publicId,
+            paymentTransactionReference,
+            returnUrl: returnUrl.toString(),
+            appReturnUrl,
+          })
+        : await authorizeDirect({
+            config: transport,
+            publicId: result.submission.publicId,
+            paymentTransactionReference,
+            returnUrl: returnUrl.toString(),
+            appReturnUrl,
+          });
 
-    const payload = (await response.json().catch(() => null)) as
-      | {
-          payment_transaction_response?: { result?: string };
-          payment_request?: { payment_request_url?: string };
-        }
-      | null;
-
-    if (!response.ok || !payload) {
-      console.error("[Klarna app handoff] authorization failed", response.status);
-      return json(
-        {
-          error: "Klarna could not start the secure app handoff. No payment has been taken.",
-          code: "KLARNA_AUTHORIZATION_FAILED",
-        },
-        502,
-      );
+    if (authorization.kind === "handoff") {
+      // Return Klarna's own universal payment_request_url directly. Do not wrap it in a GEM
+      // browser redirect; iOS/Android can hand the URL to the installed Klarna app.
+      return json({
+        ok: true,
+        handoff: "klarna_app",
+        transport: transport.mode,
+        url: authorization.url,
+      });
     }
 
-    const outcome = payload.payment_transaction_response?.result;
-    if (outcome === "STEP_UP_REQUIRED") {
-      const paymentRequestUrl = payload.payment_request?.payment_request_url;
-      if (!isTrustedKlarnaHandoffUrl(paymentRequestUrl)) {
-        return json(
-          {
-            error: "Klarna did not return a trusted app-handoff URL. No payment has been taken.",
-            code: "KLARNA_HANDOFF_URL_INVALID",
-          },
-          502,
-        );
-      }
-
-      // Return Klarna's universal payment_request_url directly. Do not wrap it in a GEM redirect;
-      // direct navigation gives iOS/Android the best chance to hand off to the installed Klarna app.
-      return json({ ok: true, handoff: "klarna_app", url: paymentRequestUrl });
+    if (authorization.kind === "approved") {
+      return json({
+        ok: true,
+        handoff: "complete",
+        transport: transport.mode,
+        url: returnUrl.toString(),
+      });
     }
 
-    if (outcome === "APPROVED") {
-      return json({ ok: true, handoff: "complete", url: returnUrl.toString() });
-    }
-
-    if (outcome === "DECLINED") {
+    if (authorization.kind === "declined") {
       return json(
         {
           error: "Klarna did not approve this payment. No alternate payment was attempted.",
@@ -193,9 +333,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (authorization.kind === "invalid_url") {
+      return json(
+        {
+          error: "The payment provider did not return a trusted Klarna app-handoff URL. No payment has been taken.",
+          code: "KLARNA_HANDOFF_URL_INVALID",
+        },
+        502,
+      );
+    }
+
+    if (authorization.kind === "error") {
+      return json(
+        {
+          error: "The payment provider could not start the secure Klarna app handoff. No payment has been taken.",
+          code: "KLARNA_AUTHORIZATION_FAILED",
+        },
+        502,
+      );
+    }
+
     return json(
       {
-        error: "Klarna returned an unsupported authorization state. No payment has been taken.",
+        error: "The payment provider returned an unsupported Klarna authorization state. No payment has been taken.",
         code: "KLARNA_UNKNOWN_STATE",
       },
       502,
