@@ -2,6 +2,22 @@
 
 Snapshot: 2026-08-11 UTC. Refresh live GitHub state before mutation.
 
+## TikTok Shop Seller Sync
+
+| Field | Value |
+|---|---|
+| TASK | [TIKTOK-SHOP-SELLER-SYNC](tasks/TIKTOK-SHOP-SELLER-SYNC.md) |
+| OWNER | Codex / TikTok Shop integration lane |
+| SOURCE PR/ISSUE | Owner request dated 2026-09-08 |
+| BASE SHA | `5e11055caaeff064aa3e2998899c7b1b7ae2b7de` |
+| WORKING BRANCH | `codex/tiktok-shop-seller-sync` |
+| OWNED FILES/SCOPE | TikTok Shop OAuth/config/client routes, seller-shop/product read sync UI, focused tests, environment template, and activation docs |
+| FORBIDDEN OVERLAP | Existing organic TikTok publishing behavior; unrelated auth; Prisma; production credentials; other active-work files |
+| STATUS | IMPLEMENTED — LOCAL GATES PASSED |
+| BLOCKER CLASS | PROVIDER ACCESS |
+| LAST VERIFIED HEAD | `718f143` (implementation content verified before publication) |
+| NEXT SAFE ACTION | Publish the reviewable branch without merging, then configure the Partner Center values and complete owner authorization after TikTok approval. |
+
 ## GEM News Scroll Autoplay
 
 | Field | Value |
