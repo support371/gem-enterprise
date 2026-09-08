@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TokMetricConnectorPanel } from "./TokMetricConnectorPanel";
+import { TikTokShopSellerPanel } from "./TikTokShopSellerPanel";
 import {
   Activity,
   AlertTriangle,
@@ -266,6 +267,7 @@ export function TokMetricWorkspacePage({ kind }: { kind: TokMetricPageKind }) {
 
         <section className="min-w-0 space-y-8">
           {(kind === "accounts" || kind === "developer" || kind === "dashboard") && <TokMetricConnectorPanel />}
+          {(kind === "accounts" || kind === "developer" || kind === "dashboard") && <TikTokShopSellerPanel />}
 
           <PageBody kind={kind} />
 
