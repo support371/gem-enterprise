@@ -47,7 +47,24 @@ describe("GEM campaign email branding", () => {
     expect(rendered.html).toContain("</a>).");
   });
 
-  it("requires campaign delivery to include branded HTML and text fallback", () => {
+  it("renders the commercial footer only when production compliance data is supplied", () => {
+    const rendered = renderGemCampaignEmail({
+      subject: "Founding Business Review",
+      body: "A controlled GEM Enterprise campaign update.",
+      postalAddress: "100 Example Street, New York, NY 10001",
+      unsubscribeUrl: "https://www.gemcybersecurityassist.com/api/marketing/unsubscribe?token=test",
+      replyTo: "marketing@example.com",
+    });
+
+    expect(rendered.html).toContain("This is a commercial communication from GEM Enterprise.");
+    expect(rendered.html).toContain("100 Example Street, New York, NY 10001");
+    expect(rendered.html).toContain("Unsubscribe from marketing email");
+    expect(rendered.html).toContain("marketing@example.com");
+    expect(rendered.text).toContain("Mailing address: 100 Example Street, New York, NY 10001");
+    expect(rendered.text).toContain("Unsubscribe from marketing email:");
+  });
+
+  it("requires campaign delivery to include branded HTML, text fallback, suppression, and one-click opt-out", () => {
     const sendRoute = readFileSync(
       "src/app/api/admin/campaigns/[id]/send/route.ts",
       "utf8",
@@ -56,7 +73,13 @@ describe("GEM campaign email branding", () => {
     expect(sendRoute).toContain("renderGemCampaignEmail");
     expect(sendRoute).toContain("text: renderedCampaign.text");
     expect(sendRoute).toContain("html: renderedCampaign.html");
-    expect(sendRoute).toContain('emailTemplate: "gem-enterprise-branded-v1"');
+    expect(sendRoute).toContain('emailTemplate: "gem-enterprise-branded-v2"');
+    expect(sendRoute).toContain("isMarketingEmailSuppressed");
+    expect(sendRoute).toContain('WHERE "status" = \'unsubscribed\'');
+    expect(sendRoute).toContain('"List-Unsubscribe"');
+    expect(sendRoute).toContain('"List-Unsubscribe-Post"');
+    expect(sendRoute).toContain("GEM_MARKETING_POSTAL_ADDRESS");
+    expect(sendRoute).toContain("GEM_MARKETING_REPLY_TO");
     expect(sendRoute).not.toContain("text: campaign.body,");
   });
 
