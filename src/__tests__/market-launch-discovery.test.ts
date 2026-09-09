@@ -1,0 +1,46 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+
+describe("market launch discovery", () => {
+  it("publishes the founding review in the public sitemap", () => {
+    const sitemap = readFileSync("src/app/sitemap.xml/route.ts", "utf8");
+    expect(sitemap).toContain('"/business-review"');
+  });
+
+  it("uses a canonical public URL and service structured data", () => {
+    const page = readFileSync("src/app/business-review/page.tsx", "utf8");
+    expect(page).toContain('title: "Business Security & Operations Review",');
+    expect(page).not.toContain('title: "Business Security & Operations Review | GEM Enterprise",\n  description:');
+    expect(page).toContain('canonical: canonicalPath');
+    expect(page).toContain('type="application/ld+json"');
+    expect(page).toContain('"@type": "Service"');
+    expect(page).toContain('foundingBusinessReviewOffer.priceUsd.toString()');
+    expect(page).toContain('https://www.gemcybersecurityassist.com');
+  });
+
+  it("keeps discovery separate from payment and workspace activation", () => {
+    const page = readFileSync("src/app/business-review/page.tsx", "utf8");
+    expect(page).toContain("BusinessReviewIntakeForm");
+    expect(page).not.toContain("workspace-invitations");
+    expect(page).not.toContain("/api/market/checkout");
+  });
+
+  it("provides a controlled first-20 outreach workbench without automatic sending", () => {
+    const outreach = readFileSync("src/app/app/admin/market/outreach/page.tsx", "utf8");
+    expect(outreach).toContain("foundingMarketTarget.campaignCode");
+    expect(outreach).toContain('https://www.gemcybersecurityassist.com${campaignPath}');
+    expect(outreach).toContain("one-to-one");
+    expect(outreach).toContain("never sends outreach automatically");
+    expect(outreach).toContain("never creates an intake record");
+    expect(outreach).not.toContain("window.location.origin");
+    expect(outreach).not.toContain("/api/admin/campaigns/");
+    expect(outreach).not.toContain("/send");
+  });
+
+  it("makes the outreach workbench discoverable from governed campaign operations", () => {
+    const campaigns = readFileSync("src/app/app/admin/campaigns/page.tsx", "utf8");
+    expect(campaigns).toContain('/app/admin/market/outreach');
+    expect(campaigns).toContain("First-20 Outreach");
+    expect(campaigns).toContain("does not send or create intake records automatically");
+  });
+});
