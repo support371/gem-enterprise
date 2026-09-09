@@ -22,4 +22,14 @@ describe("market launch discovery", () => {
     expect(page).not.toContain("workspace-invitations");
     expect(page).not.toContain("/api/market/checkout");
   });
+
+  it("provides a controlled first-20 outreach workbench without automatic sending", () => {
+    const outreach = readFileSync("src/app/app/admin/market/outreach/page.tsx", "utf8");
+    expect(outreach).toContain("founding-first-20");
+    expect(outreach).toContain("one-to-one");
+    expect(outreach).toContain("never sends outreach automatically");
+    expect(outreach).toContain("never creates an intake record");
+    expect(outreach).not.toContain("/api/admin/campaigns/");
+    expect(outreach).not.toContain("/send");
+  });
 });
