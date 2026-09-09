@@ -91,10 +91,25 @@ function renderBody(body: string): string {
     .join("");
 }
 
+function safeWebUrl(value?: string): string | null {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" || parsed.protocol === "http:"
+      ? parsed.toString()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface GemCampaignEmailInput {
   subject: string;
   body: string;
   eyebrow?: string;
+  postalAddress?: string;
+  unsubscribeUrl?: string;
+  replyTo?: string;
 }
 
 export interface GemCampaignEmail {
@@ -106,11 +121,27 @@ export function renderGemCampaignEmail({
   subject,
   body,
   eyebrow = "GEM Enterprise Campaign",
+  postalAddress,
+  unsubscribeUrl,
+  replyTo,
 }: GemCampaignEmailInput): GemCampaignEmail {
   const safeSubject = escapeHtml(subject.trim() || "GEM Enterprise Update");
   const safeEyebrow = escapeHtml(eyebrow);
   const preheader = escapeHtml(body.replace(/\s+/g, " ").trim().slice(0, 150));
   const bodyHtml = renderBody(body);
+  const normalizedUnsubscribeUrl = safeWebUrl(unsubscribeUrl);
+  const safePostalAddress = postalAddress?.trim()
+    ? escapeHtml(postalAddress.trim())
+    : "";
+  const safeReplyTo = replyTo?.trim() ? escapeHtml(replyTo.trim()) : "";
+  const safeUnsubscribeUrl = normalizedUnsubscribeUrl
+    ? escapeHtml(normalizedUnsubscribeUrl)
+    : "";
+
+  const complianceHtml =
+    safePostalAddress && safeUnsubscribeUrl
+      ? `<div style="margin-top:12px;font-size:11px;line-height:1.7;color:#93A4B5">This is a commercial communication from GEM Enterprise.<br />Mailing address: ${safePostalAddress}<br /><a href="${safeUnsubscribeUrl}" style="color:${GEM_GOLD};text-decoration:underline">Unsubscribe from marketing email</a>${safeReplyTo ? `<br />Preference support: ${safeReplyTo}` : ""}</div>`
+      : `<div style="margin-top:12px;font-size:11px;line-height:1.7;color:#93A4B5">GEM marketing compliance details are applied by the production sender at delivery time.</div>`;
 
   const html = `<!doctype html>
 <html lang="en">
@@ -157,6 +188,7 @@ export function renderGemCampaignEmail({
                   &nbsp;•&nbsp;
                   <a href="${GEM_SITE}/contact" style="color:${GEM_GOLD};text-decoration:none">Contact</a>
                 </div>
+                ${complianceHtml}
               </td>
             </tr>
           </table>
@@ -166,9 +198,23 @@ export function renderGemCampaignEmail({
   </body>
 </html>`;
 
+  const complianceText =
+    postalAddress?.trim() && normalizedUnsubscribeUrl
+      ? [
+          "",
+          "---",
+          "This is a commercial communication from GEM Enterprise.",
+          `Mailing address: ${postalAddress.trim()}`,
+          `Unsubscribe from marketing email: ${normalizedUnsubscribeUrl}`,
+          ...(replyTo?.trim()
+            ? [`Preference support: ${replyTo.trim()}`]
+            : []),
+        ].join("\n")
+      : "";
+
   return {
     html,
-    text: body,
+    text: `${body}${complianceText}`,
   };
 }
 
