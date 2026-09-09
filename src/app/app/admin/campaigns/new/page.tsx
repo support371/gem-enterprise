@@ -4,9 +4,10 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ChevronLeft, Mail, Send, Loader2 } from 'lucide-react'
+import { ChevronLeft, Mail, Send, Loader2, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { renderGemCampaignEmail } from '@/lib/email/gemCampaignTemplate'
 
 export default function NewCampaignPage() {
   const router = useRouter()
@@ -16,6 +17,11 @@ export default function NewCampaignPage() {
   const [scheduledAt, setScheduledAt] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const previewEmail = renderGemCampaignEmail({
+    subject: subject || 'Your campaign subject',
+    body: body || 'Your campaign content will appear here.',
+  })
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -44,7 +50,7 @@ export default function NewCampaignPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
       <div className="flex items-center gap-3">
         <Link href="/app/admin/campaigns">
           <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white w-8 h-8">
@@ -60,7 +66,17 @@ export default function NewCampaignPage() {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="rounded-xl border border-amber-400/20 bg-amber-400/[0.06] px-4 py-3 flex items-start gap-3">
+        <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0 text-amber-300" />
+        <div>
+          <p className="text-sm font-semibold text-amber-200">GEM Enterprise branded delivery enforced</p>
+          <p className="text-xs leading-5 text-slate-400 mt-1">
+            Every campaign is delivered through the approved navy, gold, and white GEM email template with a mobile-safe HTML version and plain-text fallback. The preview below uses the same renderer as production delivery.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid xl:grid-cols-[0.8fr_1.2fr] gap-6 items-start">
         {/* Form */}
         <Card className="bg-card border-white/10">
           <CardHeader>
@@ -94,10 +110,11 @@ export default function NewCampaignPage() {
                   value={body}
                   onChange={e => setBody(e.target.value)}
                   placeholder="Write your email content here..."
-                  rows={8}
+                  rows={12}
                   required
                   className="w-full rounded-md bg-white/5 border border-white/10 text-white placeholder:text-slate-500 p-3 text-sm resize-y focus:outline-none focus:ring-1 focus:ring-cyan-500"
                 />
+                <p className="text-xs text-slate-600 mt-1">HTTP(S) links in the body are safely rendered as branded clickable links.</p>
               </div>
               <div>
                 <label className="text-xs text-slate-400 mb-1 block">Schedule (optional)</label>
@@ -118,27 +135,34 @@ export default function NewCampaignPage() {
           </CardContent>
         </Card>
 
-        {/* Preview */}
-        <Card className="bg-card border-white/10">
-          <CardHeader>
-            <CardTitle className="text-white text-sm">Preview</CardTitle>
+        {/* Production-equivalent branded preview */}
+        <Card className="bg-card border-white/10 overflow-hidden">
+          <CardHeader className="border-b border-white/10">
+            <div className="flex items-center justify-between gap-3">
+              <CardTitle className="text-white text-sm">Branded Email Preview</CardTitle>
+              <span className="rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-amber-200">
+                Production renderer
+              </span>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="bg-white/5 rounded-lg p-4 space-y-3">
-              <div className="border-b border-white/10 pb-3">
-                <p className="text-xs text-slate-500">From</p>
-                <p className="text-sm text-white">GEM Enterprise &lt;noreply@gemcybersecurityassist.com&gt;</p>
-              </div>
-              <div className="border-b border-white/10 pb-3">
-                <p className="text-xs text-slate-500">Subject</p>
-                <p className="text-sm text-white">{subject || <span className="text-slate-600">Your subject here</span>}</p>
+          <CardContent className="p-0">
+            <div className="border-b border-white/10 bg-black/20 px-4 py-3 grid sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <p className="text-slate-500">From</p>
+                <p className="text-slate-300 mt-1">GEM Enterprise &lt;noreply@gemcybersecurityassist.com&gt;</p>
               </div>
               <div>
-                <p className="text-xs text-slate-500 mb-2">Body</p>
-                <p className="text-sm text-slate-300 whitespace-pre-wrap">
-                  {body || <span className="text-slate-600">Your email content will appear here…</span>}
-                </p>
+                <p className="text-slate-500">Subject</p>
+                <p className="text-slate-300 mt-1 break-words">{subject || 'Your campaign subject'}</p>
               </div>
+            </div>
+            <div className="bg-slate-100 p-3 sm:p-5">
+              <iframe
+                title="GEM branded campaign email preview"
+                srcDoc={previewEmail.html}
+                sandbox=""
+                className="w-full h-[620px] rounded-lg border border-slate-300 bg-white"
+              />
             </div>
           </CardContent>
         </Card>
