@@ -32,4 +32,11 @@ describe("market launch discovery", () => {
     expect(outreach).not.toContain("/api/admin/campaigns/");
     expect(outreach).not.toContain("/send");
   });
+
+  it("makes the outreach workbench discoverable from governed campaign operations", () => {
+    const campaigns = readFileSync("src/app/app/admin/campaigns/page.tsx", "utf8");
+    expect(campaigns).toContain('/app/admin/market/outreach');
+    expect(campaigns).toContain("First-20 Outreach");
+    expect(campaigns).toContain("does not send or create intake records automatically");
+  });
 });
