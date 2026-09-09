@@ -9,6 +9,8 @@ describe("market launch discovery", () => {
 
   it("uses a canonical public URL and service structured data", () => {
     const page = readFileSync("src/app/business-review/page.tsx", "utf8");
+    expect(page).toContain('title: "Business Security & Operations Review",');
+    expect(page).not.toContain('title: "Business Security & Operations Review | GEM Enterprise",\n  description:');
     expect(page).toContain('canonical: canonicalPath');
     expect(page).toContain('type="application/ld+json"');
     expect(page).toContain('"@type": "Service"');
