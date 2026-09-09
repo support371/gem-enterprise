@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Check, Copy, ExternalLink, ShieldCheck, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { foundingMarketTarget } from "@/lib/market/launchTarget";
 
 const campaignPath =
   `/business-review?lead=outbound&campaign=${foundingMarketTarget.campaignCode}&utm_source=direct-outreach&utm_medium=one-to-one&utm_campaign=first-20-businesses`;
+const campaignUrl = `https://www.gemcybersecurityassist.com${campaignPath}`;
 
 const outreachTemplates = [
   {
@@ -40,11 +41,6 @@ const outreachTemplates = [
 
 export default function First20OutreachPage() {
   const [copied, setCopied] = useState<string | null>(null);
-  const [campaignUrl, setCampaignUrl] = useState(campaignPath);
-
-  useEffect(() => {
-    setCampaignUrl(`${window.location.origin}${campaignPath}`);
-  }, []);
 
   async function copy(key: string, value: string) {
     try {
@@ -86,7 +82,7 @@ export default function First20OutreachPage() {
               {copied === "campaign" ? "Copied" : "Copy link"}
             </Button>
             <Button asChild variant="outline" className="gap-2">
-              <a href={campaignPath} target="_blank" rel="noreferrer">
+              <a href={campaignUrl} target="_blank" rel="noreferrer">
                 Open offer <ExternalLink className="h-4 w-4" />
               </a>
             </Button>
