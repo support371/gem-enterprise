@@ -33,6 +33,20 @@ describe("GEM campaign email branding", () => {
     expect(rendered.html).toContain("https://www.gemcybersecurityassist.com/business-review");
   });
 
+  it("keeps sentence punctuation outside branded link targets", () => {
+    const rendered = renderGemCampaignEmail({
+      subject: "Review link",
+      body: "Read https://www.gemcybersecurityassist.com/business-review. Then compare (https://www.gemcybersecurityassist.com/services).",
+    });
+
+    expect(rendered.html).toContain('href="https://www.gemcybersecurityassist.com/business-review"');
+    expect(rendered.html).not.toContain('href="https://www.gemcybersecurityassist.com/business-review."');
+    expect(rendered.html).toContain('href="https://www.gemcybersecurityassist.com/services"');
+    expect(rendered.html).not.toContain('href="https://www.gemcybersecurityassist.com/services)"');
+    expect(rendered.html).toContain("</a>.");
+    expect(rendered.html).toContain("</a>).");
+  });
+
   it("requires campaign delivery to include branded HTML and text fallback", () => {
     const sendRoute = readFileSync(
       "src/app/api/admin/campaigns/[id]/send/route.ts",
