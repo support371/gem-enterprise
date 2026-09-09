@@ -27,34 +27,42 @@ describe("market proposal and payment handoff", () => {
     expect(verifyProposalToken(`${token}tampered`, secret)).toBeNull();
   });
 
-  it("derives proposal signing from JWT_SECRET and requires only webhook readiness in production", () => {
+  it("allows governed production checkout before webhook automation is configured", () => {
     const preview = getMarketPaymentReadiness({
       VERCEL_ENV: "preview",
       JWT_SECRET: secret,
-      GEM_STRIPE_WEBHOOK_SECRET: "whsec_example",
     });
     expect(preview.proposalSigningReady).toBe(true);
     expect(preview.checkoutReady).toBe(false);
     expect(preview.blockers).toContain("Live market checkout is available only in production.");
 
-    const ready = getMarketPaymentReadiness({
+    const productionWithoutWebhook = getMarketPaymentReadiness({
+      VERCEL_ENV: "production",
+      JWT_SECRET: secret,
+    });
+    expect(productionWithoutWebhook.checkoutReady).toBe(true);
+    expect(productionWithoutWebhook.stripeWebhookReady).toBe(false);
+    expect(productionWithoutWebhook.blockers).not.toContain(
+      "GEM_STRIPE_WEBHOOK_SECRET is not configured.",
+    );
+
+    const productionWithWebhook = getMarketPaymentReadiness({
       VERCEL_ENV: "production",
       JWT_SECRET: secret,
       GEM_STRIPE_WEBHOOK_SECRET: "whsec_example",
     });
-    expect(ready.checkoutReady).toBe(true);
-    expect(ready.stripeWebhookReady).toBe(true);
-    expect(ready.stripeAccountPinned).toBe(true);
-    expect(ready.stripeAccountVerified).toBe(true);
-    expect(ready.paymentLinkPinned).toBe(true);
-    expect(ready.stripeMode).toBe("live");
+    expect(productionWithWebhook.checkoutReady).toBe(true);
+    expect(productionWithWebhook.stripeWebhookReady).toBe(true);
+    expect(productionWithWebhook.stripeAccountPinned).toBe(true);
+    expect(productionWithWebhook.stripeAccountVerified).toBe(true);
+    expect(productionWithWebhook.paymentLinkPinned).toBe(true);
+    expect(productionWithWebhook.stripeMode).toBe("live");
   });
 
   it("rejects contradictory merchant configuration", () => {
     const blocked = getMarketPaymentReadiness({
       VERCEL_ENV: "production",
       JWT_SECRET: secret,
-      GEM_STRIPE_WEBHOOK_SECRET: "whsec_example",
       GEM_STRIPE_ACCOUNT_ID: "acct_wrong",
       GEM_STRIPE_MODE: "test",
       GEM_STRIPE_ACCOUNT_VERIFIED: "false",
@@ -94,6 +102,7 @@ describe("market proposal and payment handoff", () => {
   it("locks checkout to approved intake and routes only to the pinned live Payment Link", () => {
     const checkout = readFileSync("src/app/api/market/checkout/route.ts", "utf8");
     const webhook = readFileSync("src/app/api/market/stripe/webhook/route.ts", "utf8");
+    const workflow = readFileSync("src/lib/intake/workflow.ts", "utf8");
     expect(checkout).toContain('result.submission.status !== "APPROVED"');
     expect(checkout).toContain("GEM_MARKET_PAYMENT_LINK_URL");
     expect(checkout).toContain('paymentUrl.searchParams.set("client_reference_id"');
@@ -106,6 +115,7 @@ describe("market proposal and payment handoff", () => {
     expect(webhook).toContain("verifyStripeWebhookSignature");
     expect(webhook).toContain("amountMatches");
     expect(webhook).toContain("convertApprovedIntakeAfterVerifiedPayment");
+    expect(workflow).toContain('APPROVED: ["CONVERTED", "CLOSED"]');
   });
 
   it("never turns a Stripe webhook directly into workspace access", () => {
