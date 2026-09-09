@@ -13,7 +13,7 @@ export default function BusinessReviewPaymentSuccessPage() {
         <CheckCircle2 className="h-10 w-10 text-emerald-400" aria-hidden="true" />
         <h1 className="mt-5 text-3xl font-bold">Payment submitted</h1>
         <p className="mt-4 leading-7 text-muted-foreground">
-          GEM verifies payment through the payment provider before converting the opportunity into onboarding. This page alone does not activate service, create an account, or grant workspace access.
+          GEM verifies payment with the payment provider before converting the opportunity into onboarding. Verification may be completed automatically through the signed Stripe webhook or, during controlled launch, manually by an authorized GEM administrator against the Stripe payment record. This page alone does not activate service, create an account, or grant workspace access.
         </p>
         <div className="mt-6 rounded-2xl border border-border bg-background/60 p-5 text-sm leading-6">
           <div className="flex items-center gap-2 font-semibold">
