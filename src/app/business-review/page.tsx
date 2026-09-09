@@ -18,7 +18,7 @@ const canonicalPath = "/business-review";
 const canonicalUrl = `https://www.gemcybersecurityassist.com${canonicalPath}`;
 
 export const metadata: Metadata = {
-  title: "Business Security & Operations Review | GEM Enterprise",
+  title: "Business Security & Operations Review",
   description:
     "Request the founding GEM Business Security & Operations Review: a structured assessment of security, access, operational risk, and immediate priorities.",
   alternates: {
