@@ -42,7 +42,9 @@ export async function POST(
     }
 
     const postalAddress = process.env.GEM_MARKETING_POSTAL_ADDRESS?.trim();
-    const replyTo = process.env.GEM_MARKETING_REPLY_TO?.trim();
+    const replyTo =
+      process.env.GEM_MARKETING_REPLY_TO?.trim() ||
+      process.env.REPLY_TO_EMAIL?.trim();
     const smtpConfigured = Boolean(process.env.SMTP_HOST?.trim());
     const production = isProductionRuntime();
 
@@ -50,7 +52,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Marketing delivery is blocked until GEM_MARKETING_POSTAL_ADDRESS and GEM_MARKETING_REPLY_TO are configured.",
+            "Marketing delivery is blocked until GEM_MARKETING_POSTAL_ADDRESS and a monitored GEM_MARKETING_REPLY_TO or REPLY_TO_EMAIL are configured.",
           code: "MARKETING_COMPLIANCE_NOT_CONFIGURED",
         },
         { status: 503 },
