@@ -14,10 +14,42 @@ import {
 } from "@/components/market/BusinessReviewIntakeForm";
 import { foundingBusinessReviewOffer } from "@/lib/market/launchOffer";
 
+const canonicalPath = "/business-review";
+const canonicalUrl = `https://www.gemcybersecurityassist.com${canonicalPath}`;
+
 export const metadata: Metadata = {
   title: "Business Security & Operations Review | GEM Enterprise",
   description:
     "Request the founding GEM Business Security & Operations Review: a structured assessment of security, access, operational risk, and immediate priorities.",
+  alternates: {
+    canonical: canonicalPath,
+  },
+  openGraph: {
+    title: "Business Security & Operations Review | GEM Enterprise",
+    description:
+      "A bounded GEM review for small and growing businesses covering security, access, operational risk, and immediate priorities.",
+    url: canonicalPath,
+    type: "website",
+  },
+};
+
+const serviceStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: foundingBusinessReviewOffer.name,
+  description: foundingBusinessReviewOffer.promise,
+  url: canonicalUrl,
+  provider: {
+    "@type": "Organization",
+    name: "GEM Enterprise",
+    url: "https://www.gemcybersecurityassist.com",
+  },
+  offers: {
+    "@type": "Offer",
+    price: foundingBusinessReviewOffer.priceUsd.toString(),
+    priceCurrency: "USD",
+    url: canonicalUrl,
+  },
 };
 
 const reviewAreas = [
@@ -90,6 +122,13 @@ export default async function BusinessReviewPage({ searchParams }: PageProps) {
 
   return (
     <main className="min-h-screen bg-background text-foreground">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(serviceStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
+
       <section className="border-b border-border/60 px-6 py-20 cyber-grid">
         <div className="mx-auto max-w-6xl">
           <div className="grid items-start gap-10 lg:grid-cols-[1.25fr_0.75fr]">
