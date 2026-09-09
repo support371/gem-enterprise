@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { emitAuditLog } from "@/lib/audit";
+import { renderGemCampaignEmail } from "@/lib/email/gemCampaignTemplate";
 import nodemailer from "nodemailer";
 import {
   requireAdmin,
@@ -49,13 +50,21 @@ export async function POST(
         port: Number(process.env.SMTP_PORT ?? 587),
         auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
       });
+      const renderedCampaign = renderGemCampaignEmail({
+        subject: campaign.subject,
+        body: campaign.body,
+      });
+
       for (const user of users) {
         try {
           await transporter.sendMail({
-            from: process.env.EMAIL_FROM ?? "noreply@gemcybersecurityassist.com",
+            from:
+              process.env.EMAIL_FROM ??
+              "GEM Enterprise <noreply@gemcybersecurityassist.com>",
             to: user.email,
             subject: campaign.subject,
-            text: campaign.body,
+            text: renderedCampaign.text,
+            html: renderedCampaign.html,
           });
           sentCount += 1;
         } catch {
@@ -83,6 +92,7 @@ export async function POST(
         recipientCount: sentCount,
         failedCount,
         smtpConfigured: Boolean(process.env.SMTP_HOST),
+        emailTemplate: "gem-enterprise-branded-v1",
       },
       ipAddress,
       userAgent,
