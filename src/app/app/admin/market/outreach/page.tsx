@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Check, Copy, ExternalLink, ShieldCheck, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,10 +40,10 @@ const outreachTemplates = [
 
 export default function First20OutreachPage() {
   const [copied, setCopied] = useState<string | null>(null);
+  const [campaignUrl, setCampaignUrl] = useState(campaignPath);
 
-  const campaignUrl = useMemo(() => {
-    if (typeof window === "undefined") return campaignPath;
-    return `${window.location.origin}${campaignPath}`;
+  useEffect(() => {
+    setCampaignUrl(`${window.location.origin}${campaignPath}`);
   }, []);
 
   async function copy(key: string, value: string) {
