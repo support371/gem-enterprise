@@ -28,9 +28,11 @@ describe("market launch discovery", () => {
   it("provides a controlled first-20 outreach workbench without automatic sending", () => {
     const outreach = readFileSync("src/app/app/admin/market/outreach/page.tsx", "utf8");
     expect(outreach).toContain("foundingMarketTarget.campaignCode");
+    expect(outreach).toContain('https://www.gemcybersecurityassist.com${campaignPath}');
     expect(outreach).toContain("one-to-one");
     expect(outreach).toContain("never sends outreach automatically");
     expect(outreach).toContain("never creates an intake record");
+    expect(outreach).not.toContain("window.location.origin");
     expect(outreach).not.toContain("/api/admin/campaigns/");
     expect(outreach).not.toContain("/send");
   });
