@@ -111,7 +111,6 @@ export function getMarketPaymentReadiness(
       "Proposal signing is unavailable. Configure JWT_SECRET or MARKET_PROPOSAL_SECRET with at least 32 characters.",
     );
   }
-  if (!stripeWebhookReady) blockers.push("GEM_STRIPE_WEBHOOK_SECRET is not configured.");
 
   const configuredAccount = env.GEM_STRIPE_ACCOUNT_ID?.trim();
   if (configuredAccount && configuredAccount !== GEM_MARKET_STRIPE_ACCOUNT_ID) {
