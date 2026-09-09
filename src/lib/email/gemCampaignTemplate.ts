@@ -12,6 +12,38 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#039;");
 }
 
+function splitTrailingUrlPunctuation(rawUrl: string): {
+  url: string;
+  trailingPunctuation: string;
+} {
+  let url = rawUrl;
+  let trailingPunctuation = "";
+
+  const sentencePunctuation = url.match(/[.,!?;:]+$/)?.[0] ?? "";
+  if (sentencePunctuation) {
+    url = url.slice(0, -sentencePunctuation.length);
+    trailingPunctuation = sentencePunctuation;
+  }
+
+  const bracketPairs = [
+    [")", "("],
+    ["]", "["],
+    ["}", "{"],
+  ] as const;
+
+  for (const [closing, opening] of bracketPairs) {
+    while (url.endsWith(closing)) {
+      const openingCount = url.split(opening).length - 1;
+      const closingCount = url.split(closing).length - 1;
+      if (closingCount <= openingCount) break;
+      url = url.slice(0, -1);
+      trailingPunctuation = closing + trailingPunctuation;
+    }
+  }
+
+  return { url, trailingPunctuation };
+}
+
 function linkifyText(value: string): string {
   const urlPattern = /https?:\/\/[^\s<>"']+/g;
   let html = "";
@@ -19,14 +51,15 @@ function linkifyText(value: string): string {
 
   for (const match of value.matchAll(urlPattern)) {
     const rawUrl = match[0];
+    const { url, trailingPunctuation } = splitTrailingUrlPunctuation(rawUrl);
     const index = match.index ?? 0;
     html += escapeHtml(value.slice(cursor, index));
 
     try {
-      const parsed = new URL(rawUrl);
+      const parsed = new URL(url);
       if (parsed.protocol === "http:" || parsed.protocol === "https:") {
         const safeUrl = escapeHtml(parsed.toString());
-        html += `<a href="${safeUrl}" style="color:${GEM_NAVY};font-weight:700;text-decoration:underline;text-decoration-color:${GEM_GOLD};text-underline-offset:3px">${escapeHtml(rawUrl)}</a>`;
+        html += `<a href="${safeUrl}" style="color:${GEM_NAVY};font-weight:700;text-decoration:underline;text-decoration-color:${GEM_GOLD};text-underline-offset:3px">${escapeHtml(url)}</a>${escapeHtml(trailingPunctuation)}`;
       } else {
         html += escapeHtml(rawUrl);
       }
