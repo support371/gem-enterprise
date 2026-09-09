@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Mail, Plus, RefreshCw, ShieldCheck, Loader2 } from "lucide-react";
+import { AlertTriangle, Mail, Plus, RefreshCw, ShieldCheck, Loader2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -57,9 +57,12 @@ export default function AdminCampaignsPage() {
             Review lifecycle campaigns, recipients, and send readiness. Sending remains an explicit approval-gated operation.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={fetchCampaigns} className="border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">
             <RefreshCw className="h-3.5 w-3.5" />
+          </Button>
+          <Button asChild variant="outline" size="sm" className="border-white/10 text-slate-300 hover:bg-white/10 hover:text-white">
+            <Link href="/app/admin/market/outreach"><Users className="mr-2 h-4 w-4" /> First-20 Outreach</Link>
           </Button>
           <Button asChild size="sm" className="bg-cyan-400 text-black hover:bg-cyan-300">
             <Link href="/app/admin/campaigns/new"><Plus className="mr-2 h-4 w-4" /> New Campaign</Link>
@@ -73,7 +76,7 @@ export default function AdminCampaignsPage() {
           <p className="text-sm font-semibold text-yellow-400">Send approval gate active</p>
         </div>
         <p className="text-sm leading-relaxed text-slate-400">
-          Campaign sends are intentionally not exposed as one-click actions here. Use explicit review and confirmation before triggering any send operation.
+          Campaign sends are intentionally not exposed as one-click actions here. Use explicit review and confirmation before triggering any send operation. The First-20 Outreach workbench is a separate one-to-one drafting surface and does not send or create intake records automatically.
         </p>
       </div>
 
