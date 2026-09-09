@@ -45,4 +45,17 @@ describe("GEM campaign email branding", () => {
     expect(sendRoute).toContain('emailTemplate: "gem-enterprise-branded-v1"');
     expect(sendRoute).not.toContain("text: campaign.body,");
   });
+
+  it("shows the production-equivalent branded renderer in the admin composer", () => {
+    const composer = readFileSync(
+      "src/app/app/admin/campaigns/new/page.tsx",
+      "utf8",
+    );
+
+    expect(composer).toContain("renderGemCampaignEmail");
+    expect(composer).toContain("GEM Enterprise branded delivery enforced");
+    expect(composer).toContain("Production renderer");
+    expect(composer).toContain("srcDoc={previewEmail.html}");
+    expect(composer).toContain('sandbox=""');
+  });
 });
