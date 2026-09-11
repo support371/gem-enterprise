@@ -161,7 +161,7 @@ export default function HomePage() {
             high-impact services are activated only after eligibility, scope, provider,
             jurisdiction, and contractual checks are complete.
           </p>
-          <div className="mb-16 flex flex-col justify-center gap-4 sm:flex-row">
+          <div className="mb-5 flex flex-col justify-center gap-4 sm:flex-row">
             <Button asChild size="lg" className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-500">
               <Link href="/business-review?utm_source=homepage&utm_medium=hero&utm_campaign=founding-review">
                 Start ${foundingBusinessReviewOffer.priceUsd} Business Review <ArrowRight className="ml-2 h-5 w-5" />
@@ -178,6 +178,12 @@ export default function HomePage() {
               </Link>
             </Button>
           </div>
+          <Link
+            href="/enterprise-solutions"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-200 hover:text-cyan-100"
+          >
+            Explore Enterprise Solutions <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
         </div>
       </section>
 
