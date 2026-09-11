@@ -21,6 +21,7 @@ import { HomeStoreShowcase } from "@/components/store/HomeStoreShowcase";
 import { InteractiveEarthShowcase } from "@/components/home/InteractiveEarthShowcase";
 import { ProjectWorkspaceShowcase } from "@/components/home/ProjectWorkspaceShowcase";
 import { PlatformAccessDirectory } from "@/components/home/PlatformAccessDirectory";
+import { foundingBusinessReviewOffer } from "@/lib/market/launchOffer";
 
 export const metadata = {
   title: "GEM Enterprise | Defend. Protect. Prevail.",
@@ -162,18 +163,18 @@ export default function HomePage() {
           </p>
           <div className="mb-16 flex flex-col justify-center gap-4 sm:flex-row">
             <Button asChild size="lg" className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-500">
-              <Link href="/get-started">
-                Request Access <ArrowRight className="ml-2 h-5 w-5" />
+              <Link href="/business-review?utm_source=homepage&utm_medium=hero&utm_campaign=founding-review">
+                Start ${foundingBusinessReviewOffer.priceUsd} Business Review <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="rounded-full border-cyan-400/30 px-8 font-semibold text-cyan-200 hover:bg-cyan-400/10">
-              <Link href="/enterprise-solutions">
-                Enterprise Solutions <ArrowRight className="ml-2 h-5 w-5" />
+              <Link href="/services">
+                Browse Services <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="rounded-full border-white/20 px-8 font-semibold text-white hover:bg-white/10">
-              <Link href="/trust-center">
-                Review Trust Center <ChevronDown className="ml-2 h-5 w-5" />
+              <Link href="/get-started">
+                Enterprise Access <ChevronDown className="ml-2 h-5 w-5" />
               </Link>
             </Button>
           </div>
@@ -352,20 +353,20 @@ export default function HomePage() {
 
       <section className="container mx-auto px-6 py-24 text-center">
         <div className="mx-auto max-w-3xl">
-          <h2 className="mb-6 text-5xl font-black text-white">Start with the right service path</h2>
+          <h2 className="mb-6 text-5xl font-black text-white">Start with a paid review, then expand what proves useful</h2>
           <p className="mx-auto mb-10 max-w-2xl text-lg leading-relaxed text-slate-400">
-            General information and selected products are broadly available. Sensitive,
-            institutional, financial, monitoring, and jurisdiction-restricted services
-            require additional review before activation.
+            Small and growing businesses can begin with the {foundingBusinessReviewOffer.priceLabel}.
+            Broader enterprise, monitoring, financial-security, and jurisdiction-restricted services
+            continue through qualification and approved scope.
           </p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <Button asChild size="lg" className="rounded-full bg-cyan-400 px-10 font-semibold text-black hover:bg-cyan-500">
-              <Link href="/get-started">
-                Begin an enquiry <ArrowRight className="ml-2 h-5 w-5" />
+              <Link href="/business-review?utm_source=homepage&utm_medium=footer-cta&utm_campaign=founding-review">
+                Request Business Review <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="rounded-full border-white/20 px-10 font-semibold text-white hover:bg-white/10">
-              <Link href="/contact">Contact GEM</Link>
+              <Link href="/get-started">Enterprise Access</Link>
             </Button>
           </div>
         </div>
