@@ -9,18 +9,20 @@ describe("official enterprise solutions access", () => {
     );
   });
 
-  it("publishes the canonical gateway with explicit trust boundaries", () => {
+  it("publishes the canonical sales gateway while preserving explicit trust boundaries", () => {
     const page = fs.readFileSync(
       "src/app/enterprise-solutions/page.tsx",
       "utf8",
     );
 
     expect(page).toContain('canonical: "/enterprise-solutions"');
-    expect(page).toContain("Official GEM access path");
+    expect(page).toContain("GEM services and sales");
     expect(page).toContain("does not create accounts, approve access");
-    expect(page).toContain('href: "/get-started"');
+    expect(page).toContain("/business-review?utm_source=enterprise-solutions");
+    expect(page).toContain('href="/get-started"');
     expect(page).toContain('href: "/client-login"');
     expect(page).toContain('href: "/trust-center"');
+    expect(page).toContain("still move through qualification, approved scope, contracting, and protected access");
     expect(page).toContain('rel="noopener noreferrer"');
   });
 
