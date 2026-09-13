@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, CircleAlert, ExternalLink, Network, ShieldCheck } from "lucide-react";
+import { ArrowLeft, CheckCircle2, CircleAlert, ExternalLink, Network, ShieldCheck, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,11 +53,18 @@ export default function CommercialOperationsPage() {
               verified lifecycle gaps before another SaaS product is introduced.
             </p>
           </div>
-          <Button asChild variant="outline" className="gap-2">
-            <a href="/business-review" target="_blank" rel="noreferrer">
-              Public founding offer <ExternalLink className="h-4 w-4" />
-            </a>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" className="gap-2">
+              <Link href="/app/admin/customer-success">
+                <Users className="h-4 w-4" /> Customer Success
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="gap-2">
+              <a href="/business-review" target="_blank" rel="noreferrer">
+                Public founding offer <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+          </div>
         </div>
       </header>
 
