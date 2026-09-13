@@ -17,9 +17,10 @@ export function UnsubscribeControl({ token }: { token: string }) {
     setState("working");
     setMessage("");
     try {
+      // This is an explicit signed-link confirmation from the browser. Do not attach the
+      // RFC one-click header here; mailbox one-click requests use that header themselves.
       const response = await fetch(`/api/communications/unsubscribe?token=${encodeURIComponent(token)}`, {
         method: "POST",
-        headers: { "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to update communication preference");

@@ -55,6 +55,32 @@ describe("customer success foundation", () => {
     expect(createAction).toContain("if (isStorageMissing(error)) throw new CustomerSuccessStoreUnavailableError()");
   });
 
+  it("sets completedAt consistently when an action is created already completed", () => {
+    const repository = source("src/lib/customer-success/repository.ts");
+    const createAction = repository.slice(
+      repository.indexOf("export async function createCustomerSuccessAction"),
+      repository.indexOf("export async function updateCustomerSuccessActionStatus"),
+    );
+
+    expect(createAction).toContain('const status = input.status ?? "PLANNED"');
+    expect(createAction).toContain('const completedAt = status === "COMPLETED" ? new Date() : null');
+    expect(createAction).toContain('"dueAt", "completedAt", "evidence", "updatedAt"');
+    expect(createAction).toContain('${input.dueAt ?? null}, ${completedAt}');
+  });
+
+  it("hydrates an existing workspace profile before the admin can save over stored values", () => {
+    const page = source("src/app/app/admin/customer-success/page.tsx");
+
+    expect(page).toContain("hydratedWorkspaceId");
+    expect(page).toContain("profiles.find((profile) => profile.workspaceId === workspaceId)");
+    expect(page).toContain("setLifecycleState(existing.lifecycleState)");
+    expect(page).toContain("setHealthStatus(existing.healthStatus)");
+    expect(page).toContain("setOutcomeStatus(existing.outcomeStatus)");
+    expect(page).toContain("setSatisfactionScore(existing.satisfactionScore == null ? \"\" : String(existing.satisfactionScore))");
+    expect(page).toContain("setOutcomeSummary(existing.outcomeSummary ?? \"\")");
+    expect(page).toContain("hydratedWorkspaceId !== workspaceId");
+  });
+
   it("makes expansion, renewal, referral, and win-back planning explicit without auto-activation", () => {
     const repository = source("src/lib/customer-success/repository.ts");
     const page = source("src/app/app/admin/customer-success/page.tsx");

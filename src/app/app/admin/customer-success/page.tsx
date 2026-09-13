@@ -55,12 +55,21 @@ function dateLabel(value: string | null) {
   return value ? new Date(value).toLocaleDateString() : "Not scheduled";
 }
 
+function dateTimeInputValue(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const localTime = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return localTime.toISOString().slice(0, 16);
+}
+
 export default function CustomerSuccessPage() {
   const [profiles, setProfiles] = useState<ProfileRecord[]>([]);
   const [workspaces, setWorkspaces] = useState<WorkspaceOption[]>([]);
   const [actions, setActions] = useState<ActionRecord[]>([]);
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [workspaceId, setWorkspaceId] = useState("");
+  const [hydratedWorkspaceId, setHydratedWorkspaceId] = useState<string | null>(null);
   const [projectId, setProjectId] = useState("");
   const [lifecycleState, setLifecycleState] = useState<CustomerLifecycleState>("ACTIVE");
   const [healthStatus, setHealthStatus] = useState<CustomerHealthStatus>("UNKNOWN");
@@ -92,9 +101,16 @@ export default function CustomerSuccessPage() {
       const response = await fetch("/api/admin/customer-success", { cache: "no-store" });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to load customer-success operations");
-      setProfiles(result.profiles ?? []);
-      setWorkspaces(result.workspaces ?? []);
-      setWorkspaceId((current) => current || result.workspaces?.[0]?.id || "");
+      const nextProfiles = (result.profiles ?? []) as ProfileRecord[];
+      const nextWorkspaces = (result.workspaces ?? []) as WorkspaceOption[];
+      setProfiles(nextProfiles);
+      setWorkspaces(nextWorkspaces);
+      setHydratedWorkspaceId(null);
+      setWorkspaceId((current) =>
+        nextWorkspaces.some((workspace) => workspace.id === current)
+          ? current
+          : nextWorkspaces[0]?.id || "",
+      );
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to load customer-success operations");
     } finally {
@@ -115,13 +131,44 @@ export default function CustomerSuccessPage() {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    if (!workspaceId || hydratedWorkspaceId === workspaceId) return;
+
+    const existing = profiles.find((profile) => profile.workspaceId === workspaceId) ?? null;
+    if (existing) {
+      setProjectId(existing.projectId ?? "");
+      setLifecycleState(existing.lifecycleState);
+      setHealthStatus(existing.healthStatus);
+      setOutcomeStatus(existing.outcomeStatus);
+      setSatisfactionScore(existing.satisfactionScore == null ? "" : String(existing.satisfactionScore));
+      setOutcomeSummary(existing.outcomeSummary ?? "");
+      setNextReviewAt(dateTimeInputValue(existing.nextReviewAt));
+      setSelectedProfileId(existing.id);
+      setHydratedWorkspaceId(workspaceId);
+      void loadActions(existing.id);
+      return;
+    }
+
+    setProjectId("");
+    setLifecycleState("ACTIVE");
+    setHealthStatus("UNKNOWN");
+    setOutcomeStatus("NOT_REVIEWED");
+    setSatisfactionScore("");
+    setOutcomeSummary("");
+    setNextReviewAt("");
+    setSelectedProfileId(null);
+    setActions([]);
+    setHydratedWorkspaceId(workspaceId);
+  }, [hydratedWorkspaceId, loadActions, profiles, workspaceId]);
+
   useEffect(() => {
     if (projectId && !selectedWorkspace?.organizationProjects.some((project) => project.id === projectId)) setProjectId("");
   }, [projectId, selectedWorkspace]);
 
   async function saveProfile(event: FormEvent) {
     event.preventDefault();
-    if (!workspaceId) return;
+    if (!workspaceId || hydratedWorkspaceId !== workspaceId) return;
     setSaving(true);
     setError(null);
     try {
@@ -173,7 +220,9 @@ export default function CustomerSuccessPage() {
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Unable to create lifecycle action");
-      setActionTitle(""); setActionNotes(""); setActionDueAt("");
+      setActionTitle("");
+      setActionNotes("");
+      setActionDueAt("");
       await loadActions(selectedProfileId);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to create lifecycle action");
@@ -220,7 +269,7 @@ export default function CustomerSuccessPage() {
       <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
         <Card className="border-white/10 bg-card"><CardHeader><CardTitle className="text-base text-white">Initialize or update client success</CardTitle></CardHeader><CardContent>
           <form className="space-y-4" onSubmit={saveProfile}>
-            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400">Organization workspace<select className={fieldClass} value={workspaceId} onChange={(event) => setWorkspaceId(event.target.value)} required><option value="">Select workspace</option>{workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.organization.name} · {workspace.name}</option>)}</select></label>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400">Organization workspace<select className={fieldClass} value={workspaceId} onChange={(event) => { setWorkspaceId(event.target.value); setHydratedWorkspaceId(null); }} required><option value="">Select workspace</option>{workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.organization.name} · {workspace.name}</option>)}</select></label>
             <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400">Primary project<select className={fieldClass} value={projectId} onChange={(event) => setProjectId(event.target.value)}><option value="">Workspace-level relationship</option>{selectedWorkspace?.organizationProjects.map((project) => <option key={project.id} value={project.id}>{project.name} · {project.status}</option>)}</select></label>
             <div className="grid gap-4 sm:grid-cols-3">
               <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">Lifecycle<select className={fieldClass} value={lifecycleState} onChange={(event) => setLifecycleState(event.target.value as CustomerLifecycleState)}>{customerLifecycleStates.map((value) => <option key={value}>{value}</option>)}</select></label>
@@ -232,12 +281,12 @@ export default function CustomerSuccessPage() {
               <label className="text-xs font-semibold uppercase tracking-wide text-slate-400">Next review<input className={fieldClass} type="datetime-local" value={nextReviewAt} onChange={(event) => setNextReviewAt(event.target.value)} /></label>
             </div>
             <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400">Outcome summary<textarea className={`${fieldClass} min-h-24`} value={outcomeSummary} onChange={(event) => setOutcomeSummary(event.target.value)} /></label>
-            <Button type="submit" disabled={saving || !workspaceId} className="w-full gap-2">{saving && <Loader2 className="h-4 w-4 animate-spin" />} Save customer-success record</Button>
+            <Button type="submit" disabled={saving || !workspaceId || hydratedWorkspaceId !== workspaceId} className="w-full gap-2">{saving && <Loader2 className="h-4 w-4 animate-spin" />} Save customer-success record</Button>
           </form>
         </CardContent></Card>
 
         <Card className="border-white/10 bg-card"><CardHeader><CardTitle className="text-base text-white">Client lifecycle register</CardTitle></CardHeader><CardContent>
-          {loading ? <div className="flex justify-center gap-2 py-16 text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div> : profiles.length === 0 ? <p className="rounded-xl border border-white/10 p-5 text-sm text-slate-400">No customer-success profiles yet. Initialize only after commercial conversion and onboarding evidence is complete.</p> : <div className="space-y-3">{profiles.map((profile) => <button key={profile.id} type="button" onClick={() => void loadActions(profile.id)} className={`w-full rounded-xl border p-4 text-left ${selectedProfileId === profile.id ? "border-cyan-400/35 bg-cyan-400/[0.06]" : "border-white/10 bg-white/[0.025]"}`}><div className="flex flex-wrap justify-between gap-3"><div><p className="font-semibold text-white">{profile.organizationName}</p><p className="mt-1 text-xs text-slate-500">{profile.workspaceName}{profile.projectName ? ` · ${profile.projectName}` : ""}</p></div><div className="flex gap-2"><Badge variant="outline">{profile.lifecycleState}</Badge><Badge variant="outline">{profile.healthStatus}</Badge></div></div><p className="mt-3 text-sm text-slate-300">{profile.outcomeSummary || "Outcome review not recorded yet."}</p><div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500"><span>Outcome: {profile.outcomeStatus}</span><span>Satisfaction: {profile.satisfactionScore ?? "—"}</span><span>Next review: {dateLabel(profile.nextReviewAt)}</span></div></button>)}</div>}
+          {loading ? <div className="flex justify-center gap-2 py-16 text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Loading…</div> : profiles.length === 0 ? <p className="rounded-xl border border-white/10 p-5 text-sm text-slate-400">No customer-success profiles yet. Initialize only after commercial conversion and onboarding evidence is complete.</p> : <div className="space-y-3">{profiles.map((profile) => <button key={profile.id} type="button" onClick={() => { setWorkspaceId(profile.workspaceId); setHydratedWorkspaceId(null); }} className={`w-full rounded-xl border p-4 text-left ${selectedProfileId === profile.id ? "border-cyan-400/35 bg-cyan-400/[0.06]" : "border-white/10 bg-white/[0.025]"}`}><div className="flex flex-wrap justify-between gap-3"><div><p className="font-semibold text-white">{profile.organizationName}</p><p className="mt-1 text-xs text-slate-500">{profile.workspaceName}{profile.projectName ? ` · ${profile.projectName}` : ""}</p></div><div className="flex gap-2"><Badge variant="outline">{profile.lifecycleState}</Badge><Badge variant="outline">{profile.healthStatus}</Badge></div></div><p className="mt-3 text-sm text-slate-300">{profile.outcomeSummary || "Outcome review not recorded yet."}</p><div className="mt-3 flex flex-wrap gap-4 text-xs text-slate-500"><span>Outcome: {profile.outcomeStatus}</span><span>Satisfaction: {profile.satisfactionScore ?? "—"}</span><span>Next review: {dateLabel(profile.nextReviewAt)}</span></div></button>)}</div>}
         </CardContent></Card>
       </div>
 

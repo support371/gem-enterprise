@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { platformOrigins } from "@/lib/platform-origins";
 import { PlatformAccessDirectory } from "@/components/home/PlatformAccessDirectory";
 import { foundingBusinessReviewOffer } from "@/lib/market/launchOffer";
+import { buildBusinessReviewCampaignUrl } from "@/lib/market/gtmActivation";
 
 export const metadata: Metadata = {
   title: "Enterprise Solutions",
@@ -30,12 +31,21 @@ const boundaries = [
   "The external experience does not create accounts, approve access, or replace GEM's system of record.",
 ];
 
+const enterpriseHeroReviewHref = buildBusinessReviewCampaignUrl({
+  source: "enterprise-solutions",
+  medium: "hero",
+});
+const enterpriseOfficialPathReviewHref = buildBusinessReviewCampaignUrl({
+  source: "enterprise-solutions",
+  medium: "official-path",
+});
+
 const officialPaths = [
   {
     icon: UserCheck,
     title: foundingBusinessReviewOffer.name,
     description: foundingBusinessReviewOffer.promise,
-    href: "/business-review?utm_source=enterprise-solutions&utm_medium=official-path&utm_campaign=founding-review",
+    href: enterpriseOfficialPathReviewHref,
     label: `Start ${foundingBusinessReviewOffer.priceLabel}`,
   },
   {
@@ -75,7 +85,7 @@ export default function EnterpriseSolutionsPage() {
               </p>
               <div className="mt-8 flex flex-col gap-4 sm:flex-row">
                 <Button asChild size="lg" className="rounded-full bg-cyan-400 px-8 font-semibold text-[#071019] hover:bg-cyan-300">
-                  <Link href="/business-review?utm_source=enterprise-solutions&utm_medium=hero&utm_campaign=founding-review">
+                  <Link href={enterpriseHeroReviewHref}>
                     Start ${foundingBusinessReviewOffer.priceUsd} Business Review
                     <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
                   </Link>

@@ -79,6 +79,25 @@ export async function listAllowedMarketingEmails(): Promise<Set<string>> {
   }
 }
 
+export async function isMarketingEmailAllowed(email: string): Promise<boolean> {
+  const destinationNormalized = normalizeEmail(email);
+  try {
+    const rows = await db.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT "id"
+      FROM "communication_preferences"
+      WHERE "channel" = 'EMAIL'
+        AND "purpose" = 'MARKETING'
+        AND "status" = 'ALLOWED'
+        AND "destinationNormalized" = ${destinationNormalized}
+      LIMIT 1
+    `);
+    return rows.length === 1;
+  } catch (error) {
+    if (isStorageMissing(error)) throw new CommunicationGovernanceUnavailableError();
+    throw error;
+  }
+}
+
 export async function setCommunicationPreference(input: {
   channel: CommunicationChannel;
   destination: string;

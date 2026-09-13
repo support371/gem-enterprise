@@ -12,7 +12,9 @@ describe("GEM social marketing sources", () => {
     expect(review?.title).toBe("GEM Business Security & Operations Review");
     expect(review?.sourceReference).toBe("https://www.gemcybersecurityassist.com/business-review");
     expect(review?.callToAction).toContain("utm_source=social");
-    expect(review?.callToAction).toContain("utm_campaign=founding-review");
+    expect(review?.callToAction).toContain("utm_medium=organic-social");
+    expect(review?.callToAction).toContain("campaign=founding-first-20");
+    expect(review?.callToAction).toContain("utm_campaign=founding-first-20");
     expect(review?.approved).toBe(true);
   });
 

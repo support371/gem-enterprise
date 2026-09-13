@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   activationGuardrails,
   alreadyATargetCampaign,
+  buildBusinessReviewCampaignUrl,
   gtmCalendar,
   nurtureSequence,
   readinessChecklist,
@@ -36,6 +37,24 @@ describe("GTM activation assets", () => {
     expect(alreadyATargetCampaign.prohibitedClaims.join(" ")).toContain("We detected compromised credentials");
     expect(guardrails).toContain("is sent automatically from this activation pack");
     expect(guardrails).toContain("live-publishing gates");
+  });
+
+  it("uses one founding campaign identity across generated public and social Business Review links", () => {
+    expect(utmContract.campaign).toBe("founding-first-20");
+    const href = buildBusinessReviewCampaignUrl({ source: "homepage", medium: "hero" });
+    expect(href).toContain("campaign=founding-first-20");
+    expect(href).toContain("utm_campaign=founding-first-20");
+    expect(href).toContain("utm_source=homepage");
+    expect(href).toContain("utm_medium=hero");
+
+    const homepage = readFileSync("src/app/page.tsx", "utf8");
+    const enterprise = readFileSync("src/app/enterprise-solutions/page.tsx", "utf8");
+    const socialSource = readFileSync("src/lib/social-media/orchestration/gem-sources.ts", "utf8");
+
+    for (const source of [homepage, enterprise, socialSource]) {
+      expect(source).toContain("buildBusinessReviewCampaignUrl");
+      expect(source).not.toContain("utm_campaign=founding-review");
+    }
   });
 
   it("exposes native admin and public surfaces without auto-send code", () => {

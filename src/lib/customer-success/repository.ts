@@ -184,15 +184,17 @@ export async function createCustomerSuccessAction(input: {
     const id = randomUUID();
     const profile = profiles[0];
     const evidenceJson = JSON.stringify(input.evidence ?? {});
+    const status = input.status ?? "PLANNED";
+    const completedAt = status === "COMPLETED" ? new Date() : null;
 
     await db.$executeRaw(Prisma.sql`
       INSERT INTO "customer_success_actions" (
         "id", "profileId", "workspaceId", "projectId", "createdById", "actionType", "status",
-        "title", "notes", "dueAt", "evidence", "updatedAt"
+        "title", "notes", "dueAt", "completedAt", "evidence", "updatedAt"
       ) VALUES (
         ${id}, ${input.profileId}, ${profile.workspaceId}, ${profile.projectId}, ${input.createdById ?? null},
-        ${input.actionType}, ${input.status ?? "PLANNED"}, ${input.title}, ${input.notes ?? null},
-        ${input.dueAt ?? null}, CAST(${evidenceJson} AS JSONB), CURRENT_TIMESTAMP
+        ${input.actionType}, ${status}, ${input.title}, ${input.notes ?? null},
+        ${input.dueAt ?? null}, ${completedAt}, CAST(${evidenceJson} AS JSONB), CURRENT_TIMESTAMP
       )
     `);
     return id;

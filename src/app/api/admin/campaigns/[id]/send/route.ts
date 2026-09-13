@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { emitAuditLog } from "@/lib/audit";
 import {
   CommunicationGovernanceUnavailableError,
+  isMarketingEmailAllowed,
   listAllowedMarketingEmails,
   marketingUnsubscribeUrl,
   normalizeEmail,
@@ -79,7 +80,10 @@ export async function POST(
   const { ipAddress, userAgent } = getRequestContext(req);
   const { id } = await params;
   let markedSending = false;
+  let deliveryAttempted = false;
   let sentCount = 0;
+  let uncertainDeliveryCount = 0;
+  let skippedBlockedCount = 0;
 
   try {
     if (process.env.COMMUNICATION_GOVERNANCE_ENABLED !== "true") {
@@ -179,19 +183,28 @@ export async function POST(
       subject: campaign.subject,
       body: campaign.body,
     });
-    let failedCount = 0;
 
     for (const user of recipients) {
+      // Permission can change after the initial audience query. Recheck immediately before
+      // each delivery so an unsubscribe/block that lands mid-run takes effect before send.
+      const stillAllowed = await isMarketingEmailAllowed(user.email);
+      if (!stillAllowed) {
+        skippedBlockedCount += 1;
+        continue;
+      }
+
+      const unsubscribeUrl = marketingUnsubscribeUrl(user.email);
+      const oneClickUrl = oneClickUnsubscribeUrl(user.email);
+      const rendered = appendUnsubscribe(
+        renderedCampaign.html,
+        renderedCampaign.text,
+        unsubscribeUrl,
+        postalAddress,
+        replyTo,
+      );
+
+      deliveryAttempted = true;
       try {
-        const unsubscribeUrl = marketingUnsubscribeUrl(user.email);
-        const oneClickUrl = oneClickUnsubscribeUrl(user.email);
-        const rendered = appendUnsubscribe(
-          renderedCampaign.html,
-          renderedCampaign.text,
-          unsubscribeUrl,
-          postalAddress,
-          replyTo,
-        );
         await transporter.sendMail({
           from:
             process.env.EMAIL_FROM ??
@@ -209,16 +222,55 @@ export async function POST(
         });
         sentCount += 1;
       } catch (error) {
-        failedCount += 1;
-        console.error("[campaign-delivery] recipient delivery failed", {
+        // SMTP errors can be ambiguous (for example, a connection drop after DATA). Do not
+        // assume rejection means no delivery. Stop the run and preserve SENDING for manual
+        // reconciliation rather than creating an automatic duplicate-send path.
+        uncertainDeliveryCount += 1;
+        console.error("[campaign-delivery] recipient outcome uncertain", {
           campaignId: id,
           recipientDomain: user.email.split("@")[1] ?? "unknown",
           error: error instanceof Error ? error.message : "unknown error",
         });
+        break;
       }
     }
 
+    if (uncertainDeliveryCount > 0) {
+      // Intentionally leave the durable campaign status as SENDING. Clear only the local flag
+      // so the outer error handler cannot roll it back to DRAFT if audit logging itself fails.
+      markedSending = false;
+      await emitAuditLog({
+        userId: session.userId,
+        action: "admin_action",
+        resource: "email_campaign",
+        resourceId: id,
+        metadata: {
+          kind: "campaign_delivery_reconciliation_required",
+          governedRecipientCount: recipients.length,
+          sentCount,
+          uncertainDeliveryCount,
+          skippedBlockedCount,
+          campaignState: "SENDING",
+        },
+        ipAddress,
+        userAgent,
+      }).catch(() => {});
+      return NextResponse.json(
+        {
+          error:
+            "A delivery outcome is uncertain. The campaign remains SENDING and must be reconciled before any retry.",
+          code: "CAMPAIGN_DELIVERY_RECONCILIATION_REQUIRED",
+          sentCount,
+          uncertainDeliveryCount,
+          skippedBlockedCount,
+        },
+        { status: 502 },
+      );
+    }
+
     if (sentCount === 0) {
+      // No SMTP attempt succeeded or failed ambiguously; every candidate became blocked before
+      // its turn. This state is deterministically retry-safe after a future permission review.
       await db.emailCampaign.update({ where: { id }, data: { status: "DRAFT" } });
       markedSending = false;
       await emitAuditLog({
@@ -227,19 +279,23 @@ export async function POST(
         resource: "email_campaign",
         resourceId: id,
         metadata: {
-          kind: "campaign_delivery_failed",
+          kind: "campaign_delivery_stopped_no_current_permission",
           governedRecipientCount: recipients.length,
           sentCount,
-          failedCount,
-          smtpVerified: true,
-          marketingComplianceConfigured: Boolean(postalAddress && replyTo),
+          skippedBlockedCount,
+          deliveryAttempted,
         },
         ipAddress,
         userAgent,
       });
       return NextResponse.json(
-        { error: "No campaign recipients were successfully delivered", sentCount, failedCount },
-        { status: 502 },
+        {
+          error: "Every candidate recipient became blocked before delivery",
+          code: "NO_CURRENT_GOVERNED_RECIPIENTS",
+          sentCount,
+          skippedBlockedCount,
+        },
+        { status: 409 },
       );
     }
 
@@ -259,12 +315,13 @@ export async function POST(
         eligibleUserCount: users.length,
         governedRecipientCount: recipients.length,
         recipientCount: sentCount,
-        failedCount,
+        skippedBlockedCount,
         smtpVerified: true,
         marketingComplianceConfigured: Boolean(postalAddress && replyTo),
         postalAddressConfigured: Boolean(postalAddress),
         monitoredReplyToConfigured: Boolean(replyTo),
         consentGate: "communication_preferences:EMAIL:MARKETING:ALLOWED",
+        permissionRecheck: "immediately-before-each-send",
         unsubscribe: "signed-link-and-one-click",
         emailTemplate: "gem-enterprise-branded-v1",
       },
@@ -276,15 +333,18 @@ export async function POST(
       campaign: updated,
       governedRecipientCount: recipients.length,
       sentCount,
-      failedCount,
+      skippedBlockedCount,
     });
   } catch (error) {
-    if (markedSending && sentCount === 0) {
+    if (markedSending && !deliveryAttempted) {
       await db.emailCampaign
         .update({ where: { id }, data: { status: "DRAFT" } })
         .catch(() => {});
     }
-    if (markedSending && sentCount > 0) {
+    if (markedSending && deliveryAttempted) {
+      // Once SMTP delivery has been attempted, unexpected failures are treated as potentially
+      // ambiguous even when sentCount is still zero. Preserve SENDING to prevent blind retry.
+      markedSending = false;
       await emitAuditLog({
         userId: session.userId,
         action: "admin_action",
@@ -293,6 +353,8 @@ export async function POST(
         metadata: {
           kind: "campaign_delivery_reconciliation_required",
           sentCount,
+          uncertainDeliveryCount,
+          skippedBlockedCount,
           campaignState: "SENDING",
           reason: error instanceof Error ? error.message : "unknown error",
         },
@@ -302,7 +364,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Some messages were delivered, but final campaign reconciliation failed. The campaign remains SENDING to prevent automatic duplicate delivery.",
+            "Campaign delivery requires reconciliation. The campaign remains SENDING to prevent automatic duplicate delivery.",
           code: "CAMPAIGN_DELIVERY_RECONCILIATION_REQUIRED",
           sentCount,
         },

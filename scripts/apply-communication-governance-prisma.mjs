@@ -24,7 +24,11 @@ function validatePromotedSchema(source) {
     'model CommunicationPreferenceEvent {',
     '@@map("communication_preferences")',
     '@@map("communication_preference_events")',
-    '@@unique([channel, destinationNormalized, purpose])',
+    '@@unique([channel, destinationNormalized, purpose], map: "communication_preferences_channel_destination_purpose_key")',
+    '@@index([status, purpose, channel], map: "communication_preferences_status_purpose_idx")',
+    '@@index([userId], map: "communication_preferences_userId_idx")',
+    '@@index([preferenceId, createdAt], map: "communication_preference_events_preferenceId_createdAt_idx")',
+    'onDelete: Restrict',
   ];
   for (const value of required) {
     if (!source.includes(value)) throw new Error(`Promoted communication-governance schema is missing: ${value}`);
@@ -67,25 +71,25 @@ model CommunicationPreference {
   changedBy User? @relation("CommunicationPreferenceChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
   events    CommunicationPreferenceEvent[]
 
-  @@unique([channel, destinationNormalized, purpose])
-  @@index([status, purpose, channel])
-  @@index([userId])
+  @@unique([channel, destinationNormalized, purpose], map: "communication_preferences_channel_destination_purpose_key")
+  @@index([status, purpose, channel], map: "communication_preferences_status_purpose_idx")
+  @@index([userId], map: "communication_preferences_userId_idx")
   @@map("communication_preferences")
 }
 
 model CommunicationPreferenceEvent {
-  id          String   @id @default(cuid())
+  id           String   @id @default(cuid())
   preferenceId String
-  eventType   String
-  actorUserId String?
-  source      String
-  evidence    Json     @default("{}")
-  createdAt   DateTime @default(now())
+  eventType    String
+  actorUserId  String?
+  source       String
+  evidence     Json     @default("{}")
+  createdAt    DateTime @default(now())
 
-  preference CommunicationPreference @relation(fields: [preferenceId], references: [id], onDelete: Cascade)
+  preference CommunicationPreference @relation(fields: [preferenceId], references: [id], onDelete: Restrict)
   actorUser   User? @relation("CommunicationPreferenceActor", fields: [actorUserId], references: [id], onDelete: SetNull)
 
-  @@index([preferenceId, createdAt])
+  @@index([preferenceId, createdAt], map: "communication_preference_events_preferenceId_createdAt_idx")
   @@map("communication_preference_events")
 }
 

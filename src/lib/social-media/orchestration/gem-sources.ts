@@ -1,4 +1,5 @@
 import { foundingBusinessReviewOffer } from "@/lib/market/launchOffer";
+import { buildBusinessReviewCampaignUrl } from "@/lib/market/gtmActivation";
 import { storeProducts } from "@/lib/storeCatalog";
 import type { ApprovedSourceMaterial } from "../planning/daily-flow";
 
@@ -42,12 +43,16 @@ export function getGemApprovedSourceMaterial(input?: {
   // can still request tightly scoped catalog campaigns.
   if (allowedSlugs) return productSources;
 
+  const reviewPath = buildBusinessReviewCampaignUrl({
+    source: "social",
+    medium: "organic-social",
+    leadSource: "social",
+  });
   const businessReviewSource: ApprovedSourceMaterial = {
     id: `gem-market:${foundingBusinessReviewOffer.code}`,
     title: foundingBusinessReviewOffer.name,
     summary: `${foundingBusinessReviewOffer.promise} ${foundingBusinessReviewOffer.priceLabel}.`,
-    callToAction:
-      `Request the Business Review: ${canonicalStoreOrigin}/business-review?lead=social&utm_source=social&utm_medium=organic&utm_campaign=founding-review`,
+    callToAction: `Request the Business Review: ${canonicalStoreOrigin}${reviewPath}`,
     sourceReference: `${canonicalStoreOrigin}/business-review`,
     approvedAt,
     approved: true,

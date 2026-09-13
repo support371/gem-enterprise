@@ -124,10 +124,53 @@ export const utmContract = {
     review: "/business-review",
     checklist: "/resources/business-readiness-checklist",
   },
-  sources: ["direct-outreach", "linkedin", "x", "facebook", "instagram", "tiktok", "youtube", "nextdoor", "telegram", "referral", "organic-search"],
-  mediums: ["one-to-one", "organic-social", "video", "community", "partner-referral", "organic"],
-  rule: "Use lowercase stable source/medium values and preserve campaign attribution into GEM intake. Do not create provider-specific campaign names for the same founding-market experiment.",
+  sources: [
+    "homepage",
+    "enterprise-solutions",
+    "social",
+    "direct-outreach",
+    "linkedin",
+    "x",
+    "facebook",
+    "instagram",
+    "tiktok",
+    "youtube",
+    "nextdoor",
+    "telegram",
+    "referral",
+    "organic-search",
+  ],
+  mediums: [
+    "hero",
+    "footer-cta",
+    "official-path",
+    "one-to-one",
+    "organic-social",
+    "video",
+    "community",
+    "partner-referral",
+    "organic",
+  ],
+  rule: "Use lowercase stable source/medium values and the single founding-first-20 campaign identity. Preserve campaign attribution into GEM intake instead of creating provider-specific campaign names for the same experiment.",
 } as const;
+
+export type GtmUtmSource = (typeof utmContract.sources)[number];
+export type GtmUtmMedium = (typeof utmContract.mediums)[number];
+
+export function buildBusinessReviewCampaignUrl(input: {
+  source: GtmUtmSource;
+  medium: GtmUtmMedium;
+  leadSource?: "direct" | "campaign" | "referral" | "social" | "search" | "partner" | "event" | "outbound" | "other";
+}) {
+  const params = new URLSearchParams({
+    lead: input.leadSource ?? "campaign",
+    campaign: utmContract.campaign,
+    utm_source: input.source,
+    utm_medium: input.medium,
+    utm_campaign: utmContract.campaign,
+  });
+  return `${utmContract.destinations.review}?${params.toString()}`;
+}
 
 export const gtmCalendar: readonly GtmCalendarItem[] = [
   { day: 1, phase: "FOUNDATION", channel: "Website", deliverable: "Publish readiness-checklist resource and verify Business Review CTA", hook: "Know what to fix first", cta: "Take the checklist" },

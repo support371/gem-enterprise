@@ -87,7 +87,7 @@ The pre-existing campaign route selected every active, verified user and did not
 This branch adds:
 
 - `communication_preferences`;
-- append-only `communication_preference_events`;
+- append-only `communication_preference_events` with database-enforced mutation protection;
 - admin permission-review API;
 - `/app/admin/communications` operator surface;
 - signed public unsubscribe tokens;
@@ -95,10 +95,12 @@ This branch adds:
 - one-click `List-Unsubscribe` support;
 - fail-closed marketing campaign delivery;
 - SMTP verification before campaign status changes;
+- immediate permission recheck before each recipient delivery;
+- ambiguous SMTP outcomes preserved as `SENDING` for reconciliation rather than automatic retry;
 - actual delivered-recipient counts;
 - audit evidence.
 
-A user being active and email-verified is **not sufficient** for a GEM marketing campaign. The destination must have an `ALLOWED` `EMAIL / MARKETING` record.
+A user being active and email-verified is **not sufficient** for a GEM marketing campaign. The destination must have an `ALLOWED` `EMAIL / MARKETING` record at the moment of delivery.
 
 Recipient unsubscribe always creates a `BLOCKED` marketing-email preference.
 
@@ -252,94 +254,73 @@ Do not state:
 
 No message is auto-sent by this dossier.
 
-## 12. Public-claims reconciliation
+## 12. Public-claims reconciliation status
 
-The controlled `/`, `/services`, `/company`, and `/hub` pages use appropriate qualification language, but the public Resources and Privacy surfaces contain claims that require reconciliation before growth is amplified.
+The pre-branch public Resources and Privacy surfaces contained claims that required evidence review, including analyst/research-team staffing, incident-response-unit coverage, tool availability, biometric/KYC collection, universal encryption/control assertions, continuous monitoring, and audit/penetration-test statements.
 
-### Resources examples requiring evidence review
+This release branch has reconciled `/resources` and `/privacy` to evidence-safe, conditional wording. The old examples remain useful as a **do-not-reintroduce** register, not as current branch claims. Public growth should continue to follow the `publicClaims` evidence doctrine: staffing, provider, regulatory, security, performance, availability and geographic claims must be supported before publication.
 
-Current public wording includes, among other things:
-
-- resources “curated by GEM Enterprise analysts”;
-- “GEM research team”;
-- client automation-tool availability claims;
-- a GEM press-release item claiming three new regional incident-response units and reduced on-site response time;
-- a claim that an annual threat-intelligence summary is available to active clients.
-
-These should remain unpublished or be rewritten unless staffing, tool activation, coverage and underlying publications are evidenced.
-
-### Privacy examples requiring immediate review
-
-Current policy language includes absolute or strong statements about:
-
-- collection of KYC/AML/accreditation/source-of-funds/biometric information;
-- regulated compliance obligations;
-- accredited KYC partners;
-- TLS 1.3+ for all data in transit;
-- AES-256 encryption at rest;
-- MFA/PAM for all administrative access;
-- continuous SOC/SIEM monitoring;
-- regular third-party penetration tests/security audits.
-
-The canonical `publicClaims` doctrine already says these kinds of security, staffing, provider, regulatory and performance claims must be evidence-led. The Privacy route and Resources route should be added to the same review discipline.
-
-## 13. Connector reality in this ChatGPT environment
+## 13. Connector and evidence reality in this ChatGPT environment
 
 | Capability | Current reality | Decision |
 |---|---|---|
-| GitHub | Connected and used for this build | CANONICAL code/workflow connector |
+| GitHub | Connected and used for this release | CANONICAL code/workflow connector |
 | Clay | Connected and used for initial company research | Research enrichment only; not system of record and no auto-outreach |
-| Amplitude | Connected project found; no verified GEM commercial funnel events discovered | Use after canonical event instrumentation exists |
-| Google Search Console | A compatible GSC connector is available but is not currently connected | Optional high-value owner connection; not a blocker for code build |
-| Sentry | No compatible plugin confirmed in this pass | Do not pretend connected |
+| Amplitude | Connected project found; no verified GEM commercial funnel events discovered | Use only after canonical event emission is instrumented |
+| Google Search Console | **Connected and verified** for `sc-domain:gemcybersecurityassist.com`; settled Web-search baseline captured for 2026-06-13 through 2026-09-11 | Use as first-party acquisition/search evidence; do not ask the owner to reconnect it |
+| Supabase | Connector account does not authorize documented production project `slzdjoqpzbkwzuaexlkj` | Production DB activation remains an external authorization gate; do not substitute another project |
+| Vercel | Canonical project connected; exact release previews and runtime errors inspected | Use for deployment/build/runtime evidence |
 | Perplexity connector catalogue | Not inherited automatically into ChatGPT | Ignore unless separately connected here |
 
-## 14. Deployment / activation gates
+Verified Search Console baseline is recorded in `docs/commercial/GEM-SEARCH-CONSOLE-BASELINE-2026-09-13.md`: 9 clicks, 2,177 impressions, ~0.413% CTR and ~11.53 average position across the settled window. The property is primarily brand/navigation-led today; `/business-review` is a prospective buyer-intent experiment, not a historical conversion claim.
+
+## 14. Production activation gates
+
+### Database / intake
+
+1. Authorize the documented GEM Supabase project `slzdjoqpzbkwzuaexlkj` in the execution session or Vercel production configuration.
+2. Confirm a pooled server database URL recognized by `src/lib/db.ts` (`POSTGRES_PRISMA_URL`, `DATABASE_URL`, `POSTGRES_URL`, or `NEON_DATABASE_URL`) is present in the production runtime.
+3. Prove a controlled `/api/intake/enterprise` submission persists to the canonical intake tables and produces its status event.
+4. Do not create public PostgREST writes or a shadow lead database as a workaround.
 
 ### Customer Success
 
-1. Review branch diff and CI.
-2. Apply `20260913163000_customer_success_foundation` through the controlled production migration process.
-3. Do not rely only on `prisma db push` for production: Prisma can create columns/tables but does not reproduce every SQL CHECK/RLS/REVOKE security invariant in the migration.
-4. Preview `/app/admin/market/operations` and `/app/admin/customer-success` with an authorized admin.
-5. Smoke test create/update/action/audit flows.
-6. Only then merge/deploy.
+1. Apply `20260913163000_customer_success_foundation` through the controlled production migration process.
+2. Verify the table constraints, foreign keys, indexes, RLS and grants/revokes.
+3. Smoke test create/update/action/audit flows with an authorized admin.
 
 ### Communication Governance
 
-1. Apply `20260913170000_communication_governance` through the controlled migration path.
-2. Configure `COMMUNICATION_UNSUBSCRIBE_SECRET` with at least 32 random characters.
-3. Set `GEM_PUBLIC_BASE_URL=https://www.gemcybersecurityassist.com` in production.
-4. Verify SMTP sender identity, SPF, DKIM, DMARC, reply path and external test delivery.
-5. Populate reviewed `ALLOWED` marketing-email preferences; do not mass-import permission without evidence.
-6. Set `COMMUNICATION_GOVERNANCE_ENABLED=true` only after the above is complete.
-7. Test footer unsubscribe and one-click unsubscribe.
-8. Confirm an unsubscribed destination becomes `BLOCKED` and cannot receive another campaign.
+1. Apply `20260913170000_communication_governance` through the controlled production migration process.
+2. Verify append-only event protection, restricted preference deletion, mapped indexes, RLS and grants/revokes.
+3. Configure `COMMUNICATION_UNSUBSCRIBE_SECRET` with at least 32 random characters.
+4. Set `GEM_PUBLIC_BASE_URL=https://www.gemcybersecurityassist.com` in production.
+5. Configure a verified physical marketing postal address and monitored reply-to channel.
+6. Verify SMTP sender identity and one controlled external delivery, reply, bounce/failure and Authentication-Results path.
+7. Populate only reviewed `ALLOWED` marketing-email preferences with durable evidence.
+8. Enable `COMMUNICATION_GOVERNANCE_ENABLED=true` only after storage and sender smoke tests pass.
+9. Confirm browser signed-link unsubscribe and mailbox one-click unsubscribe produce distinct evidence methods and both block future marketing delivery.
 
-## 15. Build queue after this branch
+## 15. First-market execution queue after production gates
 
-Priority order:
+Repository-side first-market feature development is complete. The remaining queue is activation and evidence, not another build:
 
-1. **Claims reconciliation** — Resources and Privacy are immediate public-risk surfaces.
-2. **Commercial event emission** — wire the canonical event contract to actual authoritative transitions; then connect Amplitude/GA4 rather than creating duplicate metrics.
-3. **Search Console** — connect only if the owner wants first-party query/indexing data inside this workflow.
-4. **Onboarding completion / time-to-value metrics** — connect successful payment/conversion to post-sale success without auto-granting access.
-5. **Outcome / expansion linkage** — allow a customer-success expansion action to open a new intake/opportunity only through an explicit authorized handoff.
-6. **Referral/testimonial consent** — store explicit publication/referral consent before public use.
-7. **First-20 evidence review** — enrich decision-maker roles/contact channels, verify public triggers, and approve messages one-by-one.
-8. **SEO/content program** — build from Search Console + current threat evidence + conversion data, not generic content volume.
+1. restore/prove production Prisma connectivity and anonymous intake persistence;
+2. apply and verify the two additive migrations;
+3. complete current sender/deliverability smoke evidence;
+4. run authenticated admin/customer-success/communications smoke tests;
+5. obtain explicit owner merge/release authority;
+6. release the verified exact head and run production public/authenticated smokes;
+7. begin First-20 one-to-one execution using the existing research queue and one canonical `founding-first-20` attribution contract;
+8. measure Search Console, governed intake/pipeline outcomes and approved analytics events before increasing volume.
+
+Do not reopen optional commerce-provider, advanced-video, multilingual, capital-readiness, alternate-backend or additional-SaaS work as a first-release blocker unless a production verification proves it is required.
 
 ## 16. Launch status
 
-**READY WITH GATES** for controlled one-to-one market validation of the existing founding review.
+**READY WITH PRODUCTION GATES** for the controlled first-market release candidate after exact-head verification.
 
-Not ready for uncontrolled mass campaign delivery or broad claims amplification until:
-
-- communication-governance migration/configuration is active;
-- sender-domain delivery evidence is verified;
-- public Resources/Privacy claims are reconciled;
-- the branch passes CI and preview validation;
-- owner authorizes merge/deployment.
+The release is not authorized for bulk marketing email or unrestricted social publishing until the applicable permission/provider controls are deliberately activated. It is also not authorized for production merge until the documented database/intake gate is proven and the owner gives explicit merge authority.
 
 The core rule remains:
 

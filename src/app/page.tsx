@@ -22,6 +22,7 @@ import { InteractiveEarthShowcase } from "@/components/home/InteractiveEarthShow
 import { ProjectWorkspaceShowcase } from "@/components/home/ProjectWorkspaceShowcase";
 import { PlatformAccessDirectory } from "@/components/home/PlatformAccessDirectory";
 import { foundingBusinessReviewOffer } from "@/lib/market/launchOffer";
+import { buildBusinessReviewCampaignUrl } from "@/lib/market/gtmActivation";
 
 export const metadata = {
   title: "GEM Enterprise | Defend. Protect. Prevail.",
@@ -126,6 +127,15 @@ const previewItems = [
   },
 ];
 
+const homepageHeroReviewHref = buildBusinessReviewCampaignUrl({
+  source: "homepage",
+  medium: "hero",
+});
+const homepageFooterReviewHref = buildBusinessReviewCampaignUrl({
+  source: "homepage",
+  medium: "footer-cta",
+});
+
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
@@ -163,7 +173,7 @@ export default function HomePage() {
           </p>
           <div className="mb-5 flex flex-col justify-center gap-4 sm:flex-row">
             <Button asChild size="lg" className="rounded-full bg-cyan-400 px-8 font-semibold text-black hover:bg-cyan-500">
-              <Link href="/business-review?utm_source=homepage&utm_medium=hero&utm_campaign=founding-review">
+              <Link href={homepageHeroReviewHref}>
                 Start ${foundingBusinessReviewOffer.priceUsd} Business Review <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -367,7 +377,7 @@ export default function HomePage() {
           </p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <Button asChild size="lg" className="rounded-full bg-cyan-400 px-10 font-semibold text-black hover:bg-cyan-500">
-              <Link href="/business-review?utm_source=homepage&utm_medium=footer-cta&utm_campaign=founding-review">
+              <Link href={homepageFooterReviewHref}>
                 Request Business Review <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
