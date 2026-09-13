@@ -33,15 +33,15 @@ describe("commercial operating model", () => {
     }
   });
 
-  it("records post-conversion customer lifecycle gaps explicitly", () => {
-    const gaps = commercialCapabilities
-      .filter((capability) => capability.status === "GAP")
-      .map((capability) => capability.capability);
+  it("reports newly built post-conversion foundations as partial rather than missing", () => {
+    const byName = new Map(commercialCapabilities.map((capability) => [capability.capability, capability]));
 
-    expect(gaps).toContain("Customer success / health");
-    expect(gaps).toContain("Expansion / renewal");
-    expect(gaps).toContain("Referral / testimonial");
-    expect(commercialGapPriorities.length).toBeGreaterThanOrEqual(3);
+    expect(byName.get("Customer success / health")?.status).toBe("PARTIAL");
+    expect(byName.get("Expansion / renewal")?.status).toBe("PARTIAL");
+    expect(byName.get("Referral / testimonial")?.status).toBe("PARTIAL");
+    expect(byName.get("Customer success / health")?.existingGemImplementation).toContain("Workspace-scoped customer-success profile");
+    expect(commercialGapPriorities.map((priority) => priority.title)).toContain("Production schema activation & smoke test");
+    expect(commercialGapPriorities.map((priority) => priority.title)).toContain("Sender identity & deliverability evidence");
   });
 
   it("exposes an admin control surface without creating automatic outreach", () => {
