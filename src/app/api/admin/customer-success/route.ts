@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/api/auth-helpers";
+import { db } from "@/lib/db";
 import {
   CustomerSuccessStoreUnavailableError,
   createCustomerSuccessAction,
@@ -80,8 +81,25 @@ export async function GET(request: NextRequest) {
       const actions = await listCustomerSuccessActions(profileId);
       return json({ actions, viewerRole: gate.session.role });
     }
-    const profiles = await listCustomerSuccessProfiles();
-    return json({ profiles, viewerRole: gate.session.role });
+
+    const [profiles, workspaces] = await Promise.all([
+      listCustomerSuccessProfiles(),
+      db.workspace.findMany({
+        select: {
+          id: true,
+          name: true,
+          organization: { select: { id: true, name: true } },
+          organizationProjects: {
+            select: { id: true, name: true, status: true },
+            orderBy: { updatedAt: "desc" },
+          },
+        },
+        orderBy: { name: "asc" },
+        take: 250,
+      }),
+    ]);
+
+    return json({ profiles, workspaces, viewerRole: gate.session.role });
   } catch (error) {
     return handleError(error, "get");
   }
