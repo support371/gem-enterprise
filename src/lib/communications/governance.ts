@@ -116,10 +116,10 @@ export async function setCommunicationPreference(input: {
         ON CONFLICT ("channel", "destinationNormalized", "purpose") DO UPDATE SET
           "userId" = COALESCE(EXCLUDED."userId", "communication_preferences"."userId"),
           "status" = EXCLUDED."status",
-          "basis" = EXCLUDED."basis",
+          "basis" = COALESCE(EXCLUDED."basis", "communication_preferences"."basis"),
           "jurisdiction" = COALESCE(EXCLUDED."jurisdiction", "communication_preferences"."jurisdiction"),
           "source" = EXCLUDED."source",
-          "evidenceRef" = EXCLUDED."evidenceRef",
+          "evidenceRef" = COALESCE(EXCLUDED."evidenceRef", "communication_preferences"."evidenceRef"),
           "changedById" = EXCLUDED."changedById",
           "updatedAt" = CURRENT_TIMESTAMP
         RETURNING "id"
