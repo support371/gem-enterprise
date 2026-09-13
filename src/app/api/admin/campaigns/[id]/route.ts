@@ -24,10 +24,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const gate = await requireAdmin();
-  if (!gate.ok) {
-    return (gate as { ok: false; response: NextResponse }).response;
-    return gate.response;
-  }
+  if (!gate.ok) return gate.response;
   const session = gate.session;
   const { ipAddress, userAgent } = getRequestContext(req);
 
@@ -48,8 +45,14 @@ export async function PATCH(
     const existing = await db.emailCampaign.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (existing.status === "SENT") {
+      return NextResponse.json({ error: "Cannot modify a sent campaign" }, { status: 409 });
+    }
+    if (existing.status === "SENDING") {
       return NextResponse.json(
-        { error: "Cannot modify a sent campaign" },
+        {
+          error: "Campaign delivery requires reconciliation before it can be edited or retried.",
+          code: "CAMPAIGN_RECONCILIATION_REQUIRED",
+        },
         { status: 409 },
       );
     }
