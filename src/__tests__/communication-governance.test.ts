@@ -41,12 +41,13 @@ describe("communication governance", () => {
     expect(unsubscribe).toContain('eventType: "UNSUBSCRIBED"');
   });
 
-  it("keeps permission grants behind admin review with evidence requirements", () => {
+  it("keeps marketing permission grants behind admin review and durable evidence", () => {
     const route = source("src/app/api/admin/communications/preferences/route.ts");
 
     expect(route).toContain("requireAdmin");
     expect(route).toContain('value.status === "ALLOWED" && !value.basis');
-    expect(route).toContain('value.basis === "EXPLICIT_CONSENT" && !value.evidenceRef');
+    expect(route).toContain('value.status === "ALLOWED" && !value.evidenceRef');
+    expect(route).toContain('value.basis === "TRANSACTIONAL_NECESSITY"');
     expect(route).toContain("emitAuditLog");
   });
 });
