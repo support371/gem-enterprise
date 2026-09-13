@@ -31,9 +31,11 @@ describe("GTM activation assets", () => {
   });
 
   it("keeps the Already a Target campaign evidence-safe", () => {
+    const guardrails = activationGuardrails.join(" ");
     expect(alreadyATargetCampaign.positioning).toContain("without claiming that a specific prospect is compromised");
     expect(alreadyATargetCampaign.prohibitedClaims.join(" ")).toContain("We detected compromised credentials");
-    expect(activationGuardrails.join(" ")).toContain("does not send or publish anything automatically");
+    expect(guardrails).toContain("is sent automatically from this activation pack");
+    expect(guardrails).toContain("live-publishing gates");
   });
 
   it("exposes native admin and public surfaces without auto-send code", () => {
