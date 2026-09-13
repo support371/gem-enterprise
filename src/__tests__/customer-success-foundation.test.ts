@@ -43,6 +43,18 @@ describe("customer success foundation", () => {
     expect(route).not.toContain("publish");
   });
 
+  it("maps missing customer-success storage to the explicit unavailable boundary before action lookup", () => {
+    const repository = source("src/lib/customer-success/repository.ts");
+    const createAction = repository.slice(
+      repository.indexOf("export async function createCustomerSuccessAction"),
+      repository.indexOf("export async function updateCustomerSuccessActionStatus"),
+    );
+
+    expect(createAction.indexOf("try {")).toBeGreaterThanOrEqual(0);
+    expect(createAction.indexOf("try {")).toBeLessThan(createAction.indexOf('FROM "customer_success_profiles"'));
+    expect(createAction).toContain("if (isStorageMissing(error)) throw new CustomerSuccessStoreUnavailableError()");
+  });
+
   it("makes expansion, renewal, referral, and win-back planning explicit without auto-activation", () => {
     const repository = source("src/lib/customer-success/repository.ts");
     const page = source("src/app/app/admin/customer-success/page.tsx");
