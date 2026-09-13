@@ -1,6 +1,8 @@
+import { AuditAction } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAdmin } from "@/lib/api/auth-helpers";
+import { emitAuditLog } from "@/lib/audit";
 import { db } from "@/lib/db";
 import {
   CustomerSuccessStoreUnavailableError,
@@ -58,6 +60,13 @@ function json(body: unknown, status = 200) {
 
 function dateValue(value: string | null | undefined) {
   return value ? new Date(value) : null;
+}
+
+function requestAuditContext(request: NextRequest) {
+  return {
+    ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined,
+    userAgent: request.headers.get("user-agent") || undefined,
+  };
 }
 
 function handleError(error: unknown, scope: string) {
@@ -126,6 +135,21 @@ export async function POST(request: NextRequest) {
         lastReviewAt: dateValue(parsed.data.lastReviewAt),
         nextReviewAt: dateValue(parsed.data.nextReviewAt),
       });
+      await emitAuditLog({
+        userId: gate.session.userId,
+        action: AuditAction.admin_action,
+        resource: "customer_success_profile",
+        resourceId: profileId,
+        metadata: {
+          workspaceId: parsed.data.workspaceId,
+          projectId: parsed.data.projectId ?? null,
+          lifecycleState: parsed.data.lifecycleState ?? "ACTIVE",
+          healthStatus: parsed.data.healthStatus ?? "UNKNOWN",
+          outcomeStatus: parsed.data.outcomeStatus ?? "NOT_REVIEWED",
+          nextReviewAt: parsed.data.nextReviewAt ?? null,
+        },
+        ...requestAuditContext(request),
+      });
       return json({ profileId }, 201);
     }
 
@@ -138,6 +162,20 @@ export async function POST(request: NextRequest) {
       notes: parsed.data.notes,
       dueAt: dateValue(parsed.data.dueAt),
       evidence: parsed.data.evidence,
+    });
+    await emitAuditLog({
+      userId: gate.session.userId,
+      action: AuditAction.admin_action,
+      resource: "customer_success_action",
+      resourceId: actionId,
+      metadata: {
+        profileId: parsed.data.profileId,
+        actionType: parsed.data.actionType,
+        status: parsed.data.status ?? "PLANNED",
+        dueAt: parsed.data.dueAt ?? null,
+        evidenceKeys: parsed.data.evidence ? Object.keys(parsed.data.evidence).slice(0, 20) : [],
+      },
+      ...requestAuditContext(request),
     });
     return json({ actionId }, 201);
   } catch (error) {
@@ -155,6 +193,14 @@ export async function PATCH(request: NextRequest) {
   try {
     const changed = await updateCustomerSuccessActionStatus(parsed.data);
     if (!changed) return json({ error: "Customer-success action not found" }, 404);
+    await emitAuditLog({
+      userId: gate.session.userId,
+      action: AuditAction.admin_action,
+      resource: "customer_success_action",
+      resourceId: parsed.data.actionId,
+      metadata: { status: parsed.data.status },
+      ...requestAuditContext(request),
+    });
     return json({ ok: true });
   } catch (error) {
     return handleError(error, "patch");
