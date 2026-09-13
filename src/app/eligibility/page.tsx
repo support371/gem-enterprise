@@ -18,6 +18,10 @@ import {
   Scale,
   Lock,
 } from "lucide-react";
+import {
+  eligibilityApplicationHref,
+  type EligibilityTrack,
+} from "@/lib/eligibilityTracks";
 
 export const metadata: Metadata = { title: "Eligibility Check" };
 
@@ -37,7 +41,7 @@ const entityTypes = [
       "Accredited investor certification",
     ],
     badge: "Individual",
-    href: "/client-login",
+    track: "individual",
   },
   {
     icon: Building2,
@@ -54,7 +58,7 @@ const entityTypes = [
       "Beneficial ownership disclosure (for applicable entities)",
     ],
     badge: "Business",
-    href: "/client-login",
+    track: "company",
   },
   {
     icon: Shield,
@@ -71,7 +75,7 @@ const entityTypes = [
       "Tax identification documentation",
     ],
     badge: "Trust",
-    href: "/client-login",
+    track: "trust",
   },
   {
     icon: Users,
@@ -88,7 +92,7 @@ const entityTypes = [
       "Compliance officer or designated contact",
     ],
     badge: "Family Office",
-    href: "/client-login",
+    track: "family_office",
   },
 ];
 
@@ -249,7 +253,7 @@ export default function EligibilityPage() {
                         ))}
                       </ul>
                     </div>
-                    <Link href={entity.href}>
+                    <Link href={eligibilityApplicationHref(entity.track as EligibilityTrack)}>
                       <Button className="w-full gap-2">
                         Start Application <ArrowRight className="h-4 w-4" />
                       </Button>
@@ -395,7 +399,7 @@ export default function EligibilityPage() {
               If you have questions about eligibility, our compliance team is available to assist.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/client-login">
+              <Link href="/enterprise/apply">
                 <Button size="lg" className="gap-2 glow-cyan">
                   Start Application <ArrowRight className="h-4 w-4" />
                 </Button>
