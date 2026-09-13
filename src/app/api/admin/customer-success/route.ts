@@ -190,15 +190,21 @@ export async function PATCH(request: NextRequest) {
   const parsed = patchSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return json({ error: "Invalid customer-success update", details: parsed.error.flatten() }, 400);
 
+  const actionId = parsed.data.actionId;
+  const status = parsed.data.status;
+  if (!actionId || !status) {
+    return json({ error: "Invalid customer-success update" }, 400);
+  }
+
   try {
-    const changed = await updateCustomerSuccessActionStatus(parsed.data);
+    const changed = await updateCustomerSuccessActionStatus({ actionId, status });
     if (!changed) return json({ error: "Customer-success action not found" }, 404);
     await emitAuditLog({
       userId: gate.session.userId,
       action: AuditAction.admin_action,
       resource: "customer_success_action",
-      resourceId: parsed.data.actionId,
-      metadata: { status: parsed.data.status },
+      resourceId: actionId,
+      metadata: { status },
       ...requestAuditContext(request),
     });
     return json({ ok: true });
