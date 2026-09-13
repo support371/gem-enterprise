@@ -57,6 +57,9 @@ export async function POST(
     if (campaign.status === "CANCELLED") {
       return NextResponse.json({ error: "Campaign is cancelled" }, { status: 409 });
     }
+    if (campaign.status === "SENDING") {
+      return NextResponse.json({ error: "Campaign delivery is already in progress" }, { status: 409 });
+    }
 
     const [users, allowedMarketingEmails] = await Promise.all([
       db.user.findMany({
@@ -86,11 +89,17 @@ export async function POST(
     });
     await transporter.verify();
 
-    // Mark sending only after delivery, consent, and unsubscribe preflight succeed.
-    await db.emailCampaign.update({
-      where: { id },
+    // Atomically claim delivery so concurrent admin requests cannot send the same campaign twice.
+    const claim = await db.emailCampaign.updateMany({
+      where: { id, status: { in: ["DRAFT", "SCHEDULED"] } },
       data: { status: "SENDING" },
     });
+    if (claim.count !== 1) {
+      return NextResponse.json(
+        { error: "Campaign state changed before delivery could be claimed", code: "CAMPAIGN_DELIVERY_NOT_CLAIMED" },
+        { status: 409 },
+      );
+    }
     markedSending = true;
 
     const renderedCampaign = renderGemCampaignEmail({
