@@ -34,6 +34,7 @@ export async function POST(
   const { ipAddress, userAgent } = getRequestContext(req);
   const { id } = await params;
   let markedSending = false;
+  let sentCount = 0;
 
   try {
     if (process.env.COMMUNICATION_GOVERNANCE_ENABLED !== "true") {
@@ -106,7 +107,6 @@ export async function POST(
       subject: campaign.subject,
       body: campaign.body,
     });
-    let sentCount = 0;
     let failedCount = 0;
 
     for (const user of recipients) {
@@ -197,10 +197,34 @@ export async function POST(
       failedCount,
     });
   } catch (error) {
-    if (markedSending) {
+    if (markedSending && sentCount === 0) {
       await db.emailCampaign
         .update({ where: { id }, data: { status: "DRAFT" } })
         .catch(() => {});
+    }
+    if (markedSending && sentCount > 0) {
+      await emitAuditLog({
+        userId: session.userId,
+        action: "admin_action",
+        resource: "email_campaign",
+        resourceId: id,
+        metadata: {
+          kind: "campaign_delivery_reconciliation_required",
+          sentCount,
+          campaignState: "SENDING",
+          reason: error instanceof Error ? error.message : "unknown error",
+        },
+        ipAddress,
+        userAgent,
+      }).catch(() => {});
+      return NextResponse.json(
+        {
+          error: "Some messages were delivered, but final campaign reconciliation failed. The campaign remains SENDING to prevent automatic duplicate delivery.",
+          code: "CAMPAIGN_DELIVERY_RECONCILIATION_REQUIRED",
+          sentCount,
+        },
+        { status: 500 },
+      );
     }
     if (error instanceof CommunicationGovernanceUnavailableError) {
       return NextResponse.json(
