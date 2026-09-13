@@ -21,10 +21,25 @@ const preferenceSchema = z
   })
   .superRefine((value, context) => {
     if (value.status === "ALLOWED" && !value.basis) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ["basis"], message: "An reviewed basis is required before marketing is allowed" });
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["basis"],
+        message: "A reviewed basis is required before marketing is allowed",
+      });
     }
-    if (value.status === "ALLOWED" && value.basis === "EXPLICIT_CONSENT" && !value.evidenceRef) {
-      context.addIssue({ code: z.ZodIssueCode.custom, path: ["evidenceRef"], message: "Explicit consent requires an evidence reference" });
+    if (value.status === "ALLOWED" && value.basis === "TRANSACTIONAL_NECESSITY") {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["basis"],
+        message: "Transactional necessity cannot be used as the basis for marketing email",
+      });
+    }
+    if (value.status === "ALLOWED" && !value.evidenceRef) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["evidenceRef"],
+        message: "An evidence reference is required before marketing is allowed",
+      });
     }
   });
 
