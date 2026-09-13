@@ -31,6 +31,13 @@ describe("communication governance", () => {
     expect(setter).toContain('INSERT INTO "communication_preference_events"');
   });
 
+  it("preserves reviewed permission basis and evidence when an unsubscribe blocks future delivery", () => {
+    const governance = source("src/lib/communications/governance.ts");
+
+    expect(governance).toContain('"basis" = COALESCE(EXCLUDED."basis", "communication_preferences"."basis")');
+    expect(governance).toContain('"evidenceRef" = COALESCE(EXCLUDED."evidenceRef", "communication_preferences"."evidenceRef")');
+  });
+
   it("requires explicit governed recipients, SMTP preflight, and an atomic delivery claim", () => {
     const route = source("src/app/api/admin/campaigns/[id]/send/route.ts");
 
