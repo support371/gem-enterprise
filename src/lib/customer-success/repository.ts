@@ -144,7 +144,7 @@ export async function upsertCustomerSuccessProfile(input: {
       )
       ON CONFLICT ("workspaceId") DO UPDATE SET
         "projectId" = EXCLUDED."projectId",
-        "ownerUserId" = EXCLUDED."ownerUserId",
+        "ownerUserId" = COALESCE(EXCLUDED."ownerUserId", "customer_success_profiles"."ownerUserId"),
         "lifecycleState" = EXCLUDED."lifecycleState",
         "healthStatus" = EXCLUDED."healthStatus",
         "outcomeStatus" = EXCLUDED."outcomeStatus",
