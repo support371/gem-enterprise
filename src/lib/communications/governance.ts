@@ -103,37 +103,40 @@ export async function setCommunicationPreference(input: {
   const eventEvidenceJson = JSON.stringify(input.eventEvidence ?? {});
 
   try {
-    const preferenceRows = await db.$queryRaw<Array<{ id: string }>>(Prisma.sql`
-      INSERT INTO "communication_preferences" (
-        "id", "userId", "channel", "destinationNormalized", "purpose", "status", "basis",
-        "jurisdiction", "source", "evidenceRef", "changedById", "updatedAt"
-      ) VALUES (
-        ${id}, ${input.userId ?? null}, ${input.channel}, ${destinationNormalized}, ${input.purpose},
-        ${input.status}, ${input.basis ?? null}, ${input.jurisdiction ?? null}, ${input.source},
-        ${input.evidenceRef ?? null}, ${input.changedById ?? null}, CURRENT_TIMESTAMP
-      )
-      ON CONFLICT ("channel", "destinationNormalized", "purpose") DO UPDATE SET
-        "userId" = COALESCE(EXCLUDED."userId", "communication_preferences"."userId"),
-        "status" = EXCLUDED."status",
-        "basis" = EXCLUDED."basis",
-        "jurisdiction" = COALESCE(EXCLUDED."jurisdiction", "communication_preferences"."jurisdiction"),
-        "source" = EXCLUDED."source",
-        "evidenceRef" = EXCLUDED."evidenceRef",
-        "changedById" = EXCLUDED."changedById",
-        "updatedAt" = CURRENT_TIMESTAMP
-      RETURNING "id"
-    `);
-    const preferenceId = preferenceRows[0].id;
+    return await db.$transaction(async (tx) => {
+      const preferenceRows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        INSERT INTO "communication_preferences" (
+          "id", "userId", "channel", "destinationNormalized", "purpose", "status", "basis",
+          "jurisdiction", "source", "evidenceRef", "changedById", "updatedAt"
+        ) VALUES (
+          ${id}, ${input.userId ?? null}, ${input.channel}, ${destinationNormalized}, ${input.purpose},
+          ${input.status}, ${input.basis ?? null}, ${input.jurisdiction ?? null}, ${input.source},
+          ${input.evidenceRef ?? null}, ${input.changedById ?? null}, CURRENT_TIMESTAMP
+        )
+        ON CONFLICT ("channel", "destinationNormalized", "purpose") DO UPDATE SET
+          "userId" = COALESCE(EXCLUDED."userId", "communication_preferences"."userId"),
+          "status" = EXCLUDED."status",
+          "basis" = EXCLUDED."basis",
+          "jurisdiction" = COALESCE(EXCLUDED."jurisdiction", "communication_preferences"."jurisdiction"),
+          "source" = EXCLUDED."source",
+          "evidenceRef" = EXCLUDED."evidenceRef",
+          "changedById" = EXCLUDED."changedById",
+          "updatedAt" = CURRENT_TIMESTAMP
+        RETURNING "id"
+      `);
+      const preferenceId = preferenceRows[0].id;
 
-    await db.$executeRaw(Prisma.sql`
-      INSERT INTO "communication_preference_events" (
-        "id", "preferenceId", "eventType", "actorUserId", "source", "evidence"
-      ) VALUES (
-        ${eventId}, ${preferenceId}, ${eventType}, ${input.changedById ?? null}, ${input.source},
-        CAST(${eventEvidenceJson} AS JSONB)
-      )
-    `);
-    return preferenceId;
+      await tx.$executeRaw(Prisma.sql`
+        INSERT INTO "communication_preference_events" (
+          "id", "preferenceId", "eventType", "actorUserId", "source", "evidence"
+        ) VALUES (
+          ${eventId}, ${preferenceId}, ${eventType}, ${input.changedById ?? null}, ${input.source},
+          CAST(${eventEvidenceJson} AS JSONB)
+        )
+      `);
+
+      return preferenceId;
+    });
   } catch (error) {
     if (isStorageMissing(error)) throw new CommunicationGovernanceUnavailableError();
     throw error;
