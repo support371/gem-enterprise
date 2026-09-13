@@ -172,19 +172,19 @@ export async function createCustomerSuccessAction(input: {
   dueAt?: Date | null;
   evidence?: unknown;
 }): Promise<string> {
-  const profiles = await db.$queryRaw<Array<{ workspaceId: string; projectId: string | null }>>(Prisma.sql`
-    SELECT "workspaceId", "projectId"
-    FROM "customer_success_profiles"
-    WHERE "id" = ${input.profileId}
-    LIMIT 1
-  `);
-  if (profiles.length === 0) throw new Error("Customer-success profile not found");
-
-  const id = randomUUID();
-  const profile = profiles[0];
-  const evidenceJson = JSON.stringify(input.evidence ?? {});
-
   try {
+    const profiles = await db.$queryRaw<Array<{ workspaceId: string; projectId: string | null }>>(Prisma.sql`
+      SELECT "workspaceId", "projectId"
+      FROM "customer_success_profiles"
+      WHERE "id" = ${input.profileId}
+      LIMIT 1
+    `);
+    if (profiles.length === 0) throw new Error("Customer-success profile not found");
+
+    const id = randomUUID();
+    const profile = profiles[0];
+    const evidenceJson = JSON.stringify(input.evidence ?? {});
+
     await db.$executeRaw(Prisma.sql`
       INSERT INTO "customer_success_actions" (
         "id", "profileId", "workspaceId", "projectId", "createdById", "actionType", "status",
