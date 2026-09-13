@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/api/auth-helpers";
 import { emitAuditLog } from "@/lib/audit";
 import {
   CommunicationGovernanceUnavailableError,
+  CommunicationResubscriptionRequiredError,
   communicationBases,
   communicationStatuses,
   listCommunicationPreferences,
@@ -18,6 +19,7 @@ const preferenceSchema = z
     basis: z.enum(communicationBases).nullable().optional(),
     jurisdiction: z.string().trim().max(80).nullable().optional(),
     evidenceRef: z.string().trim().max(500).nullable().optional(),
+    resubscribeConfirmed: z.boolean().optional().default(false),
   })
   .superRefine((value, context) => {
     if (value.status === "ALLOWED" && !value.basis) {
@@ -50,6 +52,9 @@ function json(body: unknown, status = 200) {
 function handleError(error: unknown) {
   if (error instanceof CommunicationGovernanceUnavailableError) {
     return json({ error: error.message, code: "COMMUNICATION_GOVERNANCE_STORAGE_NOT_READY" }, 503);
+  }
+  if (error instanceof CommunicationResubscriptionRequiredError) {
+    return json({ error: error.message, code: "EXPLICIT_RESUBSCRIPTION_REQUIRED" }, 409);
   }
   console.error("[admin:communication-preferences]", error);
   return json({ error: "Unable to complete the communication-preference operation" }, 500);
@@ -84,6 +89,7 @@ export async function POST(request: NextRequest) {
       source: "admin_review",
       evidenceRef: parsed.data.evidenceRef,
       changedById: gate.session.userId,
+      resubscribeConfirmed: parsed.data.resubscribeConfirmed,
       eventType:
         parsed.data.status === "ALLOWED"
           ? "ALLOWED"
@@ -93,6 +99,7 @@ export async function POST(request: NextRequest) {
       eventEvidence: {
         reviewedByRole: gate.session.role,
         evidenceRefPresent: Boolean(parsed.data.evidenceRef),
+        resubscribeConfirmed: parsed.data.resubscribeConfirmed,
       },
     });
 
@@ -108,6 +115,7 @@ export async function POST(request: NextRequest) {
         basis: parsed.data.basis ?? null,
         jurisdiction: parsed.data.jurisdiction ?? null,
         evidenceRefPresent: Boolean(parsed.data.evidenceRef),
+        resubscribeConfirmed: parsed.data.resubscribeConfirmed,
       },
       ipAddress: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || undefined,
       userAgent: request.headers.get("user-agent") || undefined,

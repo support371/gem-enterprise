@@ -41,6 +41,13 @@ export class CommunicationGovernanceUnavailableError extends Error {
   }
 }
 
+export class CommunicationResubscriptionRequiredError extends Error {
+  constructor() {
+    super("A recipient unsubscribe cannot be overridden by an administrative allow. Record fresh explicit consent, its evidence reference, and explicit resubscription confirmation first.");
+    this.name = "CommunicationResubscriptionRequiredError";
+  }
+}
+
 export function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
 }
@@ -111,6 +118,7 @@ export async function setCommunicationPreference(input: {
   changedById?: string | null;
   eventType?: "CREATED" | "ALLOWED" | "BLOCKED" | "UNSUBSCRIBED" | "RESUBSCRIBED";
   eventEvidence?: Record<string, unknown>;
+  resubscribeConfirmed?: boolean;
 }): Promise<string> {
   const destinationNormalized =
     input.channel === "EMAIL" ? normalizeEmail(input.destination) : input.destination.trim();
@@ -118,11 +126,54 @@ export async function setCommunicationPreference(input: {
 
   const id = randomUUID();
   const eventId = randomUUID();
-  const eventType = input.eventType ?? (input.status === "ALLOWED" ? "ALLOWED" : input.status === "BLOCKED" ? "BLOCKED" : "CREATED");
   const eventEvidenceJson = JSON.stringify(input.eventEvidence ?? {});
 
   try {
     return await db.$transaction(async (tx) => {
+      let eventType = input.eventType ?? (input.status === "ALLOWED" ? "ALLOWED" : input.status === "BLOCKED" ? "BLOCKED" : "CREATED");
+
+      if (input.channel === "EMAIL" && input.purpose === "MARKETING" && input.status === "ALLOWED") {
+        const existing = await tx.$queryRaw<Array<{
+          id: string;
+          status: CommunicationStatus;
+          source: string;
+          latestEventType: string | null;
+        }>>(Prisma.sql`
+          SELECT p."id", p."status", p."source",
+            (
+              SELECT e."eventType"
+              FROM "communication_preference_events" e
+              WHERE e."preferenceId" = p."id"
+              ORDER BY e."createdAt" DESC, e."id" DESC
+              LIMIT 1
+            ) AS "latestEventType"
+          FROM "communication_preferences" p
+          WHERE p."channel" = 'EMAIL'
+            AND p."purpose" = 'MARKETING'
+            AND p."destinationNormalized" = ${destinationNormalized}
+          LIMIT 1
+          FOR UPDATE
+        `);
+
+        const current = existing[0];
+        const recipientOptOutActive = Boolean(
+          current &&
+          current.status === "BLOCKED" &&
+          (current.source === "recipient_unsubscribe" || current.latestEventType === "UNSUBSCRIBED"),
+        );
+
+        if (recipientOptOutActive) {
+          if (
+            input.basis !== "EXPLICIT_CONSENT" ||
+            !input.evidenceRef?.trim() ||
+            input.resubscribeConfirmed !== true
+          ) {
+            throw new CommunicationResubscriptionRequiredError();
+          }
+          eventType = "RESUBSCRIBED";
+        }
+      }
+
       const preferenceRows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
         INSERT INTO "communication_preferences" (
           "id", "userId", "channel", "destinationNormalized", "purpose", "status", "basis",

@@ -54,6 +54,7 @@ export default function CommunicationGovernancePage() {
   const [basis, setBasis] = useState<Basis | "">("");
   const [jurisdiction, setJurisdiction] = useState("");
   const [evidenceRef, setEvidenceRef] = useState("");
+  const [resubscribeConfirmed, setResubscribeConfirmed] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -88,6 +89,7 @@ export default function CommunicationGovernancePage() {
           basis: basis || null,
           jurisdiction: jurisdiction.trim() || null,
           evidenceRef: evidenceRef.trim() || null,
+          resubscribeConfirmed,
         }),
       });
       const result = await response.json();
@@ -102,6 +104,7 @@ export default function CommunicationGovernancePage() {
       setBasis("");
       setJurisdiction("");
       setEvidenceRef("");
+      setResubscribeConfirmed(false);
       await load();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Unable to save communication preference");
@@ -136,7 +139,7 @@ export default function CommunicationGovernancePage() {
         <div className="flex gap-3">
           <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-cyan-300" />
           <p className="text-sm leading-6 text-slate-300">
-            This ledger does not decide whether a communication is lawful in every jurisdiction. It records the reviewed decision, basis, source, evidence reference, changes, and recipient opt-outs so GEM can enforce the decision consistently. A recipient unsubscribe always changes marketing email to BLOCKED.
+            This ledger does not decide whether a communication is lawful in every jurisdiction. It records the reviewed decision, basis, source, evidence reference, changes, and recipient opt-outs so GEM can enforce the decision consistently. A recipient unsubscribe always changes marketing email to BLOCKED and cannot be overridden by an administrative allow without fresh explicit consent and an explicit resubscription confirmation.
           </p>
         </div>
       </section>
@@ -162,13 +165,13 @@ export default function CommunicationGovernancePage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Marketing status
-                  <select className={fieldClass()} value={status} onChange={(event) => setStatus(event.target.value as Status)}>
+                  <select className={fieldClass()} value={status} onChange={(event) => { setStatus(event.target.value as Status); setResubscribeConfirmed(false); }}>
                     {statuses.map((value) => <option key={value}>{value}</option>)}
                   </select>
                 </label>
                 <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Reviewed basis
-                  <select className={fieldClass()} value={basis} onChange={(event) => setBasis(event.target.value as Basis | "")}>
+                  <select className={fieldClass()} value={basis} onChange={(event) => { setBasis(event.target.value as Basis | ""); setResubscribeConfirmed(false); }}>
                     <option value="">Not established</option>
                     {bases.map((value) => <option key={value}>{value}</option>)}
                   </select>
@@ -182,8 +185,22 @@ export default function CommunicationGovernancePage() {
 
               <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Evidence reference
-                <input className={fieldClass()} value={evidenceRef} onChange={(event) => setEvidenceRef(event.target.value)} placeholder="Consent record, contract, intake reference, or reviewed evidence ID" />
+                <input className={fieldClass()} value={evidenceRef} onChange={(event) => { setEvidenceRef(event.target.value); setResubscribeConfirmed(false); }} placeholder="Consent record, contract, intake reference, or reviewed evidence ID" />
               </label>
+
+              {status === "ALLOWED" && (
+                <label className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4 text-sm leading-6 text-slate-300">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-4 w-4"
+                    checked={resubscribeConfirmed}
+                    onChange={(event) => setResubscribeConfirmed(event.target.checked)}
+                  />
+                  <span>
+                    <strong className="text-amber-100">Explicit resubscription confirmation.</strong> Check this only when the recipient previously unsubscribed and has since provided fresh explicit marketing consent represented by the evidence reference above. It is not required for a first-time ALLOWED decision.
+                  </span>
+                </label>
+              )}
 
               <Button type="submit" className="w-full gap-2" disabled={saving || !email.trim()}>
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}

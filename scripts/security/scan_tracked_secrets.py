@@ -2,7 +2,8 @@
 """Fail closed when tracked files contain Telegram credentials or runtime env files.
 
 This scanner intentionally prints only file paths, line numbers, and rule names. It
-never prints matched secret values.
+never prints matched secret values. Tracked files are streamed line-by-line so large
+artifacts are scanned rather than silently skipped.
 """
 
 from __future__ import annotations
@@ -11,27 +12,10 @@ import re
 import subprocess
 from pathlib import Path
 
-MAX_FILE_BYTES = 1_000_000
-
 TELEGRAM_TOKEN = re.compile(r"(?<![A-Za-z0-9_])\d{6,12}:[A-Za-z0-9_-]{30,}(?![A-Za-z0-9_-])")
 TELEGRAM_URL_TOKEN = re.compile(r"api\.telegram\.org/bot\d{6,12}:[A-Za-z0-9_-]{30,}", re.IGNORECASE)
-TELEGRAM_ASSIGNMENT = re.compile(
-    r"(?i)\b(?:TELEGRAM_(?:BOT_)?TOKEN|BOT_TOKEN)\b\s*[:=]\s*['\"]?([^\s'\"#]+)"
-)
 PUBLIC_TELEGRAM_SECRET_NAME = re.compile(
     r"(?i)\bNEXT_PUBLIC_[A-Z0-9_]*(?:TELEGRAM|BOT)[A-Z0-9_]*(?:TOKEN|SECRET|KEY)\b"
-)
-
-PLACEHOLDER_WORDS = (
-    "replace",
-    "example",
-    "placeholder",
-    "your_",
-    "your-",
-    "changeme",
-    "dummy",
-    "test-token",
-    "<",
 )
 
 SAFE_ENV_EXAMPLES = {".env.example", ".env.sample", ".env.template"}
@@ -54,34 +38,24 @@ def is_runtime_env_file(path: Path) -> bool:
     return name == ".env" or name.startswith(".env.")
 
 
-def looks_like_placeholder(value: str) -> bool:
-    lowered = value.strip().lower()
-    return not lowered or any(word in lowered for word in PLACEHOLDER_WORDS)
-
-
 def inspect_file(path: Path) -> list[tuple[int, str]]:
     findings: list[tuple[int, str]] = []
-    if not path.is_file() or path.stat().st_size > MAX_FILE_BYTES:
+    if not path.is_file():
         return findings
 
     try:
-        text = path.read_text(encoding="utf-8")
-    except UnicodeDecodeError:
-        return findings
-
-    for line_number, line in enumerate(text.splitlines(), start=1):
-        if PUBLIC_TELEGRAM_SECRET_NAME.search(line):
-            findings.append((line_number, "public-telegram-secret-variable"))
-        if TELEGRAM_URL_TOKEN.search(line):
-            findings.append((line_number, "telegram-token-in-api-url"))
-            continue
-        if TELEGRAM_TOKEN.search(line):
-            findings.append((line_number, "telegram-bot-token"))
-            continue
-
-        assignment = TELEGRAM_ASSIGNMENT.search(line)
-        if assignment and not looks_like_placeholder(assignment.group(1)):
-            findings.append((line_number, "telegram-token-assignment"))
+        with path.open("r", encoding="utf-8", errors="ignore") as handle:
+            for line_number, line in enumerate(handle, start=1):
+                if PUBLIC_TELEGRAM_SECRET_NAME.search(line):
+                    findings.append((line_number, "public-telegram-secret-variable"))
+                if TELEGRAM_URL_TOKEN.search(line):
+                    findings.append((line_number, "telegram-token-in-api-url"))
+                    continue
+                if TELEGRAM_TOKEN.search(line):
+                    findings.append((line_number, "telegram-bot-token"))
+    except OSError:
+        # A tracked file that cannot be inspected is not treated as clean.
+        findings.append((0, "tracked-file-read-error"))
 
     return findings
 

@@ -103,6 +103,23 @@ describe("communication governance", () => {
     expect(control).not.toContain('headers: { "List-Unsubscribe-Post"');
   });
 
+  it("keeps recipient opt-outs blocked until a fresh explicit resubscription is recorded atomically", () => {
+    const governance = source("src/lib/communications/governance.ts");
+    const route = source("src/app/api/admin/communications/preferences/route.ts");
+    const page = source("src/app/app/admin/communications/page.tsx");
+
+    expect(governance).toContain("CommunicationResubscriptionRequiredError");
+    expect(governance).toContain('current.source === "recipient_unsubscribe"');
+    expect(governance).toContain('current.latestEventType === "UNSUBSCRIBED"');
+    expect(governance).toContain('input.basis !== "EXPLICIT_CONSENT"');
+    expect(governance).toContain("input.resubscribeConfirmed !== true");
+    expect(governance).toContain('eventType = "RESUBSCRIBED"');
+    expect(governance).toContain("FOR UPDATE");
+    expect(route).toContain("EXPLICIT_RESUBSCRIPTION_REQUIRED");
+    expect(route).toContain("resubscribeConfirmed: parsed.data.resubscribeConfirmed");
+    expect(page).toContain("Explicit resubscription confirmation");
+  });
+
   it("keeps marketing permission grants behind admin review and durable evidence", () => {
     const route = source("src/app/api/admin/communications/preferences/route.ts");
 
