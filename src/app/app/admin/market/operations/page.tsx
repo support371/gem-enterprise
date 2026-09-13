@@ -49,8 +49,8 @@ export default function CommercialOperationsPage() {
             <h1 className="text-2xl font-bold text-white">Market, Sales & Customer Operations</h1>
             <p className="mt-2 text-sm leading-6 text-slate-400">
               One governed lifecycle from discovery through delivery, customer success, expansion, referral,
-              and learning. This surface is an implementation map: it preserves existing GEM systems and exposes
-              verified lifecycle gaps before another SaaS product is introduced.
+              and learning. This surface preserves existing GEM systems, shows current readiness, and exposes
+              the remaining activation gates before another SaaS product is introduced.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -78,7 +78,7 @@ export default function CommercialOperationsPage() {
           <p className="mt-4 text-3xl font-bold text-amber-200">{partial}</p>
         </div>
         <div className="glass-panel rounded-xl p-5">
-          <p className="text-xs uppercase tracking-wide text-slate-400">Verified gaps</p>
+          <p className="text-xs uppercase tracking-wide text-slate-400">Unbuilt capabilities</p>
           <p className="mt-4 text-3xl font-bold text-rose-200">{gaps}</p>
         </div>
       </div>
@@ -181,8 +181,8 @@ export default function CommercialOperationsPage() {
         <div className="mb-4 flex items-center gap-2">
           <CircleAlert className="h-5 w-5 text-amber-300" />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[.16em] text-amber-300">Build order</p>
-            <h2 className="mt-1 text-lg font-semibold text-white">Highest-value verified gaps</h2>
+            <p className="text-xs font-semibold uppercase tracking-[.16em] text-amber-300">Activation order</p>
+            <h2 className="mt-1 text-lg font-semibold text-white">Remaining activation priorities</h2>
           </div>
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
