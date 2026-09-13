@@ -31,6 +31,16 @@ describe("communication governance", () => {
     expect(route).not.toContain("sentCount = users.length");
   });
 
+  it("does not make uncertain partial deliveries automatically retryable", () => {
+    const route = source("src/app/api/admin/campaigns/[id]/send/route.ts");
+
+    expect(route).toContain("markedSending && sentCount === 0");
+    expect(route).toContain("markedSending && sentCount > 0");
+    expect(route).toContain("campaign_delivery_reconciliation_required");
+    expect(route).toContain("CAMPAIGN_DELIVERY_RECONCILIATION_REQUIRED");
+    expect(route).toContain("campaign remains SENDING");
+  });
+
   it("adds signed unsubscribe controls to every governed marketing recipient", () => {
     const route = source("src/app/api/admin/campaigns/[id]/send/route.ts");
     const governance = source("src/lib/communications/governance.ts");
