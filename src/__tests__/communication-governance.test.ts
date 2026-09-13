@@ -17,6 +17,20 @@ describe("communication governance", () => {
     expect(migration).not.toMatch(/DROP\s+(TABLE|COLUMN|TYPE)/i);
   });
 
+  it("persists preference state and its immutable event in one database transaction", () => {
+    const governance = source("src/lib/communications/governance.ts");
+    const setter = governance.slice(
+      governance.indexOf("export async function setCommunicationPreference"),
+      governance.indexOf("function unsubscribeSecret"),
+    );
+
+    expect(setter).toContain("db.$transaction(async (tx) =>");
+    expect(setter).toContain("tx.$queryRaw");
+    expect(setter).toContain("tx.$executeRaw");
+    expect(setter).toContain('INSERT INTO "communication_preferences"');
+    expect(setter).toContain('INSERT INTO "communication_preference_events"');
+  });
+
   it("requires explicit governed recipients, SMTP preflight, and an atomic delivery claim", () => {
     const route = source("src/app/api/admin/campaigns/[id]/send/route.ts");
 
