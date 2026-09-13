@@ -170,7 +170,7 @@ export async function createCustomerSuccessAction(input: {
   title: string;
   notes?: string | null;
   dueAt?: Date | null;
-  evidence?: Prisma.InputJsonValue;
+  evidence?: unknown;
 }): Promise<string> {
   const profiles = await db.$queryRaw<Array<{ workspaceId: string; projectId: string | null }>>(Prisma.sql`
     SELECT "workspaceId", "projectId"
