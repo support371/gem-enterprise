@@ -18,7 +18,11 @@ describe("official enterprise solutions access", () => {
     expect(page).toContain('canonical: "/enterprise-solutions"');
     expect(page).toContain("GEM services and sales");
     expect(page).toContain("does not create accounts, approve access");
-    expect(page).toContain("/business-review?utm_source=enterprise-solutions");
+    expect(page).toContain("buildBusinessReviewCampaignUrl");
+    expect(page).toContain('source: "enterprise-solutions"');
+    expect(page).toContain('medium: "hero"');
+    expect(page).toContain('medium: "official-path"');
+    expect(page).not.toContain("utm_campaign=founding-review");
     expect(page).toContain('href="/get-started"');
     expect(page).toContain('href: "/client-login"');
     expect(page).toContain('href: "/trust-center"');
