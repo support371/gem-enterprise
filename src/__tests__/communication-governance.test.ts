@@ -17,7 +17,7 @@ describe("communication governance", () => {
     expect(migration).not.toMatch(/DROP\s+(TABLE|COLUMN|TYPE)/i);
   });
 
-  it("requires explicit governed recipients and real SMTP preflight before campaign state changes", () => {
+  it("requires explicit governed recipients, SMTP preflight, and an atomic delivery claim", () => {
     const route = source("src/app/api/admin/campaigns/[id]/send/route.ts");
 
     expect(route).toContain('COMMUNICATION_GOVERNANCE_ENABLED !== "true"');
@@ -25,6 +25,9 @@ describe("communication governance", () => {
     expect(route).toContain("transporter.verify()");
     expect(route).toContain("NO_GOVERNED_RECIPIENTS");
     expect(route).toContain("SMTP_NOT_CONFIGURED");
+    expect(route).toContain("db.emailCampaign.updateMany");
+    expect(route).toContain('status: { in: ["DRAFT", "SCHEDULED"] }');
+    expect(route).toContain("CAMPAIGN_DELIVERY_NOT_CLAIMED");
     expect(route).not.toContain("sentCount = users.length");
   });
 
