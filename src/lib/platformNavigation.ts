@@ -329,6 +329,18 @@ export const adminPortalNavGroups: PlatformNavGroup[] = [
         description: "Track enterprise leads from first request through qualification and conversion.",
       },
       {
+        href: "/app/admin/market/operations",
+        icon: "Briefcase",
+        label: "Commercial Operations",
+        description: "Govern the full market, sales, delivery, success, expansion, and referral lifecycle without duplicate systems.",
+      },
+      {
+        href: "/app/admin/customer-success",
+        icon: "Users",
+        label: "Customer Success",
+        description: "Track client health, outcomes, reviews, expansion, renewal, referral, and win-back planning.",
+      },
+      {
         href: "/app/admin/intake",
         icon: "ClipboardList",
         label: "Intake Queue",
