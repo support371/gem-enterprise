@@ -137,16 +137,17 @@ export async function setCommunicationPreference(input: {
           id: string;
           status: CommunicationStatus;
           source: string;
-          latestEventType: string | null;
+          latestControlEventType: "UNSUBSCRIBED" | "RESUBSCRIBED" | null;
         }>>(Prisma.sql`
           SELECT p."id", p."status", p."source",
             (
               SELECT e."eventType"
               FROM "communication_preference_events" e
               WHERE e."preferenceId" = p."id"
+                AND e."eventType" IN ('UNSUBSCRIBED', 'RESUBSCRIBED')
               ORDER BY e."createdAt" DESC, e."id" DESC
               LIMIT 1
-            ) AS "latestEventType"
+            ) AS "latestControlEventType"
           FROM "communication_preferences" p
           WHERE p."channel" = 'EMAIL'
             AND p."purpose" = 'MARKETING'
@@ -156,11 +157,9 @@ export async function setCommunicationPreference(input: {
         `);
 
         const current = existing[0];
-        const recipientOptOutActive = Boolean(
-          current &&
-          current.status === "BLOCKED" &&
-          (current.source === "recipient_unsubscribe" || current.latestEventType === "UNSUBSCRIBED"),
-        );
+        // An unsubscribe remains active through any intermediate administrative PENDING/BLOCKED
+        // edits until a later RESUBSCRIBED control event explicitly reverses it.
+        const recipientOptOutActive = current?.latestControlEventType === "UNSUBSCRIBED";
 
         if (recipientOptOutActive) {
           if (
@@ -230,16 +229,17 @@ export async function unsubscribeMarketingEmail(input: {
         id: string;
         status: CommunicationStatus;
         source: string;
-        latestEventType: string | null;
+        latestControlEventType: "UNSUBSCRIBED" | "RESUBSCRIBED" | null;
       }>>(Prisma.sql`
         SELECT p."id", p."status", p."source",
           (
             SELECT e."eventType"
             FROM "communication_preference_events" e
             WHERE e."preferenceId" = p."id"
+              AND e."eventType" IN ('UNSUBSCRIBED', 'RESUBSCRIBED')
             ORDER BY e."createdAt" DESC, e."id" DESC
             LIMIT 1
-          ) AS "latestEventType"
+          ) AS "latestControlEventType"
         FROM "communication_preferences" p
         WHERE p."channel" = 'EMAIL'
           AND p."purpose" = 'MARKETING'
@@ -249,10 +249,20 @@ export async function unsubscribeMarketingEmail(input: {
       `);
 
       const current = existing[0];
-      if (
-        current?.status === "BLOCKED" &&
-        (current.source === "recipient_unsubscribe" || current.latestEventType === "UNSUBSCRIBED")
-      ) {
+      const recipientOptOutActive = current?.latestControlEventType === "UNSUBSCRIBED";
+      if (current && recipientOptOutActive) {
+        // Keep the materialized preference state aligned with the durable control history without
+        // appending duplicate unsubscribe evidence for mailbox/provider retries.
+        if (current.status !== "BLOCKED" || current.source !== "recipient_unsubscribe") {
+          await tx.$executeRaw(Prisma.sql`
+            UPDATE "communication_preferences"
+            SET "status" = 'BLOCKED',
+                "source" = 'recipient_unsubscribe',
+                "changedById" = NULL,
+                "updatedAt" = CURRENT_TIMESTAMP
+            WHERE "id" = ${current.id}
+          `);
+        }
         return { preferenceId: current.id, changed: false };
       }
 
