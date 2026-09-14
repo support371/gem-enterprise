@@ -40,7 +40,7 @@ describe("communication governance", () => {
     const governance = source("src/lib/communications/governance.ts");
     const setter = governance.slice(
       governance.indexOf("export async function setCommunicationPreference"),
-      governance.indexOf("function unsubscribeSecret"),
+      governance.indexOf("export async function unsubscribeMarketingEmail"),
     );
 
     expect(setter).toContain("db.$transaction(async (tx) =>");
@@ -76,6 +76,7 @@ describe("communication governance", () => {
 
   it("preserves SENDING after any ambiguous SMTP attempt instead of creating a blind retry path", () => {
     const route = source("src/app/api/admin/campaigns/[id]/send/route.ts");
+    const editRoute = source("src/app/api/admin/campaigns/[id]/route.ts");
 
     expect(route).toContain("let deliveryAttempted = false");
     expect(route).toContain("deliveryAttempted = true");
@@ -85,6 +86,8 @@ describe("communication governance", () => {
     expect(route).toContain("markedSending && !deliveryAttempted");
     expect(route).toContain("markedSending && deliveryAttempted");
     expect(route).toContain("The campaign remains SENDING");
+    expect(editRoute).toContain('existing.status === "SENDING"');
+    expect(editRoute).toContain("CAMPAIGN_RECONCILIATION_REQUIRED");
   });
 
   it("keeps browser signed-link and mailbox one-click unsubscribe evidence distinct", () => {
@@ -98,9 +101,23 @@ describe("communication governance", () => {
     expect(route).toContain('"List-Unsubscribe"');
     expect(route).toContain('"List-Unsubscribe-Post"');
     expect(unsubscribeApi).toContain('request.headers.get("list-unsubscribe-post") ? "one_click_header" : "signed_link"');
-    expect(unsubscribeApi).toContain('status: "BLOCKED"');
-    expect(unsubscribeApi).toContain('eventType: "UNSUBSCRIBED"');
+    expect(unsubscribeApi).toContain("unsubscribeMarketingEmail");
     expect(control).not.toContain('headers: { "List-Unsubscribe-Post"');
+  });
+
+  it("makes unsubscribe persistence event-idempotent and retryable on storage failure", () => {
+    const governance = source("src/lib/communications/governance.ts");
+    const route = source("src/app/api/communications/unsubscribe/route.ts");
+
+    expect(governance).toContain("export async function unsubscribeMarketingEmail");
+    expect(governance).toContain('current?.status === "BLOCKED"');
+    expect(governance).toContain('current.source === "recipient_unsubscribe"');
+    expect(governance).toContain('current.latestEventType === "UNSUBSCRIBED"');
+    expect(governance).toContain("return { preferenceId: current.id, changed: false }");
+    expect(governance).toContain("FOR UPDATE");
+    expect(route).toContain("UNSUBSCRIBE_PERSISTENCE_FAILED");
+    expect(route).toContain("Please retry");
+    expect(route).toContain("503");
   });
 
   it("keeps recipient opt-outs blocked until a fresh explicit resubscription is recorded atomically", () => {
