@@ -28,7 +28,8 @@ function validatePromotedSchema(source) {
     '@@index([status, purpose, channel], map: "communication_preferences_status_purpose_idx")',
     '@@index([userId], map: "communication_preferences_userId_idx")',
     '@@index([preferenceId, createdAt], map: "communication_preference_events_preferenceId_createdAt_idx")',
-    'onDelete: Restrict',
+    'preference CommunicationPreference @relation(fields: [preferenceId], references: [id], onDelete: Restrict)',
+    'actorUser   User? @relation("CommunicationPreferenceActor", fields: [actorUserId], references: [id], onDelete: Restrict)',
   ];
   for (const value of required) {
     if (!source.includes(value)) throw new Error(`Promoted communication-governance schema is missing: ${value}`);
@@ -87,7 +88,7 @@ model CommunicationPreferenceEvent {
   createdAt    DateTime @default(now())
 
   preference CommunicationPreference @relation(fields: [preferenceId], references: [id], onDelete: Restrict)
-  actorUser   User? @relation("CommunicationPreferenceActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  actorUser   User? @relation("CommunicationPreferenceActor", fields: [actorUserId], references: [id], onDelete: Restrict)
 
   @@index([preferenceId, createdAt], map: "communication_preference_events_preferenceId_createdAt_idx")
   @@map("communication_preference_events")
