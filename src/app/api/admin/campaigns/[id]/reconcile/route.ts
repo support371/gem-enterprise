@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { emitAuditLog } from "@/lib/audit";
 import { getRequestContext, requireAdmin, serverError } from "@/lib/api/auth-helpers";
 
 const ReconciliationSchema = z.discriminatedUnion("resolution", [
@@ -38,23 +37,54 @@ export async function POST(
 
   try {
     const nextStatus = parsed.data.resolution === "CONFIRMED_SENT" ? "SENT" : "DRAFT";
-    const update = await db.emailCampaign.updateMany({
-      where: { id, status: "SENDING" },
-      data:
-        nextStatus === "SENT"
-          ? {
-              status: "SENT",
-              sentAt: new Date(),
-              recipientCount: parsed.data.confirmedRecipientCount,
-            }
-          : {
-              status: "DRAFT",
-              sentAt: null,
-              recipientCount: 0,
-            },
+
+    // Releasing the SENDING lock and recording the evidence are one transaction. The evidence
+    // write is mandatory even when optional global audit logging is disabled; if it fails, the
+    // campaign remains SENDING and therefore cannot be retried blindly.
+    const campaign = await db.$transaction(async (tx) => {
+      const update = await tx.emailCampaign.updateMany({
+        where: { id, status: "SENDING" },
+        data:
+          nextStatus === "SENT"
+            ? {
+                status: "SENT",
+                sentAt: new Date(),
+                recipientCount: parsed.data.confirmedRecipientCount,
+              }
+            : {
+                status: "DRAFT",
+                sentAt: null,
+                recipientCount: 0,
+              },
+      });
+
+      if (update.count !== 1) return null;
+
+      await tx.auditLog.create({
+        data: {
+          userId: gate.session.userId,
+          action: "admin_action",
+          resource: "email_campaign",
+          resourceId: id,
+          metadata: {
+            kind: "campaign_delivery_reconciled",
+            resolution: parsed.data.resolution,
+            confirmedRecipientCount: parsed.data.confirmedRecipientCount,
+            evidenceRef: parsed.data.evidenceRef,
+            note: parsed.data.note ?? null,
+            previousStatus: "SENDING",
+            newStatus: nextStatus,
+            evidenceRequired: true,
+          },
+          ipAddress,
+          userAgent,
+        },
+      });
+
+      return tx.emailCampaign.findUnique({ where: { id } });
     });
 
-    if (update.count !== 1) {
+    if (!campaign) {
       return NextResponse.json(
         {
           error: "Campaign is not awaiting delivery reconciliation.",
@@ -64,28 +94,11 @@ export async function POST(
       );
     }
 
-    await emitAuditLog({
-      userId: gate.session.userId,
-      action: "admin_action",
-      resource: "email_campaign",
-      resourceId: id,
-      metadata: {
-        kind: "campaign_delivery_reconciled",
-        resolution: parsed.data.resolution,
-        confirmedRecipientCount: parsed.data.confirmedRecipientCount,
-        evidenceRef: parsed.data.evidenceRef,
-        note: parsed.data.note ?? null,
-        previousStatus: "SENDING",
-        newStatus: nextStatus,
-      },
-      ipAddress,
-      userAgent,
-    });
-
-    const campaign = await db.emailCampaign.findUnique({ where: { id } });
     return NextResponse.json({ campaign, reconciliation: parsed.data.resolution });
   } catch (error) {
     console.error("[POST /api/admin/campaigns/[id]/reconcile]", error);
-    return serverError("Failed to reconcile campaign delivery");
+    return serverError(
+      "Failed to persist reconciliation evidence; the campaign remains SENDING",
+    );
   }
 }
