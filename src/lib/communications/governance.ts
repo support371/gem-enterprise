@@ -213,6 +213,90 @@ export async function setCommunicationPreference(input: {
   }
 }
 
+export async function unsubscribeMarketingEmail(input: {
+  email: string;
+  method: "one_click_header" | "signed_link";
+}): Promise<{ preferenceId: string; changed: boolean }> {
+  const destinationNormalized = normalizeEmail(input.email);
+  if (!destinationNormalized) throw new Error("Communication destination is required");
+
+  const newPreferenceId = randomUUID();
+  const eventId = randomUUID();
+  const evidenceJson = JSON.stringify({ method: input.method });
+
+  try {
+    return await db.$transaction(async (tx) => {
+      const existing = await tx.$queryRaw<Array<{
+        id: string;
+        status: CommunicationStatus;
+        source: string;
+        latestEventType: string | null;
+      }>>(Prisma.sql`
+        SELECT p."id", p."status", p."source",
+          (
+            SELECT e."eventType"
+            FROM "communication_preference_events" e
+            WHERE e."preferenceId" = p."id"
+            ORDER BY e."createdAt" DESC, e."id" DESC
+            LIMIT 1
+          ) AS "latestEventType"
+        FROM "communication_preferences" p
+        WHERE p."channel" = 'EMAIL'
+          AND p."purpose" = 'MARKETING'
+          AND p."destinationNormalized" = ${destinationNormalized}
+        LIMIT 1
+        FOR UPDATE
+      `);
+
+      const current = existing[0];
+      if (
+        current?.status === "BLOCKED" &&
+        (current.source === "recipient_unsubscribe" || current.latestEventType === "UNSUBSCRIBED")
+      ) {
+        return { preferenceId: current.id, changed: false };
+      }
+
+      let preferenceId = current?.id ?? newPreferenceId;
+      if (current) {
+        await tx.$executeRaw(Prisma.sql`
+          UPDATE "communication_preferences"
+          SET "status" = 'BLOCKED',
+              "source" = 'recipient_unsubscribe',
+              "changedById" = NULL,
+              "updatedAt" = CURRENT_TIMESTAMP
+          WHERE "id" = ${current.id}
+        `);
+      } else {
+        const inserted = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+          INSERT INTO "communication_preferences" (
+            "id", "userId", "channel", "destinationNormalized", "purpose", "status", "basis",
+            "jurisdiction", "source", "evidenceRef", "changedById", "updatedAt"
+          ) VALUES (
+            ${newPreferenceId}, NULL, 'EMAIL', ${destinationNormalized}, 'MARKETING', 'BLOCKED', NULL,
+            NULL, 'recipient_unsubscribe', NULL, NULL, CURRENT_TIMESTAMP
+          )
+          RETURNING "id"
+        `);
+        preferenceId = inserted[0].id;
+      }
+
+      await tx.$executeRaw(Prisma.sql`
+        INSERT INTO "communication_preference_events" (
+          "id", "preferenceId", "eventType", "actorUserId", "source", "evidence"
+        ) VALUES (
+          ${eventId}, ${preferenceId}, 'UNSUBSCRIBED', NULL, 'recipient_unsubscribe',
+          CAST(${evidenceJson} AS JSONB)
+        )
+      `);
+
+      return { preferenceId, changed: true };
+    });
+  } catch (error) {
+    if (isStorageMissing(error)) throw new CommunicationGovernanceUnavailableError();
+    throw error;
+  }
+}
+
 function unsubscribeSecret() {
   const value = process.env.COMMUNICATION_UNSUBSCRIBE_SECRET?.trim();
   if (!value || value.length < 32) {
