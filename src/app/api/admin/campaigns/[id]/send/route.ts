@@ -163,15 +163,21 @@ export async function POST(
     });
     await transporter.verify();
 
-    // Atomically claim delivery so concurrent admin requests cannot send the same campaign twice.
+    // Atomically claim the exact campaign version that was read and will be rendered. If an
+    // administrator edits subject/body while audience or SMTP preflight is running, updatedAt
+    // changes and this claim fails instead of sending stale content under a newer durable row.
     const claim = await db.emailCampaign.updateMany({
-      where: { id, status: { in: ["DRAFT", "SCHEDULED"] } },
+      where: {
+        id,
+        status: { in: ["DRAFT", "SCHEDULED"] },
+        updatedAt: campaign.updatedAt,
+      },
       data: { status: "SENDING" },
     });
     if (claim.count !== 1) {
       return NextResponse.json(
         {
-          error: "Campaign state changed before delivery could be claimed",
+          error: "Campaign state or content changed before delivery could be claimed",
           code: "CAMPAIGN_DELIVERY_NOT_CLAIMED",
         },
         { status: 409 },
