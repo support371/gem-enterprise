@@ -8,11 +8,15 @@ function source(path: string) {
 describe("communication governance", () => {
   it("stores permission state and database-enforced append-only preference events", () => {
     const migration = source("prisma/migrations/20260913170000_communication_governance/migration.sql");
+    const promotion = source("scripts/apply-communication-governance-prisma.mjs");
 
     expect(migration).toContain('CREATE TABLE "communication_preferences"');
     expect(migration).toContain('CREATE TABLE "communication_preference_events"');
     expect(migration).toContain("'PENDING', 'ALLOWED', 'BLOCKED'");
-    expect(migration).toContain('ON DELETE RESTRICT');
+    expect(migration).toContain('communication_preference_events_preferenceId_fkey');
+    expect(migration).toContain('communication_preference_events_actorUserId_fkey');
+    expect(migration).toContain('REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE');
+    expect(promotion).toContain('actorUser   User? @relation("CommunicationPreferenceActor", fields: [actorUserId], references: [id], onDelete: Restrict)');
     expect(migration).toContain('prevent_communication_preference_event_mutation');
     expect(migration).toContain('BEFORE UPDATE OR DELETE ON "communication_preference_events"');
     expect(migration).toContain('ENABLE ROW LEVEL SECURITY');
@@ -57,7 +61,7 @@ describe("communication governance", () => {
     expect(governance).toContain('"evidenceRef" = COALESCE(EXCLUDED."evidenceRef", "communication_preferences"."evidenceRef")');
   });
 
-  it("requires explicit governed recipients, SMTP preflight, an atomic claim, and a permission recheck before each send", () => {
+  it("requires explicit governed recipients, SMTP preflight, an exact-version atomic claim, and a permission recheck before each send", () => {
     const route = source("src/app/api/admin/campaigns/[id]/send/route.ts");
     const governance = source("src/lib/communications/governance.ts");
 
@@ -70,6 +74,7 @@ describe("communication governance", () => {
     expect(route).toContain("SMTP_NOT_CONFIGURED");
     expect(route).toContain("db.emailCampaign.updateMany");
     expect(route).toContain('status: { in: ["DRAFT", "SCHEDULED"] }');
+    expect(route).toContain("updatedAt: campaign.updatedAt");
     expect(route).toContain("CAMPAIGN_DELIVERY_NOT_CLAIMED");
     expect(route).not.toContain("sentCount = users.length");
   });
@@ -88,6 +93,18 @@ describe("communication governance", () => {
     expect(route).toContain("The campaign remains SENDING");
     expect(editRoute).toContain('existing.status === "SENDING"');
     expect(editRoute).toContain("CAMPAIGN_RECONCILIATION_REQUIRED");
+  });
+
+  it("persists mandatory reconciliation evidence in the same transaction that releases SENDING", () => {
+    const route = source("src/app/api/admin/campaigns/[id]/reconcile/route.ts");
+
+    expect(route).toContain("db.$transaction(async (tx) =>");
+    expect(route).toContain("tx.emailCampaign.updateMany");
+    expect(route).toContain("tx.auditLog.create");
+    expect(route).toContain('kind: "campaign_delivery_reconciled"');
+    expect(route).toContain("evidenceRef: parsed.data.evidenceRef");
+    expect(route).toContain("the campaign remains SENDING");
+    expect(route).not.toContain("emitAuditLog");
   });
 
   it("keeps browser signed-link and mailbox one-click unsubscribe evidence distinct", () => {
@@ -110,9 +127,8 @@ describe("communication governance", () => {
     const route = source("src/app/api/communications/unsubscribe/route.ts");
 
     expect(governance).toContain("export async function unsubscribeMarketingEmail");
-    expect(governance).toContain('current?.status === "BLOCKED"');
-    expect(governance).toContain('current.source === "recipient_unsubscribe"');
-    expect(governance).toContain('current.latestEventType === "UNSUBSCRIBED"');
+    expect(governance).toContain('latestControlEventType: "UNSUBSCRIBED" | "RESUBSCRIBED" | null');
+    expect(governance).toContain('current?.latestControlEventType === "UNSUBSCRIBED"');
     expect(governance).toContain("return { preferenceId: current.id, changed: false }");
     expect(governance).toContain("FOR UPDATE");
     expect(route).toContain("UNSUBSCRIBE_PERSISTENCE_FAILED");
@@ -120,18 +136,18 @@ describe("communication governance", () => {
     expect(route).toContain("503");
   });
 
-  it("keeps recipient opt-outs blocked until a fresh explicit resubscription is recorded atomically", () => {
+  it("keeps historical recipient opt-outs active through intermediate statuses until explicit resubscription", () => {
     const governance = source("src/lib/communications/governance.ts");
     const route = source("src/app/api/admin/communications/preferences/route.ts");
     const page = source("src/app/app/admin/communications/page.tsx");
 
     expect(governance).toContain("CommunicationResubscriptionRequiredError");
-    expect(governance).toContain('current.source === "recipient_unsubscribe"');
-    expect(governance).toContain('current.latestEventType === "UNSUBSCRIBED"');
+    expect(governance).toContain("AND e.\"eventType\" IN ('UNSUBSCRIBED', 'RESUBSCRIBED')");
+    expect(governance).toContain('const recipientOptOutActive = current?.latestControlEventType === "UNSUBSCRIBED"');
+    expect(governance).not.toContain('current.status === "BLOCKED" &&');
     expect(governance).toContain('input.basis !== "EXPLICIT_CONSENT"');
     expect(governance).toContain("input.resubscribeConfirmed !== true");
     expect(governance).toContain('eventType = "RESUBSCRIBED"');
-    expect(governance).toContain("FOR UPDATE");
     expect(route).toContain("EXPLICIT_RESUBSCRIPTION_REQUIRED");
     expect(route).toContain("resubscribeConfirmed: parsed.data.resubscribeConfirmed");
     expect(page).toContain("Explicit resubscription confirmation");
