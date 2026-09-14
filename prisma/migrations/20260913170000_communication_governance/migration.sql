@@ -44,7 +44,9 @@ ALTER TABLE "communication_preferences" ADD CONSTRAINT "communication_preference
 ALTER TABLE "communication_preferences" ADD CONSTRAINT "communication_preferences_changedById_fkey" FOREIGN KEY ("changedById") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 -- Event history is evidence. A preference row cannot be deleted while its immutable events exist.
 ALTER TABLE "communication_preference_events" ADD CONSTRAINT "communication_preference_events_preferenceId_fkey" FOREIGN KEY ("preferenceId") REFERENCES "communication_preferences"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-ALTER TABLE "communication_preference_events" ADD CONSTRAINT "communication_preference_events_actorUserId_fkey" FOREIGN KEY ("actorUserId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+-- Actor identity is also part of immutable evidence. Restrict actor deletion rather than asking
+-- PostgreSQL to mutate actorUserId through SET NULL, which the append-only trigger would reject.
+ALTER TABLE "communication_preference_events" ADD CONSTRAINT "communication_preference_events_actorUserId_fkey" FOREIGN KEY ("actorUserId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- Enforce the documented append-only event contract at the database boundary, including for
 -- privileged application connections. New evidence is inserted; existing evidence is never
