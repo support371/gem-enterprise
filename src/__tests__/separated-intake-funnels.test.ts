@@ -40,6 +40,31 @@ describe("separated intake funnels", () => {
     expect(result.success).toBe(true);
   });
 
+  it("allows an individual enterprise applicant without invented organization or title data", () => {
+    const { organization: _organization, title: _title, ...individualCommon } = common;
+    const result = enterpriseApplicationSchema.safeParse({
+      ...individualCommon,
+      organizationType: "individual",
+      employeeRange: "1-10",
+      serviceAreas: ["cybersecurity"],
+    });
+    expect(result.success).toBe(true);
+
+    const form = source("src/components/intake/PublicIntakeForm.tsx");
+    expect(form).toContain('Organization{props.kind === "ENTERPRISE" ? ", required except for individuals"');
+    expect(form).toContain('required={props.kind === "COMMUNITY"}');
+  });
+
+  it("still requires organization context for non-individual enterprise applicants", () => {
+    const { organization: _organization, title: _title, ...incompleteCommon } = common;
+    const result = enterpriseApplicationSchema.safeParse({
+      ...incompleteCommon,
+      organizationType: "company",
+      serviceAreas: ["cybersecurity"],
+    });
+    expect(result.success).toBe(false);
+  });
+
   it("validates the Community application independently", () => {
     const result = communityApplicationSchema.safeParse({
       ...common,
