@@ -75,8 +75,8 @@ export function PublicIntakeForm(props: IntakeFormProps) {
     if (props.kind === "ENTERPRISE") {
       payload = {
         ...common,
-        organization: String(form.get("organization") ?? ""),
-        title: String(form.get("title") ?? ""),
+        organization: String(form.get("organization") ?? "") || undefined,
+        title: String(form.get("title") ?? "") || undefined,
         organizationType: String(form.get("organizationType") ?? ""),
         employeeRange: String(form.get("employeeRange") ?? "") || undefined,
         serviceAreas: selected,
@@ -170,12 +170,16 @@ export function PublicIntakeForm(props: IntakeFormProps) {
           <input name="jurisdiction" required maxLength={120} placeholder="Country and state/region" className="w-full rounded-xl border border-border bg-background px-4 py-3" />
         </label>
         <label className="space-y-2 text-sm">
-          <span className="font-medium">Organization{props.kind === "ENTERPRISE" ? "" : ", optional"}</span>
-          <input name="organization" required={props.kind === "ENTERPRISE"} maxLength={160} className="w-full rounded-xl border border-border bg-background px-4 py-3" />
+          <span className="font-medium">
+            Organization{props.kind === "ENTERPRISE" ? ", required except for individuals" : ", optional"}
+          </span>
+          <input name="organization" maxLength={160} className="w-full rounded-xl border border-border bg-background px-4 py-3" />
         </label>
         <label className="space-y-2 text-sm">
-          <span className="font-medium">Role or title{props.kind === "PRODUCT_REQUEST" ? ", optional" : ""}</span>
-          <input name="title" required={props.kind !== "PRODUCT_REQUEST"} maxLength={120} className="w-full rounded-xl border border-border bg-background px-4 py-3" />
+          <span className="font-medium">
+            Role or title{props.kind === "ENTERPRISE" ? ", required except for individuals" : props.kind === "PRODUCT_REQUEST" ? ", optional" : ""}
+          </span>
+          <input name="title" required={props.kind === "COMMUNITY"} maxLength={120} className="w-full rounded-xl border border-border bg-background px-4 py-3" />
         </label>
       </div>
 
