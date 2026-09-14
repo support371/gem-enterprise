@@ -58,8 +58,8 @@ function rejectSensitiveContent<T extends z.ZodRawShape>(schema: z.ZodObject<T>)
 export const enterpriseApplicationSchema = rejectSensitiveContent(
   z.object({
     ...commonFields,
-    organization: z.string().trim().min(2).max(160),
-    title: z.string().trim().min(2).max(120),
+    organization: z.string().trim().max(160).optional(),
+    title: z.string().trim().max(120).optional(),
     organizationType: z.enum([
       "individual",
       "company",
@@ -83,7 +83,24 @@ export const enterpriseApplicationSchema = rejectSensitiveContent(
     utmMedium: z.string().trim().max(120).optional(),
     utmCampaign: z.string().trim().max(160).optional(),
   }),
-);
+).superRefine((value, context) => {
+  if (value.organizationType === "individual") return;
+
+  if (!value.organization || value.organization.trim().length < 2) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["organization"],
+      message: "Organization is required for non-individual applicants.",
+    });
+  }
+  if (!value.title || value.title.trim().length < 2) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["title"],
+      message: "Role or title is required for non-individual applicants.",
+    });
+  }
+});
 
 export const communityApplicationSchema = rejectSensitiveContent(
   z.object({
