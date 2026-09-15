@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { Prisma } from "@prisma/client";
+import { AuditAction, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 
 export const customerLifecycleStates = ["ACTIVE", "AT_RISK", "PAUSED", "COMPLETED", "DORMANT"] as const;
@@ -48,6 +48,13 @@ export interface CustomerSuccessActionRecord {
   evidence: Prisma.JsonValue;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface CustomerSuccessAuditInput {
+  userId: string;
+  metadata: Prisma.InputJsonObject;
+  ipAddress?: string;
+  userAgent?: string;
 }
 
 export class CustomerSuccessStoreUnavailableError extends Error {
@@ -127,35 +134,60 @@ export async function upsertCustomerSuccessProfile(input: {
   outcomeSummary?: string | null;
   lastReviewAt?: Date | null;
   nextReviewAt?: Date | null;
+  audit: CustomerSuccessAuditInput;
 }): Promise<string> {
   await assertWorkspaceProject(input.workspaceId, input.projectId);
   const id = randomUUID();
+  const preserveOwnerUserId = input.ownerUserId === undefined;
+  const preserveLastReviewAt = input.lastReviewAt === undefined;
 
   try {
-    const rows = await db.$queryRaw<Array<{ id: string }>>(Prisma.sql`
-      INSERT INTO "customer_success_profiles" (
-        "id", "workspaceId", "projectId", "ownerUserId", "lifecycleState", "healthStatus",
-        "outcomeStatus", "satisfactionScore", "outcomeSummary", "lastReviewAt", "nextReviewAt", "updatedAt"
-      ) VALUES (
-        ${id}, ${input.workspaceId}, ${input.projectId ?? null}, ${input.ownerUserId ?? null},
-        ${input.lifecycleState ?? "ACTIVE"}, ${input.healthStatus ?? "UNKNOWN"},
-        ${input.outcomeStatus ?? "NOT_REVIEWED"}, ${input.satisfactionScore ?? null},
-        ${input.outcomeSummary ?? null}, ${input.lastReviewAt ?? null}, ${input.nextReviewAt ?? null}, CURRENT_TIMESTAMP
-      )
-      ON CONFLICT ("workspaceId") DO UPDATE SET
-        "projectId" = EXCLUDED."projectId",
-        "ownerUserId" = COALESCE(EXCLUDED."ownerUserId", "customer_success_profiles"."ownerUserId"),
-        "lifecycleState" = EXCLUDED."lifecycleState",
-        "healthStatus" = EXCLUDED."healthStatus",
-        "outcomeStatus" = EXCLUDED."outcomeStatus",
-        "satisfactionScore" = EXCLUDED."satisfactionScore",
-        "outcomeSummary" = EXCLUDED."outcomeSummary",
-        "lastReviewAt" = EXCLUDED."lastReviewAt",
-        "nextReviewAt" = EXCLUDED."nextReviewAt",
-        "updatedAt" = CURRENT_TIMESTAMP
-      RETURNING "id"
-    `);
-    return rows[0].id;
+    return await db.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        INSERT INTO "customer_success_profiles" (
+          "id", "workspaceId", "projectId", "ownerUserId", "lifecycleState", "healthStatus",
+          "outcomeStatus", "satisfactionScore", "outcomeSummary", "lastReviewAt", "nextReviewAt", "updatedAt"
+        ) VALUES (
+          ${id}, ${input.workspaceId}, ${input.projectId ?? null}, ${input.ownerUserId ?? null},
+          ${input.lifecycleState ?? "ACTIVE"}, ${input.healthStatus ?? "UNKNOWN"},
+          ${input.outcomeStatus ?? "NOT_REVIEWED"}, ${input.satisfactionScore ?? null},
+          ${input.outcomeSummary ?? null}, ${input.lastReviewAt ?? null}, ${input.nextReviewAt ?? null}, CURRENT_TIMESTAMP
+        )
+        ON CONFLICT ("workspaceId") DO UPDATE SET
+          "projectId" = EXCLUDED."projectId",
+          "ownerUserId" = CASE
+            WHEN ${preserveOwnerUserId} THEN "customer_success_profiles"."ownerUserId"
+            ELSE EXCLUDED."ownerUserId"
+          END,
+          "lifecycleState" = EXCLUDED."lifecycleState",
+          "healthStatus" = EXCLUDED."healthStatus",
+          "outcomeStatus" = EXCLUDED."outcomeStatus",
+          "satisfactionScore" = EXCLUDED."satisfactionScore",
+          "outcomeSummary" = EXCLUDED."outcomeSummary",
+          "lastReviewAt" = CASE
+            WHEN ${preserveLastReviewAt} THEN "customer_success_profiles"."lastReviewAt"
+            ELSE EXCLUDED."lastReviewAt"
+          END,
+          "nextReviewAt" = EXCLUDED."nextReviewAt",
+          "updatedAt" = CURRENT_TIMESTAMP
+        RETURNING "id"
+      `);
+      const profileId = rows[0].id;
+
+      await tx.auditLog.create({
+        data: {
+          userId: input.audit.userId,
+          action: AuditAction.admin_action,
+          resource: "customer_success_profile",
+          resourceId: profileId,
+          metadata: input.audit.metadata,
+          ipAddress: input.audit.ipAddress,
+          userAgent: input.audit.userAgent,
+        },
+      });
+
+      return profileId;
+    });
   } catch (error) {
     if (isStorageMissing(error)) throw new CustomerSuccessStoreUnavailableError();
     throw error;
@@ -171,33 +203,49 @@ export async function createCustomerSuccessAction(input: {
   notes?: string | null;
   dueAt?: Date | null;
   evidence?: unknown;
+  audit: CustomerSuccessAuditInput;
 }): Promise<string> {
   try {
-    const profiles = await db.$queryRaw<Array<{ workspaceId: string; projectId: string | null }>>(Prisma.sql`
-      SELECT "workspaceId", "projectId"
-      FROM "customer_success_profiles"
-      WHERE "id" = ${input.profileId}
-      LIMIT 1
-    `);
-    if (profiles.length === 0) throw new Error("Customer-success profile not found");
+    return await db.$transaction(async (tx) => {
+      const profiles = await tx.$queryRaw<Array<{ workspaceId: string; projectId: string | null }>>(Prisma.sql`
+        SELECT "workspaceId", "projectId"
+        FROM "customer_success_profiles"
+        WHERE "id" = ${input.profileId}
+        LIMIT 1
+      `);
+      if (profiles.length === 0) throw new Error("Customer-success profile not found");
 
-    const id = randomUUID();
-    const profile = profiles[0];
-    const evidenceJson = JSON.stringify(input.evidence ?? {});
-    const status = input.status ?? "PLANNED";
-    const completedAt = status === "COMPLETED" ? new Date() : null;
+      const id = randomUUID();
+      const profile = profiles[0];
+      const evidenceJson = JSON.stringify(input.evidence ?? {});
+      const status = input.status ?? "PLANNED";
+      const completedAt = status === "COMPLETED" ? new Date() : null;
 
-    await db.$executeRaw(Prisma.sql`
-      INSERT INTO "customer_success_actions" (
-        "id", "profileId", "workspaceId", "projectId", "createdById", "actionType", "status",
-        "title", "notes", "dueAt", "completedAt", "evidence", "updatedAt"
-      ) VALUES (
-        ${id}, ${input.profileId}, ${profile.workspaceId}, ${profile.projectId}, ${input.createdById ?? null},
-        ${input.actionType}, ${status}, ${input.title}, ${input.notes ?? null},
-        ${input.dueAt ?? null}, ${completedAt}, CAST(${evidenceJson} AS JSONB), CURRENT_TIMESTAMP
-      )
-    `);
-    return id;
+      await tx.$executeRaw(Prisma.sql`
+        INSERT INTO "customer_success_actions" (
+          "id", "profileId", "workspaceId", "projectId", "createdById", "actionType", "status",
+          "title", "notes", "dueAt", "completedAt", "evidence", "updatedAt"
+        ) VALUES (
+          ${id}, ${input.profileId}, ${profile.workspaceId}, ${profile.projectId}, ${input.createdById ?? null},
+          ${input.actionType}, ${status}, ${input.title}, ${input.notes ?? null},
+          ${input.dueAt ?? null}, ${completedAt}, CAST(${evidenceJson} AS JSONB), CURRENT_TIMESTAMP
+        )
+      `);
+
+      await tx.auditLog.create({
+        data: {
+          userId: input.audit.userId,
+          action: AuditAction.admin_action,
+          resource: "customer_success_action",
+          resourceId: id,
+          metadata: input.audit.metadata,
+          ipAddress: input.audit.ipAddress,
+          userAgent: input.audit.userAgent,
+        },
+      });
+
+      return id;
+    });
   } catch (error) {
     if (isStorageMissing(error)) throw new CustomerSuccessStoreUnavailableError();
     throw error;
@@ -207,15 +255,32 @@ export async function createCustomerSuccessAction(input: {
 export async function updateCustomerSuccessActionStatus(input: {
   actionId: string;
   status: CustomerSuccessActionStatus;
+  audit: CustomerSuccessAuditInput;
 }): Promise<boolean> {
   try {
-    const completedAt = input.status === "COMPLETED" ? new Date() : null;
-    const changed = await db.$executeRaw(Prisma.sql`
-      UPDATE "customer_success_actions"
-      SET "status" = ${input.status}, "completedAt" = ${completedAt}, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "id" = ${input.actionId}
-    `);
-    return changed > 0;
+    return await db.$transaction(async (tx) => {
+      const completedAt = input.status === "COMPLETED" ? new Date() : null;
+      const changed = await tx.$executeRaw(Prisma.sql`
+        UPDATE "customer_success_actions"
+        SET "status" = ${input.status}, "completedAt" = ${completedAt}, "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "id" = ${input.actionId}
+      `);
+      if (changed === 0) return false;
+
+      await tx.auditLog.create({
+        data: {
+          userId: input.audit.userId,
+          action: AuditAction.admin_action,
+          resource: "customer_success_action",
+          resourceId: input.actionId,
+          metadata: input.audit.metadata,
+          ipAddress: input.audit.ipAddress,
+          userAgent: input.audit.userAgent,
+        },
+      });
+
+      return true;
+    });
   } catch (error) {
     if (isStorageMissing(error)) throw new CustomerSuccessStoreUnavailableError();
     throw error;
