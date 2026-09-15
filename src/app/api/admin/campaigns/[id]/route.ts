@@ -57,18 +57,37 @@ export async function PATCH(
       );
     }
 
-    const campaign = await db.emailCampaign.update({
-      where: { id },
+    const scheduledAt =
+      parsed.data.scheduledAt === null
+        ? null
+        : parsed.data.scheduledAt
+          ? new Date(parsed.data.scheduledAt)
+          : undefined;
+
+    const updated = await db.emailCampaign.updateMany({
+      where: {
+        id,
+        status: existing.status,
+        updatedAt: existing.updatedAt,
+      },
       data: {
         ...parsed.data,
-        scheduledAt:
-          parsed.data.scheduledAt === null
-            ? null
-            : parsed.data.scheduledAt
-              ? new Date(parsed.data.scheduledAt)
-              : undefined,
+        scheduledAt,
       },
     });
+
+    if (updated.count !== 1) {
+      return NextResponse.json(
+        {
+          error: "Campaign changed while this edit was being applied. Reload before editing or reconciling it.",
+          code: "CAMPAIGN_VERSION_CHANGED",
+        },
+        { status: 409 },
+      );
+    }
+
+    const campaign = await db.emailCampaign.findUnique({ where: { id } });
+    if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     await emitAuditLog({
       userId: session.userId,
@@ -79,6 +98,8 @@ export async function PATCH(
         kind: "campaign_updated",
         previousStatus: existing.status,
         newStatus: campaign.status,
+        previousUpdatedAt: existing.updatedAt.toISOString(),
+        newUpdatedAt: campaign.updatedAt.toISOString(),
         fields: Object.keys(parsed.data),
       },
       ipAddress,
