@@ -72,7 +72,7 @@ describe("communication governance", () => {
     expect(route).toContain("transporter.verify()");
     expect(route).toContain("NO_GOVERNED_RECIPIENTS");
     expect(route).toContain("SMTP_NOT_CONFIGURED");
-    expect(route).toContain("db.emailCampaign.updateMany");
+    expect(route).toContain("tx.emailCampaign.updateMany");
     expect(route).toContain('status: { in: ["DRAFT", "SCHEDULED"] }');
     expect(route).toContain("updatedAt: campaign.updatedAt");
     expect(route).toContain("CAMPAIGN_DELIVERY_NOT_CLAIMED");
@@ -105,6 +105,26 @@ describe("communication governance", () => {
     expect(route).toContain("evidenceRef: parsed.data.evidenceRef");
     expect(route).toContain("the campaign remains SENDING");
     expect(route).not.toContain("emitAuditLog");
+  });
+
+  it("persists recipient delivery progress and resumes only unresolved original-audience recipients", () => {
+    const route = source("src/app/api/admin/campaigns/[id]/send/route.ts");
+    const reconcile = source("src/app/api/admin/campaigns/[id]/reconcile/route.ts");
+    const ledger = source("src/lib/email/campaignDeliveryLedger.ts");
+
+    expect(route).toContain("loadCampaignDeliveryLedger(id)");
+    expect(route).toContain("CAMPAIGN_AUDIENCE_SNAPSHOT");
+    expect(route).toContain("CAMPAIGN_RECIPIENT_ATTEMPTED");
+    expect(route).toContain("CAMPAIGN_RECIPIENT_CONFIRMED");
+    expect(route).toContain("!confirmedRecipientHashes.has(hash)");
+    expect(route).toContain("recipientProgress: \"mandatory-audit-ledger\"");
+    expect(ledger).toContain("campaignRecipientHash");
+    expect(ledger).toContain("CAMPAIGN_RECIPIENT_RECONCILED_CONFIRMED");
+    expect(reconcile).toContain("unresolvedAttemptedRecipientHashes");
+    expect(reconcile).toContain("CAMPAIGN_RECIPIENT_RECONCILED_CONFIRMED");
+    expect(reconcile).toContain('data: { status: "DRAFT", sentAt: null }');
+    expect(reconcile).toContain('resumeMode: "unresolved-original-audience-only"');
+    expect(reconcile).not.toContain('const nextStatus = parsed.data.resolution === "CONFIRMED_SENT" ? "SENT" : "DRAFT"');
   });
 
   it("keeps browser signed-link and mailbox one-click unsubscribe evidence distinct", () => {
