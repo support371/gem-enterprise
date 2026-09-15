@@ -68,6 +68,15 @@ describe("customer success foundation", () => {
     expect(createAction).toContain('${input.dueAt ?? null}, ${completedAt}');
   });
 
+  it("preserves the original completion timestamp on idempotent COMPLETED retries", () => {
+    const repository = source("src/lib/customer-success/repository.ts");
+    const updateAction = repository.slice(repository.indexOf("export async function updateCustomerSuccessActionStatus"));
+
+    expect(updateAction).toContain("WHEN ${input.status} = 'COMPLETED' AND \"status\" = 'COMPLETED' THEN \"completedAt\"");
+    expect(updateAction).toContain("WHEN ${input.status} = 'COMPLETED' THEN CURRENT_TIMESTAMP");
+    expect(updateAction).toContain("ELSE NULL");
+  });
+
   it("hydrates an existing workspace profile before the admin can save over stored values", () => {
     const page = source("src/app/app/admin/customer-success/page.tsx");
 
