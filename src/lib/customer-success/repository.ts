@@ -259,10 +259,15 @@ export async function updateCustomerSuccessActionStatus(input: {
 }): Promise<boolean> {
   try {
     return await db.$transaction(async (tx) => {
-      const completedAt = input.status === "COMPLETED" ? new Date() : null;
       const changed = await tx.$executeRaw(Prisma.sql`
         UPDATE "customer_success_actions"
-        SET "status" = ${input.status}, "completedAt" = ${completedAt}, "updatedAt" = CURRENT_TIMESTAMP
+        SET "completedAt" = CASE
+              WHEN ${input.status} = 'COMPLETED' AND "status" = 'COMPLETED' THEN "completedAt"
+              WHEN ${input.status} = 'COMPLETED' THEN CURRENT_TIMESTAMP
+              ELSE NULL
+            END,
+            "status" = ${input.status},
+            "updatedAt" = CURRENT_TIMESTAMP
         WHERE "id" = ${input.actionId}
       `);
       if (changed === 0) return false;
