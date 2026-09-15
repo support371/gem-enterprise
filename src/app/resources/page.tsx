@@ -46,6 +46,49 @@ const publicResources = [
   },
 ] as const;
 
+const legacyResourceAnchors = [
+  {
+    id: "insights",
+    title: "Market insights",
+    description:
+      "Use the source-linked GEM Intelligence News surface for current public intelligence and market context; verify the source and publication status on each item.",
+    href: "/intel/news",
+    cta: "Open intelligence news",
+  },
+  {
+    id: "templates",
+    title: "Templates and checklists",
+    description:
+      "The verified public starting artifact is the Business Security & Operations Readiness Checklist. Client-only templates are not advertised unless the underlying artifact is available.",
+    href: "/resources/business-readiness-checklist",
+    cta: "Open readiness checklist",
+  },
+  {
+    id: "bots",
+    title: "Automation and tools",
+    description:
+      "Public bot availability is not assumed. Review the Trust Center and approved workspace surfaces for the controls and provider readiness that apply to an enabled capability.",
+    href: "/trust-center",
+    cta: "Review operating boundaries",
+  },
+  {
+    id: "news",
+    title: "News",
+    description:
+      "GEM's public news route provides source-linked coverage and clearly labelled platform-generated briefings where available.",
+    href: "/intel/news",
+    cta: "Open GEM News",
+  },
+  {
+    id: "faq",
+    title: "Resource FAQ",
+    description:
+      "Public availability does not activate a service or prove that a client-only tool, template, feed, or provider integration is enabled. Use the verified links on this page as the current public starting points.",
+    href: "/contact",
+    cta: "Ask a resource question",
+  },
+] as const;
+
 const resourcePrinciples = [
   "Public educational material does not state or imply that a reader, prospect, or organization is compromised.",
   "Security, staffing, provider, performance, certification, regulatory, and relationship claims require evidence before publication.",
@@ -112,6 +155,27 @@ export default function ResourcesPage() {
                 </Card>
               );
             })}
+          </div>
+        </div>
+      </section>
+
+      <section className="pb-16">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="mb-6 text-2xl font-bold">Resource index</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {legacyResourceAnchors.map((resource) => (
+              <div
+                key={resource.id}
+                id={resource.id}
+                className="scroll-mt-24 rounded-xl border border-border/60 bg-card/50 p-5"
+              >
+                <h3 className="font-semibold">{resource.title}</h3>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{resource.description}</p>
+                <Button asChild variant="link" className="mt-2 h-auto px-0">
+                  <Link href={resource.href}>{resource.cta} <ArrowRight className="h-4 w-4" /></Link>
+                </Button>
+              </div>
+            ))}
           </div>
         </div>
       </section>
