@@ -22,6 +22,7 @@ const routes = [
   "/store/google",
   "/store/wix",
   "/resources",
+  "/resources/business-readiness-checklist",
   "/company",
   "/about",
   "/contact",

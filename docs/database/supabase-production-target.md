@@ -13,7 +13,7 @@ Verified on 2026-07-06.
 - Security advisor findings at verification: none
 - Performance advisor findings at verification: none
 
-This clean project is the intended target for applying the repository's Prisma schema. It must be connected to the Vercel project `support371-gem-enterprise` for the Production environment.
+This clean project is the intended target for applying the repository's reviewed database migrations. It must be connected to the Vercel project `support371-gem-enterprise` for the Production environment. Do not substitute another Supabase project.
 
 ## Legacy project retained without destructive changes
 
@@ -39,13 +39,19 @@ It accepts one direct/unpooled URL from:
 
 No secret values belong in this repository.
 
-## Controlled first-time bootstrap
+## Controlled production bootstrap
 
-When the clean Supabase project is connected to Vercel Production, the bootstrap-aware build supports:
+`AUTO_DB_PUSH` and `AUTO_DB_SEED` must remain `false` in Vercel. The Vercel build intentionally fails closed if either is enabled.
 
-- `AUTO_DB_PUSH=true` to apply the Prisma schema
-- `AUTO_DB_SEED=true` to create explicitly configured bootstrap records
+Do **not** use `prisma db push` as a first-time production bootstrap. Schema push can create Prisma tables and columns, but it does not apply SQL-only security invariants carried by reviewed migrations, including CHECK constraints, row-level security, append-only triggers, and grants/revokes.
 
-Secure seed credentials must be supplied through Vercel environment variables and must never be committed.
+For a new or empty intended production project:
 
-After a successful first bootstrap, set both bootstrap flags to `false` and redeploy.
+1. authorize the exact Supabase project `slzdjoqpzbkwzuaexlkj`;
+2. configure pooled and direct server database URLs in Vercel without exposing their values;
+3. apply the repository's reviewed migrations through the controlled production migration path;
+4. verify constraints, foreign keys, indexes, row-level security, triggers, and grants/revokes;
+5. run the controlled bootstrap/seed procedure only after the schema and security invariants are proven;
+6. keep automatic database push and seed disabled for normal deploys.
+
+The customer-success and communication-governance migrations are specifically release-gated because their SQL security controls are not represented by `prisma db push` alone.

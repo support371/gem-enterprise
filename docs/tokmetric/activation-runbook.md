@@ -30,28 +30,27 @@ POSTGRES_PRISMA_URL=<Supabase pooled PostgreSQL URL>
 POSTGRES_URL_NON_POOLING=<Supabase direct or session PostgreSQL URL>
 ```
 
-Both URLs must belong to the same Supabase project. Never commit either value to GitHub or documentation.
+Both URLs must belong to the same approved Supabase project. Never commit either value to GitHub or documentation.
 
-## Controlled first-time schema bootstrap
+## Controlled production schema activation
 
-For a new or empty Supabase database only, temporarily configure:
-
-```text
-AUTO_DB_PUSH=true
-AUTO_DB_SEED=true
-ADMIN_EMAIL=<authorized admin email>
-ADMIN_INITIAL_PASSWORD=<strong private password>
-SEED_DEMO_DATA=false
-```
-
-The Vercel build script will generate Prisma, synchronize the schema, create the secure admin record, seed the initial products, and build Next.js. After a successful bootstrap, immediately change:
+Automatic Vercel database bootstrap is disabled. Keep:
 
 ```text
 AUTO_DB_PUSH=false
 AUTO_DB_SEED=false
 ```
 
-Then redeploy once more. Existing production databases must be backed up before schema synchronization.
+Do not use `prisma db push` to initialize production. GEM migrations include SQL-only CHECK constraints, row-level security, append-only triggers, and grants/revokes that schema push does not apply.
+
+For a new or empty approved Supabase database:
+
+1. authorize the exact production project;
+2. configure the pooled and direct database URLs privately in Vercel;
+3. apply the repository's reviewed migrations through the controlled production migration path;
+4. verify SQL security invariants before application traffic is enabled;
+5. create explicitly approved bootstrap records only after migration verification;
+6. keep automatic push/seed flags disabled on subsequent deployments.
 
 ## TikTok sandbox variables
 

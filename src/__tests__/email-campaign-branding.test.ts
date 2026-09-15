@@ -47,17 +47,35 @@ describe("GEM campaign email branding", () => {
     expect(rendered.html).toContain("</a>).");
   });
 
-  it("requires campaign delivery to include branded HTML and text fallback", () => {
+  it("requires campaign delivery to preserve branded HTML/text and append governed unsubscribe controls", () => {
     const sendRoute = readFileSync(
       "src/app/api/admin/campaigns/[id]/send/route.ts",
       "utf8",
     );
 
     expect(sendRoute).toContain("renderGemCampaignEmail");
-    expect(sendRoute).toContain("text: renderedCampaign.text");
-    expect(sendRoute).toContain("html: renderedCampaign.html");
+    expect(sendRoute).toContain("appendUnsubscribe(");
+    expect(sendRoute).toContain("text: rendered.text");
+    expect(sendRoute).toContain("html: rendered.html");
+    expect(sendRoute).toContain('"List-Unsubscribe"');
     expect(sendRoute).toContain('emailTemplate: "gem-enterprise-branded-v1"');
     expect(sendRoute).not.toContain("text: campaign.body,");
+  });
+
+  it("fails closed for production marketing without a physical address and monitored reply channel", () => {
+    const sendRoute = readFileSync(
+      "src/app/api/admin/campaigns/[id]/send/route.ts",
+      "utf8",
+    );
+
+    expect(sendRoute).toContain("GEM_MARKETING_POSTAL_ADDRESS");
+    expect(sendRoute).toContain("GEM_MARKETING_REPLY_TO");
+    expect(sendRoute).toContain("REPLY_TO_EMAIL");
+    expect(sendRoute).toContain("MARKETING_COMPLIANCE_NOT_CONFIGURED");
+    expect(sendRoute).toContain("Mailing address:");
+    expect(sendRoute).toContain("Preference support:");
+    expect(sendRoute).toContain("postalAddressConfigured");
+    expect(sendRoute).toContain("monitoredReplyToConfigured");
   });
 
   it("shows the production-equivalent branded renderer in the admin composer", () => {

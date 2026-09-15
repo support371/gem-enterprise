@@ -14,7 +14,7 @@ import { queueForKind, type IntakeKind } from "@/lib/intake/types";
 import { getStoreProduct } from "@/lib/storeCatalog";
 
 const CONSENT_VERSION = "public-intake-consent-2026-07-13";
-const PRIVACY_VERSION = "privacy-policy-2026-07-13";
+const PRIVACY_VERSION = "privacy-policy-2026-09-13";
 
 function json(body: unknown, status = 200) {
   return NextResponse.json(body, {

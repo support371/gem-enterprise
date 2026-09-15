@@ -92,6 +92,10 @@ describe("GEM News coordinated scroll autoplay", () => {
     expect(cards).toHaveLength(2);
     cards[0].getBoundingClientRect = () => ({ top: 100, height: 500 } as DOMRect);
     cards[1].getBoundingClientRect = () => ({ top: 650, height: 500 } as DOMRect);
+
+    await waitFor(() => {
+      expect(observers.some((observer) => observer.targets.length === 2)).toBe(true);
+    });
     const coordinator = observers.find((observer) => observer.targets.length === 2);
     expect(coordinator).toBeTruthy();
 

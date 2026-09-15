@@ -29,12 +29,22 @@ const directUrl = firstDefined(
 if (pooledUrl) env.POSTGRES_PRISMA_URL = pooledUrl;
 if (directUrl) env.POSTGRES_URL_NON_POOLING = directUrl;
 
+if (env.AUTO_DB_PUSH === "true" || env.AUTO_DB_SEED === "true") {
+  throw new Error(
+    "Automatic database bootstrap is disabled for production-safe GEM builds. Prisma db push cannot apply SQL-only CHECK, RLS, trigger, and grant/revoke controls. Apply reviewed migrations through the controlled production migration path, verify the security invariants, and keep AUTO_DB_PUSH/AUTO_DB_SEED=false.",
+  );
+}
+
 console.log("Promoting auth session-version Prisma field...");
 run("node", ["scripts/apply-auth-session-prisma.mjs"], env);
 console.log("Promoting separated-intake Prisma models...");
 run("node", ["scripts/apply-intake-prisma-models.mjs"], env);
 console.log("Promoting scoped service-request Prisma fields...");
 run("node", ["scripts/apply-service-request-prisma.mjs"], env);
+console.log("Promoting customer-success Prisma models...");
+run("node", ["scripts/apply-customer-success-prisma.mjs"], env);
+console.log("Promoting communication-governance Prisma models...");
+run("node", ["scripts/apply-communication-governance-prisma.mjs"], env);
 
 const schemaValidationUrl = "postgresql://schema:validation@127.0.0.1:5432/schema_validation";
 const schemaValidationEnv = {
@@ -66,22 +76,6 @@ if (shouldVerifyPreview) {
     AUDIT_ENABLED: "true",
   };
   run("pnpm", ["run", "verify:preview"], verificationEnv);
-}
-
-if (env.AUTO_DB_PUSH === "true") {
-  if (!pooledUrl) {
-    throw new Error("AUTO_DB_PUSH is enabled, but no supported database URL is configured.");
-  }
-  console.log("AUTO_DB_PUSH enabled: synchronizing Prisma schema...");
-  run("pnpm", ["exec", "prisma", "db", "push"], env);
-}
-
-if (env.AUTO_DB_SEED === "true") {
-  if (env.AUTO_DB_PUSH !== "true") {
-    throw new Error("AUTO_DB_SEED requires AUTO_DB_PUSH=true for a controlled first-time bootstrap.");
-  }
-  console.log("AUTO_DB_SEED enabled: creating secure bootstrap records...");
-  run("pnpm", ["exec", "tsx", "prisma/seed.ts"], env);
 }
 
 console.log("Building Next.js application...");

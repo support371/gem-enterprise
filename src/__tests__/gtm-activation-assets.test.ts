@@ -1,0 +1,73 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import {
+  activationGuardrails,
+  alreadyATargetCampaign,
+  buildBusinessReviewCampaignUrl,
+  gtmCalendar,
+  nurtureSequence,
+  readinessChecklist,
+  referralTracks,
+  seoClusters,
+  socialProfileDrafts,
+  telegramPack,
+  utmContract,
+} from "@/lib/market/gtmActivation";
+
+describe("GTM activation assets", () => {
+  it("provides a complete 30-day governed operating calendar", () => {
+    expect(gtmCalendar).toHaveLength(30);
+    expect(gtmCalendar.map((item) => item.day)).toEqual(Array.from({ length: 30 }, (_, index) => index + 1));
+    expect(new Set(gtmCalendar.map((item) => item.phase))).toEqual(new Set(["FOUNDATION", "AUTHORITY", "CAMPAIGN", "CONVERSION"]));
+  });
+
+  it("includes the requested nurture, readiness, distribution and SEO assets", () => {
+    expect(nurtureSequence.map((email) => email.day)).toEqual([0, 2, 5, 9]);
+    expect(readinessChecklist).toHaveLength(10);
+    expect(socialProfileDrafts.length).toBeGreaterThanOrEqual(8);
+    expect(telegramPack.launchPosts.length).toBeGreaterThanOrEqual(4);
+    expect(referralTracks.length).toBeGreaterThanOrEqual(5);
+    expect(seoClusters.length).toBeGreaterThanOrEqual(4);
+    expect(utmContract.destinations.review).toBe("/business-review");
+  });
+
+  it("keeps the Already a Target campaign evidence-safe", () => {
+    const guardrails = activationGuardrails.join(" ");
+    expect(alreadyATargetCampaign.positioning).toContain("without claiming that a specific prospect is compromised");
+    expect(alreadyATargetCampaign.prohibitedClaims.join(" ")).toContain("We detected compromised credentials");
+    expect(guardrails).toContain("is sent automatically from this activation pack");
+    expect(guardrails).toContain("live-publishing gates");
+  });
+
+  it("uses one founding campaign identity across generated public and social Business Review links", () => {
+    expect(utmContract.campaign).toBe("founding-first-20");
+    const href = buildBusinessReviewCampaignUrl({ source: "homepage", medium: "hero" });
+    expect(href).toContain("campaign=founding-first-20");
+    expect(href).toContain("utm_campaign=founding-first-20");
+    expect(href).toContain("utm_source=homepage");
+    expect(href).toContain("utm_medium=hero");
+
+    const homepage = readFileSync("src/app/page.tsx", "utf8");
+    const enterprise = readFileSync("src/app/enterprise-solutions/page.tsx", "utf8");
+    const socialSource = readFileSync("src/lib/social-media/orchestration/gem-sources.ts", "utf8");
+
+    for (const source of [homepage, enterprise, socialSource]) {
+      expect(source).toContain("buildBusinessReviewCampaignUrl");
+      expect(source).not.toContain("utm_campaign=founding-review");
+    }
+  });
+
+  it("exposes native admin and public surfaces without auto-send code", () => {
+    const activation = readFileSync("src/app/app/admin/market/activation/page.tsx", "utf8");
+    const checklist = readFileSync("src/app/resources/business-readiness-checklist/page.tsx", "utf8");
+    const operations = readFileSync("src/app/app/admin/market/operations/page.tsx", "utf8");
+    const sitemap = readFileSync("src/app/sitemap.xml/route.ts", "utf8");
+
+    expect(activation).toContain("GTM Activation Center");
+    expect(activation).not.toContain("fetch(");
+    expect(activation).not.toContain("/send");
+    expect(checklist).toContain("10 questions every small and growing business");
+    expect(operations).toContain("/app/admin/market/activation");
+    expect(sitemap).toContain('"/resources/business-readiness-checklist"');
+  });
+});

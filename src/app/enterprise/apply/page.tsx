@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Building2, ClipboardCheck, LockKeyhole, ShieldCheck } from "lucide-react";
 import { PublicIntakeForm } from "@/components/intake/PublicIntakeForm";
+import { normalizeEligibilityTrack } from "@/lib/eligibilityTracks";
 
 export const metadata: Metadata = {
   title: "Enterprise Application | GEM Enterprise",
@@ -26,7 +27,16 @@ const principles = [
   },
 ];
 
-export default function EnterpriseApplicationPage() {
+type EnterpriseApplicationPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function EnterpriseApplicationPage({
+  searchParams,
+}: EnterpriseApplicationPageProps) {
+  const params = await searchParams;
+  const eligibilityTrack = normalizeEligibilityTrack(params.track);
+
   return (
     <main className="min-h-screen bg-background text-foreground">
       <section className="border-b border-border/60 px-6 py-20 cyber-grid">
@@ -56,7 +66,10 @@ export default function EnterpriseApplicationPage() {
 
       <section className="mx-auto max-w-4xl px-6 pb-24">
         <div className="rounded-2xl border border-border/70 bg-card/70 p-6 sm:p-8">
-          <PublicIntakeForm kind="ENTERPRISE" />
+          <PublicIntakeForm
+            kind="ENTERPRISE"
+            defaultOrganizationType={eligibilityTrack ?? undefined}
+          />
         </div>
       </section>
     </main>
