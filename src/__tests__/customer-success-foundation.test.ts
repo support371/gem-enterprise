@@ -81,6 +81,41 @@ describe("customer success foundation", () => {
     expect(page).toContain("hydratedWorkspaceId !== workspaceId");
   });
 
+  it("preserves historical review and owner fields when the admin form omits them", () => {
+    const repository = source("src/lib/customer-success/repository.ts");
+    const route = source("src/app/api/admin/customer-success/route.ts");
+
+    expect(repository).toContain("const preserveOwnerUserId = input.ownerUserId === undefined");
+    expect(repository).toContain("const preserveLastReviewAt = input.lastReviewAt === undefined");
+    expect(repository).toContain('"ownerUserId" = CASE');
+    expect(repository).toContain('"lastReviewAt" = CASE');
+    expect(repository).toContain('THEN "customer_success_profiles"."lastReviewAt"');
+    expect(route).toContain("if (value === undefined) return undefined");
+  });
+
+  it("discards stale action-list responses when profile selection changes", () => {
+    const page = source("src/app/app/admin/customer-success/page.tsx");
+
+    expect(page).toContain("const actionsRequestRef = useRef(0)");
+    expect(page).toContain("const selectedProfileIdRef = useRef<string | null>(null)");
+    expect(page).toContain("const requestId = ++actionsRequestRef.current");
+    expect(page).toContain("requestId !== actionsRequestRef.current");
+    expect(page).toContain("selectedProfileIdRef.current !== profileId");
+    expect(page).toContain("actionsRequestRef.current += 1");
+  });
+
+  it("persists every lifecycle mutation and its mandatory audit row in one transaction", () => {
+    const repository = source("src/lib/customer-success/repository.ts");
+    const route = source("src/app/api/admin/customer-success/route.ts");
+
+    expect(repository.match(/db\.\$transaction\(async \(tx\) =>/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(repository.match(/tx\.auditLog\.create/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(repository).toContain("AuditAction.admin_action");
+    expect(route).not.toContain("emitAuditLog");
+    expect(route).toContain("audit: {");
+    expect(route).toContain("userId: gate.session.userId");
+  });
+
   it("makes expansion, renewal, referral, and win-back planning explicit without auto-activation", () => {
     const repository = source("src/lib/customer-success/repository.ts");
     const page = source("src/app/app/admin/customer-success/page.tsx");
