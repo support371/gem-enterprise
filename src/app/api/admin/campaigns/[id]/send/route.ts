@@ -12,6 +12,14 @@ import {
 } from "@/lib/communications/governance";
 import { renderGemCampaignEmail } from "@/lib/email/gemCampaignTemplate";
 import {
+  CAMPAIGN_AUDIENCE_SNAPSHOT,
+  CAMPAIGN_RECIPIENT_ATTEMPTED,
+  CAMPAIGN_RECIPIENT_CONFIRMED,
+  CAMPAIGN_RECIPIENT_UNCERTAIN,
+  campaignRecipientHash,
+  loadCampaignDeliveryLedger,
+} from "@/lib/email/campaignDeliveryLedger";
+import {
   requireAdmin,
   getRequestContext,
   serverError,
@@ -132,17 +140,76 @@ export async function POST(
       );
     }
 
-    const [users, allowedMarketingEmails] = await Promise.all([
+    const [users, allowedMarketingEmails, deliveryLedger] = await Promise.all([
       db.user.findMany({
         where: { status: "active", isActive: true, isEmailVerified: true },
         select: { email: true },
       }),
       listAllowedMarketingEmails(),
+      loadCampaignDeliveryLedger(id),
     ]);
-    const recipients = users.filter((user) =>
+    const currentlyGovernedRecipients = users.filter((user) =>
       allowedMarketingEmails.has(normalizeEmail(user.email)),
     );
+    const originalAudience =
+      deliveryLedger.audienceRecipientHashes ??
+      new Set(currentlyGovernedRecipients.map((user) => campaignRecipientHash(user.email)));
+    const confirmedRecipientHashes = new Set(deliveryLedger.confirmedRecipientHashes);
+    const recipients = currentlyGovernedRecipients.filter((user) => {
+      const hash = campaignRecipientHash(user.email);
+      return originalAudience.has(hash) && !confirmedRecipientHashes.has(hash);
+    });
+
     if (recipients.length === 0) {
+      if (deliveryLedger.audienceRecipientHashes && confirmedRecipientHashes.size > 0) {
+        const completed = await db.$transaction(async (tx) => {
+          const update = await tx.emailCampaign.updateMany({
+            where: {
+              id,
+              status: { in: ["DRAFT", "SCHEDULED"] },
+              updatedAt: campaign.updatedAt,
+            },
+            data: {
+              status: "SENT",
+              sentAt: new Date(),
+              recipientCount: confirmedRecipientHashes.size,
+            },
+          });
+          if (update.count !== 1) return null;
+          await tx.auditLog.create({
+            data: {
+              userId: session.userId,
+              action: "admin_action",
+              resource: "email_campaign",
+              resourceId: id,
+              metadata: {
+                kind: "campaign_delivery_completed_from_ledger",
+                recipientCount: confirmedRecipientHashes.size,
+                reason: "no-unresolved-currently-governed-recipients",
+              },
+              ipAddress,
+              userAgent,
+            },
+          });
+          return tx.emailCampaign.findUnique({ where: { id } });
+        });
+        if (!completed) {
+          return NextResponse.json(
+            {
+              error: "Campaign state or content changed before ledger completion",
+              code: "CAMPAIGN_DELIVERY_NOT_CLAIMED",
+            },
+            { status: 409 },
+          );
+        }
+        return NextResponse.json({
+          campaign: completed,
+          governedRecipientCount: originalAudience.size,
+          sentCount: confirmedRecipientHashes.size,
+          resumedFromLedger: true,
+        });
+      }
+
       return NextResponse.json(
         {
           error:
@@ -163,18 +230,40 @@ export async function POST(
     });
     await transporter.verify();
 
-    // Atomically claim the exact campaign version that was read and will be rendered. If an
-    // administrator edits subject/body while audience or SMTP preflight is running, updatedAt
-    // changes and this claim fails instead of sending stale content under a newer durable row.
-    const claim = await db.emailCampaign.updateMany({
-      where: {
-        id,
-        status: { in: ["DRAFT", "SCHEDULED"] },
-        updatedAt: campaign.updatedAt,
-      },
-      data: { status: "SENDING" },
+    // Claim the exact campaign version and persist the immutable audience snapshot in the same
+    // transaction. A retry therefore uses the original audience and never re-sends recipients
+    // whose successful delivery was already recorded in the mandatory delivery ledger.
+    const claimed = await db.$transaction(async (tx) => {
+      const claim = await tx.emailCampaign.updateMany({
+        where: {
+          id,
+          status: { in: ["DRAFT", "SCHEDULED"] },
+          updatedAt: campaign.updatedAt,
+        },
+        data: { status: "SENDING" },
+      });
+      if (claim.count !== 1) return false;
+
+      if (!deliveryLedger.audienceRecipientHashes) {
+        await tx.auditLog.create({
+          data: {
+            userId: session.userId,
+            action: "admin_action",
+            resource: "email_campaign",
+            resourceId: id,
+            metadata: {
+              kind: CAMPAIGN_AUDIENCE_SNAPSHOT,
+              recipientHashes: [...originalAudience],
+              recipientCount: originalAudience.size,
+            },
+            ipAddress,
+            userAgent,
+          },
+        });
+      }
+      return true;
     });
-    if (claim.count !== 1) {
+    if (!claimed) {
       return NextResponse.json(
         {
           error: "Campaign state or content changed before delivery could be claimed",
@@ -191,6 +280,8 @@ export async function POST(
     });
 
     for (const user of recipients) {
+      const recipientHash = campaignRecipientHash(user.email);
+
       // Permission can change after the initial audience query. Recheck immediately before
       // each delivery so an unsubscribe/block that lands mid-run takes effect before send.
       const stillAllowed = await isMarketingEmailAllowed(user.email);
@@ -209,6 +300,24 @@ export async function POST(
         replyTo,
       );
 
+      // The attempt record is mandatory and is written before SMTP. If it cannot be persisted,
+      // no external delivery is attempted and the safe outer rollback can return the campaign
+      // to DRAFT. Recipient identity is represented only by a deterministic one-way hash.
+      await db.auditLog.create({
+        data: {
+          userId: session.userId,
+          action: "admin_action",
+          resource: "email_campaign",
+          resourceId: id,
+          metadata: {
+            kind: CAMPAIGN_RECIPIENT_ATTEMPTED,
+            recipientHash,
+          },
+          ipAddress,
+          userAgent,
+        },
+      });
+
       deliveryAttempted = true;
       try {
         await transporter.sendMail({
@@ -226,12 +335,44 @@ export async function POST(
             "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
           },
         });
+
+        // Delivery is not counted as confirmed until the durable recipient-level record exists.
+        // If this insert fails after SMTP accepted the message, the outcome becomes ambiguous and
+        // the campaign remains SENDING for evidence-based reconciliation.
+        await db.auditLog.create({
+          data: {
+            userId: session.userId,
+            action: "admin_action",
+            resource: "email_campaign",
+            resourceId: id,
+            metadata: {
+              kind: CAMPAIGN_RECIPIENT_CONFIRMED,
+              recipientHash,
+            },
+            ipAddress,
+            userAgent,
+          },
+        });
+        confirmedRecipientHashes.add(recipientHash);
         sentCount += 1;
       } catch (error) {
-        // SMTP errors can be ambiguous (for example, a connection drop after DATA). Do not
-        // assume rejection means no delivery. Stop the run and preserve SENDING for manual
-        // reconciliation rather than creating an automatic duplicate-send path.
         uncertainDeliveryCount += 1;
+        await db.auditLog
+          .create({
+            data: {
+              userId: session.userId,
+              action: "admin_action",
+              resource: "email_campaign",
+              resourceId: id,
+              metadata: {
+                kind: CAMPAIGN_RECIPIENT_UNCERTAIN,
+                recipientHash,
+              },
+              ipAddress,
+              userAgent,
+            },
+          })
+          .catch(() => {});
         console.error("[campaign-delivery] recipient outcome uncertain", {
           campaignId: id,
           recipientDomain: user.email.split("@")[1] ?? "unknown",
@@ -242,8 +383,9 @@ export async function POST(
     }
 
     if (uncertainDeliveryCount > 0) {
-      // Intentionally leave the durable campaign status as SENDING. Clear only the local flag
-      // so the outer error handler cannot roll it back to DRAFT if audit logging itself fails.
+      // Intentionally leave the durable campaign status as SENDING. The confirmed-recipient
+      // ledger survives the reconciliation and prevents already delivered recipients from being
+      // selected again when a safe resume is authorized.
       markedSending = false;
       await emitAuditLog({
         userId: session.userId,
@@ -252,8 +394,9 @@ export async function POST(
         resourceId: id,
         metadata: {
           kind: "campaign_delivery_reconciliation_required",
-          governedRecipientCount: recipients.length,
+          governedRecipientCount: originalAudience.size,
           sentCount,
+          confirmedRecipientCount: confirmedRecipientHashes.size,
           uncertainDeliveryCount,
           skippedBlockedCount,
           campaignState: "SENDING",
@@ -267,6 +410,7 @@ export async function POST(
             "A delivery outcome is uncertain. The campaign remains SENDING and must be reconciled before any retry.",
           code: "CAMPAIGN_DELIVERY_RECONCILIATION_REQUIRED",
           sentCount,
+          confirmedRecipientCount: confirmedRecipientHashes.size,
           uncertainDeliveryCount,
           skippedBlockedCount,
         },
@@ -274,9 +418,9 @@ export async function POST(
       );
     }
 
-    if (sentCount === 0) {
-      // No SMTP attempt succeeded or failed ambiguously; every candidate became blocked before
-      // its turn. This state is deterministically retry-safe after a future permission review.
+    if (confirmedRecipientHashes.size === 0) {
+      // No SMTP attempt was durably confirmed and every candidate became blocked before delivery.
+      // Returning to DRAFT is retry-safe because no confirmed recipient exists in the ledger.
       await db.emailCampaign.update({ where: { id }, data: { status: "DRAFT" } });
       markedSending = false;
       await emitAuditLog({
@@ -286,7 +430,7 @@ export async function POST(
         resourceId: id,
         metadata: {
           kind: "campaign_delivery_stopped_no_current_permission",
-          governedRecipientCount: recipients.length,
+          governedRecipientCount: originalAudience.size,
           sentCount,
           skippedBlockedCount,
           deliveryAttempted,
@@ -307,7 +451,11 @@ export async function POST(
 
     const updated = await db.emailCampaign.update({
       where: { id },
-      data: { status: "SENT", sentAt: new Date(), recipientCount: sentCount },
+      data: {
+        status: "SENT",
+        sentAt: new Date(),
+        recipientCount: confirmedRecipientHashes.size,
+      },
     });
     markedSending = false;
 
@@ -319,8 +467,10 @@ export async function POST(
       metadata: {
         kind: "campaign_sent",
         eligibleUserCount: users.length,
-        governedRecipientCount: recipients.length,
-        recipientCount: sentCount,
+        governedRecipientCount: originalAudience.size,
+        recipientCount: confirmedRecipientHashes.size,
+        sentThisRun: sentCount,
+        resumedConfirmedRecipientCount: confirmedRecipientHashes.size - sentCount,
         skippedBlockedCount,
         smtpVerified: true,
         marketingComplianceConfigured: Boolean(postalAddress && replyTo),
@@ -328,6 +478,7 @@ export async function POST(
         monitoredReplyToConfigured: Boolean(replyTo),
         consentGate: "communication_preferences:EMAIL:MARKETING:ALLOWED",
         permissionRecheck: "immediately-before-each-send",
+        recipientProgress: "mandatory-audit-ledger",
         unsubscribe: "signed-link-and-one-click",
         emailTemplate: "gem-enterprise-branded-v1",
       },
@@ -337,8 +488,9 @@ export async function POST(
 
     return NextResponse.json({
       campaign: updated,
-      governedRecipientCount: recipients.length,
+      governedRecipientCount: originalAudience.size,
       sentCount,
+      confirmedRecipientCount: confirmedRecipientHashes.size,
       skippedBlockedCount,
     });
   } catch (error) {
