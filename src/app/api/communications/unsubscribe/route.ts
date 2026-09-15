@@ -12,6 +12,18 @@ function json(body: unknown, status = 200) {
   });
 }
 
+async function isMailboxOneClickRequest(request: NextRequest) {
+  const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
+  if (!contentType.includes("application/x-www-form-urlencoded")) return false;
+
+  try {
+    const params = new URLSearchParams(await request.text());
+    return params.get("List-Unsubscribe") === "One-Click";
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token")?.trim();
   if (!token) return json({ error: "Unsubscribe token is required" }, 400);
@@ -24,10 +36,12 @@ export async function POST(request: NextRequest) {
     return json({ error: "The unsubscribe link is invalid or expired" }, 400);
   }
 
+  const mailboxOneClick = await isMailboxOneClickRequest(request);
+
   try {
     await unsubscribeMarketingEmail({
       email,
-      method: request.headers.get("list-unsubscribe-post") ? "one_click_header" : "signed_link",
+      method: mailboxOneClick ? "one_click_header" : "signed_link",
     });
     return json({ ok: true, status: "UNSUBSCRIBED" });
   } catch (error) {
