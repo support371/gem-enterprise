@@ -79,7 +79,7 @@ describe("communication governance", () => {
     expect(route).not.toContain("sentCount = users.length");
   });
 
-  it("preserves SENDING after any ambiguous SMTP attempt instead of creating a blind retry path", () => {
+  it("preserves SENDING after any ambiguous SMTP attempt and makes ordinary edits version-conditional", () => {
     const route = source("src/app/api/admin/campaigns/[id]/send/route.ts");
     const editRoute = source("src/app/api/admin/campaigns/[id]/route.ts");
 
@@ -93,6 +93,10 @@ describe("communication governance", () => {
     expect(route).toContain("The campaign remains SENDING");
     expect(editRoute).toContain('existing.status === "SENDING"');
     expect(editRoute).toContain("CAMPAIGN_RECONCILIATION_REQUIRED");
+    expect(editRoute).toContain("db.emailCampaign.updateMany");
+    expect(editRoute).toContain("status: existing.status");
+    expect(editRoute).toContain("updatedAt: existing.updatedAt");
+    expect(editRoute).toContain("CAMPAIGN_VERSION_CHANGED");
   });
 
   it("persists mandatory reconciliation evidence in the same transaction that releases SENDING", () => {
@@ -127,7 +131,7 @@ describe("communication governance", () => {
     expect(reconcile).not.toContain('const nextStatus = parsed.data.resolution === "CONFIRMED_SENT" ? "SENT" : "DRAFT"');
   });
 
-  it("keeps browser signed-link and mailbox one-click unsubscribe evidence distinct", () => {
+  it("keeps browser signed-link and RFC one-click unsubscribe evidence distinct", () => {
     const route = source("src/app/api/admin/campaigns/[id]/send/route.ts");
     const governance = source("src/lib/communications/governance.ts");
     const unsubscribeApi = source("src/app/api/communications/unsubscribe/route.ts");
@@ -137,7 +141,10 @@ describe("communication governance", () => {
     expect(governance).toContain('createHmac("sha256"');
     expect(route).toContain('"List-Unsubscribe"');
     expect(route).toContain('"List-Unsubscribe-Post"');
-    expect(unsubscribeApi).toContain('request.headers.get("list-unsubscribe-post") ? "one_click_header" : "signed_link"');
+    expect(unsubscribeApi).toContain('contentType.includes("application/x-www-form-urlencoded")');
+    expect(unsubscribeApi).toContain('params.get("List-Unsubscribe") === "One-Click"');
+    expect(unsubscribeApi).toContain('method: mailboxOneClick ? "one_click_header" : "signed_link"');
+    expect(unsubscribeApi).not.toContain('request.headers.get("list-unsubscribe-post") ?');
     expect(unsubscribeApi).toContain("unsubscribeMarketingEmail");
     expect(control).not.toContain('headers: { "List-Unsubscribe-Post"');
   });
