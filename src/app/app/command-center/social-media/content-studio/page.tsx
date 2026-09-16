@@ -3,11 +3,12 @@ import Link from "next/link";
 import { ArrowLeft, Film, ShieldCheck } from "lucide-react";
 import { ContentOrchestratorPanel } from "@/components/social-media/ContentOrchestratorPanel";
 import { GovernedVideoPreviewPanel } from "@/components/social-media/GovernedVideoPreviewPanel";
+import { SecurityPostureCampaignPanel } from "@/components/social-media/SecurityPostureCampaignPanel";
 
 export const metadata: Metadata = {
   title: "Content Studio | GEM Enterprise Command Center",
   description:
-    "Governed daily content generation, local video rendering, media registration, compliance review, exact-version approval, and private video preview.",
+    "Governed daily content generation, approved cross-platform campaigns, local video rendering, media registration, compliance review, exact-version approval, and private video preview.",
 };
 
 export default function SocialMediaContentStudioPage() {
@@ -34,10 +35,10 @@ export default function SocialMediaContentStudioPage() {
               </span>
             </div>
             <h1 className="text-2xl font-bold text-white sm:text-3xl">
-              Daily content generation and realistic video production
+              Governed campaigns, daily content, and realistic video production
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-400">
-              Run the existing adaptive content orchestrator, send approved video recipes to the free local ComfyUI worker, track execution, register completed media, privately preview the verified output, and return the final exact version to compliance and approval.
+              Prepare approved cross-platform campaigns, run the adaptive content orchestrator, send approved video recipes to the free local ComfyUI worker, track execution, register completed media, privately preview the verified output, and return the final exact version to compliance and approval.
             </p>
           </div>
           <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] p-4 text-sm text-amber-100/80 lg:max-w-sm">
@@ -46,6 +47,7 @@ export default function SocialMediaContentStudioPage() {
         </div>
       </section>
 
+      <SecurityPostureCampaignPanel />
       <ContentOrchestratorPanel />
       <GovernedVideoPreviewPanel />
     </div>
