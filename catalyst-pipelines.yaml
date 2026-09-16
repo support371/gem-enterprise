@@ -1,0 +1,34 @@
+version: 1
+runners:
+  Machine:
+    config-id: 2
+images:
+  DeployMachine:
+    image: ubuntu
+jobs:
+  Deploy_Gem_Control_Plane:
+    steps:
+      - apt-get update
+      - apt-get install -y curl nodejs npm
+      - npm install -g zcatalyst-cli@1.27.2
+      - catalyst -v
+      - test -n "<< env.CATALYST_TOKEN >>"
+      - catalyst init -ni --project 85214000000014023 --org 939258801 --token << env.CATALYST_TOKEN >> --dc us --force
+      - catalyst pull -ni functions --resource gem_control_plane --overwrite --project 85214000000014023 --org 939258801 --token << env.CATALYST_TOKEN >> --dc us
+      - cp integrations/zoho-catalyst/gem-control-plane/index.js functions/gem_control_plane/index.js
+      - cp integrations/zoho-catalyst/gem-control-plane/bridge.js functions/gem_control_plane/bridge.js
+      - cp integrations/zoho-catalyst/gem-control-plane/package.json functions/gem_control_plane/package.json
+      - rm -rf functions/gem_control_plane/test
+      - cp -R integrations/zoho-catalyst/gem-control-plane/test functions/gem_control_plane/test
+      - cd functions/gem_control_plane
+      - npm install
+      - npm test
+      - node --check index.js
+      - node --check bridge.js
+      - cd ../..
+      - catalyst deploy -ni --only functions:gem_control_plane --project 85214000000014023 --org 939258801 --token << env.CATALYST_TOKEN >> --dc us
+stages:
+  - name: deploy-development
+    image: DeployMachine
+    jobs:
+      - Deploy_Gem_Control_Plane
