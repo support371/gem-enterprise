@@ -1,4 +1,13 @@
 "use strict";
+// The SDK is declared in package.json. Keep loading tolerant of an older
+// console bundle so a dependency-install hiccup cannot prevent the bridge
+// from serving its read-only GEM routes.
+let catalyst;
+try {
+  catalyst = require("zcatalyst-sdk-node");
+} catch (_error) {
+  catalyst = null;
+}
 const { callGem } = require("./bridge");
 const PREFIX = "/server/gem_control_plane";
 const VIEWS = new Set(["platform", "stores", "tiktok", "google"]);
@@ -22,15 +31,18 @@ function fail(res, error) {
   return send(res, 502, { ok: false, status: "FAILED", error: "gem_upstream_unavailable" });
 }
 module.exports = async (req, res) => {
-  const url = parseUrl(req);
-  const path = url.pathname.startsWith(PREFIX) ? url.pathname.slice(PREFIX.length) || "/" : url.pathname;
-  if (req.method !== "GET") {
-    return send(res, 405, { ok: false, status: "BLOCKED_BY_POLICY", error: "method_not_allowed" }, { Allow: "GET" });
-  }
-  const operation = path === "/health" ? "health" : path === "/context" ? "context" : null;
-  if (!operation) return send(res, 404, { ok: false, status: "BLOCKED_BY_POLICY", error: "route_not_exposed" });
-  const view = url.searchParams.get("view");
   try {
+    // Advanced I/O functions require explicit SDK initialization on Node 20.
+    // The bridge itself remains GEM-only and does not access Catalyst services.
+    if (catalyst?.initialize) catalyst.initialize(req);
+    const url = parseUrl(req);
+    const path = url.pathname.startsWith(PREFIX) ? url.pathname.slice(PREFIX.length) || "/" : url.pathname;
+    if (req.method !== "GET") {
+      return send(res, 405, { ok: false, status: "BLOCKED_BY_POLICY", error: "method_not_allowed" }, { Allow: "GET" });
+    }
+    const operation = path === "/health" ? "health" : path === "/context" ? "context" : null;
+    if (!operation) return send(res, 404, { ok: false, status: "BLOCKED_BY_POLICY", error: "route_not_exposed" });
+    const view = url.searchParams.get("view");
     const result = await callGem(operation, operation === "context" && VIEWS.has(view) ? { view } : {});
     return send(res, result.status, result.body);
   } catch (error) {
