@@ -7,6 +7,7 @@
     "test": "node --test"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "express": "^4.21.2",
+    "zcatalyst-sdk-node": "^2.2.0"
   }
 }
