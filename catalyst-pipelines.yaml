@@ -1,3 +1,5 @@
+# Development-only deployment pipeline for PR #351 / Project-Rainfall.
+# Do not promote this workflow to Production before the Development smoke-test gate passes.
 version: 1
 
 jobs:
