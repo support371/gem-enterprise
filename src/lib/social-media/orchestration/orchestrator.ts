@@ -18,6 +18,7 @@ import {
   type MarketSignal,
 } from "../planning/daily-flow";
 import type { SocialMediaProviderId } from "../providers";
+import { governedCampaignTitle } from "./campaign-identity";
 import { generateCrossPlatformContentPackage } from "./content-package";
 import { getGemApprovedSourceMaterial } from "./gem-sources";
 import {
@@ -32,6 +33,7 @@ export interface DailyContentOrchestrationInput {
   actorId: string;
   correlationId: string;
   planDate: Date;
+  campaignKey?: string;
   enabledProviders: readonly SocialMediaProviderId[];
   marketSignals?: readonly MarketSignal[];
   approvedSources?: readonly ApprovedSourceMaterial[];
@@ -71,10 +73,6 @@ function toJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
-function dailyCampaignTitle(planDate: Date) {
-  return `GEM Adaptive Content Plan ${planDate.toISOString().slice(0, 10)}`;
-}
-
 function object(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -101,7 +99,7 @@ async function existingDailyPlan(input: DailyContentOrchestrationInput) {
   const campaign = await db.campaign.findFirst({
     where: {
       workspaceId: input.workspaceId,
-      title: dailyCampaignTitle(input.planDate),
+      title: governedCampaignTitle(input.planDate, input.campaignKey),
     },
     include: {
       contents: {
@@ -186,11 +184,15 @@ async function createDailyCampaign(input: {
   workspaceId: string;
   actorId: string;
   correlationId: string;
+  campaignKey?: string;
   plan: DailyContentPlan;
 }) {
-  const title = dailyCampaignTitle(new Date(`${input.plan.planDate}T00:00:00.000Z`));
+  const title = governedCampaignTitle(input.plan.planDate, input.campaignKey);
   const payload = {
-    type: "ADAPTIVE_DAILY_SOCIAL_CONTENT",
+    type: input.campaignKey
+      ? "GOVERNED_SOCIAL_CAMPAIGN"
+      : "ADAPTIVE_DAILY_SOCIAL_CONTENT",
+    campaignKey: input.campaignKey,
     planDate: input.plan.planDate,
     draftFingerprints: input.plan.drafts.map((draft) => draft.fingerprint),
     rejectedReasons: input.plan.rejectedReasons,
@@ -226,9 +228,12 @@ async function createDailyCampaign(input: {
     workspaceId: input.workspaceId,
     aggregateType: "campaign",
     aggregateId: campaign.id,
-    eventType: "ADAPTIVE_DAILY_CONTENT_PLAN_CREATED",
+    eventType: input.campaignKey
+      ? "GOVERNED_SOCIAL_CAMPAIGN_CREATED"
+      : "ADAPTIVE_DAILY_CONTENT_PLAN_CREATED",
     correlationId: input.correlationId,
     metadata: {
+      campaignKey: input.campaignKey,
       planDate: input.plan.planDate,
       draftCount: input.plan.drafts.length,
       objectHash,
@@ -308,6 +313,7 @@ export async function orchestrateDailyContent(
     workspaceId: input.workspaceId,
     actorId: input.actorId,
     correlationId: input.correlationId,
+    campaignKey: input.campaignKey,
     plan,
   });
   const sourcesById = new Map(approvedSources.map((source) => [source.id, source]));
@@ -345,6 +351,7 @@ export async function orchestrateDailyContent(
       vacancyId: draft.vacancyId,
       orchestrator: {
         version: 1,
+        campaignKey: input.campaignKey,
         planDate: plan.planDate,
         provider: draft.provider,
         contentType: draft.contentType,
@@ -422,6 +429,7 @@ export async function orchestrateDailyContent(
     outcome: "success",
     sourceChannel: "social-media-command-center",
     metadata: {
+      campaignKey: input.campaignKey,
       planDate: plan.planDate,
       generatedCount: materialized.length,
       approvalRequestsCreated: materialized.filter(
