@@ -1,6 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import {
+  createIntakeSubmissionViaGateway,
+  IntakeGatewayRequestError,
+  shouldUseIntakeGateway,
+} from "@/lib/intake/gateway";
 import type {
   CreateIntakeSubmissionInput,
   IntakeKind,
@@ -77,6 +82,20 @@ const submissionSelect = Prisma.sql`
 export async function createIntakeSubmission(
   input: CreateIntakeSubmissionInput,
 ): Promise<IntakeSubmissionRecord> {
+  if (shouldUseIntakeGateway()) {
+    try {
+      return await createIntakeSubmissionViaGateway(input);
+    } catch (error) {
+      if (
+        error instanceof IntakeGatewayRequestError &&
+        [404, 503, 504].includes(error.statusCode)
+      ) {
+        throw new IntakeStoreUnavailableError();
+      }
+      throw error;
+    }
+  }
+
   const id = randomUUID();
   const eventId = randomUUID();
   const publicId = publicIdForKind(input.kind);
