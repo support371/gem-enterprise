@@ -24,10 +24,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const gate = await requireAdmin();
-  if (!gate.ok) {
-    return (gate as { ok: false; response: NextResponse }).response;
-    return gate.response;
-  }
+  if (!gate.ok) return gate.response;
   const session = gate.session;
   const { ipAddress, userAgent } = getRequestContext(req);
 
@@ -48,24 +45,49 @@ export async function PATCH(
     const existing = await db.emailCampaign.findUnique({ where: { id } });
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
     if (existing.status === "SENT") {
+      return NextResponse.json({ error: "Cannot modify a sent campaign" }, { status: 409 });
+    }
+    if (existing.status === "SENDING") {
       return NextResponse.json(
-        { error: "Cannot modify a sent campaign" },
+        {
+          error: "Campaign delivery requires reconciliation before it can be edited or retried.",
+          code: "CAMPAIGN_RECONCILIATION_REQUIRED",
+        },
         { status: 409 },
       );
     }
 
-    const campaign = await db.emailCampaign.update({
-      where: { id },
+    const scheduledAt =
+      parsed.data.scheduledAt === null
+        ? null
+        : parsed.data.scheduledAt
+          ? new Date(parsed.data.scheduledAt)
+          : undefined;
+
+    const updated = await db.emailCampaign.updateMany({
+      where: {
+        id,
+        status: existing.status,
+        updatedAt: existing.updatedAt,
+      },
       data: {
         ...parsed.data,
-        scheduledAt:
-          parsed.data.scheduledAt === null
-            ? null
-            : parsed.data.scheduledAt
-              ? new Date(parsed.data.scheduledAt)
-              : undefined,
+        scheduledAt,
       },
     });
+
+    if (updated.count !== 1) {
+      return NextResponse.json(
+        {
+          error: "Campaign changed while this edit was being applied. Reload before editing or reconciling it.",
+          code: "CAMPAIGN_VERSION_CHANGED",
+        },
+        { status: 409 },
+      );
+    }
+
+    const campaign = await db.emailCampaign.findUnique({ where: { id } });
+    if (!campaign) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     await emitAuditLog({
       userId: session.userId,
@@ -76,6 +98,8 @@ export async function PATCH(
         kind: "campaign_updated",
         previousStatus: existing.status,
         newStatus: campaign.status,
+        previousUpdatedAt: existing.updatedAt.toISOString(),
+        newUpdatedAt: campaign.updatedAt.toISOString(),
         fields: Object.keys(parsed.data),
       },
       ipAddress,

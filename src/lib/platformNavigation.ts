@@ -329,6 +329,24 @@ export const adminPortalNavGroups: PlatformNavGroup[] = [
         description: "Track enterprise leads from first request through qualification and conversion.",
       },
       {
+        href: "/app/admin/market/operations",
+        icon: "Briefcase",
+        label: "Commercial Operations",
+        description: "Govern the full market, sales, delivery, success, expansion, and referral lifecycle without duplicate systems.",
+      },
+      {
+        href: "/app/admin/market/research",
+        icon: "ClipboardList",
+        label: "Market Research",
+        description: "Review evidence-safe First-20 company research before any one-to-one outreach or intake creation.",
+      },
+      {
+        href: "/app/admin/customer-success",
+        icon: "Users",
+        label: "Customer Success",
+        description: "Track client health, outcomes, reviews, expansion, renewal, referral, and win-back planning.",
+      },
+      {
         href: "/app/admin/intake",
         icon: "ClipboardList",
         label: "Intake Queue",
@@ -386,6 +404,12 @@ export const adminPortalNavGroups: PlatformNavGroup[] = [
         icon: "Activity",
         label: "Audit Logs",
         description: "Compliance evidence, admin events, and platform activity.",
+      },
+      {
+        href: "/app/admin/communications",
+        icon: "Mail",
+        label: "Communication Governance",
+        description: "Review marketing-email permission, evidence, jurisdiction, unsubscribe state, and delivery gates.",
       },
       {
         href: "/app/admin/campaigns",
