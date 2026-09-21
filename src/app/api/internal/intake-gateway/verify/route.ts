@@ -44,9 +44,14 @@ export async function POST(request: NextRequest) {
     return json({ valid: false }, 403);
   }
 
+  if (claims.action === "update" && !claims.actorId) {
+    return json({ valid: false }, 403);
+  }
+
   return json({
     valid: true,
     action: claims.action,
     intakeId: claims.intakeId,
+    actorId: claims.actorId,
   });
 }
