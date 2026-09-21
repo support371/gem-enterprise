@@ -10,7 +10,8 @@ export type ContentRiskCategory =
   | "SECURITY_SENSITIVE_DETAIL"
   | "REGULATORY_CLAIM"
   | "LOCAL_CONTEXT_REQUIRED"
-  | "HUMAN_APPROVAL_REQUIRED";
+  | "HUMAN_APPROVAL_REQUIRED"
+  | "AUTO_POLICY_REQUIRED";
 
 export type ContentRiskSeverity = "INFO" | "WARNING" | "BLOCK";
 
@@ -45,7 +46,7 @@ export interface VideoRecipe {
     version: 1;
     scenes: VideoScene[];
     subtitles: true;
-    humanReviewRequired: true;
+    humanReviewRequired: boolean;
   };
 }
 
@@ -318,13 +319,24 @@ function buildVisualBrief(input: {
   };
 }
 
-function publishingChecklist(provider: SocialMediaProviderId): PublishingChecklistItem[] {
+function publishingChecklist(
+  provider: SocialMediaProviderId,
+  approvalMode: "HUMAN" | "AUTO_POLICY",
+): PublishingChecklistItem[] {
   const common: PublishingChecklistItem[] = [
     { code: "SOURCE_APPROVED", label: "Confirm the source material remains approved and current.", required: true, completed: false },
     { code: "CLAIMS_REVIEWED", label: "Resolve all unsupported, regulatory, and security-sensitive claim flags.", required: true, completed: false },
     { code: "MEDIA_RIGHTS", label: "Confirm ownership or licensing for every visual, voice, music, and media asset.", required: true, completed: false },
     { code: "ACCESSIBILITY", label: "Confirm captions, readable text, and image alt text.", required: true, completed: false },
-    { code: "EXACT_VERSION_APPROVAL", label: "Obtain approval from a different authorized operator for the exact version hash.", required: true, completed: false },
+    {
+      code: "EXACT_VERSION_APPROVAL",
+      label:
+        approvalMode === "AUTO_POLICY"
+          ? "Require a passing automated policy decision bound to the exact version hash."
+          : "Obtain approval from a different authorized operator for the exact version hash.",
+      required: true,
+      completed: false,
+    },
     { code: "DESTINATION_SELECTED", label: "Select the exact healthy destination connector; never auto-select an account.", required: true, completed: false },
     { code: "LIVE_GATES", label: "Confirm global and provider-specific publishing gates and emergency locks.", required: true, completed: false },
   ];
@@ -352,6 +364,7 @@ export function generateCrossPlatformContentPackage(input: {
   source: ApprovedSourceMaterial;
   signal: MarketSignal;
   localContext?: string;
+  approvalMode?: "HUMAN" | "AUTO_POLICY";
 }): CrossPlatformContentPackage {
   const hook = `What does ${input.signal.topic} mean for your organization today?`;
   const explanation = `${input.signal.summary} ${input.source.summary}`.trim();
@@ -385,12 +398,23 @@ export function generateCrossPlatformContentPackage(input: {
     });
   }
 
-  riskFlags.push({
-    code: "EXACT_VERSION_HUMAN_APPROVAL_REQUIRED",
-    category: "HUMAN_APPROVAL_REQUIRED",
-    severity: "INFO",
-    message: "A different authorized operator must approve the exact generated version before publication.",
-  });
+  if (input.approvalMode === "AUTO_POLICY") {
+    riskFlags.push({
+      code: "EXACT_VERSION_AUTO_POLICY_REQUIRED",
+      category: "AUTO_POLICY_REQUIRED",
+      severity: "INFO",
+      message:
+        "The exact generated version must pass the autonomous policy gate before it can enter the publishing queue.",
+    });
+  } else {
+    riskFlags.push({
+      code: "EXACT_VERSION_HUMAN_APPROVAL_REQUIRED",
+      category: "HUMAN_APPROVAL_REQUIRED",
+      severity: "INFO",
+      message:
+        "A different authorized operator must approve the exact generated version before publication.",
+    });
+  }
 
   const format =
     input.draft.provider === "YOUTUBE" && input.draft.contentType === "LONG_VIDEO"
@@ -423,7 +447,7 @@ export function generateCrossPlatformContentPackage(input: {
         version: 1,
         scenes,
         subtitles: true,
-        humanReviewRequired: true,
+        humanReviewRequired: input.approvalMode !== "AUTO_POLICY",
       },
     },
     visualBrief: buildVisualBrief({
@@ -446,7 +470,10 @@ export function generateCrossPlatformContentPackage(input: {
       signalReference: input.signal.sourceReference,
     },
     riskFlags,
-    publishingChecklist: publishingChecklist(input.draft.provider),
+    publishingChecklist: publishingChecklist(
+      input.draft.provider,
+      input.approvalMode ?? "HUMAN",
+    ),
     approvalRequired: true,
     complianceReviewRequired: true,
     externalActionTaken: false,
