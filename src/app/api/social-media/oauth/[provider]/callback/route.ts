@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionFromRequest, type SessionPayload } from "@/lib/auth";
+import type { SessionPayload } from "@/lib/auth";
 import {
   correlationId,
   emitTokMetricAudit,
   enforceEmergencyLocks,
+  requireActiveTokMetricSession,
   requirePermission,
   requireWorkspaceAccess,
   TokMetricError,
@@ -21,8 +22,8 @@ import { decodeSocialOAuthState } from "@/lib/social-media/oauth/state";
 import { consumeSocialOAuthAuthorizationAttempt } from "@/lib/social-media/oauth/store";
 
 async function sessionFromStateActor(request: NextRequest, actorId: string): Promise<SessionPayload> {
-  const session = await getSessionFromRequest(request);
-  if (!session || session.userId !== actorId) {
+  const session = await requireActiveTokMetricSession(request);
+  if (session.userId !== actorId) {
     throw new TokMetricError(
       401,
       "UNAUTHENTICATED",
