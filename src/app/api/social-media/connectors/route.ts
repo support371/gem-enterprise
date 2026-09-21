@@ -6,7 +6,7 @@ import {
   enforceEmergencyLocks,
   parseJson,
   requirePermission,
-  requireTokMetricSession,
+  requireActiveTokMetricSession,
   requireWorkspaceAccess,
   TokMetricError,
   tokMetricErrorResponse,
@@ -35,7 +35,7 @@ function requireSameOrigin(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const cid = correlationId(request);
   try {
-    const session = await requireTokMetricSession(request);
+    const session = await requireActiveTokMetricSession(request);
     const workspaceId = request.nextUrl.searchParams.get("workspaceId")?.trim();
     if (!workspaceId) {
       return NextResponse.json(
@@ -61,7 +61,7 @@ export async function DELETE(request: NextRequest) {
   const cid = correlationId(request);
   try {
     requireSameOrigin(request);
-    const session = await requireTokMetricSession(request);
+    const session = await requireActiveTokMetricSession(request);
     const parsed = await parseJson(request, disconnectSchema);
     const body = {
       workspaceId: parsed.workspaceId!,

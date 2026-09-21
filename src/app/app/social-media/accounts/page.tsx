@@ -6,7 +6,11 @@ import {
   LockKeyhole,
   ShieldCheck,
 } from "lucide-react";
+import { redirect } from "next/navigation";
 import { SocialConnectorPanel } from "@/components/social-media/SocialConnectorPanel";
+import { db } from "@/lib/db";
+import { isAdminRole, requireSession } from "@/lib/api/auth-helpers";
+import { resolveWorkspaceAccess } from "@/lib/workspaceAccess";
 import { getSafeSocialOAuthReadiness } from "@/lib/social-media/oauth/readiness";
 import {
   getSocialMediaProviderReadiness,
@@ -29,7 +33,42 @@ function StatusBadge({ state }: { state: SocialMediaReadinessState }) {
   );
 }
 
-export default function SocialMediaAccountsPage() {
+export default async function SocialMediaAccountsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ workspace?: string | string[] }>;
+}) {
+  const gate = await requireSession();
+  if (!gate.ok || gate.accountStatus !== "active") {
+    redirect("/admin-login?next=/app/social-media/accounts");
+  }
+
+  const params = await searchParams;
+  const requestedWorkspaceId = Array.isArray(params.workspace)
+    ? params.workspace[0]?.trim() || null
+    : params.workspace?.trim() || null;
+  const membershipResolution = await resolveWorkspaceAccess(
+    gate.session.userId,
+    requestedWorkspaceId,
+  );
+  let publishingWorkspace = membershipResolution.selected
+    ? { id: membershipResolution.selected.id, name: membershipResolution.selected.name }
+    : null;
+
+  // Admin publishing is organization-scoped. Never ask an administrator to copy
+  // an internal workspace identifier and never fall back to another organization.
+  if (!publishingWorkspace && isAdminRole(gate.session.role) && gate.session.organizationId) {
+    publishingWorkspace = await db.workspace.findFirst({
+      where: {
+        ...(requestedWorkspaceId ? { id: requestedWorkspaceId } : {}),
+        organizationId: gate.session.organizationId,
+        organization: { status: "active" },
+      },
+      select: { id: true, name: true },
+      orderBy: { id: "asc" },
+    });
+  }
+
   const providers = getSocialMediaProviderReadiness();
   const oauthProviders = getSafeSocialOAuthReadiness();
   const configured = providers.filter((provider) => provider.configurationReady).length;
@@ -67,7 +106,11 @@ export default function SocialMediaAccountsPage() {
         </article>
       </section>
 
-      <SocialConnectorPanel providers={oauthProviders} />
+      <SocialConnectorPanel
+        providers={oauthProviders}
+        workspaceId={publishingWorkspace?.id ?? null}
+        workspaceLabel={publishingWorkspace?.name ?? null}
+      />
 
       <section className="grid gap-4 lg:grid-cols-2">
         {providers.map((provider) => (

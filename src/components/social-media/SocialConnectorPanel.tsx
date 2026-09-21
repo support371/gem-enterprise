@@ -48,14 +48,24 @@ function lifecycleTone(lifecycle?: string) {
   return "text-white/55";
 }
 
-export function SocialConnectorPanel({ providers }: { providers: SafeSocialOAuthReadiness[] }) {
-  const [workspaceId, setWorkspaceId] = useState("");
+export function SocialConnectorPanel({
+  providers,
+  workspaceId,
+  workspaceLabel,
+}: {
+  providers: SafeSocialOAuthReadiness[];
+  workspaceId?: string | null;
+  workspaceLabel?: string | null;
+}) {
+  const [manualWorkspaceId, setManualWorkspaceId] = useState("");
+  const resolvedWorkspaceId = workspaceId?.trim() || "";
+  const effectiveWorkspaceId = resolvedWorkspaceId || manualWorkspaceId.trim();
   const [connectors, setConnectors] = useState<Connector[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
   const [disconnecting, setDisconnecting] = useState<string>();
   const [checkingHealth, setCheckingHealth] = useState<string>();
-  const canLoad = useMemo(() => workspaceId.trim().length > 0, [workspaceId]);
+  const canLoad = effectiveWorkspaceId.length > 0;
 
   async function loadConnectors(signal?: AbortSignal) {
     if (!canLoad) return;
@@ -63,7 +73,7 @@ export function SocialConnectorPanel({ providers }: { providers: SafeSocialOAuth
     setError(undefined);
     try {
       const response = await fetch(
-        `/api/social-media/connectors?workspaceId=${encodeURIComponent(workspaceId.trim())}`,
+        `/api/social-media/connectors?workspaceId=${encodeURIComponent(effectiveWorkspaceId)}`,
         { signal, cache: "no-store" },
       );
       const payload = await response.json();
@@ -89,13 +99,13 @@ export function SocialConnectorPanel({ providers }: { providers: SafeSocialOAuth
     return () => controller.abort();
     // loadConnectors is intentionally driven only by the selected workspace.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canLoad, workspaceId]);
+  }, [canLoad, effectiveWorkspaceId]);
 
   function connect(provider: SafeSocialOAuthReadiness) {
     if (!canLoad || !provider.readyToAuthorize) return;
     const url = new URL(`/api/social-media/oauth/${provider.provider.toLowerCase()}/start`, window.location.origin);
-    url.searchParams.set("workspaceId", workspaceId.trim());
-    url.searchParams.set("redirectAfter", "/app/command-center/social-media");
+    url.searchParams.set("workspaceId", effectiveWorkspaceId);
+    url.searchParams.set("redirectAfter", "/app/social-media/accounts");
     window.location.assign(url.toString());
   }
 
@@ -110,7 +120,7 @@ export function SocialConnectorPanel({ providers }: { providers: SafeSocialOAuth
       const response = await fetch("/api/social-media/connectors", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workspaceId: workspaceId.trim(), connectorId: connector.id }),
+        body: JSON.stringify({ workspaceId: effectiveWorkspaceId, connectorId: connector.id }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error?.message || "Unable to disconnect connector.");
@@ -129,7 +139,7 @@ export function SocialConnectorPanel({ providers }: { providers: SafeSocialOAuth
       const response = await fetch("/api/social-media/connectors/health", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ workspaceId: workspaceId.trim(), connectorId: connector.id }),
+        body: JSON.stringify({ workspaceId: effectiveWorkspaceId, connectorId: connector.id }),
       });
       const payload = await response.json();
       if (!response.ok) {
@@ -166,23 +176,38 @@ export function SocialConnectorPanel({ providers }: { providers: SafeSocialOAuth
           </p>
           <h2 className="mt-2 text-xl font-bold text-white">Workspace social accounts</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
-            Enter an authorized workspace ID to load real connector records. Provider account discovery
-            runs server-side after consent. Client secrets, access tokens, refresh tokens, and encrypted
-            credential references are never returned to the browser.
+            GEM resolves the authorized publishing workspace from your authenticated account. Provider
+            account discovery runs server-side after consent. Client secrets, access tokens, refresh tokens,
+            and encrypted credential references are never returned to the browser.
           </p>
         </div>
-        <input
-          value={workspaceId}
-          onChange={(event) => setWorkspaceId(event.target.value)}
-          placeholder="workspace ID"
-          autoComplete="off"
-          className="min-w-64 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none placeholder:text-white/30 focus:border-cyan-300/40"
-        />
+        {resolvedWorkspaceId ? (
+          <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+              Publishing workspace
+            </p>
+            <p className="mt-1 font-semibold text-white">
+              {workspaceLabel || "Authorized GEM workspace"}
+            </p>
+            <p className="mt-1 text-xs text-white/40">
+              Resolved automatically from your authenticated GEM account.
+            </p>
+          </div>
+        ) : (
+          <input
+            value={manualWorkspaceId}
+            onChange={(event) => setManualWorkspaceId(event.target.value)}
+            placeholder="workspace ID"
+            autoComplete="off"
+            className="min-w-64 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none placeholder:text-white/30 focus:border-cyan-300/40"
+          />
+        )}
       </div>
 
       {!canLoad ? (
         <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/55">
-          No workspace selected. Account authorization state is not fabricated.
+          No workspace selected. On the Social Accounts page GEM resolves this automatically; legacy
+          management surfaces may still accept an authorized workspace ID.
         </div>
       ) : null}
       {loading ? (
