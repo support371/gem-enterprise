@@ -49,7 +49,9 @@ describe("client-facing Social Media Suite", () => {
 
   it("resolves the GEM Admin publishing workspace without a manual ID", () => {
     expect(accountsSource).toContain("CONTENT_ORCHESTRATOR_WORKSPACE_ID");
-    expect(accountsSource).toContain("ws_60488340ded94dcfab3b875ef9ae591c");
+    expect(accountsSource).toContain("CONTENT_ORCHESTRATOR_ACTOR_ID");
+    expect(accountsSource).toContain("organizationId: serviceActor.organizationId");
+    expect(accountsSource).not.toContain("ws_60488340ded94dcfab3b875ef9ae591c");
     expect(accountsSource).toContain("allowManualWorkspaceInput={false}");
     expect(connectorPanelSource).toContain("allowManualWorkspaceInput");
     expect(connectorPanelSource).toContain("server-side configuration issue");
