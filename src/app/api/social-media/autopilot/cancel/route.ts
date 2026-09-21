@@ -54,7 +54,6 @@ export async function POST(request: NextRequest) {
       actorId: session.userId,
       action: "SOCIAL_AUTOPILOT_CANCELLED",
       entityType: "SOCIAL_PUBLISHING_JOB",
-      entityId: null,
       correlationId: cid,
       outcome: "CANCELLED",
       sourceChannel: "social-autopilot",
