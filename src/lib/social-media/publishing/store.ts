@@ -308,6 +308,37 @@ export async function hasRecentSocialPublishingFingerprint(input: {
   }
 }
 
+export async function cancelPendingSocialAutopilotJobs(input: {
+  workspaceId: string;
+  policyVersion?: string;
+}) {
+  const now = new Date();
+  try {
+    const rows = await db.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      UPDATE social_publishing_jobs
+      SET
+        state = 'CANCELLED',
+        claim_id = NULL,
+        claim_expires_at = NULL,
+        completed_at = ${now},
+        updated_at = ${now},
+        last_error_code = 'SOCIAL_AUTOPILOT_CANCELLED',
+        last_error_message = 'Cancelled by the Social Autopilot rollback control.'
+      WHERE workspace_id = ${input.workspaceId}
+        AND state IN ('PENDING', 'RETRYING')
+        AND payload -> 'metadata' ->> 'autopilot' = 'true'
+        AND (
+          ${input.policyVersion ?? null}::text IS NULL
+          OR payload -> 'metadata' ->> 'autopilotPolicyVersion' = ${input.policyVersion ?? null}
+        )
+      RETURNING id
+    `);
+    return { cancelled: rows.length, jobIds: rows.map((row) => row.id) };
+  } catch (error) {
+    return storeUnavailable(error);
+  }
+}
+
 export async function claimSocialPublishingJobs(limit = 10) {
   const claimId = randomUUID();
   const now = new Date();
