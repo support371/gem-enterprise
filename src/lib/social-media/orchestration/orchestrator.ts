@@ -376,7 +376,6 @@ export async function orchestrateDailyContent(
       source,
       signal,
       localContext: draft.provider === "NEXTDOOR" ? input.localContext : undefined,
-      approvalMode: input.approvalMode ?? "HUMAN",
     });
     const settings = {
       title: contentPackage.title,
