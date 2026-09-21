@@ -11,6 +11,7 @@ import {
 } from "@/lib/intake/repository";
 import { intakeStatuses } from "@/lib/intake/types";
 import { canTransitionIntake } from "@/lib/intake/workflow";
+import { shouldUseIntakeGateway } from "@/lib/intake/gateway";
 
 const updateSchema = z.object({
   status: z.enum(intakeStatuses),
@@ -63,6 +64,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 
   try {
+    const usingIntakeGateway = shouldUseIntakeGateway();
     const current = await getIntakeSubmission(id);
     if (!current) return json({ error: "Intake submission not found" }, 404);
     if (!canTransitionIntake(current.submission.status, parsed.data.status)) {
@@ -75,7 +77,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       );
     }
 
-    if (parsed.data.assignedToId) {
+    if (parsed.data.assignedToId && !usingIntakeGateway) {
       const assignee = await db.user.findUnique({
         where: { id: parsed.data.assignedToId },
         select: { id: true, isActive: true, role: true },
@@ -99,26 +101,28 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     });
     if (!updated) return json({ error: "Intake submission not found" }, 404);
 
-    const { ipAddress, userAgent } = getRequestContext(request);
-    await emitAuditLog({
-      userId: gate.session.userId,
-      action: "admin_action",
-      resource: "intake_submission",
-      resourceId: id,
-      metadata: {
-        publicId: updated.publicId,
-        kind: updated.kind,
-        fromStatus: current.submission.status,
-        toStatus: updated.status,
-        reason: parsed.data.reason,
-        assignedToId:
-          parsed.data.assignedToId === undefined
-            ? current.submission.assignedToId
-            : parsed.data.assignedToId,
-      },
-      ipAddress,
-      userAgent,
-    });
+    if (!usingIntakeGateway) {
+      const { ipAddress, userAgent } = getRequestContext(request);
+      await emitAuditLog({
+        userId: gate.session.userId,
+        action: "admin_action",
+        resource: "intake_submission",
+        resourceId: id,
+        metadata: {
+          publicId: updated.publicId,
+          kind: updated.kind,
+          fromStatus: current.submission.status,
+          toStatus: updated.status,
+          reason: parsed.data.reason,
+          assignedToId:
+            parsed.data.assignedToId === undefined
+              ? current.submission.assignedToId
+              : parsed.data.assignedToId,
+        },
+        ipAddress,
+        userAgent,
+      });
+    }
 
     return json({ ok: true, submission: updated });
   } catch (error) {

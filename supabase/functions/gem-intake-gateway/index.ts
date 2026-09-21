@@ -8,7 +8,19 @@ if (!SUPABASE_URL || !SERVICE_ROLE_KEY) throw new Error("Missing Supabase runtim
 const db = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
+const AUTHORITY_URL =
+  "https://www.gemcybersecurityassist.com/api/internal/intake-gateway/verify";
 const kinds = new Set(["ENTERPRISE", "COMMUNITY", "PRODUCT_REQUEST"]);
+const statuses = new Set([
+  "RECEIVED",
+  "TRIAGE",
+  "NEEDS_INFORMATION",
+  "QUALIFIED",
+  "APPROVED",
+  "DECLINED",
+  "CONVERTED",
+  "CLOSED",
+]);
 const queues: Record<string, string> = {
   ENTERPRISE: "intake:enterprise",
   COMMUNITY: "intake:community",
@@ -69,17 +81,45 @@ function mapSubmission(row: Record<string, unknown>) {
   };
 }
 
-Deno.serve(async (request) => {
-  if (request.method !== "POST") return json({ error: "Method not allowed", code: "METHOD_NOT_ALLOWED" }, 405);
+function mapEvent(row: Record<string, unknown>) {
+  return {
+    id: row.id,
+    submissionId: row.submission_id,
+    fromStatus: row.from_status,
+    toStatus: row.to_status,
+    actorId: row.actor_id,
+    reason: row.reason,
+    metadata: row.metadata,
+    createdAt: row.created_at,
+  };
+}
 
-  const body = await request.json().catch(() => null) as
-    | { action?: unknown; input?: Record<string, unknown> }
-    | null;
-  if (!body || body.action !== "create" || !body.input) {
-    return json({ error: "Invalid request", code: "INVALID_REQUEST" }, 400);
+async function authorize(
+  action: "list" | "get" | "update" | "convert",
+  intakeId: string | null,
+  capability: unknown,
+): Promise<{ actorId: string | null } | null> {
+  const token = text(capability, 32, 4096);
+  if (!token) return null;
+  try {
+    const response = await fetch(AUTHORITY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, action, intakeId }),
+    });
+    const body = (await response.json().catch(() => null)) as
+      | { valid?: boolean; actorId?: string | null }
+      | null;
+    if (!response.ok || body?.valid !== true) return null;
+    return {
+      actorId: typeof body.actorId === "string" ? body.actorId : null,
+    };
+  } catch {
+    return null;
   }
+}
 
-  const input = body.input;
+async function createPublicIntake(input: Record<string, unknown>) {
   const kind = typeof input.kind === "string" && kinds.has(input.kind) ? input.kind : null;
   const queue = typeof input.queue === "string" ? input.queue : null;
   const name = text(input.name, 2, 160);
@@ -155,4 +195,186 @@ Deno.serve(async (request) => {
   }
 
   return json({ submission: mapSubmission(data[0] as Record<string, unknown>) }, 201);
+}
+
+Deno.serve(async (request) => {
+  if (request.method !== "POST") {
+    return json({ error: "Method not allowed", code: "METHOD_NOT_ALLOWED" }, 405);
+  }
+
+  const body = await request.json().catch(() => null) as
+    | {
+        action?: unknown;
+        input?: Record<string, unknown>;
+        capability?: unknown;
+        filters?: Record<string, unknown>;
+        intakeId?: unknown;
+        publicId?: unknown;
+        transition?: Record<string, unknown>;
+        payment?: Record<string, unknown>;
+      }
+    | null;
+  if (!body || typeof body.action !== "string") {
+    return json({ error: "Invalid request", code: "INVALID_REQUEST" }, 400);
+  }
+
+  if (body.action === "create") {
+    if (!body.input) return json({ error: "Invalid request", code: "INVALID_REQUEST" }, 400);
+    return createPublicIntake(body.input);
+  }
+
+  if (body.action === "list") {
+    const authority = await authorize("list", null, body.capability);
+    if (!authority) return json({ error: "Forbidden", code: "CAPABILITY_REQUIRED" }, 403);
+
+    const filters = body.filters ?? {};
+    const kind = typeof filters.kind === "string" && kinds.has(filters.kind) ? filters.kind : null;
+    const status =
+      typeof filters.status === "string" && statuses.has(filters.status) ? filters.status : null;
+    const queue = optionalText(filters.queue, 80);
+    const requestedLimit =
+      typeof filters.limit === "number" && Number.isInteger(filters.limit) ? filters.limit : 100;
+    const limit = Math.min(Math.max(requestedLimit, 1), 250);
+
+    let query = db
+      .from("intake_submissions")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (kind) query = query.eq("kind", kind);
+    if (status) query = query.eq("status", status);
+    if (queue) query = query.eq("queue", queue);
+
+    const { data, error } = await query;
+    if (error) return json({ error: "Unable to load intake", code: "INTAKE_READ_FAILED" }, 500);
+    return json({ submissions: (data ?? []).map((row) => mapSubmission(row)) });
+  }
+
+  if (body.action === "convert") {
+    const publicId = text((body as Record<string, unknown>).publicId, 1, 160);
+    if (!publicId) return json({ error: "Invalid intake reference", code: "INVALID_INTAKE_ID" }, 400);
+    const authority = await authorize("convert", publicId, body.capability);
+    if (!authority) return json({ error: "Forbidden", code: "CAPABILITY_REQUIRED" }, 403);
+    const payment =
+      body.payment && typeof body.payment === "object" && !Array.isArray(body.payment)
+        ? body.payment
+        : null;
+    const stripeSessionId = text(payment?.stripeSessionId, 1, 255);
+    const stripePaymentIntentId = optionalText(payment?.stripePaymentIntentId, 255);
+    if (!stripeSessionId) return json({ error: "Invalid payment evidence", code: "INVALID_PAYMENT_EVIDENCE" }, 400);
+
+    const { data: matched, error: lookupError } = await db
+      .from("intake_submissions")
+      .select("id")
+      .eq("public_id", publicId)
+      .maybeSingle();
+    if (lookupError) return json({ error: "Unable to reconcile payment", code: "PAYMENT_CONVERSION_FAILED" }, 500);
+    if (!matched?.id) return json({ outcome: "not_found" });
+
+    const { data, error } = await db.rpc("gem_transition_intake", {
+      p_id: matched.id,
+      p_event_id: crypto.randomUUID(),
+      p_expected_status: "APPROVED",
+      p_next_status: "CONVERTED",
+      p_actor_id: null,
+      p_reason: "Verified GEM Stripe payment completed",
+      p_metadata: {
+        source: "stripe_webhook",
+        stripeSessionId,
+        stripePaymentIntentId,
+        offerCode: payment?.offerCode ?? null,
+        amountUsd: payment?.amountUsd ?? null,
+      },
+      p_assignment_supplied: false,
+      p_assigned_to_id: null,
+      p_now: new Date().toISOString(),
+    });
+    if (error || !Array.isArray(data) || !data[0]) {
+      return json({ error: "Unable to reconcile payment", code: "PAYMENT_CONVERSION_FAILED" }, 500);
+    }
+    const result = data[0] as { outcome?: string; current_status?: string };
+    if (result.outcome === "updated") return json({ outcome: "converted" });
+    if (result.outcome === "not_found") return json({ outcome: "not_found" });
+    if (result.current_status === "CONVERTED") return json({ outcome: "already_converted" });
+    return json({ outcome: "ignored", status: result.current_status ?? "UNKNOWN" });
+  }
+
+  const intakeId = text(body.intakeId, 1, 128);
+  if (!intakeId) return json({ error: "Invalid intake reference", code: "INVALID_INTAKE_ID" }, 400);
+
+  if (body.action === "get") {
+    const authority = await authorize("get", intakeId, body.capability);
+    if (!authority) return json({ error: "Forbidden", code: "CAPABILITY_REQUIRED" }, 403);
+
+    const { data: submission, error: submissionError } = await db
+      .from("intake_submissions")
+      .select("*")
+      .eq("id", intakeId)
+      .maybeSingle();
+    if (submissionError) return json({ error: "Unable to load intake", code: "INTAKE_READ_FAILED" }, 500);
+    if (!submission) return json({ error: "Intake not found", code: "INTAKE_NOT_FOUND" }, 404);
+
+    const { data: events, error: eventsError } = await db
+      .from("intake_status_events")
+      .select("*")
+      .eq("submission_id", intakeId)
+      .order("created_at", { ascending: true });
+    if (eventsError) return json({ error: "Unable to load intake history", code: "INTAKE_READ_FAILED" }, 500);
+
+    return json({
+      submission: mapSubmission(submission),
+      events: (events ?? []).map((row) => mapEvent(row)),
+    });
+  }
+
+  if (body.action === "update") {
+    const authority = await authorize("update", intakeId, body.capability);
+    if (!authority?.actorId) return json({ error: "Forbidden", code: "CAPABILITY_REQUIRED" }, 403);
+    const transition = body.transition ?? {};
+    const expectedStatus =
+      typeof transition.expectedStatus === "string" && statuses.has(transition.expectedStatus)
+        ? transition.expectedStatus
+        : null;
+    const nextStatus =
+      typeof transition.status === "string" && statuses.has(transition.status)
+        ? transition.status
+        : null;
+    const reason = text(transition.reason, 10, 1000);
+    const assignmentSupplied = Object.prototype.hasOwnProperty.call(transition, "assignedToId");
+    const assignedToId = optionalText(transition.assignedToId, 128);
+    if (!expectedStatus || !nextStatus || !reason) {
+      return json({ error: "Invalid transition", code: "INVALID_TRANSITION" }, 400);
+    }
+
+    const { data, error } = await db.rpc("gem_transition_intake", {
+      p_id: intakeId,
+      p_event_id: crypto.randomUUID(),
+      p_expected_status: expectedStatus,
+      p_next_status: nextStatus,
+      p_actor_id: authority.actorId,
+      p_reason: reason,
+      p_metadata: { source: "intake_gateway", action: "admin_status_transition" },
+      p_assignment_supplied: assignmentSupplied,
+      p_assigned_to_id: assignedToId,
+      p_now: new Date().toISOString(),
+    });
+    if (error || !Array.isArray(data) || !data[0]) {
+      return json({ error: "Unable to update intake", code: "INTAKE_UPDATE_FAILED" }, 500);
+    }
+    const result = data[0] as { outcome?: string; current_status?: string; submission?: Record<string, unknown> };
+    if (result.outcome === "not_found") return json({ error: "Intake not found", code: "INTAKE_NOT_FOUND" }, 404);
+    if (result.outcome === "conflict" || result.outcome === "invalid_transition") {
+      return json({
+        error: "Intake status changed or transition is not allowed.",
+        code: "STALE_INTAKE_STATUS",
+        currentStatus: result.current_status ?? null,
+      }, 409);
+    }
+    if (result.outcome !== "updated" || !result.submission) {
+      return json({ error: "Unable to update intake", code: "INTAKE_UPDATE_FAILED" }, 500);
+    }
+    return json({ submission: mapSubmission(result.submission) });
+  }
+
+  return json({ error: "Unsupported action", code: "UNSUPPORTED_ACTION" }, 400);
 });
