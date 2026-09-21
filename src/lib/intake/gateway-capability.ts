@@ -23,11 +23,13 @@ function signingKey(): Uint8Array {
 export type IntakeGatewayCapabilityClaims = {
   action: IntakeGatewayAction;
   intakeId: string | null;
+  actorId: string | null;
 };
 
 export async function createIntakeGatewayCapability(input: {
   action: IntakeGatewayAction;
   intakeId?: string | null;
+  actorId?: string | null;
   ttlSeconds?: number;
 }): Promise<string> {
   const ttl = Math.min(Math.max(input.ttlSeconds ?? 60, 15), MAX_TTL_SECONDS);
@@ -35,6 +37,7 @@ export async function createIntakeGatewayCapability(input: {
     purpose: PURPOSE,
     action: input.action,
     intakeId: input.intakeId?.trim() || null,
+    actorId: input.actorId?.trim() || null,
   })
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setIssuer(ISSUER)
@@ -59,10 +62,16 @@ export async function verifyIntakeGatewayCapability(
     ) {
       return null;
     }
-    if (payload.intakeId !== null && typeof payload.intakeId !== "string") return null;
+    if (payload.intakeId !== null && payload.intakeId !== undefined && typeof payload.intakeId !== "string") {
+      return null;
+    }
+    if (payload.actorId !== null && payload.actorId !== undefined && typeof payload.actorId !== "string") {
+      return null;
+    }
     return {
       action: payload.action as IntakeGatewayAction,
       intakeId: typeof payload.intakeId === "string" ? payload.intakeId : null,
+      actorId: typeof payload.actorId === "string" ? payload.actorId : null,
     };
   } catch {
     return null;
