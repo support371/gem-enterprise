@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import {
+  convertIntakeAfterPaymentViaGateway,
+  shouldUseIntakeGateway,
+} from "@/lib/intake/gateway";
 import { foundingBusinessReviewOffer } from "@/lib/market/launchOffer";
 
 export type PaymentConversionResult =
@@ -15,6 +19,16 @@ export async function convertApprovedIntakeAfterVerifiedPayment(input: {
   stripeSessionId: string;
   stripePaymentIntentId?: string | null;
 }): Promise<PaymentConversionResult> {
+  if (shouldUseIntakeGateway()) {
+    return convertIntakeAfterPaymentViaGateway({
+      publicId: input.publicId,
+      stripeSessionId: input.stripeSessionId,
+      stripePaymentIntentId: input.stripePaymentIntentId ?? null,
+      offerCode: foundingBusinessReviewOffer.code,
+      amountUsd: foundingBusinessReviewOffer.priceUsd,
+    });
+  }
+
   return db.$transaction(async (transaction) => {
     const lookup = input.intakeId
       ? Prisma.sql`id = ${input.intakeId} AND public_id = ${input.publicId}`
