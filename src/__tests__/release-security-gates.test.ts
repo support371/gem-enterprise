@@ -18,6 +18,14 @@ describe("release security gates", () => {
     expect(scanner).toContain("Secret values are intentionally not printed");
   });
 
+  it("does not run preview-only verification during production deployments", () => {
+    const build = source("scripts/vercel-build.mjs");
+
+    expect(build).toContain('env.VERCEL_ENV === "preview"');
+    expect(build).toContain('env.VERCEL_ENV !== "production"');
+    expect(build).toContain('env.RUN_PREVIEW_VERIFICATION === "true"');
+  });
+
   it("fails closed instead of using Prisma db push for production bootstrap", () => {
     const build = source("scripts/vercel-build.mjs");
 
