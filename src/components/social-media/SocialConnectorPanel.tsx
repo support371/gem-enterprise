@@ -52,10 +52,12 @@ export function SocialConnectorPanel({
   providers,
   workspaceId,
   workspaceLabel,
+  allowManualWorkspaceInput = true,
 }: {
   providers: SafeSocialOAuthReadiness[];
   workspaceId?: string | null;
   workspaceLabel?: string | null;
+  allowManualWorkspaceInput?: boolean;
 }) {
   const [manualWorkspaceId, setManualWorkspaceId] = useState("");
   const resolvedWorkspaceId = workspaceId?.trim() || "";
@@ -193,7 +195,7 @@ export function SocialConnectorPanel({
               Resolved automatically from your authenticated GEM account.
             </p>
           </div>
-        ) : (
+        ) : allowManualWorkspaceInput ? (
           <input
             value={manualWorkspaceId}
             onChange={(event) => setManualWorkspaceId(event.target.value)}
@@ -201,13 +203,18 @@ export function SocialConnectorPanel({
             autoComplete="off"
             className="min-w-64 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-white outline-none placeholder:text-white/30 focus:border-cyan-300/40"
           />
+        ) : (
+          <div className="rounded-xl border border-amber-300/20 bg-amber-300/[0.06] px-4 py-3 text-sm text-amber-100">
+            GEM publishing workspace is not available. No manual workspace ID is required.
+          </div>
         )}
       </div>
 
       {!canLoad ? (
         <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/55">
-          No workspace selected. On the Social Accounts page GEM resolves this automatically; legacy
-          management surfaces may still accept an authorized workspace ID.
+          {allowManualWorkspaceInput
+            ? "No workspace selected. Enter an authorized workspace ID for this legacy management surface."
+            : "GEM could not resolve the controlled publishing workspace. This is a server-side configuration issue, not a workspace ID you need to supply."}
         </div>
       ) : null}
       {loading ? (
