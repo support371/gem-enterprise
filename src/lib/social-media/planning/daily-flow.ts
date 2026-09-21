@@ -41,6 +41,7 @@ export interface DailyContentPlanningInput {
   minimumTikTokItems?: number;
   maxItemsPerOtherProvider?: number;
   providerTargets?: Partial<Record<SocialMediaProviderId, number>>;
+  approvalMode?: "HUMAN" | "AUTO_POLICY";
   /**
    * Defaults to lifetime uniqueness. Set a positive number only when an
    * operator has approved a bounded reuse window.
@@ -63,9 +64,9 @@ export interface DailyContentDraft {
   complianceReviewRequired: true;
   externalActionTaken: false;
   humanInteraction: {
-    required: true;
-    responseMode: "REAL_TIME";
-    livePerformanceReviewRequired: true;
+    required: boolean;
+    responseMode: "REAL_TIME" | "AUTOMATED";
+    livePerformanceReviewRequired: boolean;
   };
 }
 
@@ -274,11 +275,18 @@ export function buildAdaptiveDailyContentPlan(
         approvalRequired: true,
         complianceReviewRequired: true,
         externalActionTaken: false,
-        humanInteraction: {
-          required: true,
-          responseMode: "REAL_TIME",
-          livePerformanceReviewRequired: true,
-        },
+        humanInteraction:
+          input.approvalMode === "AUTO_POLICY"
+            ? {
+                required: false,
+                responseMode: "AUTOMATED",
+                livePerformanceReviewRequired: false,
+              }
+            : {
+                required: true,
+                responseMode: "REAL_TIME",
+                livePerformanceReviewRequired: true,
+              },
       });
     }
   }
