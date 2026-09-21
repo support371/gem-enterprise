@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   getSocialAutopilotEgressPolicy,
@@ -5,6 +7,10 @@ import {
   getSocialAutopilotProviderTargets,
   socialAutopilotAutoApprovalEnabled,
 } from "@/lib/social-media/autopilot/policy";
+import {
+  globalSocialPublishingEnabled,
+  providerSocialPublishingEnabled,
+} from "@/lib/social-media/publishing/gates";
 import {
   buildSocialAutopilotSlots,
   reservePlanDates,
@@ -108,5 +114,43 @@ describe("social autopilot scheduler", () => {
       env: {},
     });
     expect(slots.length).toBeLessThanOrEqual(6);
+  });
+});
+
+
+describe("social autopilot execution gates", () => {
+  it("does not materialize live jobs while global or provider publishing is disabled", () => {
+    expect(globalSocialPublishingEnabled({})).toBe(false);
+    expect(
+      globalSocialPublishingEnabled({
+        SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED: "true",
+      }),
+    ).toBe(true);
+    expect(providerSocialPublishingEnabled("X", {})).toBe(false);
+    expect(
+      providerSocialPublishingEnabled("X", {
+        X_SOCIAL_PUBLISHING_ENABLED: "true",
+      }),
+    ).toBe(true);
+
+    const service = readFileSync(
+      join(process.cwd(), "src/lib/social-media/autopilot/service.ts"),
+      "utf8",
+    );
+    expect(service).toContain("GLOBAL_LIVE_PUBLISHING_DISABLED");
+    expect(service).toContain("_LIVE_PUBLISHING_DISABLED");
+    expect(service).toContain("YOUTUBE_UPLOAD_PIPELINE_NOT_CERTIFIED");
+    expect(service).toContain("INSTAGRAM_REEL_MEDIA_REQUIRED");
+  });
+
+  it("keeps auto-policy drafts on text-safe formats until verified media exists", () => {
+    const planner = readFileSync(
+      join(process.cwd(), "src/lib/social-media/planning/daily-flow.ts"),
+      "utf8",
+    );
+    expect(planner).toContain('FACEBOOK_PAGE: ["TEXT", "LINK"]');
+    expect(planner).toContain('X: ["TEXT", "THREAD"]');
+    expect(planner).toContain('NEXTDOOR: ["LOCAL_UPDATE", "LINK"]');
+    expect(planner).toContain('LINKEDIN_COMPANY: ["TEXT", "ARTICLE"]');
   });
 });

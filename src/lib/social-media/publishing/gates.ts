@@ -19,18 +19,21 @@ const connectorProvider: Record<SharedSocialPublishingProvider, SocialOAuthProvi
   NEXTDOOR: "NEXTDOOR",
 };
 
-function enabled(name: string) {
-  return process.env[name]?.trim() === "true";
+function enabled(name: string, env: NodeJS.ProcessEnv = process.env) {
+  return env[name]?.trim() === "true";
 }
 
-export function globalSocialPublishingEnabled() {
-  return enabled("SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED");
+export function globalSocialPublishingEnabled(
+  env: NodeJS.ProcessEnv = process.env,
+) {
+  return enabled("SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED", env);
 }
 
 export function providerSocialPublishingEnabled(
   provider: SharedSocialPublishingProvider,
+  env: NodeJS.ProcessEnv = process.env,
 ) {
-  return enabled(providerLiveGate[provider]);
+  return enabled(providerLiveGate[provider], env);
 }
 
 export function connectorProviderMatches(
