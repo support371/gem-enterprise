@@ -3,8 +3,11 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
   createIntakeSubmissionViaGateway,
+  getIntakeSubmissionViaGateway,
   IntakeGatewayRequestError,
+  listIntakeSubmissionsViaGateway,
   shouldUseIntakeGateway,
+  updateIntakeSubmissionViaGateway,
 } from "@/lib/intake/gateway";
 import type {
   CreateIntakeSubmissionInput,
@@ -208,6 +211,10 @@ export async function listIntakeSubmissions(filters: {
   queue?: string;
   limit?: number;
 }): Promise<IntakeSubmissionRecord[]> {
+  if (shouldUseIntakeGateway()) {
+    return listIntakeSubmissionsViaGateway(filters);
+  }
+
   const conditions: Prisma.Sql[] = [];
   if (filters.kind) conditions.push(Prisma.sql`kind = CAST(${filters.kind} AS "IntakeKind")`);
   if (filters.status) {
@@ -238,6 +245,10 @@ export async function listIntakeSubmissions(filters: {
 export async function getIntakeSubmission(
   id: string,
 ): Promise<{ submission: IntakeSubmissionRecord; events: IntakeStatusEventRecord[] } | null> {
+  if (shouldUseIntakeGateway()) {
+    return getIntakeSubmissionViaGateway(id);
+  }
+
   try {
     const submissions = await db.$queryRaw<IntakeSubmissionRecord[]>(Prisma.sql`
       ${submissionSelect}
@@ -277,6 +288,21 @@ export async function updateIntakeSubmission(input: {
   reason: string;
   assignedToId?: string | null;
 }): Promise<IntakeSubmissionRecord | null> {
+  if (shouldUseIntakeGateway()) {
+    try {
+      return await updateIntakeSubmissionViaGateway(input);
+    } catch (error) {
+      if (
+        error instanceof IntakeGatewayRequestError &&
+        error.statusCode === 409 &&
+        error.currentStatus
+      ) {
+        throw new IntakeStatusConflictError(error.currentStatus);
+      }
+      throw error;
+    }
+  }
+
   const eventId = randomUUID();
   const now = new Date();
 
