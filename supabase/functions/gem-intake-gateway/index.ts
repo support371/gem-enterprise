@@ -209,6 +209,7 @@ Deno.serve(async (request) => {
         capability?: unknown;
         filters?: Record<string, unknown>;
         intakeId?: unknown;
+        publicId?: unknown;
         transition?: Record<string, unknown>;
         payment?: Record<string, unknown>;
       }
@@ -247,6 +248,55 @@ Deno.serve(async (request) => {
     const { data, error } = await query;
     if (error) return json({ error: "Unable to load intake", code: "INTAKE_READ_FAILED" }, 500);
     return json({ submissions: (data ?? []).map((row) => mapSubmission(row)) });
+  }
+
+  if (body.action === "convert") {
+    const publicId = text((body as Record<string, unknown>).publicId, 1, 160);
+    if (!publicId) return json({ error: "Invalid intake reference", code: "INVALID_INTAKE_ID" }, 400);
+    const authority = await authorize("convert", publicId, body.capability);
+    if (!authority) return json({ error: "Forbidden", code: "CAPABILITY_REQUIRED" }, 403);
+    const payment =
+      body.payment && typeof body.payment === "object" && !Array.isArray(body.payment)
+        ? body.payment
+        : null;
+    const stripeSessionId = text(payment?.stripeSessionId, 1, 255);
+    const stripePaymentIntentId = optionalText(payment?.stripePaymentIntentId, 255);
+    if (!stripeSessionId) return json({ error: "Invalid payment evidence", code: "INVALID_PAYMENT_EVIDENCE" }, 400);
+
+    const { data: matched, error: lookupError } = await db
+      .from("intake_submissions")
+      .select("id")
+      .eq("public_id", publicId)
+      .maybeSingle();
+    if (lookupError) return json({ error: "Unable to reconcile payment", code: "PAYMENT_CONVERSION_FAILED" }, 500);
+    if (!matched?.id) return json({ outcome: "not_found" });
+
+    const { data, error } = await db.rpc("gem_transition_intake", {
+      p_id: matched.id,
+      p_event_id: crypto.randomUUID(),
+      p_expected_status: "APPROVED",
+      p_next_status: "CONVERTED",
+      p_actor_id: null,
+      p_reason: "Verified GEM Stripe payment completed",
+      p_metadata: {
+        source: "stripe_webhook",
+        stripeSessionId,
+        stripePaymentIntentId,
+        offerCode: payment?.offerCode ?? null,
+        amountUsd: payment?.amountUsd ?? null,
+      },
+      p_assignment_supplied: false,
+      p_assigned_to_id: null,
+      p_now: new Date().toISOString(),
+    });
+    if (error || !Array.isArray(data) || !data[0]) {
+      return json({ error: "Unable to reconcile payment", code: "PAYMENT_CONVERSION_FAILED" }, 500);
+    }
+    const result = data[0] as { outcome?: string; current_status?: string };
+    if (result.outcome === "updated") return json({ outcome: "converted" });
+    if (result.outcome === "not_found") return json({ outcome: "not_found" });
+    if (result.current_status === "CONVERTED") return json({ outcome: "already_converted" });
+    return json({ outcome: "ignored", status: result.current_status ?? "UNKNOWN" });
   }
 
   const intakeId = text(body.intakeId, 1, 128);
@@ -324,45 +374,6 @@ Deno.serve(async (request) => {
       return json({ error: "Unable to update intake", code: "INTAKE_UPDATE_FAILED" }, 500);
     }
     return json({ submission: mapSubmission(result.submission) });
-  }
-
-  if (body.action === "convert") {
-    const authority = await authorize("convert", intakeId, body.capability);
-    if (!authority) return json({ error: "Forbidden", code: "CAPABILITY_REQUIRED" }, 403);
-    const payment =
-      body.payment && typeof body.payment === "object" && !Array.isArray(body.payment)
-        ? body.payment
-        : null;
-    const stripeSessionId = text(payment?.stripeSessionId, 1, 255);
-    const stripePaymentIntentId = optionalText(payment?.stripePaymentIntentId, 255);
-    if (!stripeSessionId) return json({ error: "Invalid payment evidence", code: "INVALID_PAYMENT_EVIDENCE" }, 400);
-
-    const { data, error } = await db.rpc("gem_transition_intake", {
-      p_id: intakeId,
-      p_event_id: crypto.randomUUID(),
-      p_expected_status: "APPROVED",
-      p_next_status: "CONVERTED",
-      p_actor_id: null,
-      p_reason: "Verified GEM Stripe payment completed",
-      p_metadata: {
-        source: "stripe_webhook",
-        stripeSessionId,
-        stripePaymentIntentId,
-        offerCode: payment?.offerCode ?? null,
-        amountUsd: payment?.amountUsd ?? null,
-      },
-      p_assignment_supplied: false,
-      p_assigned_to_id: null,
-      p_now: new Date().toISOString(),
-    });
-    if (error || !Array.isArray(data) || !data[0]) {
-      return json({ error: "Unable to reconcile payment", code: "PAYMENT_CONVERSION_FAILED" }, 500);
-    }
-    const result = data[0] as { outcome?: string; current_status?: string };
-    if (result.outcome === "updated") return json({ outcome: "converted" });
-    if (result.outcome === "not_found") return json({ outcome: "not_found" });
-    if (result.current_status === "CONVERTED") return json({ outcome: "already_converted" });
-    return json({ outcome: "ignored", status: result.current_status ?? "UNKNOWN" });
   }
 
   return json({ error: "Unsupported action", code: "UNSUPPORTED_ACTION" }, 400);
