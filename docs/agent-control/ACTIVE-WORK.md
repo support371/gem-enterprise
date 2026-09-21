@@ -1,6 +1,22 @@
 # Active Work
 
-Snapshot: 2026-08-11 UTC. Refresh live GitHub state before mutation.
+Snapshot: 2026-09-21 UTC. Refresh live GitHub state before mutation.
+
+## Social Publishing Queue Console
+
+| Field | Value |
+|---|---|
+| TASK | [SOCIAL-PUBLISHING-QUEUE-CONSOLE](tasks/SOCIAL-PUBLISHING-QUEUE-CONSOLE.md) |
+| OWNER | Codex / social media operations lane |
+| SOURCE PR/ISSUE | Owner request dated 2026-09-21 |
+| BASE SHA | `d80cd79d71899e33b2bd674e17d671c226528844` |
+| WORKING BRANCH | `codex/social-presence-completion` |
+| OWNED FILES/SCOPE | Client Social Media calendar, read-only shared publishing queue console, focused suite tests, and this control-plane record |
+| FORBIDDEN OVERLAP | Provider credentials; Telegram credential remediation in PR #292; TokMetric/TikTok publishing; Security Posture campaign PR #342; Prisma; production activation |
+| STATUS | IMPLEMENTED — LOCAL GATES PASSED |
+| BLOCKER CLASS | EXTERNAL (exact-head CI and preview evidence pending publication) |
+| LAST VERIFIED HEAD | Local working tree based on `d80cd79d71899e33b2bd674e17d671c226528844`; publication head not yet assigned |
+| NEXT SAFE ACTION | Publish the exact branch, open a focused pull request, and bind canonical preview and CI evidence to that head without activating any provider. |
 
 ## TikTok Shop Seller Sync
 

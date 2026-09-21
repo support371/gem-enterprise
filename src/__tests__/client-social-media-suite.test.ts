@@ -13,6 +13,7 @@ const tokMetricSource = readFileSync("src/app/app/social-media/tokmetric/page.ts
 const approvalsSource = readFileSync("src/app/app/social-media/approvals/page.tsx", "utf8");
 const calendarSource = readFileSync("src/app/app/social-media/calendar/page.tsx", "utf8");
 const analyticsSource = readFileSync("src/app/app/social-media/analytics/page.tsx", "utf8");
+const queuePanelSource = readFileSync("src/components/social-media/SocialPublishingQueuePanel.tsx", "utf8");
 
 describe("client-facing Social Media Suite", () => {
   it("registers the suite as a normal authenticated website workspace", () => {
@@ -38,6 +39,10 @@ describe("client-facing Social Media Suite", () => {
     expect(videoSource).toContain("GovernedVideoPreviewPanel");
     expect(approvalsSource).toContain("Mandatory publication checks");
     expect(calendarSource).toContain("Publishing calendar and queue preparation");
+    expect(calendarSource).toContain("SocialPublishingQueuePanel");
+    expect(queuePanelSource).toContain("/api/social-media/publishing/jobs?workspaceId=");
+    expect(queuePanelSource).toContain("This console cannot create, process, retry, or publish");
+    expect(queuePanelSource).not.toContain('method: "POST"');
     expect(analyticsSource).toContain("Metric source labels");
   });
 
