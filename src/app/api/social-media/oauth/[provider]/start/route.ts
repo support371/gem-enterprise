@@ -5,7 +5,7 @@ import {
   emitTokMetricAudit,
   enforceEmergencyLocks,
   requirePermission,
-  requireTokMetricSession,
+  requireActiveTokMetricSession,
   requireWorkspaceAccess,
   TokMetricError,
   tokMetricErrorResponse,
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   const cid = correlationId(request);
   try {
     requireTrustedNavigation(request);
-    const session = await requireTokMetricSession(request);
+    const session = await requireActiveTokMetricSession(request);
     const { provider: rawProvider } = await context.params;
     const provider = parseSocialOAuthProvider(rawProvider);
     const parsed = querySchema.safeParse(Object.fromEntries(request.nextUrl.searchParams));
