@@ -33,11 +33,24 @@ function StatusBadge({ state }: { state: SocialMediaReadinessState }) {
   );
 }
 
-export default async function SocialMediaAccountsPage() {
+export default async function SocialMediaAccountsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ workspace?: string | string[] }>;
+}) {
   const gate = await requireSession();
-  if (!gate.ok) redirect("/admin-login?next=/app/social-media/accounts");
+  if (!gate.ok || gate.accountStatus !== "active") {
+    redirect("/admin-login?next=/app/social-media/accounts");
+  }
 
-  const membershipResolution = await resolveWorkspaceAccess(gate.session.userId);
+  const params = await searchParams;
+  const requestedWorkspaceId = Array.isArray(params.workspace)
+    ? params.workspace[0]?.trim() || null
+    : params.workspace?.trim() || null;
+  const membershipResolution = await resolveWorkspaceAccess(
+    gate.session.userId,
+    requestedWorkspaceId,
+  );
   let publishingWorkspace = membershipResolution.selected
     ? { id: membershipResolution.selected.id, name: membershipResolution.selected.name }
     : null;
@@ -47,6 +60,7 @@ export default async function SocialMediaAccountsPage() {
   if (!publishingWorkspace && isAdminRole(gate.session.role) && gate.session.organizationId) {
     publishingWorkspace = await db.workspace.findFirst({
       where: {
+        ...(requestedWorkspaceId ? { id: requestedWorkspaceId } : {}),
         organizationId: gate.session.organizationId,
         organization: { status: "active" },
       },
