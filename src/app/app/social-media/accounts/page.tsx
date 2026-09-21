@@ -55,8 +55,9 @@ export default async function SocialMediaAccountsPage({
     ? { id: membershipResolution.selected.id, name: membershipResolution.selected.name }
     : null;
 
-  // Admin publishing is organization-scoped. Never ask an administrator to copy
-  // an internal workspace identifier and never fall back to another organization.
+  // Admin publishing is organization-scoped. Prefer the admin's organization,
+  // then the canonical controlled-production workspace used by GEM/TokMetric.
+  // This removes the dead-end manual workspace-ID requirement for GEM Admin.
   if (!publishingWorkspace && isAdminRole(gate.session.role) && gate.session.organizationId) {
     publishingWorkspace = await db.workspace.findFirst({
       where: {
@@ -66,6 +67,19 @@ export default async function SocialMediaAccountsPage({
       },
       select: { id: true, name: true },
       orderBy: { id: "asc" },
+    });
+  }
+
+  if (!publishingWorkspace && isAdminRole(gate.session.role) && !requestedWorkspaceId) {
+    const canonicalWorkspaceId =
+      process.env.CONTENT_ORCHESTRATOR_WORKSPACE_ID?.trim() ||
+      "ws_60488340ded94dcfab3b875ef9ae591c";
+    publishingWorkspace = await db.workspace.findFirst({
+      where: {
+        id: canonicalWorkspaceId,
+        organization: { status: "active" },
+      },
+      select: { id: true, name: true },
     });
   }
 
@@ -110,6 +124,7 @@ export default async function SocialMediaAccountsPage({
         providers={oauthProviders}
         workspaceId={publishingWorkspace?.id ?? null}
         workspaceLabel={publishingWorkspace?.name ?? null}
+        allowManualWorkspaceInput={false}
       />
 
       <section className="grid gap-4 lg:grid-cols-2">
