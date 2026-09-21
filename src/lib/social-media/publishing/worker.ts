@@ -3,6 +3,8 @@ import { loadSocialConnectorCredential } from "@/lib/social-media/oauth/lifecycl
 import { evaluateSocialPublishingAuthorization } from "@/lib/social-media/policy";
 import {
   getSocialAutopilotEgressPolicy,
+  SOCIAL_AUTOPILOT_POLICY_VERSION,
+  socialAutopilotAutoApprovalEnabled,
 } from "@/lib/social-media/autopilot/policy";
 import {
   isSocialAutopilotApprovalDecision,
@@ -149,6 +151,30 @@ async function block(
 async function processJob(job: SocialPublishingJobRecord) {
   const payloadMetadata = object(job.payload.metadata);
   if (payloadMetadata.autopilot === true) {
+    if (!socialAutopilotAutoApprovalEnabled()) {
+      return block(
+        job,
+        "SOCIAL_AUTOPILOT_DISABLED",
+        "Social Autopilot or automatic approval has been disabled after this job was queued.",
+      );
+    }
+    if (
+      payloadMetadata.autopilotPolicyVersion !==
+      SOCIAL_AUTOPILOT_POLICY_VERSION
+    ) {
+      return block(
+        job,
+        "SOCIAL_AUTOPILOT_POLICY_VERSION_STALE",
+        "The queued job was created under a different Social Autopilot policy version.",
+        {
+          queuedPolicyVersion:
+            typeof payloadMetadata.autopilotPolicyVersion === "string"
+              ? payloadMetadata.autopilotPolicyVersion
+              : null,
+          activePolicyVersion: SOCIAL_AUTOPILOT_POLICY_VERSION,
+        },
+      );
+    }
     try {
       getSocialAutopilotEgressPolicy();
     } catch (error) {
