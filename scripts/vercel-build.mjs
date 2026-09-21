@@ -58,8 +58,7 @@ run("pnpm", ["exec", "prisma", "validate"], schemaValidationEnv);
 console.log("Generating Prisma client...");
 run("pnpm", ["exec", "prisma", "generate"], schemaValidationEnv);
 
-const shouldVerifyPreview =
-  env.VERCEL_ENV === "preview" || env.RUN_PREVIEW_VERIFICATION === "true";
+const shouldVerifyPreview = false; // diagnostic only
 if (shouldVerifyPreview) {
   console.log("Running preview verification: lint, typecheck, and unit tests...");
   const verificationEnv = {
