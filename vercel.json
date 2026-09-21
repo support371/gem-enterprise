@@ -5,7 +5,9 @@
   "buildCommand": "pnpm run build",
   "devCommand": "pnpm dev",
   "installCommand": "pnpm install --frozen-lockfile",
-  "regions": ["sfo1"],
+  "regions": [
+    "sfo1"
+  ],
   "git": {
     "deploymentEnabled": {
       "main": true
@@ -18,7 +20,71 @@
     },
     {
       "path": "/api/social-media/orchestrator/daily/process",
+      "schedule": "10 5 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/07",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/08",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/09",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/10",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/11",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/12",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/13",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/14",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/15",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/16",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/17",
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/18",
+      "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/19",
+      "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/20",
+      "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/21",
+      "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/social-media/publishing/jobs/process/22",
+      "schedule": "0 22 * * *"
     }
   ],
   "env": {
@@ -48,7 +114,18 @@
     "NEXTDOOR_PUBLISHING_ENABLED": "false",
     "CONTENT_ORCHESTRATOR_PROVIDERS": "TIKTOK,FACEBOOK_PAGE,INSTAGRAM_PROFESSIONAL,X,NEXTDOOR",
     "CONTENT_ORCHESTRATOR_MINIMUM_TIKTOK_ITEMS": "20",
-    "CONTENT_ORCHESTRATOR_OTHER_PROVIDER_ITEMS": "3"
+    "CONTENT_ORCHESTRATOR_OTHER_PROVIDER_ITEMS": "3",
+    "SOCIAL_AUTOPILOT_ENABLED": "true",
+    "SOCIAL_AUTOPILOT_AUTO_APPROVAL_ENABLED": "true",
+    "SOCIAL_AUTOPILOT_RESERVE_DAYS": "3",
+    "SOCIAL_AUTOPILOT_EGRESS_MODE": "PLATFORM_DEFAULT",
+    "SOCIAL_AUTOPILOT_PROVIDERS": "FACEBOOK_PAGE,INSTAGRAM_PROFESSIONAL,X,LINKEDIN_COMPANY,YOUTUBE,NEXTDOOR",
+    "SOCIAL_AUTOPILOT_FACEBOOK_PAGE_DAILY_TARGET": "3",
+    "SOCIAL_AUTOPILOT_INSTAGRAM_PROFESSIONAL_DAILY_TARGET": "3",
+    "SOCIAL_AUTOPILOT_X_DAILY_TARGET": "8",
+    "SOCIAL_AUTOPILOT_LINKEDIN_COMPANY_DAILY_TARGET": "2",
+    "SOCIAL_AUTOPILOT_YOUTUBE_DAILY_TARGET": "1",
+    "SOCIAL_AUTOPILOT_NEXTDOOR_DAILY_TARGET": "1"
   },
   "headers": [
     {
