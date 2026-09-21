@@ -40,6 +40,7 @@ export interface DailyContentPlanningInput {
   enabledProviders: readonly SocialMediaProviderId[];
   minimumTikTokItems?: number;
   maxItemsPerOtherProvider?: number;
+  providerTargets?: Partial<Record<SocialMediaProviderId, number>>;
   /**
    * Defaults to lifetime uniqueness. Set a positive number only when an
    * operator has approved a bounded reuse window.
@@ -152,6 +153,10 @@ function angleFor(sequence: number, signal: MarketSignal, source: ApprovedSource
 }
 
 function dailyTarget(provider: SocialMediaProviderId, input: DailyContentPlanningInput) {
+  const configuredTarget = input.providerTargets?.[provider];
+  if (typeof configuredTarget === "number" && Number.isFinite(configuredTarget)) {
+    return Math.max(0, Math.floor(configuredTarget));
+  }
   if (provider === "TIKTOK") return Math.max(20, input.minimumTikTokItems ?? 20);
   if (provider === "INDEED_EMPLOYER") return 1;
   return Math.max(1, input.maxItemsPerOtherProvider ?? 3);
@@ -207,6 +212,7 @@ export function buildAdaptiveDailyContentPlan(
       sourceEligibleForProvider(provider, source),
     );
     const target = dailyTarget(provider, input);
+    if (target <= 0) continue;
 
     if (
       provider === "INDEED_EMPLOYER" &&
