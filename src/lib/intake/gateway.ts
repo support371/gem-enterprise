@@ -204,7 +204,7 @@ export async function updateIntakeSubmissionViaGateway(input: {
 }
 
 export async function convertIntakeAfterPaymentViaGateway(input: {
-  intakeId: string;
+  publicId: string;
   stripeSessionId: string;
   stripePaymentIntentId?: string | null;
   offerCode: string;
@@ -218,7 +218,7 @@ export async function convertIntakeAfterPaymentViaGateway(input: {
   const body = await gatewayRequest(
     {
       action: "convert",
-      intakeId: input.intakeId,
+      publicId: input.publicId,
       payment: {
         stripeSessionId: input.stripeSessionId,
         stripePaymentIntentId: input.stripePaymentIntentId ?? null,
@@ -226,7 +226,7 @@ export async function convertIntakeAfterPaymentViaGateway(input: {
         amountUsd: input.amountUsd,
       },
     },
-    { action: "convert", intakeId: input.intakeId },
+    { action: "convert", intakeId: input.publicId },
   );
   if (body.outcome === "converted" || body.outcome === "already_converted" || body.outcome === "not_found") {
     return { outcome: body.outcome };
