@@ -6,7 +6,7 @@ import {
   enforceEmergencyLocks,
   parseJson,
   requirePermission,
-  requireTokMetricSession,
+  requireActiveTokMetricSession,
   requireWorkspaceAccess,
   TokMetricError,
   tokMetricErrorResponse,
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
   try {
     requireSameOrigin(request);
-    const session = await requireTokMetricSession(request);
+    const session = await requireActiveTokMetricSession(request);
     actorId = session.userId;
     const parsed = await parseJson(request, healthSchema);
     workspaceId = parsed.workspaceId!;
