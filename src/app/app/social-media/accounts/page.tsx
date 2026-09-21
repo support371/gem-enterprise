@@ -72,15 +72,32 @@ export default async function SocialMediaAccountsPage({
 
   if (!publishingWorkspace && isAdminRole(gate.session.role) && !requestedWorkspaceId) {
     const canonicalWorkspaceId =
-      process.env.CONTENT_ORCHESTRATOR_WORKSPACE_ID?.trim() ||
-      "ws_60488340ded94dcfab3b875ef9ae591c";
-    publishingWorkspace = await db.workspace.findFirst({
-      where: {
-        id: canonicalWorkspaceId,
-        organization: { status: "active" },
-      },
-      select: { id: true, name: true },
-    });
+      process.env.CONTENT_ORCHESTRATOR_WORKSPACE_ID?.trim();
+    const serviceActorId =
+      process.env.CONTENT_ORCHESTRATOR_ACTOR_ID?.trim();
+
+    if (canonicalWorkspaceId && serviceActorId) {
+      const serviceActor = await db.user.findFirst({
+        where: {
+          id: serviceActorId,
+          status: "active",
+          isActive: true,
+          organizationId: { not: null },
+        },
+        select: { organizationId: true },
+      });
+
+      if (serviceActor?.organizationId) {
+        publishingWorkspace = await db.workspace.findFirst({
+          where: {
+            id: canonicalWorkspaceId,
+            organizationId: serviceActor.organizationId,
+            organization: { status: "active" },
+          },
+          select: { id: true, name: true },
+        });
+      }
+    }
   }
 
   const providers = getSocialMediaProviderReadiness();
