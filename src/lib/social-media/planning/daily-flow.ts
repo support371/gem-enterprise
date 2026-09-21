@@ -88,6 +88,15 @@ const providerFormats: Record<SocialMediaProviderId, readonly SocialContentType[
   YOUTUBE: ["SHORT_VIDEO", "LONG_VIDEO"],
 };
 
+const autoPolicyFormats: Partial<
+  Record<SocialMediaProviderId, readonly SocialContentType[]>
+> = {
+  FACEBOOK_PAGE: ["TEXT", "LINK"],
+  X: ["TEXT", "THREAD"],
+  NEXTDOOR: ["LOCAL_UPDATE", "LINK"],
+  LINKEDIN_COMPANY: ["TEXT", "ARTICLE"],
+};
+
 function clampScore(value: number) {
   if (!Number.isFinite(value)) return 0;
   return Math.min(1, Math.max(0, value));
@@ -128,11 +137,15 @@ function formatFor(
   provider: SocialMediaProviderId,
   sequence: number,
   source: ApprovedSourceMaterial,
+  approvalMode: "HUMAN" | "AUTO_POLICY" = "HUMAN",
 ) {
   if (provider === "INDEED_EMPLOYER") {
     return source.vacancyId ? "JOB_POSTING" : "EMPLOYER_UPDATE";
   }
-  const formats = providerFormats[provider];
+  const formats =
+    approvalMode === "AUTO_POLICY" && autoPolicyFormats[provider]?.length
+      ? autoPolicyFormats[provider]!
+      : providerFormats[provider];
   return formats[(sequence - 1) % formats.length];
 }
 
@@ -246,7 +259,12 @@ export function buildAdaptiveDailyContentPlan(
           Math.floor((attempts - 1) / providerSignals.length) %
             providerSources.length
         ];
-      const contentType = formatFor(provider, providerSequence, source);
+      const contentType = formatFor(
+        provider,
+        providerSequence,
+        source,
+        input.approvalMode,
+      );
       const angle = angleFor(attempts, signal, source);
       const fingerprint = contentFingerprint({
         provider,
