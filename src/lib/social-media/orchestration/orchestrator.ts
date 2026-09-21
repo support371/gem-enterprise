@@ -40,6 +40,7 @@ export interface DailyContentOrchestrationInput {
   localContext?: string;
   minimumTikTokItems?: number;
   maxItemsPerOtherProvider?: number;
+  // Accepted for API compatibility while AUTO_POLICY orchestration remains fail-closed.
   providerTargets?: Partial<Record<SocialMediaProviderId, number>>;
   approvalMode?: "HUMAN" | "AUTO_POLICY";
   freshnessWindowDays?: number | null;
@@ -74,15 +75,8 @@ function toJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
 
-function dailyCampaignTitle(
-  planDate: Date,
-  approvalMode: "HUMAN" | "AUTO_POLICY" = "HUMAN",
-) {
-  const prefix =
-    approvalMode === "AUTO_POLICY"
-      ? "GEM Social Autopilot Plan"
-      : "GEM Adaptive Content Plan";
-  return `${prefix} ${planDate.toISOString().slice(0, 10)}`;
+function dailyCampaignTitle(planDate: Date) {
+  return `GEM Adaptive Content Plan ${planDate.toISOString().slice(0, 10)}`;
 }
 
 function object(value: unknown): Record<string, unknown> {
@@ -107,29 +101,11 @@ function provider(value: unknown): SocialMediaProviderId | undefined {
     : undefined;
 }
 
-function materializedState(input: {
-  complianceResult: string;
-  autoPolicy: boolean;
-  hasApproval: boolean;
-}): MaterializedContentResult["state"] {
-  if (
-    input.complianceResult === "BLOCKED" ||
-    input.complianceResult === "CHANGES_REQUIRED"
-  ) {
-    return "COMPLIANCE_BLOCKED";
-  }
-  if (input.autoPolicy && input.complianceResult === "PASS") {
-    return "AUTO_POLICY_READY";
-  }
-  if (input.hasApproval) return "AWAITING_HUMAN_APPROVAL";
-  return "COMPLIANCE_REVIEW_REQUIRED";
-}
-
 async function existingDailyPlan(input: DailyContentOrchestrationInput) {
   const campaign = await db.campaign.findFirst({
     where: {
       workspaceId: input.workspaceId,
-      title: dailyCampaignTitle(input.planDate, input.approvalMode),
+      title: dailyCampaignTitle(input.planDate),
     },
     include: {
       contents: {
@@ -157,11 +133,12 @@ async function existingDailyPlan(input: DailyContentOrchestrationInput) {
       const review = content.reviews[0];
       if (!contentProvider || !fingerprint || !review) return [];
       const approval = content.approvals[0];
-      const state = materializedState({
-        complianceResult: review.result,
-        autoPolicy: orchestration.approvalMode === "AUTO_POLICY",
-        hasApproval: Boolean(approval),
-      });
+      const state: MaterializedContentResult["state"] =
+        review.result === "BLOCKED" || review.result === "CHANGES_REQUIRED"
+          ? "COMPLIANCE_BLOCKED"
+          : approval
+            ? "AWAITING_HUMAN_APPROVAL"
+            : "COMPLIANCE_REVIEW_REQUIRED";
       return [
         {
           contentId: content.id,
@@ -177,7 +154,7 @@ async function existingDailyPlan(input: DailyContentOrchestrationInput) {
     },
   );
 
-  const drafts: DailyContentPlan["drafts"] = materialized.map((item, index) => ({
+  const drafts = materialized.map((item, index) => ({
     sequence: index + 1,
     provider: item.provider,
     contentType: "TEXT" as const,
@@ -190,18 +167,11 @@ async function existingDailyPlan(input: DailyContentOrchestrationInput) {
     approvalRequired: true as const,
     complianceReviewRequired: true as const,
     externalActionTaken: false as const,
-    humanInteraction:
-      input.approvalMode === "AUTO_POLICY"
-        ? {
-            required: false,
-            responseMode: "AUTOMATED" as const,
-            livePerformanceReviewRequired: false,
-          }
-        : {
-            required: true,
-            responseMode: "REAL_TIME" as const,
-            livePerformanceReviewRequired: true,
-          },
+    humanInteraction: {
+      required: true as const,
+      responseMode: "REAL_TIME" as const,
+      livePerformanceReviewRequired: true as const,
+    },
   }));
 
   return {
@@ -221,18 +191,10 @@ async function createDailyCampaign(input: {
   actorId: string;
   correlationId: string;
   plan: DailyContentPlan;
-  approvalMode: "HUMAN" | "AUTO_POLICY";
 }) {
-  const title = dailyCampaignTitle(
-    new Date(`${input.plan.planDate}T00:00:00.000Z`),
-    input.approvalMode,
-  );
+  const title = dailyCampaignTitle(new Date(`${input.plan.planDate}T00:00:00.000Z`));
   const payload = {
-    type:
-      input.approvalMode === "AUTO_POLICY"
-        ? "AUTONOMOUS_DAILY_SOCIAL_CONTENT"
-        : "ADAPTIVE_DAILY_SOCIAL_CONTENT",
-    approvalMode: input.approvalMode,
+    type: "ADAPTIVE_DAILY_SOCIAL_CONTENT",
     planDate: input.plan.planDate,
     draftFingerprints: input.plan.drafts.map((draft) => draft.fingerprint),
     rejectedReasons: input.plan.rejectedReasons,
@@ -334,8 +296,6 @@ export async function orchestrateDailyContent(
     enabledProviders: input.enabledProviders,
     minimumTikTokItems: input.minimumTikTokItems,
     maxItemsPerOtherProvider: input.maxItemsPerOtherProvider,
-    providerTargets: input.providerTargets,
-    approvalMode: input.approvalMode,
     freshnessWindowDays: input.freshnessWindowDays,
   });
 
@@ -353,7 +313,6 @@ export async function orchestrateDailyContent(
     actorId: input.actorId,
     correlationId: input.correlationId,
     plan,
-    approvalMode: input.approvalMode ?? "HUMAN",
   });
   const sourcesById = new Map(approvedSources.map((source) => [source.id, source]));
   const signalsById = new Map(learnedSignals.map((signal) => [signal.id, signal]));
@@ -374,7 +333,6 @@ export async function orchestrateDailyContent(
       source,
       signal,
       localContext: draft.provider === "NEXTDOOR" ? input.localContext : undefined,
-      approvalMode: input.approvalMode ?? "HUMAN",
     });
     const settings = {
       title: contentPackage.title,
@@ -399,7 +357,6 @@ export async function orchestrateDailyContent(
         sourceMaterialId: draft.sourceMaterialId,
         signalId: draft.signalId,
         humanInteraction: draft.humanInteraction,
-        approvalMode: input.approvalMode ?? "HUMAN",
       },
       videoRecipe: contentPackage.shortVideo,
       visualBrief: contentPackage.visualBrief,
@@ -450,11 +407,12 @@ export async function orchestrateDailyContent(
       complianceReviewId: review.id,
       complianceResult: review.result,
       approvalRequestId,
-      state: materializedState({
-        complianceResult: review.result,
-        autoPolicy: input.approvalMode === "AUTO_POLICY",
-        hasApproval: Boolean(approvalRequestId),
-      }),
+      state:
+        review.result === "BLOCKED" || review.result === "CHANGES_REQUIRED"
+          ? "COMPLIANCE_BLOCKED"
+          : approvalRequestId
+            ? "AWAITING_HUMAN_APPROVAL"
+            : "COMPLIANCE_REVIEW_REQUIRED",
     });
   }
 
