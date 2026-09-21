@@ -262,6 +262,52 @@ export async function listSocialPublishingJobs(input: {
   }
 }
 
+export async function countSocialPublishingJobsForWindow(input: {
+  workspaceId: string;
+  provider: SharedSocialPublishingProvider;
+  start: Date;
+  end: Date;
+}) {
+  try {
+    const rows = await db.$queryRaw<Array<{ count: number }>>(Prisma.sql`
+      SELECT COUNT(*)::int AS count
+      FROM social_publishing_jobs
+      WHERE workspace_id = ${input.workspaceId}
+        AND provider = ${input.provider}
+        AND COALESCE(scheduled_for, created_at) >= ${input.start}
+        AND COALESCE(scheduled_for, created_at) < ${input.end}
+        AND state <> 'CANCELLED'
+    `);
+    return rows[0]?.count ?? 0;
+  } catch (error) {
+    return storeUnavailable(error);
+  }
+}
+
+export async function hasRecentSocialPublishingFingerprint(input: {
+  workspaceId: string;
+  provider: SharedSocialPublishingProvider;
+  fingerprint: string;
+  since: Date;
+}) {
+  try {
+    const rows = await db.$queryRaw<Array<{ found: boolean }>>(Prisma.sql`
+      SELECT EXISTS (
+        SELECT 1
+        FROM social_publishing_jobs
+        WHERE workspace_id = ${input.workspaceId}
+          AND provider = ${input.provider}
+          AND state <> 'CANCELLED'
+          AND created_at >= ${input.since}
+          AND payload -> 'metadata' ->> 'autopilotFingerprint' = ${input.fingerprint}
+      ) AS found
+    `);
+    return Boolean(rows[0]?.found);
+  } catch (error) {
+    return storeUnavailable(error);
+  }
+}
+
 export async function claimSocialPublishingJobs(limit = 10) {
   const claimId = randomUUID();
   const now = new Date();

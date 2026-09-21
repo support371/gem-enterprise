@@ -34,6 +34,12 @@ const suiteItems = [
     icon: Network,
   },
   {
+    href: "/app/social-media/autopilot",
+    label: "Autopilot",
+    description: "Autonomous cadence, reserve, policy gates, and health",
+    icon: Activity,
+  },
+  {
     href: "/app/social-media/content",
     label: "Content",
     description: "Campaigns, copy, and creative packages",
@@ -66,7 +72,7 @@ const suiteItems = [
   {
     href: "/app/social-media/approvals",
     label: "Approvals",
-    description: "Compliance and human decisions",
+    description: "Compliance evidence and manual exception decisions",
     icon: CheckSquare2,
   },
   {

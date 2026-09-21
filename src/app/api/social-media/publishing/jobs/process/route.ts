@@ -15,7 +15,7 @@ function authorized(request: NextRequest) {
   );
 }
 
-export async function POST(request: NextRequest) {
+async function run(request: NextRequest) {
   if (!process.env.CRON_SECRET?.trim()) {
     return NextResponse.json(
       {
@@ -66,4 +66,13 @@ export async function POST(request: NextRequest) {
       { status: 500, headers: { "Cache-Control": "no-store, max-age=0" } },
     );
   }
+}
+
+
+export async function GET(request: NextRequest) {
+  return run(request);
+}
+
+export async function POST(request: NextRequest) {
+  return run(request);
 }

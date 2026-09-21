@@ -2,6 +2,12 @@ import { db } from "@/lib/db";
 import { loadSocialConnectorCredential } from "@/lib/social-media/oauth/lifecycle-store";
 import { evaluateSocialPublishingAuthorization } from "@/lib/social-media/policy";
 import {
+  getSocialAutopilotEgressPolicy,
+} from "@/lib/social-media/autopilot/policy";
+import {
+  isSocialAutopilotApprovalDecision,
+} from "@/lib/social-media/autopilot/service";
+import {
   emitTokMetricAudit,
   enforceEmergencyLocks,
   TokMetricError,
@@ -67,12 +73,22 @@ async function governanceEvidence(job: SocialPublishingJobRecord) {
     approval?.contentVersion?.objectHash === job.contentVersionHash &&
     approval?.objectHash === job.approvedVersionHash &&
     job.contentVersionHash === job.approvedVersionHash;
+  const humanApprovalValid =
+    Boolean(decision?.actorId) &&
+    decision?.actorId !== approval?.requestedById;
+  const autoPolicyApprovalValid =
+    Boolean(approval && decision) &&
+    isSocialAutopilotApprovalDecision({
+      provider: job.provider,
+      approvalAction: approval?.action,
+      actorId: decision?.actorId,
+      reason: decision?.reason,
+    });
   const approvalValid =
     Boolean(approval) &&
     decision?.decision.toLowerCase() === "approve" &&
     decision.objectHash === job.approvedVersionHash &&
-    Boolean(decision.actorId) &&
-    decision.actorId !== approval?.requestedById &&
+    (humanApprovalValid || autoPolicyApprovalValid) &&
     activeVersionMatches &&
     versionHashMatches;
   const complianceValid =
@@ -86,6 +102,7 @@ async function governanceEvidence(job: SocialPublishingJobRecord) {
     approvalValid,
     complianceValid,
     approvalDecisionId: decision?.id || null,
+    approvalMode: autoPolicyApprovalValid ? "AUTO_POLICY" : "HUMAN",
     contentVersionId: versionId,
   };
 }
@@ -130,6 +147,21 @@ async function block(
 }
 
 async function processJob(job: SocialPublishingJobRecord) {
+  const payloadMetadata = object(job.payload.metadata);
+  if (payloadMetadata.autopilot === true) {
+    try {
+      getSocialAutopilotEgressPolicy();
+    } catch (error) {
+      return block(
+        job,
+        "SOCIAL_AUTOPILOT_EGRESS_POLICY_BLOCKED",
+        error instanceof Error
+          ? error.message
+          : "Social Autopilot egress policy is invalid.",
+      );
+    }
+  }
+
   try {
     await enforceEmergencyLocks(job.workspaceId, "publish");
   } catch (error) {
@@ -189,6 +221,7 @@ async function processJob(job: SocialPublishingJobRecord) {
         missingScopes,
         contentVersionId: evidence.contentVersionId,
         approvalDecisionId: evidence.approvalDecisionId,
+        approvalMode: evidence.approvalMode,
       },
     );
   }
@@ -230,6 +263,8 @@ async function processJob(job: SocialPublishingJobRecord) {
         provider: job.provider,
         connectorId: job.connectorId,
         externalPostId: result.externalPostId,
+        approvalMode: evidence.approvalMode,
+        autopilot: payloadMetadata.autopilot === true,
       },
     });
     return updated;

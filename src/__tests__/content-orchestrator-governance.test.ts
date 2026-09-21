@@ -56,7 +56,8 @@ describe("governed content orchestrator", () => {
 
   it("stores renderer-independent recipes and flags sensitive claims", () => {
     expect(packageGenerator).toContain("rendererInput");
-    expect(packageGenerator).toContain("humanReviewRequired: true");
+    expect(packageGenerator).toContain('humanReviewRequired: input.approvalMode !== "AUTO_POLICY"');
+    expect(packageGenerator).toContain("EXACT_VERSION_AUTO_POLICY_REQUIRED");
     expect(packageGenerator).toContain("UNSUPPORTED_CLAIM");
     expect(packageGenerator).toContain("SECURITY_SENSITIVE_DETAIL");
     expect(packageGenerator).toContain("REGULATORY_CLAIM");
