@@ -2,6 +2,22 @@
 
 Snapshot: 2026-09-21 UTC. Refresh live GitHub state before mutation.
 
+## Social Autopilot
+
+| Field | Value |
+|---|---|
+| TASK | [SOCIAL-AUTOPILOT](tasks/SOCIAL-AUTOPILOT.md) |
+| OWNER | Codex / social media automation lane |
+| SOURCE PR/ISSUE | Owner request dated 2026-09-21 |
+| BASE SHA | `338fede0d0e419c31099b72c6753514eb33b3c7a` |
+| WORKING BRANCH | `codex/social-autopilot` |
+| OWNED FILES/SCOPE | Social autopilot policy/scheduler/service, orchestration approval mode, queue evidence validation, safe cron aliases, Autopilot UI, focused tests, and this control-plane record |
+| FORBIDDEN OVERLAP | Telegram credential remediation PR #292; TikTok/TokMetric provider controls; fake engagement/browser automation; provider credentials; unrelated application domains |
+| STATUS | IMPLEMENTED — EXACT-HEAD CANONICAL VERCEL BUILD PASSED |
+| BLOCKER CLASS | PROVIDER ACCESS / PRODUCTION ACTIVATION |
+| LAST VERIFIED HEAD | Exact branch head to be refreshed after this control-plane commit |
+| NEXT SAFE ACTION | Open focused PR, verify exact-head canonical deployment and runner evidence, then await separate merge authorization. |
+
 ## Social Publishing Queue Console
 
 | Field | Value |
@@ -13,10 +29,10 @@ Snapshot: 2026-09-21 UTC. Refresh live GitHub state before mutation.
 | WORKING BRANCH | `codex/social-presence-completion` |
 | OWNED FILES/SCOPE | Client Social Media calendar, read-only shared publishing queue console, focused suite tests, and this control-plane record |
 | FORBIDDEN OVERLAP | Provider credentials; Telegram credential remediation in PR #292; TokMetric/TikTok publishing; Security Posture campaign PR #342; Prisma; production activation |
-| STATUS | IMPLEMENTED — LOCAL GATES PASSED |
-| BLOCKER CLASS | EXTERNAL (exact-head CI and preview evidence pending publication) |
-| LAST VERIFIED HEAD | Local working tree based on `d80cd79d71899e33b2bd674e17d671c226528844`; publication head not yet assigned |
-| NEXT SAFE ACTION | Publish the exact branch, open a focused pull request, and bind canonical preview and CI evidence to that head without activating any provider. |
+| STATUS | MERGED — PR #355 |
+| BLOCKER CLASS | NONE |
+| LAST VERIFIED HEAD | `338fede0d0e419c31099b72c6753514eb33b3c7a` on `main` |
+| NEXT SAFE ACTION | Superseded by the Social Autopilot lane for autonomous scheduling and policy-gated queue replenishment. |
 
 ## TikTok Shop Seller Sync
 
