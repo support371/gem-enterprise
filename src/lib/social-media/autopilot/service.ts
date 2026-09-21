@@ -3,6 +3,8 @@ import { listSocialConnectors } from "@/lib/social-media/oauth/store";
 import {
   accountTypeMatches,
   connectorProviderMatches,
+  globalSocialPublishingEnabled,
+  providerSocialPublishingEnabled,
 } from "@/lib/social-media/publishing/gates";
 import {
   countSocialPublishingJobsForWindow,
@@ -323,6 +325,39 @@ function derivePayload(input: {
   } satisfies SocialPublishingPayload;
 }
 
+
+function mediaExecutionBlocker(input: {
+  provider: SharedSocialPublishingProvider;
+  contentType: SocialContentType;
+  mediaAssets: Array<{ mimeType: string }>;
+}) {
+  if (input.provider === "YOUTUBE") {
+    return "YOUTUBE_UPLOAD_PIPELINE_NOT_CERTIFIED";
+  }
+  if (input.provider !== "INSTAGRAM_PROFESSIONAL") return undefined;
+
+  if (input.contentType === "CAROUSEL") {
+    const valid =
+      input.mediaAssets.length >= 2 &&
+      input.mediaAssets.length <= 10 &&
+      input.mediaAssets.every((asset) => asset.mimeType.startsWith("image/"));
+    return valid ? undefined : "INSTAGRAM_CAROUSEL_MEDIA_REQUIRED";
+  }
+  if (input.contentType === "REEL") {
+    return input.mediaAssets.length === 1 &&
+      input.mediaAssets[0]?.mimeType.startsWith("video/")
+      ? undefined
+      : "INSTAGRAM_REEL_MEDIA_REQUIRED";
+  }
+  if (input.contentType === "IMAGE") {
+    return input.mediaAssets.length === 1 &&
+      input.mediaAssets[0]?.mimeType.startsWith("image/")
+      ? undefined
+      : "INSTAGRAM_IMAGE_MEDIA_REQUIRED";
+  }
+  return "INSTAGRAM_CONTENT_TYPE_NOT_EXECUTABLE";
+}
+
 export async function materializeSocialAutopilotJobs(input: {
   workspaceId: string;
   actorId: string;
@@ -361,6 +396,21 @@ export async function materializeSocialAutopilotJobs(input: {
       blockedReasons.push(`${providerId}_AUTOPILOT_NOT_SUPPORTED`);
       skipped += input.result.materialized.filter(
         (item) => item.provider === providerId,
+      ).length;
+      continue;
+    }
+
+    if (!globalSocialPublishingEnabled(env)) {
+      blockedReasons.push("GLOBAL_LIVE_PUBLISHING_DISABLED");
+      skipped += input.result.materialized.filter(
+        (item) => item.provider === provider,
+      ).length;
+      continue;
+    }
+    if (!providerSocialPublishingEnabled(provider, env)) {
+      blockedReasons.push(`${provider}_LIVE_PUBLISHING_DISABLED`);
+      skipped += input.result.materialized.filter(
+        (item) => item.provider === provider,
       ).length;
       continue;
     }
@@ -491,6 +541,16 @@ export async function materializeSocialAutopilotJobs(input: {
       if (mediaAssets.length !== version.mediaAssetIds.length) {
         skipped += 1;
         blockedReasons.push(`${provider}_MEDIA_ASSET_MISSING`);
+        continue;
+      }
+      const mediaBlocker = mediaExecutionBlocker({
+        provider,
+        contentType,
+        mediaAssets,
+      });
+      if (mediaBlocker) {
+        skipped += 1;
+        blockedReasons.push(mediaBlocker);
         continue;
       }
 
