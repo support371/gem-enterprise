@@ -9,6 +9,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { getSocialMediaProviderReadiness } from "@/lib/social-media/providers";
+import { SocialPublishingQueuePanel } from "@/components/social-media/SocialPublishingQueuePanel";
 
 const schedulingRules = [
   "Only a compliance-cleared, human-approved exact version can enter a publishing window.",
@@ -69,6 +70,8 @@ export default function SocialMediaCalendarPage() {
           </Link>
         </article>
       </section>
+
+      <SocialPublishingQueuePanel />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {providers.map((provider) => (

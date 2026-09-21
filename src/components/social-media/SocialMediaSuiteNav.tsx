@@ -6,10 +6,16 @@ import {
   BarChart3,
   CalendarDays,
   CheckSquare2,
+  Activity,
   Film,
+  History,
+  Layers3,
   LayoutDashboard,
+  ListChecks,
   Megaphone,
   Network,
+  PenSquare,
+  Settings2,
   Video,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -32,6 +38,18 @@ const suiteItems = [
     label: "Content",
     description: "Campaigns, copy, and creative packages",
     icon: Megaphone,
+  },
+  {
+    href: "/app/social-media/create",
+    label: "Create",
+    description: "Generate governed text, image, and video-ready content",
+    icon: PenSquare,
+  },
+  {
+    href: "/app/social-media/campaigns",
+    label: "Campaigns",
+    description: "Load, generate, and inspect campaign plans",
+    icon: Layers3,
   },
   {
     href: "/app/social-media/video",
@@ -58,10 +76,28 @@ const suiteItems = [
     icon: CalendarDays,
   },
   {
+    href: "/app/social-media/queue",
+    label: "Queue",
+    description: "Inspect governed cross-platform publishing jobs",
+    icon: ListChecks,
+  },
+  {
+    href: "/app/social-media/activity",
+    label: "Activity",
+    description: "Delivery attempts, evidence, and provider outcomes",
+    icon: History,
+  },
+  {
     href: "/app/social-media/analytics",
     label: "Analytics",
     description: "Performance and learning signals",
     icon: BarChart3,
+  },
+  {
+    href: "/app/social-media/settings",
+    label: "Settings",
+    description: "Provider authorization and readiness controls",
+    icon: Settings2,
   },
 ] as const;
 
