@@ -14,6 +14,7 @@ const approvalsSource = readFileSync("src/app/app/social-media/approvals/page.ts
 const calendarSource = readFileSync("src/app/app/social-media/calendar/page.tsx", "utf8");
 const analyticsSource = readFileSync("src/app/app/social-media/analytics/page.tsx", "utf8");
 const queuePanelSource = readFileSync("src/components/social-media/SocialPublishingQueuePanel.tsx", "utf8");
+const connectorPanelSource = readFileSync("src/components/social-media/SocialConnectorPanel.tsx", "utf8");
 
 describe("client-facing Social Media Suite", () => {
   it("registers the suite as a normal authenticated website workspace", () => {
@@ -44,6 +45,16 @@ describe("client-facing Social Media Suite", () => {
     expect(queuePanelSource).toContain("This console cannot create, process, retry, or publish");
     expect(queuePanelSource).not.toContain('method: "POST"');
     expect(analyticsSource).toContain("Metric source labels");
+  });
+
+  it("resolves the GEM Admin publishing workspace without a manual ID", () => {
+    expect(accountsSource).toContain("CONTENT_ORCHESTRATOR_WORKSPACE_ID");
+    expect(accountsSource).toContain("CONTENT_ORCHESTRATOR_ACTOR_ID");
+    expect(accountsSource).toContain("organizationId: serviceActor.organizationId");
+    expect(accountsSource).not.toContain("ws_60488340ded94dcfab3b875ef9ae591c");
+    expect(accountsSource).toContain("allowManualWorkspaceInput={false}");
+    expect(connectorPanelSource).toContain("allowManualWorkspaceInput");
+    expect(connectorPanelSource).toContain("server-side configuration issue");
   });
 
   it("makes TokMetric a full website page with every existing operating module", () => {
