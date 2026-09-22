@@ -58,7 +58,10 @@ run("pnpm", ["exec", "prisma", "validate"], schemaValidationEnv);
 console.log("Generating Prisma client...");
 run("pnpm", ["exec", "prisma", "generate"], schemaValidationEnv);
 
-const shouldVerifyPreview = false; // diagnostic only: isolate current Next.js production build
+const shouldVerifyPreview =
+  env.VERCEL_ENV === "preview" ||
+  (env.VERCEL_ENV !== "production" &&
+    env.RUN_PREVIEW_VERIFICATION === "true");
 if (shouldVerifyPreview) {
   console.log("Running preview verification: lint, typecheck, and unit tests...");
   const verificationEnv = {
