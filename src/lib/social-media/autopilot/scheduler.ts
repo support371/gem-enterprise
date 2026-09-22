@@ -34,7 +34,7 @@ export function buildSocialAutopilotSlots(input: {
   planDate: Date;
   count?: number;
   now?: Date;
-  env?: NodeJS.ProcessEnv;
+  env?: Record<string, string | undefined>;
 }) {
   const policy = getSocialAutopilotProviderPolicy(
     input.provider,
