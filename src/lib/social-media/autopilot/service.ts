@@ -538,7 +538,7 @@ export async function materializeSocialAutopilotJobs(input: {
     actorId: input.actorId,
     action: "SOCIAL_AUTOPILOT_MATERIALIZED",
     entityType: "CAMPAIGN",
-    entityId: input.result.campaignId,
+    entityId: input.result.campaignId ?? undefined,
     correlationId: input.correlationId,
     outcome: "QUEUED",
     sourceChannel: "social-autopilot",
