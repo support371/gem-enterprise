@@ -19,19 +19,19 @@ const connectorProvider: Record<SharedSocialPublishingProvider, SocialOAuthProvi
   NEXTDOOR: "NEXTDOOR",
 };
 
-function enabled(name: string, env: NodeJS.ProcessEnv = process.env) {
+function enabled(name: string, env: Record<string, string | undefined> = process.env) {
   return env[name]?.trim() === "true";
 }
 
 export function globalSocialPublishingEnabled(
-  env: NodeJS.ProcessEnv = process.env,
+  env: Record<string, string | undefined> = process.env,
 ) {
   return enabled("SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED", env);
 }
 
 export function providerSocialPublishingEnabled(
   provider: SharedSocialPublishingProvider,
-  env: NodeJS.ProcessEnv = process.env,
+  env: Record<string, string | undefined> = process.env,
 ) {
   return enabled(providerLiveGate[provider], env);
 }
