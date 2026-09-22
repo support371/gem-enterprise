@@ -107,6 +107,26 @@ function provider(value: unknown): SocialMediaProviderId | undefined {
     : undefined;
 }
 
+function materializedState(input: {
+  complianceResult: string;
+  autoPolicy: boolean;
+  hasApproval: boolean;
+}): MaterializedContentResult["state"] {
+  if (
+    input.complianceResult === "BLOCKED" ||
+    input.complianceResult === "CHANGES_REQUIRED"
+  ) {
+    return "COMPLIANCE_BLOCKED";
+  }
+  if (input.autoPolicy && input.complianceResult === "PASS") {
+    return "AUTO_POLICY_READY";
+  }
+  if (input.hasApproval) {
+    return "AWAITING_HUMAN_APPROVAL";
+  }
+  return "COMPLIANCE_REVIEW_REQUIRED";
+}
+
 async function existingDailyPlan(input: DailyContentOrchestrationInput) {
   const campaign = await db.campaign.findFirst({
     where: {
@@ -139,17 +159,11 @@ async function existingDailyPlan(input: DailyContentOrchestrationInput) {
       const review = content.reviews[0];
       if (!contentProvider || !fingerprint || !review) return [];
       const approval = content.approvals[0];
-      const autoPolicy =
-        orchestration.approvalMode === "AUTO_POLICY" &&
-        ["PASS", "PASS_WITH_DISCLOSURE"].includes(review.result);
-      const state: MaterializedContentResult["state"] =
-        review.result === "BLOCKED" || review.result === "CHANGES_REQUIRED"
-          ? "COMPLIANCE_BLOCKED"
-          : autoPolicy
-            ? "AUTO_POLICY_READY"
-            : approval
-              ? "AWAITING_HUMAN_APPROVAL"
-              : "COMPLIANCE_REVIEW_REQUIRED";
+      const state = materializedState({
+        complianceResult: review.result,
+        autoPolicy: orchestration.approvalMode === "AUTO_POLICY",
+        hasApproval: Boolean(approval),
+      });
       return [
         {
           contentId: content.id,
@@ -165,7 +179,7 @@ async function existingDailyPlan(input: DailyContentOrchestrationInput) {
     },
   );
 
-  const drafts = materialized.map((item, index) => ({
+  const drafts: DailyContentPlan["drafts"] = materialized.map((item, index) => ({
     sequence: index + 1,
     provider: item.provider,
     contentType: "TEXT" as const,
@@ -438,15 +452,11 @@ export async function orchestrateDailyContent(
       complianceReviewId: review.id,
       complianceResult: review.result,
       approvalRequestId,
-      state:
-        review.result === "BLOCKED" || review.result === "CHANGES_REQUIRED"
-          ? "COMPLIANCE_BLOCKED"
-          : input.approvalMode === "AUTO_POLICY" &&
-              ["PASS", "PASS_WITH_DISCLOSURE"].includes(review.result)
-            ? "AUTO_POLICY_READY"
-            : approvalRequestId
-              ? "AWAITING_HUMAN_APPROVAL"
-              : "COMPLIANCE_REVIEW_REQUIRED",
+      state: materializedState({
+        complianceResult: review.result,
+        autoPolicy: input.approvalMode === "AUTO_POLICY",
+        hasApproval: Boolean(approvalRequestId),
+      }),
     });
   }
 
