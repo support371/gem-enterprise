@@ -15,8 +15,8 @@ Snapshot: 2026-09-25 UTC. Refresh live GitHub state before mutation.
 | FORBIDDEN OVERLAP | Social Autopilot/TokMetric internals; Prisma; provider credentials; billing; production activation |
 | STATUS | IMPLEMENTED — FOCUSED GATES PASS; REPOSITORY BASELINE BLOCKED |
 | BLOCKER CLASS | CONFIGURATION / SOURCE (full verify); PROVIDER (paid delivery only) |
-| LAST VERIFIED HEAD | Pending implementation commit |
-| NEXT SAFE ACTION | Publish the focused PR, validate the canonical preview, and keep paid delivery fail closed. |
+| LAST VERIFIED HEAD | `9cc11a3df2c0fca5ddc5faba8286f9d10efdad8d` |
+| NEXT SAFE ACTION | Review the focused PR, validate the canonical preview, and keep paid delivery fail closed. |
 
 ## Social Autopilot
 
