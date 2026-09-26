@@ -56,6 +56,8 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const headersList = await headers();
   const isPortal = headersList.get("x-is-portal") === "1";
+  const isProtected = headersList.get("x-is-protected") === "1";
+  const metricoolEnabled = process.env.VERCEL_ENV === "production" && !isProtected;
 
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className="bg-[#0d121b]">
@@ -79,7 +81,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </main>
           {!isPortal && <Footer />}
         </Providers>
-        {!isPortal && (
+        {metricoolEnabled && (
           <Script id="metricool-tracker" strategy="afterInteractive">
             {`
               function loadScript(a){
