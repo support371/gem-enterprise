@@ -1,4 +1,5 @@
 import type { SocialOAuthProvider } from "@/lib/social-media/oauth/config";
+import type { SocialEnvironment } from "@/lib/social-media/environment";
 import type { SharedSocialPublishingProvider } from "./types";
 
 const providerLiveGate: Record<SharedSocialPublishingProvider, string> = {
@@ -19,19 +20,19 @@ const connectorProvider: Record<SharedSocialPublishingProvider, SocialOAuthProvi
   NEXTDOOR: "NEXTDOOR",
 };
 
-function enabled(name: string, env: NodeJS.ProcessEnv = process.env) {
+function enabled(name: string, env: SocialEnvironment = process.env) {
   return env[name]?.trim() === "true";
 }
 
 export function globalSocialPublishingEnabled(
-  env: NodeJS.ProcessEnv = process.env,
+  env: SocialEnvironment = process.env,
 ) {
   return enabled("SOCIAL_MEDIA_LIVE_PUBLISHING_ENABLED", env);
 }
 
 export function providerSocialPublishingEnabled(
   provider: SharedSocialPublishingProvider,
-  env: NodeJS.ProcessEnv = process.env,
+  env: SocialEnvironment = process.env,
 ) {
   return enabled(providerLiveGate[provider], env);
 }
