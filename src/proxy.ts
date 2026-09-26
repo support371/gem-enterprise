@@ -136,6 +136,7 @@ export async function proxy(request: NextRequest) {
 
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set("x-is-portal", "1");
+    requestHeaders.set("x-is-protected", "1");
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
@@ -161,6 +162,7 @@ export async function proxy(request: NextRequest) {
     }
 
     const requestHeaders = new Headers(request.headers);
+    requestHeaders.set("x-is-protected", "1");
     requestHeaders.set("x-user-id", session.userId);
     requestHeaders.set("x-user-email", session.email);
     requestHeaders.set("x-user-role", session.role);
