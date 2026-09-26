@@ -1,6 +1,22 @@
 # Active Work
 
-Snapshot: 2026-09-21 UTC. Refresh live GitHub state before mutation.
+Snapshot: 2026-09-25 UTC. Refresh live GitHub state before mutation.
+
+## GEM Ads Bridge
+
+| Field | Value |
+|---|---|
+| TASK | [ADS-BRIDGE](tasks/ADS-BRIDGE.md) |
+| OWNER | Codex / advertising bridge lane |
+| SOURCE PR/ISSUE | Issue #366 |
+| BASE SHA | `b147dc01b51ce889a082641d12a2d6abce5ff45c` |
+| WORKING BRANCH | `codex/zero-spend-ads-bridge` |
+| OWNED FILES/SCOPE | Isolated Ads Bridge policy, admin API/UI, creative asset, focused tests, docs, one admin-campaign discoverability link, and this control-plane record |
+| FORBIDDEN OVERLAP | Social Autopilot/TokMetric internals; Prisma; provider credentials; billing; production activation |
+| STATUS | IMPLEMENTED — FOCUSED GATES PASS; REPOSITORY BASELINE BLOCKED |
+| BLOCKER CLASS | CONFIGURATION / SOURCE (full verify); PROVIDER (paid delivery only) |
+| LAST VERIFIED HEAD | `9cc11a3df2c0fca5ddc5faba8286f9d10efdad8d` |
+| NEXT SAFE ACTION | Review the focused PR, validate the canonical preview, and keep paid delivery fail closed. |
 
 ## Social Autopilot
 
