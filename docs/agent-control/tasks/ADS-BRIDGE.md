@@ -19,7 +19,7 @@ handoff manifests without provider writes.
 - `src/app/api/v1/ads-bridge/**`
 - `src/app/app/admin/ads-bridge/**`
 - `src/__tests__/ads-bridge.test.ts`
-- `public/images/gem-enterprise-logo.webp`
+- `public/images/gem-enterprise-logo.svg`
 - `docs/ads-bridge.md`
 - `openapi/gem-ads-bridge.openapi.yaml`
 - `.env.example` variable-name-only documentation
