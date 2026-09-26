@@ -57,7 +57,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const headersList = await headers();
   const isPortal = headersList.get("x-is-portal") === "1";
   const isProtected = headersList.get("x-is-protected") === "1";
-  const metricoolEnabled = process.env.VERCEL_ENV === "production" && !isProtected;
+  const host = headersList.get("host")?.split(":")[0].toLowerCase();
+  const metricoolEnabled =
+    !isProtected &&
+    (host === "gemcybersecurityassist.com" || host === "www.gemcybersecurityassist.com");
 
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className="bg-[#0d121b]">
