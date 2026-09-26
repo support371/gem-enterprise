@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { SharedSocialPublishingProvider } from "@/lib/social-media/publishing/types";
-import { getSocialAutopilotProviderPolicy } from "./policy";
+import { getSocialAutopilotProviderPolicy, type SocialEnvSource } from "./policy";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -34,7 +34,7 @@ export function buildSocialAutopilotSlots(input: {
   planDate: Date;
   count?: number;
   now?: Date;
-  env?: NodeJS.ProcessEnv;
+  env?: SocialEnvSource;
 }) {
   const policy = getSocialAutopilotProviderPolicy(
     input.provider,
