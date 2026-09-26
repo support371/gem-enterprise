@@ -31,6 +31,7 @@ import {
   getSocialAutopilotProviderPolicy,
   SOCIAL_AUTOPILOT_POLICY_VERSION,
   socialAutopilotAutoApprovalEnabled,
+  type SocialEnvSource,
 } from "./policy";
 import {
   buildSocialAutopilotSlots,
@@ -124,7 +125,7 @@ async function autoApproveExactVersion(input: {
   complianceReviewId: string;
   provider: SharedSocialPublishingProvider;
   correlationId: string;
-  env?: NodeJS.ProcessEnv;
+  env?: SocialEnvSource;
 }) {
   const env = input.env ?? process.env;
   if (!socialAutopilotAutoApprovalEnabled(env)) {
@@ -365,7 +366,7 @@ export async function materializeSocialAutopilotJobs(input: {
   result: DailyContentOrchestrationResult;
   correlationId: string;
   now?: Date;
-  env?: NodeJS.ProcessEnv;
+  env?: SocialEnvSource;
 }) {
   const env = input.env ?? process.env;
   const now = input.now ?? new Date();
