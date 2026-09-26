@@ -64,7 +64,7 @@ export const gemBusinessReviewAdsDraft: AdsBridgeDraft = {
   headline: "Know What to Fix First",
   body: "Qualified teams: $199 review and 30-day plan.",
   destination: "https://www.gemcybersecurityassist.com/business-review",
-  creativePath: "/images/gem-enterprise-logo.webp",
+  creativePath: "/images/gem-enterprise-logo.svg",
   market: "US",
   objective: "CLICKS",
   status: "PAUSED",
