@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { SocialEnvironment } from "@/lib/social-media/environment";
 import type { SharedSocialPublishingProvider } from "@/lib/social-media/publishing/types";
 import { getSocialAutopilotProviderPolicy } from "./policy";
 
@@ -34,7 +35,7 @@ export function buildSocialAutopilotSlots(input: {
   planDate: Date;
   count?: number;
   now?: Date;
-  env?: NodeJS.ProcessEnv;
+  env?: SocialEnvironment;
 }) {
   const policy = getSocialAutopilotProviderPolicy(
     input.provider,
@@ -93,7 +94,12 @@ export function buildSocialAutopilotSlots(input: {
       slots.length > 0
         ? slots[slots.length - 1].getTime() + policy.minSpacingMinutes * 60_000
         : earliest.getTime();
-    candidate.setTime(Math.max(candidate.getTime(), minimum));
+    const maximum =
+      lastWindow.getTime() -
+      (count - index - 1) * policy.minSpacingMinutes * 60_000;
+    candidate.setTime(
+      Math.min(maximum, Math.max(candidate.getTime(), minimum)),
+    );
     if (candidate > lastWindow || candidate >= dayEnd) break;
     slots.push(candidate);
   }

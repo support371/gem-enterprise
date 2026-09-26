@@ -1,3 +1,4 @@
+import type { SocialEnvironment } from "@/lib/social-media/environment";
 import type { SharedSocialPublishingProvider } from "@/lib/social-media/publishing/types";
 
 export const SOCIAL_AUTOPILOT_POLICY_VERSION = "social-autopilot-v1";
@@ -64,7 +65,7 @@ const defaults: Record<SharedSocialPublishingProvider, SocialAutopilotProviderPo
 
 const providers = Object.keys(defaults) as SharedSocialPublishingProvider[];
 
-function enabled(env: NodeJS.ProcessEnv, name: string) {
+function enabled(env: SocialEnvironment, name: string) {
   return env[name]?.trim() === "true";
 }
 
@@ -83,12 +84,12 @@ function providerEnvName(provider: SharedSocialPublishingProvider) {
   return provider.replace(/[^A-Z0-9]/g, "_");
 }
 
-export function socialAutopilotEnabled(env: NodeJS.ProcessEnv = process.env) {
+export function socialAutopilotEnabled(env: SocialEnvironment = process.env) {
   return enabled(env, "SOCIAL_AUTOPILOT_ENABLED");
 }
 
 export function socialAutopilotAutoApprovalEnabled(
-  env: NodeJS.ProcessEnv = process.env,
+  env: SocialEnvironment = process.env,
 ) {
   return (
     socialAutopilotEnabled(env) &&
@@ -98,7 +99,7 @@ export function socialAutopilotAutoApprovalEnabled(
 
 export function getSocialAutopilotProviderPolicy(
   provider: SharedSocialPublishingProvider,
-  env: NodeJS.ProcessEnv = process.env,
+  env: SocialEnvironment = process.env,
 ): SocialAutopilotProviderPolicy {
   const base = defaults[provider];
   const prefix = `SOCIAL_AUTOPILOT_${providerEnvName(provider)}`;
@@ -120,7 +121,7 @@ export function getSocialAutopilotProviderPolicy(
 }
 
 export function getSocialAutopilotProviderPolicies(
-  env: NodeJS.ProcessEnv = process.env,
+  env: SocialEnvironment = process.env,
 ) {
   return providers.map((provider) =>
     getSocialAutopilotProviderPolicy(provider, env),
@@ -128,7 +129,7 @@ export function getSocialAutopilotProviderPolicies(
 }
 
 export function getSocialAutopilotProviderTargets(
-  env: NodeJS.ProcessEnv = process.env,
+  env: SocialEnvironment = process.env,
 ) {
   return Object.fromEntries(
     getSocialAutopilotProviderPolicies(env).map((policy) => [
@@ -139,7 +140,7 @@ export function getSocialAutopilotProviderTargets(
 }
 
 export function getSocialAutopilotProviders(
-  env: NodeJS.ProcessEnv = process.env,
+  env: SocialEnvironment = process.env,
 ): SharedSocialPublishingProvider[] {
   const configured = env.SOCIAL_AUTOPILOT_PROVIDERS
     ?.split(",")
@@ -155,7 +156,7 @@ export function getSocialAutopilotProviders(
 
 export function explicitAutopilotConnectorId(
   provider: SharedSocialPublishingProvider,
-  env: NodeJS.ProcessEnv = process.env,
+  env: SocialEnvironment = process.env,
 ) {
   const prefix = `SOCIAL_AUTOPILOT_${providerEnvName(provider)}`;
   return env[`${prefix}_CONNECTOR_ID`]?.trim() || undefined;
@@ -180,7 +181,7 @@ const allowedEgressModes = new Set<SocialAutopilotEgressMode>([
 ]);
 
 export function getSocialAutopilotEgressPolicy(
-  env: NodeJS.ProcessEnv = process.env,
+  env: SocialEnvironment = process.env,
 ): SocialAutopilotEgressPolicy {
   const requested = (env.SOCIAL_AUTOPILOT_EGRESS_MODE?.trim().toUpperCase() ||
     "PLATFORM_DEFAULT") as SocialAutopilotEgressMode;
@@ -210,7 +211,7 @@ export function getSocialAutopilotEgressPolicy(
 }
 
 export function getSocialAutopilotReserveDays(
-  env: NodeJS.ProcessEnv = process.env,
+  env: SocialEnvironment = process.env,
 ) {
   return getSocialAutopilotProviderPolicies(env).reduce(
     (maximum, policy) => Math.max(maximum, policy.reserveDays),

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import type { SocialEnvironment } from "@/lib/social-media/environment";
 import { listSocialConnectors } from "@/lib/social-media/oauth/store";
 import {
   accountTypeMatches,
@@ -124,7 +125,7 @@ async function autoApproveExactVersion(input: {
   complianceReviewId: string;
   provider: SharedSocialPublishingProvider;
   correlationId: string;
-  env?: NodeJS.ProcessEnv;
+  env?: SocialEnvironment;
 }) {
   const env = input.env ?? process.env;
   if (!socialAutopilotAutoApprovalEnabled(env)) {
@@ -365,7 +366,7 @@ export async function materializeSocialAutopilotJobs(input: {
   result: DailyContentOrchestrationResult;
   correlationId: string;
   now?: Date;
-  env?: NodeJS.ProcessEnv;
+  env?: SocialEnvironment;
 }) {
   const env = input.env ?? process.env;
   const now = input.now ?? new Date();
