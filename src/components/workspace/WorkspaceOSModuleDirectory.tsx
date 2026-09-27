@@ -17,6 +17,9 @@ import { cn } from "@/lib/utils";
 interface WorkspaceModule {
   id: string;
   label: string;
+  description?: string;
+  group?: string;
+  href?: string;
   state: string;
 }
 
@@ -32,9 +35,6 @@ const moduleDestinations: Record<string, { href: string; label: string }> = {
   projects: { href: "#workspace-projects", label: "Open projects" },
   team: { href: "#workspace-team", label: "Open team" },
   weekly_updates: { href: "#workspace-weekly-reporting", label: "Open reporting" },
-  requests: { href: "/app/requests", label: "Open requests" },
-  documents: { href: "/app/documents", label: "Open documents" },
-  integrations: { href: "/app/command-center/integrations", label: "Review integrations" },
 };
 
 function stateLabel(state: string) {
@@ -181,7 +181,7 @@ export function WorkspaceOSModuleDirectory({ modules }: { modules: WorkspaceModu
         {visibleModules.length ? (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" role="list" aria-label="Workspace modules">
             {visibleModules.map((module) => {
-              const destination = moduleDestinations[module.id];
+              const destination = module.href ? { href: module.href, label: "Open module" } : moduleDestinations[module.id];
               return (
                 <article key={module.id} role="listitem" className="flex min-h-44 flex-col rounded-xl border border-white/10 bg-black/15 p-4">
                   <div className="flex items-start justify-between gap-3">
@@ -194,13 +194,16 @@ export function WorkspaceOSModuleDirectory({ modules }: { modules: WorkspaceModu
                     </Badge>
                   </div>
 
-                  <h3 className="mt-4 text-sm font-semibold text-white">{module.label}</h3>
+                  <div className="mt-4 flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-white">{module.label}</h3>
+                    {module.group ? <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">{module.group}</span> : null}
+                  </div>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
-                    {isAvailable(module.state)
+                    {module.description ?? (isAvailable(module.state)
                       ? "Available through this authenticated workspace."
                       : module.state === "SETUP_IN_PROGRESS"
                         ? "The workspace records this module as setup in progress."
-                        : "The module remains fail-closed until it is activated."}
+                        : "The module remains fail-closed until it is activated.")}
                   </p>
 
                   <div className="mt-auto pt-4">
