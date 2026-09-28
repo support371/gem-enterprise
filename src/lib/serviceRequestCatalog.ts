@@ -70,7 +70,21 @@ export const serviceRequestTypeCatalog = [
   },
 ] as const;
 
-export const serviceRequestTypeIds = serviceRequestTypeCatalog.map((item) => item.id);
+export const serviceRequestTypeIds = [
+  "client_onboarding",
+  "portfolio_review",
+  "finance_operations",
+  "digital_finance_review",
+  "compliance_review",
+  "legal_regulatory",
+  "cyber_briefing",
+  "threat_monitoring",
+  "digital_services",
+  "business_growth",
+  "real_estate_trust",
+  "document_request",
+  "support",
+] as const;
 
 export const serviceRequestPriorityIds = ["low", "medium", "high"] as const;
 
