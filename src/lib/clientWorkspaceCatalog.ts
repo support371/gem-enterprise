@@ -23,6 +23,7 @@ export const clientWorkspaceModules: ClientWorkspaceModule[] = [
   { id: "team", label: "Team & Roles", description: "Authorized workspace members, teams, roles, and membership scope.", group: "Delivery", href: "#workspace-team", state: "AVAILABLE" },
   { id: "weekly_updates", label: "Reporting", description: "Weekly delivery updates, accomplishments, blockers, decisions, and priorities.", group: "Delivery", href: "#workspace-weekly-reporting", state: "AVAILABLE" },
   { id: "requests", label: "Service Requests", description: "Request, track, and review GEM services and operational work.", group: "Delivery", href: "/app/requests", state: "AVAILABLE" },
+  { id: "opportunities", label: "Growth & Opportunities", description: "Discover and request relevant GEM services, expansion paths, and growth support from the same workspace.", group: "Delivery", href: "/app/services", state: "AVAILABLE" },
   { id: "documents", label: "Documents", description: "Statements, agreements, reports, evidence, and controlled document access.", group: "Records", href: "/app/documents", state: "AVAILABLE" },
   { id: "messages", label: "Messages", description: "Secure client communication and conversation history.", group: "Communication", href: "/app/messages", state: "AVAILABLE" },
   { id: "meetings", label: "Appointments & Meetings", description: "Consultations, meeting requests, scheduling, and engagement history.", group: "Communication", href: "/app/meetings", state: "AVAILABLE" },
@@ -35,7 +36,7 @@ export const clientWorkspaceModules: ClientWorkspaceModule[] = [
   { id: "digital_finance", label: "Digital Finance", description: "Digital-asset and digital-currency services exposed only through authorized, compliant product flows.", group: "Finance", href: "/app/products", state: "AVAILABLE" },
 
   { id: "security", label: "Cybersecurity", description: "Security posture, account protection, identity controls, and client security settings.", group: "Security & Compliance", href: "/app/security", state: "AVAILABLE" },
-  { id: "threat_monitoring", label: "Threat Monitoring & Alerts", description: "Client-visible security status and governed escalation into GEM monitoring and incident operations.", group: "Security & Compliance", href: "/app/command-center/monitoring", state: "AVAILABLE" },
+  { id: "threat_monitoring", label: "Threat Monitoring & Alerts", description: "Client-visible security status and governed escalation into GEM monitoring and incident operations.", group: "Security & Compliance", href: "/app/security", state: "AVAILABLE" },
   { id: "compliance", label: "Compliance", description: "Compliance review, disclosures, acknowledgements, evidence, and regulatory workflow.", group: "Security & Compliance", href: "/app/compliance", state: "AVAILABLE" },
   { id: "legal", label: "Legal & Regulatory", description: "Legal and regulatory service requests, evidence, policy, and approval workflows.", group: "Security & Compliance", href: "/app/requests", state: "AVAILABLE" },
 
