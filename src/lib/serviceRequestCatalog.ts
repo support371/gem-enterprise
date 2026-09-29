@@ -53,7 +53,7 @@ export const serviceRequestTypeCatalog = [
   },
   {
     id: "real_estate_trust",
-    label: "ATR Property Trust",
+    label: "Real Estate & Trust Services",
     description: "Request property-trust readiness review or advisor consultation.",
   },
   {

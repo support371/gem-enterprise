@@ -7,6 +7,15 @@ export interface ClientWorkspaceModule {
   group: string;
   href: string;
   state: WorkspaceModuleState;
+  /**
+   * Optional capability inputs consumed by src/lib/workspaceModuleReadiness.ts.
+   * When providerNeeded is true the module stays fail-closed until a usable
+   * provider connector is recorded for the workspace. When entitlementSlug is
+   * set, the module is NOT_ENTITLED unless the slug is in the viewer's
+   * entitlements.
+   */
+  providerNeeded?: boolean;
+  entitlementSlug?: string;
 }
 
 /**
@@ -30,10 +39,10 @@ export const clientWorkspaceModules: ClientWorkspaceModule[] = [
   { id: "notifications", label: "Notifications", description: "Operational alerts, service updates, approvals, and required actions.", group: "Communication", href: "/app/notifications", state: "AVAILABLE" },
   { id: "support", label: "Support", description: "Concierge support, escalation, case handling, and guided assistance.", group: "Communication", href: "/app/support", state: "AVAILABLE" },
 
-  { id: "finance", label: "Finance Management", description: "Unified financial management surface for portfolio, cash-flow, payment, and service-finance workflows.", group: "Finance", href: "/app/portfolios", state: "AVAILABLE" },
-  { id: "portfolio", label: "Portfolio Management", description: "Portfolio views, holdings, allocations, reporting, and client portfolio workflows.", group: "Finance", href: "/app/my-portfolio", state: "AVAILABLE" },
-  { id: "savings", label: "Savings & Vault", description: "Protected savings and vault products with controlled access and disclosures.", group: "Finance", href: "/app/savings-vault", state: "AVAILABLE" },
-  { id: "digital_finance", label: "Digital Finance", description: "Digital-asset and digital-currency services exposed only through authorized, compliant product flows.", group: "Finance", href: "/app/products", state: "AVAILABLE" },
+  { id: "finance", label: "Finance Management", description: "Unified financial management surface for portfolio, cash-flow, payment, and service-finance workflows.", group: "Finance", href: "/app/portfolios", state: "AVAILABLE", providerNeeded: true },
+  { id: "portfolio", label: "Portfolio Management", description: "Portfolio views, holdings, allocations, reporting, and client portfolio workflows.", group: "Finance", href: "/app/my-portfolio", state: "AVAILABLE", providerNeeded: true },
+  { id: "savings", label: "Savings & Vault", description: "Protected savings and vault products with controlled access and disclosures.", group: "Finance", href: "/app/savings-vault", state: "AVAILABLE", providerNeeded: true },
+  { id: "digital_finance", label: "Digital Finance", description: "Digital-asset and digital-currency services exposed only through authorized, compliant product flows.", group: "Finance", href: "/app/products", state: "AVAILABLE", providerNeeded: true },
 
   { id: "security", label: "Cybersecurity", description: "Security posture, account protection, identity controls, and client security settings.", group: "Security & Compliance", href: "/app/security", state: "AVAILABLE" },
   { id: "threat_monitoring", label: "Threat Monitoring & Alerts", description: "Client-visible security status and governed escalation into GEM monitoring and incident operations.", group: "Security & Compliance", href: "/app/security", state: "AVAILABLE" },
@@ -41,12 +50,12 @@ export const clientWorkspaceModules: ClientWorkspaceModule[] = [
   { id: "legal", label: "Legal & Regulatory", description: "Legal and regulatory service requests, evidence, policy, and approval workflows.", group: "Security & Compliance", href: "/app/requests", state: "AVAILABLE" },
 
   { id: "digital_services", label: "Digital Services", description: "Websites, domains, applications, social presence, stores, content, and connected digital operations.", group: "Digital", href: "/app/services", state: "AVAILABLE" },
-  { id: "social_media", label: "Social Media", description: "Accounts, content, approvals, governed publishing, scheduling, and analytics.", group: "Digital", href: "/app/social-media", state: "AVAILABLE" },
+  { id: "social_media", label: "Social Media", description: "Accounts, content, approvals, governed publishing, scheduling, and analytics.", group: "Digital", href: "/app/social-media", state: "AVAILABLE", providerNeeded: true },
   { id: "products", label: "Products & Services", description: "Available GEM products, gated offerings, and service activation paths.", group: "Digital", href: "/app/products", state: "AVAILABLE" },
   { id: "community", label: "Community", description: "Member, relationship, and community participation surface.", group: "Digital", href: "/app/community", state: "AVAILABLE" },
 
-  { id: "integrations", label: "Connections & Integrations", description: "Authorized provider connections, health state, scopes, and remediation.", group: "Connections", href: "/app/command-center/integrations", state: "AVAILABLE" },
-  { id: "automations", label: "AI & Automations", description: "Governed AI, agent, and automation capabilities with approval boundaries.", group: "Connections", href: "/app/command-center/agents", state: "AVAILABLE" },
+  { id: "integrations", label: "Connections & Integrations", description: "Connected provider accounts, connection health, authorized scopes, and governed reconnection.", group: "Connections", href: "/app/social-media/accounts", state: "AVAILABLE" },
+  { id: "automations", label: "AI & Automations", description: "Governed automation policy, approval boundaries, and autopilot status.", group: "Connections", href: "/app/social-media/autopilot", state: "AVAILABLE" },
 ];
 
 export const clientWorkspaceGroups = Array.from(
