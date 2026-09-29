@@ -30,6 +30,7 @@ export const METRICS_LOOKBACK_DAYS: Record<SocialAnalyticsProvider, number> = {
   LINKEDIN_COMPANY: 14,
   YOUTUBE: 90,
   NEXTDOOR: 0,
+  TELEGRAM: 0,
 };
 
 export interface MetricsSyncDependencies {

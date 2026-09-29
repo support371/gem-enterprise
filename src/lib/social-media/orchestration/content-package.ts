@@ -217,6 +217,7 @@ function platformHashtags(provider: SocialMediaProviderId, topic: string) {
     INDEED_EMPLOYER: 0,
     LINKEDIN_COMPANY: 5,
     YOUTUBE: 8,
+    TELEGRAM: 5,
   };
   return [...new Set([...base, ...topicTags])].slice(0, limits[provider]);
 }

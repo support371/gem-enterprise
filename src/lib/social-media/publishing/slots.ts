@@ -30,6 +30,7 @@ export const PROVIDER_SLOT_BATCH_CAP: Record<
   LINKEDIN_COMPANY: 3,
   YOUTUBE: 2,
   NEXTDOOR: 2,
+  TELEGRAM: 6,
 };
 
 export const PROVIDER_MIN_SPACING_MINUTES: Record<
@@ -42,6 +43,7 @@ export const PROVIDER_MIN_SPACING_MINUTES: Record<
   LINKEDIN_COMPANY: 30,
   YOUTUBE: 60,
   NEXTDOOR: 45,
+  TELEGRAM: 15,
 };
 
 function jsonOverride(

@@ -155,6 +155,25 @@ const defaults: Record<SharedSocialPublishingProvider, SocialAutopilotProviderPo
     minLiveSignals: 1,
     duplicateContentWindowDays: 30,
   },
+  TELEGRAM: {
+    provider: "TELEGRAM",
+    dailyTarget: 5,
+    hardDailyCap: 10,
+    minSpacingMinutes: 90,
+    reserveDays: 3,
+    autoApprovalEligible: true,
+    maxQueueDepth: 16,
+    cooldownMinutes: 60,
+    failurePauseThreshold: 3,
+    failureWindowMinutes: 360,
+    failureBackoffBaseMinutes: 60,
+    failureBackoffMultiplier: 2,
+    rateLimitBackoffMinutes: 240,
+    rateLimitWindowMinutes: 360,
+    signalFreshnessHours: 72,
+    minLiveSignals: 1,
+    duplicateContentWindowDays: 30,
+  },
 };
 
 const providers = Object.keys(defaults) as SharedSocialPublishingProvider[];

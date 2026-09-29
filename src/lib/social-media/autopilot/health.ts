@@ -51,6 +51,7 @@ const autopilotToControlPlaneProvider: Record<
   LINKEDIN_COMPANY: "LINKEDIN",
   YOUTUBE: "YOUTUBE",
   NEXTDOOR: "NEXTDOOR",
+  TELEGRAM: "TELEGRAM",
 };
 
 export interface ProviderPauseState {

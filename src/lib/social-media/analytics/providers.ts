@@ -28,6 +28,7 @@ export const POST_METRICS_CAPABILITY: Record<
   LINKEDIN_COMPANY: "API_TIER_REQUIRED",
   YOUTUBE: "COLLECTED",
   NEXTDOOR: "NOT_SUPPORTED",
+  TELEGRAM: "NOT_SUPPORTED",
 };
 
 /** Per-provider collection capabilities for account-level metrics. */
@@ -41,6 +42,7 @@ export const ACCOUNT_METRICS_CAPABILITY: Record<
   LINKEDIN_COMPANY: "API_TIER_REQUIRED",
   YOUTUBE: "COLLECTED",
   NEXTDOOR: "NOT_SUPPORTED",
+  TELEGRAM: "NOT_SUPPORTED",
 };
 
 function record(value: unknown): Record<string, unknown> {
@@ -112,6 +114,7 @@ export function sanitizeProviderPayload(
       "subscribersLost",
     ]),
     NEXTDOOR: new Set([]),
+    TELEGRAM: new Set([]),
   };
   const keep = allowed[provider];
   const out: Record<string, unknown> = {};
