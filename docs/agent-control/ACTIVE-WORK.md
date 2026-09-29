@@ -2,6 +2,22 @@
 
 Snapshot: 2026-09-25 UTC. Refresh live GitHub state before mutation.
 
+## Unified Client Workspace OS
+
+| Field | Value |
+|---|---|
+| TASK | [UNIFIED-WORKSPACE-OS](tasks/UNIFIED-WORKSPACE-OS.md) |
+| OWNER | Muse / unified workspace lane |
+| SOURCE PR/ISSUE | Owner mandate 2026-09-29; PR #374 |
+| BASE SHA | `068a7d093189958d5be06b579b5fa8f40d7bc99d` |
+| WORKING BRANCH | `feat/unified-client-workspace-os` |
+| OWNED FILES/SCOPE | Capability readiness model + badge; command-center demo-claim remediation; client workspace OS page/components/readiness; admin client-operations control center; service-request lifecycle + admin APIs; additive Prisma models (readiness overrides, lifecycle funnel) + migration; focused tests; this control-plane record |
+| FORBIDDEN OVERLAP | Ads bridge, social autopilot, TikTok shop, news scroll, PR #291/#292/#252 files; provider credentials; production data; auth/session core outside owned files; main-branch merge (no merge authorization) |
+| STATUS | IMPLEMENTED — 120/120 focused tests pass; tsc/eslint clean on workstream files (Prisma client not generatable in sandbox); pushed as scoped commits; PR #374 open, NOT merged |
+| BLOCKER CLASS | CONFIGURATION (Prisma generate needs engine download; preview deploy verifies remainder) |
+| NEXT SAFE ACTION | Verify Vercel branch preview; role-specific live testing delegated to browser-capable agent; owner merge decision on PR #374. |
+
+
 ## GEM Ads Bridge
 
 | Field | Value |
