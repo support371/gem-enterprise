@@ -184,17 +184,17 @@ describe("a route existing never means LIVE", () => {
     });
 
     const live: string[] = [];
-    for (const module of clientWorkspaceModules) {
-      const result = resolveWorkspaceModuleState(module.id, generous);
-      if (result.state === "LIVE") live.push(module.id);
+    for (const catalogModule of clientWorkspaceModules) {
+      const result = resolveWorkspaceModuleState(catalogModule.id, generous);
+      if (result.state === "LIVE") live.push(catalogModule.id);
       expect(["SURFACE_AVAILABLE", "SETUP_REQUIRED", "UNAVAILABLE"]).toContain(result.state);
     }
     expect(live).toEqual([]);
   });
 
   it("the readiness input never asserts backendReady from catalog data", () => {
-    for (const module of clientWorkspaceModules) {
-      const input = resolveWorkspaceModuleReadiness(module.id, ctx());
+    for (const catalogModule of clientWorkspaceModules) {
+      const input = resolveWorkspaceModuleReadiness(catalogModule.id, ctx());
       expect(input.backendReady).toBe(false);
     }
   });
