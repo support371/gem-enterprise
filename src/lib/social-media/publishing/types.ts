@@ -36,6 +36,7 @@ export interface SocialPublishingPayload {
   thread?: string[];
   localContext?: string;
   visibility?: "PUBLIC" | "UNLISTED" | "PRIVATE";
+  syntheticContentDisclosure?: boolean;
   metadata?: Record<string, unknown>;
 }
 
