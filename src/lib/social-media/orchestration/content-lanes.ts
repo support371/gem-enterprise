@@ -70,6 +70,7 @@ export function deriveContentLane(input: {
   provider: SocialMediaProviderId;
   contentType: SocialContentType;
   signalReference?: string;
+  laneHint?: SocialContentLane;
 }): SocialContentLane {
   const sourceKind = detectContentSourceKind(input.signalReference);
   if (
@@ -79,6 +80,7 @@ export function deriveContentLane(input: {
     return "TIKTOK_VIRAL_REPURPOSE";
   }
   if (
+    input.laneHint === "FACELESS_CINEMATIC" &&
     input.provider === "YOUTUBE" &&
     ["SHORT_VIDEO", "LONG_VIDEO"].includes(input.contentType)
   ) {
