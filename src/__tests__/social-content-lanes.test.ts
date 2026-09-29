@@ -30,6 +30,7 @@ const approvedSource: ApprovedSourceMaterial = {
 function signal(
   sourceReference: string,
   contentLaneHint?: MarketSignal["contentLaneHint"],
+  extras: Partial<MarketSignal> = {},
 ): MarketSignal {
   return {
     id: "signal:1",
@@ -41,6 +42,7 @@ function signal(
     observedAt: new Date("2026-09-29T00:00:00.000Z"),
     sourceReference,
     contentLaneHint,
+    ...extras,
   };
 }
 
@@ -92,6 +94,8 @@ describe("social content lane router", () => {
         provider: "TIKTOK",
         contentType: "SHORT_VIDEO",
         signalReference: "https://x.com/source/status/1",
+        observedAt: new Date("2026-09-29T00:00:00.000Z"),
+        evaluatedAt: new Date("2026-09-29T12:00:00.000Z"),
       }),
     ).toBe("TIKTOK_VIRAL_REPURPOSE");
 
@@ -100,8 +104,22 @@ describe("social content lane router", () => {
         provider: "TIKTOK",
         contentType: "PHOTO_POST",
         signalReference: "https://www.threads.net/@source/post/1",
+        observedAt: new Date("2026-09-29T00:00:00.000Z"),
+        evaluatedAt: new Date("2026-09-29T12:00:00.000Z"),
       }),
     ).toBe("TIKTOK_VIRAL_REPURPOSE");
+  });
+
+  it("keeps stale X and Threads signals out of the viral lane", () => {
+    expect(
+      deriveContentLane({
+        provider: "TIKTOK",
+        contentType: "SHORT_VIDEO",
+        signalReference: "https://x.com/source/status/1",
+        observedAt: new Date("2026-09-20T00:00:00.000Z"),
+        evaluatedAt: new Date("2026-09-29T12:00:00.000Z"),
+      }),
+    ).toBe("STANDARD_GOVERNED");
   });
 
   it("keeps YouTube faceless cinematic production as a separate lane", () => {
@@ -145,11 +163,41 @@ describe("social content lane router", () => {
     );
   });
 
-  it("builds transformed TikTok packages without copying source presentation", () => {
+  it("blocks TikTok repurposing until transformed source copy is verified", () => {
     const pkg = generateCrossPlatformContentPackage({
-      draft: draft("TIKTOK", "SHORT_VIDEO"),
+      draft: {
+        ...draft("TIKTOK", "SHORT_VIDEO"),
+        contentLane: "TIKTOK_VIRAL_REPURPOSE",
+      },
       source: approvedSource,
       signal: signal("https://x.com/source/status/1"),
+    });
+
+    expect(
+      pkg.riskFlags.some(
+        (flag) =>
+          flag.code === "SOURCE_TRANSFORMATION_UNVERIFIED" &&
+          flag.severity === "BLOCK",
+      ),
+    ).toBe(true);
+  });
+
+  it("builds verified transformed TikTok packages without copying raw source narration", () => {
+    const rawSummary =
+      "Verbatim source wording that must not become publishable narration.";
+    const transformedSummary =
+      "GEM explains the underlying development in original editorial language.";
+    const pkg = generateCrossPlatformContentPackage({
+      draft: {
+        ...draft("TIKTOK", "SHORT_VIDEO"),
+        contentLane: "TIKTOK_VIRAL_REPURPOSE",
+      },
+      source: approvedSource,
+      signal: signal("https://x.com/source/status/1", undefined, {
+        summary: rawSummary,
+        transformedSummary,
+        sourceTransformationVerified: true,
+      }),
     });
 
     expect(pkg.contentLane).toBe("TIKTOK_VIRAL_REPURPOSE");
@@ -164,9 +212,12 @@ describe("social content lane router", () => {
         (item) => item.code === "SOURCE_TRANSFORMED",
       ),
     ).toBe(true);
+    expect(pkg.shortVideo.script).toContain(transformedSummary);
+    expect(pkg.shortVideo.script).not.toContain(rawSummary);
+    expect(pkg.sourceEvidence.sourceTransformationVerified).toBe(true);
     expect(
       pkg.riskFlags.some(
-        (flag) => flag.code === "SOURCE_TRANSFORMATION_REQUIRED",
+        (flag) => flag.code === "SOURCE_TRANSFORMATION_VERIFIED",
       ),
     ).toBe(true);
   });
@@ -184,6 +235,7 @@ describe("social content lane router", () => {
     expect(pkg.contentLane).toBe("FACELESS_CINEMATIC");
     expect(pkg.shortVideo.format).toBe("LANDSCAPE");
     expect(pkg.shortVideo.rendererInput.aigcDisclosureRequired).toBe(true);
+    expect(pkg.shortVideo.rendererInput.aigcDisclosureApplied).toBe(false);
     expect(pkg.shortVideo.rendererInput.originalConceptRequired).toBe(true);
     expect(
       pkg.shortVideo.scenes.every(
@@ -227,6 +279,43 @@ describe("social content lane router", () => {
     );
   });
 
+  it("rejects unknown lane metadata instead of falling back open", () => {
+    expect(
+      readContentLaneMetadata({
+        videoRecipe: {
+          rendererInput: {
+            contentLane: "FUTURE_UNKNOWN_LANE",
+          },
+        },
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        metadataValid: false,
+        invalidReason: "UNKNOWN_CONTENT_LANE",
+      }),
+    );
+  });
+
+  it("requires verified transformation and disclosure before special-lane publication", () => {
+    expect(
+      evaluateContentLaneDestination({
+        lane: "TIKTOK_VIRAL_REPURPOSE",
+        provider: "TIKTOK",
+        sourceKind: "X",
+        sourceTransformationVerified: false,
+      }).reasons,
+    ).toContain("SOURCE_TRANSFORMATION_UNVERIFIED");
+
+    expect(
+      evaluateContentLaneDestination({
+        lane: "FACELESS_CINEMATIC",
+        provider: "YOUTUBE",
+        sourceKind: "OTHER",
+        aigcDisclosureApplied: false,
+      }).reasons,
+    ).toContain("AIGC_DISCLOSURE_UNVERIFIED");
+  });
+
   it("treats older content without lane metadata as standard governed content", () => {
     expect(readContentLaneMetadata({})).toEqual(
       expect.objectContaining({
@@ -234,6 +323,43 @@ describe("social content lane router", () => {
         sourceKind: "OTHER",
       }),
     );
+  });
+
+  it("exposes faceless and transformed-source inputs at the daily request boundary", () => {
+    const source = readFileSync(
+      join(
+        process.cwd(),
+        "src/app/api/social-media/orchestrator/daily/route.ts",
+      ),
+      "utf8",
+    );
+    expect(source).toContain('contentLaneHint: z.literal("FACELESS_CINEMATIC")');
+    expect(source).toContain("transformedSummary");
+    expect(source).toContain("sourceTransformationVerified");
+  });
+
+  it("enforces lane guards at shared, worker, and TokMetric queue boundaries", () => {
+    const sharedQueue = readFileSync(
+      join(
+        process.cwd(),
+        "src/app/api/social-media/publishing/jobs/route.ts",
+      ),
+      "utf8",
+    );
+    const worker = readFileSync(
+      join(process.cwd(), "src/lib/social-media/publishing/worker.ts"),
+      "utf8",
+    );
+    const tokmetric = readFileSync(
+      join(process.cwd(), "src/lib/tokmetric/workflow.ts"),
+      "utf8",
+    );
+
+    for (const source of [sharedQueue, worker, tokmetric]) {
+      expect(source).toContain("evaluateContentLaneDestination");
+      expect(source).toContain("CONTENT_LANE_METADATA_INVALID");
+      expect(source).toContain("CONTENT_LANE_PUBLISHING_BLOCKED");
+    }
   });
 
   it("enforces the lane route guard before shared autopilot queue creation", () => {
