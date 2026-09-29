@@ -122,20 +122,18 @@ export function contentFingerprint(input: {
   angle: string;
   sourceMaterialId: string;
   contentType: SocialContentType;
-  contentLane: SocialContentLane;
+  contentLane?: SocialContentLane;
 }) {
-  return createHash("sha256")
-    .update(
-      [
-        input.provider,
-        input.contentType,
-        input.contentLane,
-        canonical(input.topic),
-        canonical(input.angle),
-        input.sourceMaterialId,
-      ].join("|"),
-    )
-    .digest("hex");
+  const lane = input.contentLane ?? "STANDARD_GOVERNED";
+  const parts = [
+    input.provider,
+    input.contentType,
+    ...(lane === "STANDARD_GOVERNED" ? [] : [lane]),
+    canonical(input.topic),
+    canonical(input.angle),
+    input.sourceMaterialId,
+  ];
+  return createHash("sha256").update(parts.join("|")).digest("hex");
 }
 
 function compatible(
