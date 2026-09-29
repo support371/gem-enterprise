@@ -330,6 +330,10 @@ function derivePayload(input: {
       contentLane: laneMetadata.lane,
       sourceKind: laneMetadata.sourceKind,
       routingPolicyVersion: laneMetadata.policyVersion,
+      aigcDisclosureRequired: laneMetadata.aigcDisclosureRequired,
+      sourceTransformationRequired: laneMetadata.sourceTransformationRequired,
+      sourceAttributionRequired: laneMetadata.sourceAttributionRequired,
+      originalConceptRequired: laneMetadata.originalConceptRequired,
     },
   } satisfies SocialPublishingPayload;
 }
@@ -463,30 +467,24 @@ export async function materializeSocialAutopilotJobs(input: {
       continue;
     }
 
-    const providerItems = input.result.materialized
-      .filter(
-        (item) =>
-          item.provider === provider &&
-          item.state === "AUTO_POLICY_READY" &&
-          item.complianceResult === "PASS",
-      )
-      .slice(0, remaining);
+    const providerItems = input.result.materialized.filter(
+      (item) =>
+        item.provider === provider &&
+        item.state === "AUTO_POLICY_READY" &&
+        item.complianceResult === "PASS",
+    );
     const slots = buildSocialAutopilotSlots({
       provider,
       planDate: input.planDate,
-      count: providerItems.length,
+      count: Math.min(remaining, providerItems.length),
       now,
       env,
     });
+    let queuedForProvider = 0;
 
     for (let index = 0; index < providerItems.length; index += 1) {
+      if (queuedForProvider >= remaining) break;
       const item = providerItems[index];
-      const scheduledFor = slots[index];
-      if (!scheduledFor) {
-        skipped += 1;
-        blockedReasons.push(`${provider}_NO_SAFE_SLOT_AVAILABLE`);
-        continue;
-      }
       const draft = draftByFingerprint.get(item.fingerprint);
       if (!draft) {
         skipped += 1;
@@ -579,6 +577,13 @@ export async function materializeSocialAutopilotJobs(input: {
         continue;
       }
 
+      const scheduledFor = slots[queuedForProvider];
+      if (!scheduledFor) {
+        skipped += providerItems.length - index;
+        blockedReasons.push(`${provider}_NO_SAFE_SLOT_AVAILABLE`);
+        break;
+      }
+
       const approval = await autoApproveExactVersion({
         workspaceId: input.workspaceId,
         actorId: input.actorId,
@@ -615,6 +620,7 @@ export async function materializeSocialAutopilotJobs(input: {
         maxAttempts: 3,
       });
       queued += 1;
+      queuedForProvider += 1;
     }
   }
 
