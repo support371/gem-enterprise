@@ -77,6 +77,15 @@ describe("social content lane router", () => {
     ).toBe("THREADS");
   });
 
+  it("does not mistake lookalike hosts or paths for X and Threads", () => {
+    expect(
+      detectContentSourceKind("https://notx.com/path/x.com/source/status/1"),
+    ).toBe("OTHER");
+    expect(
+      detectContentSourceKind("https://example.com/threads.net/@source/post/1"),
+    ).toBe("OTHER");
+  });
+
   it("routes fresh X and Threads items into the TikTok viral repurposing lane", () => {
     expect(
       deriveContentLane({
@@ -191,6 +200,33 @@ describe("social content lane router", () => {
     ).toBe(true);
   });
 
+  it("retains lane control requirements in persisted renderer metadata", () => {
+    const metadata = readContentLaneMetadata({
+      videoRecipe: {
+        rendererInput: {
+          contentLane: "FACELESS_CINEMATIC",
+          sourceKind: "OTHER",
+          routingPolicyVersion: "test-policy",
+          aigcDisclosureRequired: true,
+          sourceTransformationRequired: false,
+          sourceAttributionRequired: true,
+          originalConceptRequired: true,
+        },
+      },
+    });
+
+    expect(metadata).toEqual(
+      expect.objectContaining({
+        lane: "FACELESS_CINEMATIC",
+        policyVersion: "test-policy",
+        aigcDisclosureRequired: true,
+        sourceTransformationRequired: false,
+        sourceAttributionRequired: true,
+        originalConceptRequired: true,
+      }),
+    );
+  });
+
   it("treats older content without lane metadata as standard governed content", () => {
     expect(readContentLaneMetadata({})).toEqual(
       expect.objectContaining({
@@ -211,5 +247,10 @@ describe("social content lane router", () => {
     expect(source).toContain("evaluateContentLaneDestination");
     expect(source).toContain("laneRouting.reasons.map");
     expect(source).toContain("routingPolicyVersion");
+    expect(source).toContain("aigcDisclosureRequired");
+    expect(source).toContain("sourceTransformationRequired");
+    expect(source).toContain("let queuedForProvider = 0");
+    expect(source).toContain("count: Math.min(remaining, providerItems.length)");
+    expect(source).not.toContain(".slice(0, remaining)");
   });
 });
