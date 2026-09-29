@@ -20,6 +20,10 @@ import {
   socialContentTypes,
   type SocialContentType,
 } from "@/lib/social-media/policy";
+import {
+  evaluateContentLaneDestination,
+  readContentLaneMetadata,
+} from "@/lib/social-media/orchestration/content-lanes";
 import type { DailyContentOrchestrationResult } from "@/lib/social-media/orchestration/orchestrator";
 import {
   emitTokMetricAudit,
@@ -276,6 +280,7 @@ function derivePayload(input: {
   fingerprint: string;
 }) {
   const settings = object(input.version.settings);
+  const laneMetadata = readContentLaneMetadata(settings);
   const hashtags = input.version.hashtags.map((tag) =>
     tag.startsWith("#") ? tag : `#${tag}`,
   );
@@ -322,6 +327,9 @@ function derivePayload(input: {
       autopilot: true,
       autopilotFingerprint: input.fingerprint,
       autopilotPolicyVersion: SOCIAL_AUTOPILOT_POLICY_VERSION,
+      contentLane: laneMetadata.lane,
+      sourceKind: laneMetadata.sourceKind,
+      routingPolicyVersion: laneMetadata.policyVersion,
     },
   } satisfies SocialPublishingPayload;
 }
@@ -527,6 +535,22 @@ export async function materializeSocialAutopilotJobs(input: {
       if (!contentType) {
         skipped += 1;
         blockedReasons.push(`${provider}_CONTENT_TYPE_REQUIRED`);
+        continue;
+      }
+
+      const laneMetadata = readContentLaneMetadata(settings);
+      const laneRouting = evaluateContentLaneDestination({
+        lane: laneMetadata.lane,
+        provider,
+        sourceKind: laneMetadata.sourceKind,
+      });
+      if (!laneRouting.allowed) {
+        skipped += 1;
+        blockedReasons.push(
+          ...laneRouting.reasons.map(
+            (reason) => `${provider}_${reason}`,
+          ),
+        );
         continue;
       }
 
