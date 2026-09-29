@@ -544,6 +544,7 @@ export function generateCrossPlatformContentPackage(input: {
     provider: input.draft.provider,
     contentType: input.draft.contentType,
     signalReference: input.signal.sourceReference,
+    laneHint: input.signal.contentLaneHint,
   });
   const laneDecision = getContentLaneDecision({
     lane: contentLane,
