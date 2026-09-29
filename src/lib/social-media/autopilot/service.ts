@@ -20,6 +20,10 @@ import {
   socialContentTypes,
   type SocialContentType,
 } from "@/lib/social-media/policy";
+import {
+  evaluateContentLaneDestination,
+  readContentLaneMetadata,
+} from "@/lib/social-media/orchestration/content-lanes";
 import type { DailyContentOrchestrationResult } from "@/lib/social-media/orchestration/orchestrator";
 import {
   emitTokMetricAudit,
@@ -276,6 +280,7 @@ function derivePayload(input: {
   fingerprint: string;
 }) {
   const settings = object(input.version.settings);
+  const laneMetadata = readContentLaneMetadata(settings);
   const hashtags = input.version.hashtags.map((tag) =>
     tag.startsWith("#") ? tag : `#${tag}`,
   );
@@ -316,12 +321,26 @@ function derivePayload(input: {
         ? settings.localContext.trim()
         : undefined,
     visibility,
+    syntheticContentDisclosure:
+      laneMetadata.aigcDisclosureRequired
+        ? laneMetadata.aigcDisclosureApplied
+        : undefined,
     metadata: {
       contentId: input.contentId,
       contentVersionId: input.contentVersionId,
       autopilot: true,
       autopilotFingerprint: input.fingerprint,
       autopilotPolicyVersion: SOCIAL_AUTOPILOT_POLICY_VERSION,
+      contentLane: laneMetadata.lane,
+      sourceKind: laneMetadata.sourceKind,
+      routingPolicyVersion: laneMetadata.policyVersion,
+      aigcDisclosureRequired: laneMetadata.aigcDisclosureRequired,
+      aigcDisclosureApplied: laneMetadata.aigcDisclosureApplied,
+      sourceTransformationRequired: laneMetadata.sourceTransformationRequired,
+      sourceTransformationVerified:
+        laneMetadata.sourceTransformationVerified,
+      sourceAttributionRequired: laneMetadata.sourceAttributionRequired,
+      originalConceptRequired: laneMetadata.originalConceptRequired,
     },
   } satisfies SocialPublishingPayload;
 }
@@ -455,30 +474,24 @@ export async function materializeSocialAutopilotJobs(input: {
       continue;
     }
 
-    const providerItems = input.result.materialized
-      .filter(
-        (item) =>
-          item.provider === provider &&
-          item.state === "AUTO_POLICY_READY" &&
-          item.complianceResult === "PASS",
-      )
-      .slice(0, remaining);
+    const providerItems = input.result.materialized.filter(
+      (item) =>
+        item.provider === provider &&
+        item.state === "AUTO_POLICY_READY" &&
+        item.complianceResult === "PASS",
+    );
     const slots = buildSocialAutopilotSlots({
       provider,
       planDate: input.planDate,
-      count: providerItems.length,
+      count: Math.min(remaining, providerItems.length),
       now,
       env,
     });
+    let queuedForProvider = 0;
 
     for (let index = 0; index < providerItems.length; index += 1) {
+      if (queuedForProvider >= remaining) break;
       const item = providerItems[index];
-      const scheduledFor = slots[index];
-      if (!scheduledFor) {
-        skipped += 1;
-        blockedReasons.push(`${provider}_NO_SAFE_SLOT_AVAILABLE`);
-        continue;
-      }
       const draft = draftByFingerprint.get(item.fingerprint);
       if (!draft) {
         skipped += 1;
@@ -530,6 +543,30 @@ export async function materializeSocialAutopilotJobs(input: {
         continue;
       }
 
+      const laneMetadata = readContentLaneMetadata(settings);
+      if (!laneMetadata.metadataValid) {
+        skipped += 1;
+        blockedReasons.push(`${provider}_CONTENT_LANE_METADATA_INVALID`);
+        continue;
+      }
+      const laneRouting = evaluateContentLaneDestination({
+        lane: laneMetadata.lane,
+        provider,
+        sourceKind: laneMetadata.sourceKind,
+        sourceTransformationVerified:
+          laneMetadata.sourceTransformationVerified,
+        aigcDisclosureApplied: laneMetadata.aigcDisclosureApplied,
+      });
+      if (!laneRouting.allowed) {
+        skipped += 1;
+        blockedReasons.push(
+          ...laneRouting.reasons.map(
+            (reason) => `${provider}_${reason}`,
+          ),
+        );
+        continue;
+      }
+
       const mediaAssets =
         version.mediaAssetIds.length > 0
           ? await db.mediaAsset.findMany({
@@ -553,6 +590,13 @@ export async function materializeSocialAutopilotJobs(input: {
         skipped += 1;
         blockedReasons.push(mediaBlocker);
         continue;
+      }
+
+      const scheduledFor = slots[queuedForProvider];
+      if (!scheduledFor) {
+        skipped += providerItems.length - index;
+        blockedReasons.push(`${provider}_NO_SAFE_SLOT_AVAILABLE`);
+        break;
       }
 
       const approval = await autoApproveExactVersion({
@@ -591,6 +635,7 @@ export async function materializeSocialAutopilotJobs(input: {
         maxAttempts: 3,
       });
       queued += 1;
+      queuedForProvider += 1;
     }
   }
 

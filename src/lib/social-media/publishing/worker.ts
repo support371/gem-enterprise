@@ -2,6 +2,10 @@ import { db } from "@/lib/db";
 import { loadSocialConnectorCredential } from "@/lib/social-media/oauth/lifecycle-store";
 import { evaluateSocialPublishingAuthorization } from "@/lib/social-media/policy";
 import {
+  evaluateContentLaneDestination,
+  readContentLaneMetadata,
+} from "@/lib/social-media/orchestration/content-lanes";
+import {
   getSocialAutopilotEgressPolicy,
   SOCIAL_AUTOPILOT_POLICY_VERSION,
   socialAutopilotAutoApprovalEnabled,
@@ -106,6 +110,7 @@ async function governanceEvidence(job: SocialPublishingJobRecord) {
     approvalDecisionId: decision?.id || null,
     approvalMode: autoPolicyApprovalValid ? "AUTO_POLICY" : "HUMAN",
     contentVersionId: versionId,
+    contentVersionSettings: approval?.contentVersion?.settings ?? {},
   };
 }
 
@@ -198,6 +203,42 @@ async function processJob(job: SocialPublishingJobRecord) {
   }
 
   const evidence = await governanceEvidence(job);
+  const laneMetadata = readContentLaneMetadata(evidence.contentVersionSettings);
+  if (!laneMetadata.metadataValid) {
+    return block(
+      job,
+      "CONTENT_LANE_METADATA_INVALID",
+      "The exact approved content version contains an unknown content lane.",
+      { invalidReason: laneMetadata.invalidReason },
+    );
+  }
+  const laneRouting = evaluateContentLaneDestination({
+    lane: laneMetadata.lane,
+    provider: job.provider,
+    sourceKind: laneMetadata.sourceKind,
+    sourceTransformationVerified:
+      laneMetadata.sourceTransformationVerified,
+    aigcDisclosureApplied: laneMetadata.aigcDisclosureApplied,
+  });
+  if (!laneRouting.allowed) {
+    return block(
+      job,
+      "CONTENT_LANE_PUBLISHING_BLOCKED",
+      "Content lane policy blocked the queued destination.",
+      { reasons: laneRouting.reasons },
+    );
+  }
+  if (
+    laneMetadata.aigcDisclosureRequired &&
+    job.payload.syntheticContentDisclosure !== true
+  ) {
+    return block(
+      job,
+      "AIGC_DISCLOSURE_PAYLOAD_MISSING",
+      "Synthetic-content disclosure must be carried to the provider adapter before publication.",
+    );
+  }
+
   const loaded = await loadSocialConnectorCredential({
     workspaceId: job.workspaceId,
     connectorId: job.connectorId,

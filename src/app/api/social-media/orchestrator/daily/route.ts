@@ -24,6 +24,9 @@ type SignalPayload = {
   observedAt: string;
   sourceReference: string;
   providers?: ProviderId[];
+  contentLaneHint?: "FACELESS_CINEMATIC";
+  transformedSummary?: string;
+  sourceTransformationVerified?: boolean;
 };
 type SourcePayload = {
   id: string;
@@ -63,6 +66,9 @@ const signalSchema = z.object({
   observedAt: z.string().datetime(),
   sourceReference: z.string().trim().min(1).max(2000),
   providers: z.array(providerSchema).max(8).optional(),
+  contentLaneHint: z.literal("FACELESS_CINEMATIC").optional(),
+  transformedSummary: z.string().trim().min(1).max(5000).optional(),
+  sourceTransformationVerified: z.boolean().optional(),
 });
 const sourceSchema = z.object({
   id: z.string().trim().min(1).max(300),

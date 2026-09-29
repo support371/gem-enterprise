@@ -468,7 +468,17 @@ const linkedInAdapter: SocialPublishingAdapter = {
 };
 
 const youtubeAdapter: SocialPublishingAdapter = {
-  async publish() {
+  async publish(input) {
+    const metadata = object(input.job.payload.metadata);
+    if (
+      metadata.aigcDisclosureRequired === true &&
+      input.job.payload.syntheticContentDisclosure !== true
+    ) {
+      throw new SocialPublishingAdapterError(
+        "YOUTUBE_SYNTHETIC_CONTENT_DISCLOSURE_REQUIRED",
+        "YouTube synthetic-content disclosure must be applied before upload.",
+      );
+    }
     throw new SocialPublishingAdapterError(
       "YOUTUBE_UPLOAD_PIPELINE_NOT_CERTIFIED",
       "YouTube upload requires the certified resumable media pipeline before publishing can be enabled.",
