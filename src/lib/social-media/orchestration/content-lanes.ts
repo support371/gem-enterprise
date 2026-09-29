@@ -46,23 +46,34 @@ export function detectContentSourceKind(
 ): SocialContentSourceKind {
   const reference = sourceReference?.trim().toLowerCase() ?? "";
   if (!reference) return "OTHER";
-  if (
-    reference.includes("x.com/") ||
-    reference.includes("twitter.com/") ||
-    reference.startsWith("x:")
-  ) {
-    return "X";
-  }
-  if (reference.includes("threads.net/") || reference.startsWith("threads:")) {
-    return "THREADS";
-  }
+  if (reference.startsWith("x:")) return "X";
+  if (reference.startsWith("threads:")) return "THREADS";
   if (reference.startsWith("news:")) return "NEWS";
-  if (
-    reference.includes("gemcybersecurityassist.com") ||
-    reference.startsWith("gem:")
-  ) {
-    return "GEM";
+  if (reference.startsWith("gem:")) return "GEM";
+
+  try {
+    const hostname = new URL(reference).hostname.toLowerCase();
+    if (
+      ["x.com", "www.x.com", "twitter.com", "www.twitter.com", "mobile.twitter.com"].includes(
+        hostname,
+      )
+    ) {
+      return "X";
+    }
+    if (["threads.net", "www.threads.net"].includes(hostname)) {
+      return "THREADS";
+    }
+    if (
+      ["gemcybersecurityassist.com", "www.gemcybersecurityassist.com"].includes(
+        hostname,
+      )
+    ) {
+      return "GEM";
+    }
+  } catch {
+    // Non-URL references fall through to OTHER unless they use an explicit prefix above.
   }
+
   return "OTHER";
 }
 
@@ -178,11 +189,31 @@ export function readContentLaneMetadata(settings: unknown) {
     ? (rawSourceKind as SocialContentSourceKind)
     : "OTHER";
 
+  const defaults = getContentLaneDecision({ lane, sourceKind });
+  const booleanMetadata = (value: unknown, fallback: boolean) =>
+    typeof value === "boolean" ? value : fallback;
+
   return {
     lane,
     sourceKind,
     policyVersion:
       clean(rendererInput.routingPolicyVersion) ??
       SOCIAL_CONTENT_ROUTING_POLICY_VERSION,
+    aigcDisclosureRequired: booleanMetadata(
+      rendererInput.aigcDisclosureRequired,
+      defaults.aigcDisclosureRequired,
+    ),
+    sourceTransformationRequired: booleanMetadata(
+      rendererInput.sourceTransformationRequired,
+      defaults.sourceTransformationRequired,
+    ),
+    sourceAttributionRequired: booleanMetadata(
+      rendererInput.sourceAttributionRequired,
+      defaults.sourceAttributionRequired,
+    ),
+    originalConceptRequired: booleanMetadata(
+      rendererInput.originalConceptRequired,
+      defaults.originalConceptRequired,
+    ),
   };
 }
