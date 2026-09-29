@@ -116,9 +116,9 @@ describe("setup-gated modules", () => {
     expect(result.reasons.join(" ").toLowerCase()).toContain("setup");
   });
 
-  it("automations has no route in this build and resolves UNAVAILABLE", () => {
+  it("automations resolves SETUP_REQUIRED because automation setup is not complete", () => {
     const result = resolveWorkspaceModuleState("automations", ctx());
-    expect(result.state).toBe("UNAVAILABLE");
+    expect(result.state).toBe("SETUP_REQUIRED");
   });
 
   it("digital_services is SETUP_REQUIRED while publishing controls are locked", () => {
