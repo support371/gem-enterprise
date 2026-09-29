@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { SocialContentLane } from "../orchestration/content-lanes";
 import type { SocialContentType } from "../policy";
 import type { SocialMediaProviderId } from "../providers";
 
@@ -11,6 +12,7 @@ export interface MarketSignal {
   observedAt: Date;
   sourceReference: string;
   providers?: readonly SocialMediaProviderId[];
+  contentLaneHint?: SocialContentLane;
 }
 
 export interface ApprovedSourceMaterial {
