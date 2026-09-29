@@ -54,7 +54,7 @@ Canonical lane id:
 
 `FACELESS_CINEMATIC`
 
-This is a separate production request for YouTube video content. It does not replace the X/Threads-to-TikTok flow.
+This is a separate, explicitly requested production lane for YouTube video content. Ordinary YouTube drafts remain in the standard governed lane unless a market signal or manual request carries the `FACELESS_CINEMATIC` lane hint. It does not replace the X/Threads-to-TikTok flow.
 
 Operational flow:
 
@@ -89,6 +89,7 @@ Required controls:
 - Preserve the destination's AI-generated or synthetic-content disclosure when required.
 - Use only generated, owned, or properly licensed visuals, voices, music, and media.
 - The primary destination is YouTube. TikTok adaptation is a separate draft and must pass the TikTok lane's own checks rather than reusing the YouTube object unchanged.
+- Do not automatically convert all YouTube content into faceless production; the lane requires an explicit `FACELESS_CINEMATIC` request/hint.
 
 ## Standard governed lane
 
