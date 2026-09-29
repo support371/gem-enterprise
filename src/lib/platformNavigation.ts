@@ -298,6 +298,12 @@ export const adminPortalNavGroups: PlatformNavGroup[] = [
         description: "Administrative overview and route directory.",
       },
       {
+        href: "/app/admin/client-operations",
+        icon: "Building2",
+        label: "Client Operations",
+        description: "Unified client lifecycle, security, finance, compliance, communications, and service operations.",
+      },
+      {
         href: "/app/admin/organization-reports",
         icon: "ClipboardList",
         label: "Organization Highlights",
