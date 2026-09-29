@@ -1,85 +1,56 @@
 "use client";
 
 import Link from "next/link";
-import {
-  ArrowRight,
-  CheckCircle2,
-  Clock3,
-  Grid3X3,
-  LockKeyhole,
-  Search,
-  X,
-} from "lucide-react";
+import { ArrowRight, Grid3X3, Search, X } from "lucide-react";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { isCapabilityUsable, type CapabilityState } from "@/lib/capabilityReadiness";
+import { ReadinessBadge } from "@/components/capability/ReadinessBadge";
 
-interface WorkspaceModule {
+export interface WorkspaceModuleItem {
   id: string;
   label: string;
-  description?: string;
-  group?: string;
-  href?: string;
-  state: string;
+  description: string;
+  group: string;
+  href: string;
+  state: CapabilityState;
+  reasons: string[];
 }
 
-type ModuleFilter = "all" | "ready" | "setup";
+type ModuleFilter = "all" | "ready" | "attention";
 
 const tabs: Array<{ id: ModuleFilter; label: string }> = [
   { id: "all", label: "All modules" },
-  { id: "ready", label: "Available" },
-  { id: "setup", label: "Setup & activation" },
+  { id: "ready", label: "Ready to use" },
+  { id: "attention", label: "Needs attention" },
 ];
 
-const moduleDestinations: Record<string, { href: string; label: string }> = {
-  projects: { href: "#workspace-projects", label: "Open projects" },
-  team: { href: "#workspace-team", label: "Open team" },
-  weekly_updates: { href: "#workspace-weekly-reporting", label: "Open reporting" },
-};
-
-function stateLabel(state: string) {
-  return state.replaceAll("_", " ");
-}
-
-function isAvailable(state: string) {
-  return state === "AVAILABLE";
-}
-
-function stateTone(state: string) {
-  if (state === "AVAILABLE") {
-    return "border-emerald-400/25 bg-emerald-400/10 text-emerald-300";
-  }
-  if (state === "SETUP_IN_PROGRESS") {
-    return "border-cyan-400/25 bg-cyan-400/10 text-cyan-200";
-  }
-  return "border-amber-400/25 bg-amber-400/10 text-amber-300";
-}
-
-function StateIcon({ state }: { state: string }) {
-  if (state === "AVAILABLE") {
-    return <CheckCircle2 className="h-4 w-4 text-emerald-300" aria-hidden="true" />;
-  }
-  if (state === "SETUP_IN_PROGRESS") {
-    return <Clock3 className="h-4 w-4 text-cyan-300" aria-hidden="true" />;
-  }
-  return <LockKeyhole className="h-4 w-4 text-amber-300" aria-hidden="true" />;
-}
-
-export function WorkspaceOSModuleDirectory({ modules }: { modules: WorkspaceModule[] }) {
+export function WorkspaceOSModuleDirectory({ items }: { items: WorkspaceModuleItem[] }) {
   const [activeTab, setActiveTab] = useState<ModuleFilter>("all");
   const [query, setQuery] = useState("");
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-  const visibleModules = useMemo(() => {
+  const groups = useMemo(() => {
+    const ordered: string[] = [];
+    for (const item of items) {
+      if (!ordered.includes(item.group)) ordered.push(item.group);
+    }
+    return ordered;
+  }, [items]);
+
+  const visibleItems = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
-    return modules.filter((module) => {
-      const matchesQuery = !normalized || `${module.label} ${module.id} ${module.state}`.toLocaleLowerCase().includes(normalized);
-      const matchesTab = activeTab === "all"
-        || (activeTab === "ready" && isAvailable(module.state))
-        || (activeTab === "setup" && !isAvailable(module.state));
+    return items.filter((item) => {
+      const matchesQuery =
+        !normalized ||
+        `${item.label} ${item.id} ${item.group} ${item.state}`.toLocaleLowerCase().includes(normalized);
+      const matchesTab =
+        activeTab === "all" ||
+        (activeTab === "ready" && isCapabilityUsable(item.state)) ||
+        (activeTab === "attention" && !isCapabilityUsable(item.state));
       return matchesQuery && matchesTab;
     });
-  }, [activeTab, modules, query]);
+  }, [activeTab, items, query]);
 
   function activateTab(index: number) {
     const target = tabs[index];
@@ -108,7 +79,9 @@ export function WorkspaceOSModuleDirectory({ modules }: { modules: WorkspaceModu
             Modules and operating surfaces
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-            Every module remains tied to authoritative workspace state. Setup or activation labels do not imply provider authorization or production readiness.
+            Every module reports its true readiness from live workspace state. A badge of
+            &ldquo;Surface available&rdquo; means the route exists but the capability is not
+            asserted live; no module is hidden because it is not yet ready.
           </p>
         </div>
 
@@ -175,51 +148,50 @@ export function WorkspaceOSModuleDirectory({ modules }: { modules: WorkspaceModu
         className="mt-4 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
       >
         <p role="status" aria-live="polite" className="sr-only">
-          {visibleModules.length} workspace modules shown.
+          {visibleItems.length} workspace modules shown.
         </p>
 
-        {visibleModules.length ? (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" role="list" aria-label="Workspace modules">
-            {visibleModules.map((module) => {
-              const destination = module.href ? { href: module.href, label: "Open module" } : moduleDestinations[module.id];
+        {visibleItems.length ? (
+          <div className="space-y-6">
+            {groups.map((group) => {
+              const groupItems = visibleItems.filter((item) => item.group === group);
+              if (!groupItems.length) return null;
               return (
-                <article key={module.id} role="listitem" className="flex min-h-44 flex-col rounded-xl border border-white/10 bg-black/15 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
-                      <Grid3X3 className="h-4 w-4" aria-hidden="true" />
-                    </span>
-                    <Badge variant="outline" className={stateTone(module.state)}>
-                      <span className="mr-1.5"><StateIcon state={module.state} /></span>
-                      {stateLabel(module.state)}
-                    </Badge>
-                  </div>
+                <div key={group}>
+                  <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+                    {group}
+                  </h3>
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4" role="list" aria-label={`${group} modules`}>
+                    {groupItems.map((item) => (
+                      <article key={item.id} role="listitem" className="flex min-h-48 flex-col rounded-xl border border-white/10 bg-black/15 p-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
+                            <Grid3X3 className="h-4 w-4" aria-hidden="true" />
+                          </span>
+                          <ReadinessBadge state={item.state} />
+                        </div>
 
-                  <div className="mt-4 flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold text-white">{module.label}</h3>
-                    {module.group ? <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-600">{module.group}</span> : null}
-                  </div>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
-                    {module.description ?? (isAvailable(module.state)
-                      ? "Available through this authenticated workspace."
-                      : module.state === "SETUP_IN_PROGRESS"
-                        ? "The workspace records this module as setup in progress."
-                        : "The module remains fail-closed until it is activated.")}
-                  </p>
+                        <h4 className="mt-4 text-sm font-semibold text-white">{item.label}</h4>
+                        <p className="mt-1 text-xs leading-5 text-slate-500">{item.description}</p>
+                        {item.state !== "LIVE" && item.reasons.length > 0 ? (
+                          <p className="mt-2 text-[11px] leading-4 text-slate-600">
+                            {item.reasons.join("; ")}
+                          </p>
+                        ) : null}
 
-                  <div className="mt-auto pt-4">
-                    {destination ? (
-                      <Link
-                        href={destination.href}
-                        className="inline-flex items-center gap-2 rounded-lg text-xs font-semibold text-cyan-300 transition hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-                      >
-                        {destination.label}
-                        <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                      </Link>
-                    ) : (
-                      <span className="text-xs font-medium text-slate-600">No separate surface activated</span>
-                    )}
+                        <div className="mt-auto pt-4">
+                          <Link
+                            href={item.href}
+                            className="inline-flex items-center gap-2 rounded-lg text-xs font-semibold text-cyan-300 transition hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                          >
+                            Open module
+                            <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                          </Link>
+                        </div>
+                      </article>
+                    ))}
                   </div>
-                </article>
+                </div>
               );
             })}
           </div>

@@ -7,14 +7,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { OrganizationWorkspaceCommandLayer } from "@/components/workspace/OrganizationWorkspaceCommandLayer";
-import { WorkspaceOSModuleDirectory } from "@/components/workspace/WorkspaceOSModuleDirectory";
+import { WorkspaceOSModuleDirectory, type WorkspaceModuleItem } from "@/components/workspace/WorkspaceOSModuleDirectory";
 import { WorkspaceProjectDirectory } from "@/components/workspace/WorkspaceProjectDirectory";
 
 type Overview = Awaited<ReturnType<typeof import("@/lib/organizationWorkspace").getOrganizationWorkspaceOverview>>;
 
 const field = "w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/60 focus-visible:ring-2 focus-visible:ring-cyan-300/25";
 
-export function OrganizationWorkspaceOperatingSystem({ overview }: { overview: Overview }) {
+export function OrganizationWorkspaceOperatingSystem({
+  overview,
+  moduleItems,
+}: {
+  overview: Overview;
+  moduleItems: WorkspaceModuleItem[];
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -79,7 +85,7 @@ export function OrganizationWorkspaceOperatingSystem({ overview }: { overview: O
         updateCount={overview.updates.length}
       />
 
-      <WorkspaceOSModuleDirectory modules={overview.modules} />
+      <WorkspaceOSModuleDirectory items={moduleItems} />
 
       <section className="grid gap-6 xl:grid-cols-[1.2fr_.8fr]">
         <WorkspaceProjectDirectory projects={overview.projects} />
