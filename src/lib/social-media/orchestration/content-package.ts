@@ -61,7 +61,9 @@ export interface VideoRecipe {
     sourceKind: SocialContentSourceKind;
     routingPolicyVersion: string;
     aigcDisclosureRequired: boolean;
+    aigcDisclosureApplied: boolean;
     sourceTransformationRequired: boolean;
+    sourceTransformationVerified: boolean;
     sourceAttributionRequired: boolean;
     originalConceptRequired: boolean;
   };
@@ -111,6 +113,7 @@ export interface CrossPlatformContentPackage {
     signalReference: string;
     sourceKind: SocialContentSourceKind;
     transformationRequired: boolean;
+    sourceTransformationVerified: boolean;
     attributionRequired: boolean;
     originalConceptRequired: boolean;
   };
@@ -537,15 +540,36 @@ export function generateCrossPlatformContentPackage(input: {
   approvalMode?: "HUMAN" | "AUTO_POLICY";
 }): CrossPlatformContentPackage {
   const hook = `What does ${input.signal.topic} mean for your organization today?`;
-  const explanation = `${input.signal.summary} ${input.source.summary}`.trim();
   const action = input.source.callToAction.trim();
   const sourceKind = detectContentSourceKind(input.signal.sourceReference);
-  const contentLane = deriveContentLane({
-    provider: input.draft.provider,
-    contentType: input.draft.contentType,
-    signalReference: input.signal.sourceReference,
-    laneHint: input.signal.contentLaneHint,
-  });
+  const contentLane =
+    input.draft.contentLane ??
+    deriveContentLane({
+      provider: input.draft.provider,
+      contentType: input.draft.contentType,
+      signalReference: input.signal.sourceReference,
+      laneHint: input.signal.contentLaneHint,
+      observedAt: input.signal.observedAt,
+      evaluatedAt: new Date(),
+    });
+  const transformedSummary = input.signal.transformedSummary?.trim();
+  const sourceTransformationVerified =
+    contentLane === "TIKTOK_VIRAL_REPURPOSE"
+      ? Boolean(
+          transformedSummary &&
+            input.signal.sourceTransformationVerified === true,
+        )
+      : true;
+  const presentationSignal =
+    contentLane === "TIKTOK_VIRAL_REPURPOSE"
+      ? {
+          ...input.signal,
+          summary:
+            transformedSummary ||
+            "Source transformation is pending verification and cannot be published yet.",
+        }
+      : input.signal;
+  const explanation = `${presentationSignal.summary} ${input.source.summary}`.trim();
   const laneDecision = getContentLaneDecision({
     lane: contentLane,
     sourceKind,
@@ -559,7 +583,7 @@ export function generateCrossPlatformContentPackage(input: {
   });
   const scenes = buildScenes({
     hook,
-    signal: input.signal,
+    signal: presentationSignal,
     source: input.source,
     action,
     lane: contentLane,
@@ -571,6 +595,7 @@ export function generateCrossPlatformContentPackage(input: {
       input.source.summary,
       input.signal.topic,
       input.signal.summary,
+      transformedSummary ?? "",
       caption,
       script,
     ].join("\n"),
@@ -578,13 +603,21 @@ export function generateCrossPlatformContentPackage(input: {
 
   if (contentLane === "TIKTOK_VIRAL_REPURPOSE") {
     riskFlags.push(
-      {
-        code: "SOURCE_TRANSFORMATION_REQUIRED",
-        category: "SOURCE_REPURPOSING",
-        severity: "INFO",
-        message:
-          "Fresh X or Threads material must be summarized, materially rewritten, and verified before TikTok publication.",
-      },
+      sourceTransformationVerified
+        ? {
+            code: "SOURCE_TRANSFORMATION_VERIFIED",
+            category: "SOURCE_REPURPOSING",
+            severity: "INFO",
+            message:
+              "The X or Threads source has a separately supplied, verified transformed summary for TikTok publication.",
+          }
+        : {
+            code: "SOURCE_TRANSFORMATION_UNVERIFIED",
+            category: "SOURCE_REPURPOSING",
+            severity: "BLOCK",
+            message:
+              "TikTok viral repurposing is blocked until a materially rewritten summary is supplied and explicitly verified.",
+          },
       {
         code: "SOURCE_ATTRIBUTION_REQUIRED",
         category: "SOURCE_REPURPOSING",
@@ -688,7 +721,9 @@ export function generateCrossPlatformContentPackage(input: {
         sourceKind,
         routingPolicyVersion: SOCIAL_CONTENT_ROUTING_POLICY_VERSION,
         aigcDisclosureRequired: laneDecision.aigcDisclosureRequired,
+        aigcDisclosureApplied: false,
         sourceTransformationRequired: laneDecision.sourceTransformationRequired,
+        sourceTransformationVerified,
         sourceAttributionRequired: laneDecision.sourceAttributionRequired,
         originalConceptRequired: laneDecision.originalConceptRequired,
       },
@@ -696,7 +731,7 @@ export function generateCrossPlatformContentPackage(input: {
     visualBrief: buildVisualBrief({
       draft: input.draft,
       source: input.source,
-      signal: input.signal,
+      signal: presentationSignal,
       action,
       lane: contentLane,
     }),
@@ -714,6 +749,7 @@ export function generateCrossPlatformContentPackage(input: {
       signalReference: input.signal.sourceReference,
       sourceKind,
       transformationRequired: laneDecision.sourceTransformationRequired,
+      sourceTransformationVerified,
       attributionRequired: laneDecision.sourceAttributionRequired,
       originalConceptRequired: laneDecision.originalConceptRequired,
     },
