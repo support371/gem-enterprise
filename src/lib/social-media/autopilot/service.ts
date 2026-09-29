@@ -321,6 +321,10 @@ function derivePayload(input: {
         ? settings.localContext.trim()
         : undefined,
     visibility,
+    syntheticContentDisclosure:
+      laneMetadata.aigcDisclosureRequired
+        ? laneMetadata.aigcDisclosureApplied
+        : undefined,
     metadata: {
       contentId: input.contentId,
       contentVersionId: input.contentVersionId,
@@ -331,7 +335,10 @@ function derivePayload(input: {
       sourceKind: laneMetadata.sourceKind,
       routingPolicyVersion: laneMetadata.policyVersion,
       aigcDisclosureRequired: laneMetadata.aigcDisclosureRequired,
+      aigcDisclosureApplied: laneMetadata.aigcDisclosureApplied,
       sourceTransformationRequired: laneMetadata.sourceTransformationRequired,
+      sourceTransformationVerified:
+        laneMetadata.sourceTransformationVerified,
       sourceAttributionRequired: laneMetadata.sourceAttributionRequired,
       originalConceptRequired: laneMetadata.originalConceptRequired,
     },
@@ -537,10 +544,18 @@ export async function materializeSocialAutopilotJobs(input: {
       }
 
       const laneMetadata = readContentLaneMetadata(settings);
+      if (!laneMetadata.metadataValid) {
+        skipped += 1;
+        blockedReasons.push(`${provider}_CONTENT_LANE_METADATA_INVALID`);
+        continue;
+      }
       const laneRouting = evaluateContentLaneDestination({
         lane: laneMetadata.lane,
         provider,
         sourceKind: laneMetadata.sourceKind,
+        sourceTransformationVerified:
+          laneMetadata.sourceTransformationVerified,
+        aigcDisclosureApplied: laneMetadata.aigcDisclosureApplied,
       });
       if (!laneRouting.allowed) {
         skipped += 1;
