@@ -4,7 +4,8 @@ import {
   type SocialMediaProviderId,
 } from "../providers";
 
-export const SOCIAL_CONTENT_ROUTING_POLICY_VERSION = "2026-09-29.v1";
+export const SOCIAL_CONTENT_ROUTING_POLICY_VERSION = "2026-09-29.v2";
+export const VIRAL_SOURCE_MAX_AGE_MS = 72 * 60 * 60 * 1000;
 
 export const socialContentLanes = [
   "TIKTOK_VIRAL_REPURPOSE",
@@ -82,11 +83,21 @@ export function deriveContentLane(input: {
   contentType: SocialContentType;
   signalReference?: string;
   laneHint?: SocialContentLane;
+  observedAt?: Date;
+  evaluatedAt?: Date;
 }): SocialContentLane {
   const sourceKind = detectContentSourceKind(input.signalReference);
+  const evaluatedAt = input.evaluatedAt ?? new Date();
+  const observedAt = input.observedAt;
+  const freshSource =
+    Boolean(observedAt) &&
+    observedAt!.getTime() <= evaluatedAt.getTime() &&
+    evaluatedAt.getTime() - observedAt!.getTime() <= VIRAL_SOURCE_MAX_AGE_MS;
+
   if (
     input.provider === "TIKTOK" &&
-    (sourceKind === "X" || sourceKind === "THREADS")
+    (sourceKind === "X" || sourceKind === "THREADS") &&
+    freshSource
   ) {
     return "TIKTOK_VIRAL_REPURPOSE";
   }
@@ -141,6 +152,8 @@ export function evaluateContentLaneDestination(input: {
   lane: SocialContentLane;
   provider: SocialMediaProviderId;
   sourceKind: SocialContentSourceKind;
+  sourceTransformationVerified?: boolean;
+  aigcDisclosureApplied?: boolean;
 }) {
   const decision = getContentLaneDecision({
     lane: input.lane,
@@ -161,6 +174,18 @@ export function evaluateContentLaneDestination(input: {
   if (input.lane === "FACELESS_CINEMATIC" && input.provider !== "YOUTUBE") {
     reasons.push("FACELESS_PRIMARY_DESTINATION_REQUIRED");
   }
+  if (
+    decision.sourceTransformationRequired &&
+    input.sourceTransformationVerified !== true
+  ) {
+    reasons.push("SOURCE_TRANSFORMATION_UNVERIFIED");
+  }
+  if (
+    decision.aigcDisclosureRequired &&
+    input.aigcDisclosureApplied !== true
+  ) {
+    reasons.push("AIGC_DISCLOSURE_UNVERIFIED");
+  }
 
   return {
     allowed: reasons.length === 0,
@@ -177,9 +202,12 @@ export function readContentLaneMetadata(settings: unknown) {
   const sourceEvidence = object(root.sourceEvidence);
 
   const rawLane = clean(rendererInput.contentLane);
-  const lane = socialContentLanes.includes(rawLane as SocialContentLane)
-    ? (rawLane as SocialContentLane)
-    : "STANDARD_GOVERNED";
+  const metadataValid =
+    !rawLane || socialContentLanes.includes(rawLane as SocialContentLane);
+  const lane =
+    rawLane && metadataValid
+      ? (rawLane as SocialContentLane)
+      : "STANDARD_GOVERNED";
 
   const rawSourceKind =
     clean(rendererInput.sourceKind) ?? clean(sourceEvidence.sourceKind);
@@ -192,10 +220,22 @@ export function readContentLaneMetadata(settings: unknown) {
   const defaults = getContentLaneDecision({ lane, sourceKind });
   const booleanMetadata = (value: unknown, fallback: boolean) =>
     typeof value === "boolean" ? value : fallback;
+  const sourceTransformationVerified = booleanMetadata(
+    rendererInput.sourceTransformationVerified ??
+      sourceEvidence.sourceTransformationVerified,
+    false,
+  );
+  const aigcDisclosureApplied = booleanMetadata(
+    root.syntheticContentDisclosureApplied ??
+      rendererInput.aigcDisclosureApplied,
+    false,
+  );
 
   return {
     lane,
     sourceKind,
+    metadataValid,
+    invalidReason: metadataValid ? undefined : "UNKNOWN_CONTENT_LANE",
     policyVersion:
       clean(rendererInput.routingPolicyVersion) ??
       SOCIAL_CONTENT_ROUTING_POLICY_VERSION,
@@ -203,10 +243,12 @@ export function readContentLaneMetadata(settings: unknown) {
       rendererInput.aigcDisclosureRequired,
       defaults.aigcDisclosureRequired,
     ),
+    aigcDisclosureApplied,
     sourceTransformationRequired: booleanMetadata(
       rendererInput.sourceTransformationRequired,
       defaults.sourceTransformationRequired,
     ),
+    sourceTransformationVerified,
     sourceAttributionRequired: booleanMetadata(
       rendererInput.sourceAttributionRequired,
       defaults.sourceAttributionRequired,
