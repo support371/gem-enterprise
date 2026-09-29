@@ -460,12 +460,17 @@ export default async function WorkspacePage({ searchParams }: WorkspacePageProps
   );
   const moduleItems: WorkspaceModuleItem[] = clientWorkspaceModules.map((module) => {
     const resolution = resolveWorkspaceModuleState(module.id, readinessCtx);
+    // Anchor hrefs become workspace-preserving deep links: the selected
+    // workspace survives reloads, shares, and bookmarks.
+    const href = module.href.startsWith("#")
+      ? `/app/workspace?workspace=${selected.id}${module.href}`
+      : module.href;
     return {
       id: module.id,
       label: module.label,
       description: module.description,
       group: module.group,
-      href: module.href,
+      href,
       state: resolution.state,
       reasons: resolution.reasons,
     };

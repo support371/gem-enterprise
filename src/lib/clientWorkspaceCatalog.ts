@@ -54,8 +54,8 @@ export const clientWorkspaceModules: ClientWorkspaceModule[] = [
   { id: "products", label: "Products & Services", description: "Available GEM products, gated offerings, and service activation paths.", group: "Digital", href: "/app/products", state: "AVAILABLE" },
   { id: "community", label: "Community", description: "Member, relationship, and community participation surface.", group: "Digital", href: "/app/community", state: "AVAILABLE" },
 
-  { id: "integrations", label: "Connections & Integrations", description: "Authorized provider connections, health state, scopes, and remediation.", group: "Connections", href: "/app/command-center/integrations", state: "AVAILABLE" },
-  { id: "automations", label: "AI & Automations", description: "Governed AI, agent, and automation capabilities with approval boundaries.", group: "Connections", href: "/app/command-center/agents", state: "AVAILABLE" },
+  { id: "integrations", label: "Connections & Integrations", description: "Connected provider accounts, connection health, authorized scopes, and governed reconnection.", group: "Connections", href: "/app/social-media/accounts", state: "AVAILABLE" },
+  { id: "automations", label: "AI & Automations", description: "Governed automation policy, approval boundaries, and autopilot status.", group: "Connections", href: "/app/social-media/autopilot", state: "AVAILABLE" },
 ];
 
 export const clientWorkspaceGroups = Array.from(

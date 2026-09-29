@@ -149,7 +149,15 @@ export function WorkspaceOperatingPicture({
                 })}
               </ul>
             ) : (
-              <p className="text-xs leading-5 text-slate-500">No action items recorded yet.</p>
+              <div>
+                <p className="text-xs leading-5 text-slate-500">No action items recorded yet.</p>
+                <Link
+                  href="/app/requests"
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-300 hover:text-cyan-200"
+                >
+                  Open a service request <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                </Link>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -180,9 +188,17 @@ export function WorkspaceOperatingPicture({
                 </Link>
               </div>
             ) : (
-              <p className="text-xs leading-5 text-slate-500">
-                No upcoming milestones or meetings recorded yet.
-              </p>
+              <div>
+                <p className="text-xs leading-5 text-slate-500">
+                  No upcoming milestones or meetings recorded yet.
+                </p>
+                <Link
+                  href="/app/meetings"
+                  className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-300 hover:text-cyan-200"
+                >
+                  Request a meeting <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                </Link>
+              </div>
             )}
           </CardContent>
         </Card>

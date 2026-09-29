@@ -96,13 +96,15 @@ const MODULE_RULES: Record<string, ModuleCapabilityRule> = {
   // enrollment record exists, so it stays setup-required until recorded.
   threat_monitoring: { setupNeeded: true, setupComplete: () => false },
 
-  // Integrations surface is usable for browsing; activation completes when at
-  // least one provider connection is live.
+  // Integrations resolve to the client connections surface; activation
+  // completes when at least one provider connection is live.
   integrations: { setupNeeded: true, setupComplete: hasConnectedConnector },
 
-  // Governed AI/automation enrollment is not recorded per workspace, and the
-  // /app/command-center/agents surface does not exist in this build.
-  automations: { routeExists: false, setupNeeded: true, setupComplete: () => false },
+  // Governed AI/automation enrollment is not recorded per workspace, so the
+  // module stays setup-required (fail-closed) until an enrollment record
+  // exists. The module links to the client autopilot policy surface, never
+  // the admin-only command-center routes.
+  automations: { setupNeeded: true, setupComplete: () => false },
 };
 
 const DEFAULT_RULE: ModuleCapabilityRule = {};
