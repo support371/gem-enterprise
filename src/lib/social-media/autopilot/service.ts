@@ -34,11 +34,21 @@ import {
   type SocialEnvSource,
 } from "./policy";
 import {
+  assertSocialAutopilotKillSwitchClear,
+  evaluateProviderSchedulingHealth,
+  getWorkspacePausedProviders,
+  resolveProviderPauseState,
+} from "./health";
+import {
+  autopilotCandidateWeight,
+  getAutopilotPerformanceWeights,
+} from "./learning";
+import {
   buildSocialAutopilotSlots,
   socialAutopilotDayWindow,
 } from "./scheduler";
 
-const RECENT_FINGERPRINT_LOOKBACK_MS = 30 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function object(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -370,6 +380,11 @@ export async function materializeSocialAutopilotJobs(input: {
 }) {
   const env = input.env ?? process.env;
   const now = input.now ?? new Date();
+
+  // Emergency kill switch (globalEmergencyLock / publishingDisabled): fail
+  // closed before any scheduling decision is made.
+  await assertSocialAutopilotKillSwitchClear(input.workspaceId);
+
   const egress = getSocialAutopilotEgressPolicy(env);
   if (!socialAutopilotAutoApprovalEnabled(env)) {
     return {
@@ -381,6 +396,13 @@ export async function materializeSocialAutopilotJobs(input: {
   }
 
   const connectors = await listSocialConnectors(input.workspaceId);
+  const workspacePausedProviders = await getWorkspacePausedProviders(
+    input.workspaceId,
+  );
+  const performanceWeights = await getAutopilotPerformanceWeights({
+    workspaceId: input.workspaceId,
+    env,
+  });
   const draftByFingerprint = new Map(
     input.result.plan.drafts.map((draft) => [draft.fingerprint, draft]),
   );
@@ -417,6 +439,38 @@ export async function materializeSocialAutopilotJobs(input: {
     }
 
     const policy = getSocialAutopilotProviderPolicy(provider, env);
+
+    // Provider-scoped pause: workspace-level (WS-A), env config, or a
+    // disabled connector. Paused providers schedule nothing.
+    const pauseState = resolveProviderPauseState({
+      provider,
+      env,
+      workspacePausedProviders,
+    });
+    if (pauseState.paused) {
+      blockedReasons.push(pauseState.reason ?? "AUTOPILOT_PROVIDER_PAUSED");
+      skipped += input.result.materialized.filter(
+        (item) => item.provider === provider,
+      ).length;
+      continue;
+    }
+
+    // Provider-health auto-pause: queue-depth cap, cooldown, and
+    // failure/rate-limit backoff all block new scheduling while unhealthy.
+    const health = await evaluateProviderSchedulingHealth({
+      workspaceId: input.workspaceId,
+      provider,
+      now,
+      env,
+    });
+    if (!health.allowed) {
+      blockedReasons.push(health.blockedReason ?? "PROVIDER_UNHEALTHY");
+      skipped += input.result.materialized.filter(
+        (item) => item.provider === provider,
+      ).length;
+      continue;
+    }
+
     const existingCount = await countSocialPublishingJobsForWindow({
       workspaceId: input.workspaceId,
       provider,
@@ -433,6 +487,14 @@ export async function materializeSocialAutopilotJobs(input: {
     const candidates = connectors.filter(
       (connector) =>
         connector.state === "CONNECTED" &&
+        !connector.disabledAt &&
+        connectorProviderMatches(provider, connector.provider) &&
+        accountTypeMatches(provider, connector.safeMetadata),
+    );
+    const disabledConnectors = connectors.filter(
+      (connector) =>
+        connector.state === "CONNECTED" &&
+        Boolean(connector.disabledAt) &&
         connectorProviderMatches(provider, connector.provider) &&
         accountTypeMatches(provider, connector.safeMetadata),
     );
@@ -444,10 +506,16 @@ export async function materializeSocialAutopilotJobs(input: {
     if (!selected) {
       blockedReasons.push(
         explicitConnector
-          ? `${provider}_CONFIGURED_CONNECTOR_NOT_READY`
+          ? disabledConnectors.some(
+              (connector) => connector.id === explicitConnector,
+            )
+            ? `${provider}_CONFIGURED_CONNECTOR_DISABLED`
+            : `${provider}_CONFIGURED_CONNECTOR_NOT_READY`
           : candidates.length > 1
             ? `${provider}_EXPLICIT_CONNECTOR_REQUIRED`
-            : `${provider}_CONNECTED_ACCOUNT_REQUIRED`,
+            : disabledConnectors.length > 0
+              ? `${provider}_CONNECTOR_DISABLED`
+              : `${provider}_CONNECTED_ACCOUNT_REQUIRED`,
       );
       skipped += input.result.materialized.filter(
         (item) => item.provider === provider,
@@ -455,15 +523,13 @@ export async function materializeSocialAutopilotJobs(input: {
       continue;
     }
 
-    const providerItems = input.result.materialized
-      .filter(
-        (item) =>
-          item.provider === provider &&
-          item.state === "AUTO_POLICY_READY" &&
-          item.complianceResult === "PASS",
-      )
-      .slice(0, remaining);
-    const slots = buildSocialAutopilotSlots({
+    const providerItems = input.result.materialized.filter(
+      (item) =>
+        item.provider === provider &&
+        item.state === "AUTO_POLICY_READY" &&
+        item.complianceResult === "PASS",
+    );
+    const allSlots = buildSocialAutopilotSlots({
       provider,
       planDate: input.planDate,
       count: providerItems.length,
@@ -471,9 +537,41 @@ export async function materializeSocialAutopilotJobs(input: {
       env,
     });
 
-    for (let index = 0; index < providerItems.length; index += 1) {
-      const item = providerItems[index];
-      const scheduledFor = slots[index];
+    // Learning-loop bias (WS-C performance weights): rank schedulable
+    // candidates by topic/format performance so proven formats fill scarce
+    // daily slots first. Time selection stays deterministic: ranked items are
+    // re-seated into chronological slots.
+    const ranked = providerItems
+      .map((item, index) => {
+        const slot = allSlots[index];
+        if (!slot) return undefined;
+        const draft = draftByFingerprint.get(item.fingerprint);
+        const weight = draft
+          ? autopilotCandidateWeight({
+              weights: performanceWeights,
+              provider,
+              format: draft.contentType,
+              scheduledFor: slot,
+            })
+          : 1.0;
+        return { item, slot, weight };
+      })
+      .filter(
+        (entry): entry is { item: (typeof providerItems)[number]; slot: Date; weight: number } =>
+          Boolean(entry),
+      )
+      .sort((a, b) => b.weight - a.weight)
+      .slice(0, remaining)
+      .map((entry, index, list) => ({
+        item: entry.item,
+        scheduledFor: [...list.map((other) => other.slot)].sort(
+          (a, b) => a.getTime() - b.getTime(),
+        )[index],
+      }));
+
+    const duplicateLookbackMs = policy.duplicateContentWindowDays * DAY_MS;
+
+    for (const { item, scheduledFor } of ranked) {
       if (!scheduledFor) {
         skipped += 1;
         blockedReasons.push(`${provider}_NO_SAFE_SLOT_AVAILABLE`);
@@ -489,7 +587,7 @@ export async function materializeSocialAutopilotJobs(input: {
         workspaceId: input.workspaceId,
         provider,
         fingerprint: item.fingerprint,
-        since: new Date(now.getTime() - RECENT_FINGERPRINT_LOOKBACK_MS),
+        since: new Date(now.getTime() - duplicateLookbackMs),
       });
       if (duplicate) {
         skipped += 1;

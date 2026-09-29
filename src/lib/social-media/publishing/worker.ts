@@ -32,6 +32,9 @@ import {
   markSocialPublishingJobFailed,
   markSocialPublishingJobPublished,
 } from "./store";
+import { providerPauseState } from "./pause";
+import { verifySocialPublication } from "./verification";
+import { slotWindowUtc } from "./slots";
 import type { SocialPublishingJobRecord } from "./types";
 
 function object(value: unknown): Record<string, unknown> {
@@ -202,6 +205,23 @@ async function processJob(job: SocialPublishingJobRecord) {
     workspaceId: job.workspaceId,
     connectorId: job.connectorId,
   });
+
+  // Provider-scoped pause (WS-A contract, defensive fallback): a paused
+  // provider never reaches the adapter.
+  const pause = providerPauseState(job.provider, {
+    disabledAt: loaded.connector.disabledAt,
+    safeMetadata: object(loaded.connector.safeMetadata),
+  });
+  if (pause.paused) {
+    return block(
+      job,
+      "SOCIAL_PROVIDER_PAUSED",
+      pause.reason ??
+        "Publishing for this provider is paused by an operator.",
+      { connectorId: job.connectorId },
+    );
+  }
+
   const missingScopes = missingPublishingScopes(
     job.provider,
     loaded.connector.grantedScopes,
@@ -269,12 +289,34 @@ async function processJob(job: SocialPublishingJobRecord) {
       externalAccountId,
       connectorMetadata: loaded.connector.safeMetadata,
     });
+
+    // Publication verification: read the post back wherever the provider
+    // offers it. A failed verification NEVER retries the dispatch (that would
+    // risk a duplicate post) — the job is BLOCKED for operator review.
+    const verification = await verifySocialPublication({
+      provider: job.provider,
+      accessToken: loaded.credential.accessToken,
+      externalPostId: result.externalPostId,
+      externalPostUrl: result.externalPostUrl,
+    });
+    if (!verification.verificationOk) {
+      return block(
+        job,
+        "SOCIAL_PUBLICATION_UNVERIFIED",
+        "The provider accepted the post but read-back verification failed. The job is held for operator review and will not retry automatically, to avoid duplicate posts.",
+        {
+          externalPostId: result.externalPostId,
+          verification,
+        },
+      );
+    }
+
     const updated = await markSocialPublishingJobPublished({
       job,
       externalPostId: result.externalPostId,
-      externalPostUrl: result.externalPostUrl,
+      externalPostUrl: verification.permalink ?? result.externalPostUrl,
       providerStatusCode: result.providerStatusCode,
-      safeMetadata: result.safeMetadata,
+      safeMetadata: { ...object(result.safeMetadata), verification },
     });
     await audit({
       workspaceId: job.workspaceId,
@@ -291,6 +333,8 @@ async function processJob(job: SocialPublishingJobRecord) {
         externalPostId: result.externalPostId,
         approvalMode: evidence.approvalMode,
         autopilot: payloadMetadata.autopilot === true,
+        verificationOk: verification.verificationOk,
+        verificationMethod: verification.method,
       },
     });
     return updated;
@@ -340,8 +384,28 @@ async function processJob(job: SocialPublishingJobRecord) {
   }
 }
 
-export async function processSocialPublishingBatch(limit = 10) {
-  const claimed = await claimSocialPublishingJobs(limit);
+export interface SocialPublishingBatchOptions {
+  /**
+   * Hour-of-day (0-23, UTC) slot this tick owns. Jobs scheduled after the end
+   * of the slot window are left for their own slot tick; unscheduled and
+   * overdue jobs are always eligible. Omit for the unslotted worker route.
+   */
+  slotHour?: number;
+}
+
+export async function processSocialPublishingBatch(
+  limit = 10,
+  options: SocialPublishingBatchOptions = {},
+) {
+  const slotHour =
+    typeof options.slotHour === "number" &&
+    Number.isInteger(options.slotHour) &&
+    options.slotHour >= 0 &&
+    options.slotHour <= 23
+      ? options.slotHour
+      : undefined;
+  const slotEnd = slotHour === undefined ? null : slotWindowUtc(slotHour).slotEnd;
+  const claimed = await claimSocialPublishingJobs(limit, { slotEnd });
   const completed: SocialPublishingJobRecord[] = [];
   for (const job of claimed) {
     try {
@@ -371,6 +435,7 @@ export async function processSocialPublishingBatch(limit = 10) {
   }
   return {
     claimed: claimed.length,
+    slotHour: slotHour ?? null,
     published: completed.filter((job) => job.state === "PUBLISHED").length,
     retrying: completed.filter((job) => job.state === "RETRYING").length,
     blocked: completed.filter((job) => job.state === "BLOCKED").length,
