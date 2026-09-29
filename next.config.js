@@ -89,16 +89,6 @@ const nextConfig = {
     return [
       { source: '/blog', destination: '/resources', permanent: true },
       {
-        source: '/community',
-        destination: '/hub',
-        permanent: false,
-      },
-      {
-        source: '/community-hub',
-        destination: '/hub',
-        permanent: false,
-      },
-      {
         source: '/enterprise-demo',
         destination: '/enterprise-solutions',
         permanent: false,
