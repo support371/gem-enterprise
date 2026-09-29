@@ -35,7 +35,7 @@ const supportTopics = [
   { label: "Account Access", description: "Login, profile, authentication, and access issues.", value: "account_access" },
   { label: "KYC / Compliance", description: "Verification, documents, decisions, and disclosures.", value: "kyc_compliance" },
   { label: "Portfolio Operations", description: "Portfolio visibility, reporting, allocations, and statements.", value: "portfolio_operations" },
-  { label: "ATR Property Trust", description: "Real estate trust, consultation, and document readiness.", value: "atr_property_trust" },
+  { label: "Real Estate & Trust", description: "Real estate trust, consultation, and document readiness.", value: "real_estate_trust" },
   { label: "Cyber Briefing", description: "Intelligence briefing, exposure review, and escalation.", value: "cyber_briefing" },
   { label: "General Support", description: "Other operational support and service desk requests.", value: "general_support" },
 ];

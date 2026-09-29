@@ -20,7 +20,7 @@ const communicationPaths = [
   },
   {
     title: "Service Request",
-    description: "Route a structured request to portfolio, compliance, cyber, document, or ATR operations.",
+    description: "Route a structured request to portfolio, compliance, cyber, document, or trust operations.",
     href: "/app/requests",
     icon: ClipboardList,
   },
