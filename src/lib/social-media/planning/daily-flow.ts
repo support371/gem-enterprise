@@ -68,7 +68,7 @@ export interface DailyContentDraft {
   sourceReference: string;
   signalId: string;
   fingerprint: string;
-  contentLane: SocialContentLane;
+  contentLane?: SocialContentLane;
   vacancyId?: string;
   approvalRequired: true;
   complianceReviewRequired: true;
