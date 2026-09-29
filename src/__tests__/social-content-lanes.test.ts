@@ -193,7 +193,7 @@ describe("social content lane router", () => {
       "utf8",
     );
     expect(source).toContain("evaluateContentLaneDestination");
-    expect(source).toContain("CONTENT_LANE_DESTINATION_MISMATCH");
+    expect(source).toContain("laneRouting.reasons.map");
     expect(source).toContain("routingPolicyVersion");
   });
 });
