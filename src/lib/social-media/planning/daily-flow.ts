@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
-import type { SocialContentLane } from "../orchestration/content-lanes";
+import {
+  deriveContentLane,
+  detectContentSourceKind,
+  VIRAL_SOURCE_MAX_AGE_MS,
+  type SocialContentLane,
+} from "../orchestration/content-lanes";
 import type { SocialContentType } from "../policy";
 import type { SocialMediaProviderId } from "../providers";
 
@@ -13,6 +18,8 @@ export interface MarketSignal {
   sourceReference: string;
   providers?: readonly SocialMediaProviderId[];
   contentLaneHint?: SocialContentLane;
+  transformedSummary?: string;
+  sourceTransformationVerified?: boolean;
 }
 
 export interface ApprovedSourceMaterial {
@@ -61,6 +68,7 @@ export interface DailyContentDraft {
   sourceReference: string;
   signalId: string;
   fingerprint: string;
+  contentLane: SocialContentLane;
   vacancyId?: string;
   approvalRequired: true;
   complianceReviewRequired: true;
@@ -114,12 +122,14 @@ export function contentFingerprint(input: {
   angle: string;
   sourceMaterialId: string;
   contentType: SocialContentType;
+  contentLane: SocialContentLane;
 }) {
   return createHash("sha256")
     .update(
       [
         input.provider,
         input.contentType,
+        input.contentLane,
         canonical(input.topic),
         canonical(input.angle),
         input.sourceMaterialId,
@@ -133,6 +143,20 @@ function compatible(
   providers?: readonly SocialMediaProviderId[],
 ) {
   return !providers?.length || providers.includes(provider);
+}
+
+
+function signalEligibleForProvider(
+  provider: SocialMediaProviderId,
+  signal: MarketSignal,
+  planDate: Date,
+) {
+  if (!compatible(provider, signal.providers)) return false;
+  if (provider !== "TIKTOK") return true;
+  const sourceKind = detectContentSourceKind(signal.sourceReference);
+  if (sourceKind !== "X" && sourceKind !== "THREADS") return true;
+  const age = planDate.getTime() - signal.observedAt.getTime();
+  return age >= 0 && age <= VIRAL_SOURCE_MAX_AGE_MS;
 }
 
 function formatFor(
@@ -222,7 +246,7 @@ export function buildAdaptiveDailyContentPlan(
 
   for (const provider of [...new Set(input.enabledProviders)]) {
     const providerSignals = rankedSignals.filter((signal) =>
-      compatible(provider, signal.providers),
+      signalEligibleForProvider(provider, signal, input.planDate),
     );
     const providerSources = approvedSources.filter((source) =>
       sourceEligibleForProvider(provider, source),
@@ -268,12 +292,21 @@ export function buildAdaptiveDailyContentPlan(
         input.approvalMode,
       );
       const angle = angleFor(attempts, signal, source);
+      const contentLane = deriveContentLane({
+        provider,
+        contentType,
+        signalReference: signal.sourceReference,
+        laneHint: signal.contentLaneHint,
+        observedAt: signal.observedAt,
+        evaluatedAt: input.planDate,
+      });
       const fingerprint = contentFingerprint({
         provider,
         topic: signal.topic,
         angle,
         sourceMaterialId: source.id,
         contentType,
+        contentLane,
       });
 
       if (blockedFingerprints.has(fingerprint) || planFingerprints.has(fingerprint)) {
@@ -291,6 +324,7 @@ export function buildAdaptiveDailyContentPlan(
         sourceReference: source.sourceReference,
         signalId: signal.id,
         fingerprint,
+        contentLane,
         vacancyId: source.vacancyId,
         approvalRequired: true,
         complianceReviewRequired: true,
