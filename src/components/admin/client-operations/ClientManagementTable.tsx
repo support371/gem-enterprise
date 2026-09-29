@@ -36,9 +36,26 @@ export function ClientManagementTable({ organizations, truncated }: Props) {
       </CardHeader>
       <CardContent>
         {organizations.length === 0 ? (
-          <p className="py-8 text-center text-sm text-slate-500">
-            No organizations recorded.
-          </p>
+          <div className="rounded-xl border border-dashed border-white/15 p-8 text-center">
+            <p className="text-sm font-semibold text-white">No organizations recorded</p>
+            <p className="mx-auto mt-1 max-w-md text-xs leading-5 text-slate-500">
+              Client organizations appear here once intake is processed and workspace access is provisioned.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <Link
+                href="/app/admin/intake"
+                className="rounded-xl border border-white/15 px-4 py-2 text-xs font-semibold text-slate-300 transition hover:border-cyan-300/40 hover:text-white"
+              >
+                Review intake submissions
+              </Link>
+              <Link
+                href="/app/admin/workspace-access"
+                className="rounded-xl bg-cyan-300 px-4 py-2 text-xs font-bold text-slate-950 transition hover:bg-cyan-200"
+              >
+                Provision workspace access
+              </Link>
+            </div>
+          </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border border-white/[0.07]">
             <Table>
@@ -58,7 +75,7 @@ export function ClientManagementTable({ organizations, truncated }: Props) {
                   <TableRow key={org.id} className="border-white/[0.07]">
                     <TableCell>
                       <Link
-                        href="/app/admin/workspace-access"
+                        href={`/app/admin/workspace-access?organization=${encodeURIComponent(org.slug)}`}
                         className="font-semibold text-slate-100 hover:text-cyan-200 hover:underline"
                       >
                         {org.name}

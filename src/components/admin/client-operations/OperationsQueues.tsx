@@ -22,6 +22,9 @@ interface QueueDef {
   attentionKeys: string[];
   attentionLabel: string;
   emptyLabel: string;
+  /** Operational next action shown when the queue has no recorded rows. */
+  emptyActionLabel: string;
+  emptyActionHref: string;
 }
 
 function QueueCard({ queue }: { queue: QueueDef }) {
@@ -47,7 +50,15 @@ function QueueCard({ queue }: { queue: QueueDef }) {
       <p className="mt-1 text-xs text-slate-500">{queue.attentionLabel}</p>
       <div className="mt-3 space-y-1">
         {queue.buckets.length === 0 ? (
-          <p className="text-xs text-slate-600">{queue.emptyLabel}</p>
+          <div>
+            <p className="text-xs text-slate-600">{queue.emptyLabel}</p>
+            <Link
+              href={queue.emptyActionHref}
+              className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-cyan-300 hover:text-cyan-200"
+            >
+              {queue.emptyActionLabel} <ArrowRight className="h-3 w-3" aria-hidden="true" />
+            </Link>
+          </div>
         ) : (
           queue.buckets.map((b) => (
             <div
@@ -83,7 +94,10 @@ export function OperationsQueues({
   const queues: QueueDef[] = [
     {
       title: "Service requests",
-      href: "/app/admin/approvals",
+      // The control center is the authoritative admin surface for service
+      // requests (persisted queue counts + /api/admin/requests); the old
+      // /app/admin/approvals link opened the wrong queue entirely.
+      href: "/app/admin/client-operations#ops-queues",
       icon: ClipboardList,
       toneText: "text-cyan-300",
       toneBg: "bg-cyan-400/10",
@@ -91,6 +105,8 @@ export function OperationsQueues({
       attentionKeys: ["open", "in_progress", "pending_info"],
       attentionLabel: "Open, in progress, or awaiting info",
       emptyLabel: "No service requests recorded.",
+      emptyActionLabel: "Review intake submissions",
+      emptyActionHref: "/app/admin/intake",
     },
     {
       title: "Approvals",
@@ -102,6 +118,8 @@ export function OperationsQueues({
       attentionKeys: ["APPROVAL_REQUIRED"],
       attentionLabel: "Awaiting an operator decision",
       emptyLabel: "No approval requests recorded.",
+      emptyActionLabel: "Open verification review",
+      emptyActionHref: "/review/verification",
     },
     {
       title: "Intake submissions",
@@ -113,6 +131,8 @@ export function OperationsQueues({
       attentionKeys: ["RECEIVED", "TRIAGE", "NEEDS_INFORMATION"],
       attentionLabel: "Received, in triage, or needing information",
       emptyLabel: "No intake submissions recorded.",
+      emptyActionLabel: "Provision workspace access",
+      emptyActionHref: "/app/admin/workspace-access",
     },
     {
       title: "KYC applications",
@@ -130,11 +150,13 @@ export function OperationsQueues({
       ],
       attentionLabel: "Pending a review outcome",
       emptyLabel: "No KYC applications recorded.",
+      emptyActionLabel: "Open KYC administration",
+      emptyActionHref: "/app/admin/kyc",
     },
   ];
 
   return (
-    <section aria-labelledby="ops-queues-title">
+    <section id="ops-queues" aria-labelledby="ops-queues-title" className="scroll-mt-6">
       <div className="mb-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
           Operations queues

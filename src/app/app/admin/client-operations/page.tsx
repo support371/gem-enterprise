@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ShieldAlert } from "lucide-react";
+import { AlertTriangle, ChevronRight, LayoutGrid, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { isAdminRole, requireSession } from "@/lib/api/auth-helpers";
-import { getClientOperationsSnapshot } from "@/components/admin/client-operations/snapshot";
+import { getClientOperationsSnapshot, type ClientOperationsSnapshot } from "@/components/admin/client-operations/snapshot";
 import { ClientManagementTable } from "@/components/admin/client-operations/ClientManagementTable";
 import { OperationsQueues } from "@/components/admin/client-operations/OperationsQueues";
 import { IntegrationsHealth } from "@/components/admin/client-operations/IntegrationsHealth";
@@ -56,10 +57,39 @@ export default async function ClientOperationsPage() {
     return <NotAuthorized />;
   }
 
-  const snapshot = await getClientOperationsSnapshot();
+  // Error isolation: a snapshot failure degrades to an explicit error state
+  // instead of failing the whole control center.
+  let snapshot: ClientOperationsSnapshot | null = null;
+  let snapshotError = false;
+  try {
+    snapshot = await getClientOperationsSnapshot();
+  } catch (error) {
+    console.error("[client-operations] snapshot failed:", error);
+    snapshotError = true;
+  }
 
   return (
     <div className="space-y-7 pb-10">
+      <nav aria-label="Breadcrumb">
+        <ol className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+          <li>
+            <Link
+              href="/app/admin"
+              className="inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 font-medium text-slate-400 transition hover:text-cyan-300"
+            >
+              <LayoutGrid className="h-3.5 w-3.5" aria-hidden="true" />
+              Admin
+            </Link>
+          </li>
+          <li aria-hidden="true">
+            <ChevronRight className="h-3.5 w-3.5" />
+          </li>
+          <li aria-current="page" className="font-semibold text-slate-200">
+            Client Operations
+          </li>
+        </ol>
+      </nav>
+
       <header className="rounded-3xl border border-cyan-400/15 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,.12),transparent_42%),rgba(255,255,255,.03)] p-6 sm:p-8">
         <Badge className="border-cyan-400/25 bg-cyan-400/10 text-cyan-200">
           Unified client operations
@@ -75,22 +105,40 @@ export default async function ClientOperationsPage() {
         </p>
       </header>
 
-      <OperationsQueues
-        serviceRequestsByStatus={snapshot.serviceRequestsByStatus}
-        approvalsByState={snapshot.approvalsByState}
-        intakeByStatus={snapshot.intakeByStatus}
-        kycByStatus={snapshot.kycByStatus}
-      />
+      {snapshotError || !snapshot ? (
+        <Card className="border-amber-400/25 bg-amber-400/[0.04]">
+          <CardContent className="flex gap-3 p-6">
+            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-300" aria-hidden="true" />
+            <div>
+              <p className="font-semibold text-white">Operating snapshot unavailable</p>
+              <p className="mt-1 text-sm leading-6 text-slate-400">
+                The live snapshot could not be loaded, so queue counts and client
+                records are hidden rather than shown stale. Quick links below remain
+                available.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <OperationsQueues
+            serviceRequestsByStatus={snapshot.serviceRequestsByStatus}
+            approvalsByState={snapshot.approvalsByState}
+            intakeByStatus={snapshot.intakeByStatus}
+            kycByStatus={snapshot.kycByStatus}
+          />
 
-      <ClientManagementTable
-        organizations={snapshot.organizations}
-        truncated={snapshot.truncated}
-      />
+          <ClientManagementTable
+            organizations={snapshot.organizations}
+            truncated={snapshot.truncated}
+          />
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <IntegrationsHealth states={snapshot.connectorsByState} />
-        <RecentAuditLog entries={snapshot.auditLog} />
-      </div>
+          <div className="grid gap-4 xl:grid-cols-2">
+            <IntegrationsHealth states={snapshot.connectorsByState} />
+            <RecentAuditLog entries={snapshot.auditLog} />
+          </div>
+        </>
+      )}
 
       <QuickLinks />
 
