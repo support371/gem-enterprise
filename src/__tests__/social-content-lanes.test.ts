@@ -27,7 +27,10 @@ const approvedSource: ApprovedSourceMaterial = {
   approved: true,
 };
 
-function signal(sourceReference: string): MarketSignal {
+function signal(
+  sourceReference: string,
+  contentLaneHint?: MarketSignal["contentLaneHint"],
+): MarketSignal {
   return {
     id: "signal:1",
     topic: "Fresh cybersecurity development",
@@ -37,6 +40,7 @@ function signal(sourceReference: string): MarketSignal {
     momentum: 0.8,
     observedAt: new Date("2026-09-29T00:00:00.000Z"),
     sourceReference,
+    contentLaneHint,
   };
 }
 
@@ -97,8 +101,17 @@ describe("social content lane router", () => {
         provider: "YOUTUBE",
         contentType: "LONG_VIDEO",
         signalReference: "https://example.com/story",
+        laneHint: "FACELESS_CINEMATIC",
       }),
     ).toBe("FACELESS_CINEMATIC");
+
+    expect(
+      deriveContentLane({
+        provider: "YOUTUBE",
+        contentType: "LONG_VIDEO",
+        signalReference: "https://example.com/story",
+      }),
+    ).toBe("STANDARD_GOVERNED");
   });
 
   it("blocks content from being routed to the wrong destination", () => {
@@ -153,7 +166,10 @@ describe("social content lane router", () => {
     const pkg = generateCrossPlatformContentPackage({
       draft: draft("YOUTUBE", "LONG_VIDEO"),
       source: approvedSource,
-      signal: signal("https://example.com/original-concept"),
+      signal: signal(
+        "https://example.com/original-concept",
+        "FACELESS_CINEMATIC",
+      ),
     });
 
     expect(pkg.contentLane).toBe("FACELESS_CINEMATIC");
