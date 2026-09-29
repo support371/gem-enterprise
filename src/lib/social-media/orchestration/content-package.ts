@@ -32,6 +32,24 @@ export interface VideoScene {
   humanPresence: "REQUIRED" | "OPTIONAL";
 }
 
+/**
+ * Attribution for live-sourced signals ("news:<articleId>"). Returns the
+ * credit text plus the source URL when the signal carries a real URL;
+ * undefined for evergreen fallback signals or URL-less references.
+ */
+export function buildSignalAttribution(
+  signal: MarketSignal,
+): { text: string; url: string } | undefined {
+  if (!signal.id.startsWith("news:")) return undefined;
+  const url = signal.sourceReference.trim();
+  if (!/^https?:\/\//i.test(url)) return undefined;
+  return { text: `Source: ${url}`, url };
+}
+
+function signalAttribution(signal: MarketSignal) {
+  return buildSignalAttribution(signal);
+}
+
 export interface VideoRecipe {
   format: "VERTICAL_SHORT" | "LANDSCAPE";
   durationSeconds: number;
@@ -91,6 +109,12 @@ export interface CrossPlatformContentPackage {
     sourceReference: string;
     signalId: string;
     signalReference: string;
+    /**
+     * Attribution for live-sourced signals, e.g. "Source: <article URL>".
+     * Present only when the signal carries a real source URL; publishers
+     * must credit the source where required.
+     */
+    attribution?: string;
   };
   riskFlags: ContentRiskFlag[];
   publishingChecklist: PublishingChecklistItem[];
@@ -468,6 +492,7 @@ export function generateCrossPlatformContentPackage(input: {
       sourceReference: input.source.sourceReference,
       signalId: input.signal.id,
       signalReference: input.signal.sourceReference,
+      attribution: signalAttribution(input.signal)?.text,
     },
     riskFlags,
     publishingChecklist: publishingChecklist(
