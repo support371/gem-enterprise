@@ -209,7 +209,7 @@ export function EcosystemDashboard() {
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-white/10 bg-white/[.025] p-6 sm:p-8">
+      <section id="profiles" className="scroll-mt-24 rounded-[2rem] border border-white/10 bg-white/[.025] p-6 sm:p-8">
         <div className="mb-6">
           <p className="font-mono text-[10px] font-bold uppercase tracking-[.18em] text-cyan-300">Connected profiles / accounts</p>
           <h3 className="mt-1 text-2xl font-black">Existing GEM platform profiles</h3>
@@ -246,7 +246,7 @@ export function EcosystemDashboard() {
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section id="market-references" className="scroll-mt-24 grid gap-4 lg:grid-cols-3">
         {payload.marketSources.map((source) => (
           <a key={source.id} href={`/api/digital-hub/market/${source.id}`} target="_blank" rel="noopener noreferrer" className="group rounded-3xl border border-white/10 bg-white/[.04] p-6 transition hover:-translate-y-1 hover:border-amber-300/25">
             <div className="flex items-center justify-between">
