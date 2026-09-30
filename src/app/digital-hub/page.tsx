@@ -112,6 +112,8 @@ export default function DigitalHubPage() {
           <a href="#referral" className="transition hover:text-amber-300">Referral</a>
           <a href="#connections" className="transition hover:text-amber-300">Connections</a>
           <a href="#wallets" className="transition hover:text-amber-300">Wallets</a>
+          <a href="#profiles" className="transition hover:text-amber-300">Profiles</a>
+          <a href="#market-references" className="transition hover:text-amber-300">Markets</a>
           <a href="#services" className="transition hover:text-amber-300">Services</a>
           <a href="/community-hub" className="transition hover:text-amber-300">Community</a>
           <a href="#journey" className="transition hover:text-amber-300">Client journey</a>
