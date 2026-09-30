@@ -13,6 +13,7 @@ export async function GET() {
       generatedAt: new Date().toISOString(),
       brand: digitalHubEcosystem.brand,
       wallets: digitalHubEcosystem.wallets,
+      profiles: digitalHubEcosystem.profiles,
       redirects: {
         canonicalOrigin: digitalHubEcosystem.brand.publicUrl,
         walletReturnPath: digitalHubEcosystem.brand.walletReturnPath,
