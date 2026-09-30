@@ -68,8 +68,7 @@ export function ReferralActions({
         href={href}
         target="_blank"
         rel="noopener noreferrer sponsored"
-        onClick={() => record("referral_open", "btcc")}
-        className="inline-flex min-h-12 items-center gap-2 rounded-full bg-slate-950 px-6 font-bold text-white hover:bg-slate-800"
+        className="inline-flex min-h-12 items-center gap-2 rounded-full border border-slate-950/10 bg-slate-950 px-6 font-bold text-white shadow-lg transition hover:-translate-y-0.5 hover:bg-slate-800"
       >
         Open BTCC referral <ExternalLink className="h-4 w-4" />
       </a>
@@ -129,8 +128,8 @@ export function WalletConnector() {
   }
 
   return (
-    <div className="rounded-3xl border border-white/10 bg-slate-950 p-6 text-white sm:p-8">
-      <div className="mb-6 flex items-start gap-4">
+    <div className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-slate-950 via-[#0a2233] to-slate-950 p-6 text-white shadow-2xl sm:p-8">
+      <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full border border-cyan-300/10 bg-cyan-300/5" />\n      <div className="relative mb-6 flex items-start gap-4">
         <div className="rounded-2xl bg-lime-300 p-3 text-slate-950"><Wallet className="h-6 w-6" /></div>
         <div>
           <h3 className="text-xl font-black">Connect a wallet</h3>
@@ -139,13 +138,13 @@ export function WalletConnector() {
           </p>
         </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <button type="button" onClick={() => connectEvm("metamask")} className="rounded-xl border border-white/10 p-4 text-left hover:bg-white/5">MetaMask</button>
-        <button type="button" onClick={connectPhantom} className="rounded-xl border border-white/10 p-4 text-left hover:bg-white/5">Phantom</button>
-        <button type="button" onClick={() => connectEvm("coinbase")} className="rounded-xl border border-white/10 p-4 text-left hover:bg-white/5">Coinbase Wallet</button>
-        <button type="button" onClick={() => connectEvm("browser")} className="rounded-xl border border-white/10 p-4 text-left hover:bg-white/5">Other EVM wallet</button>
+      <div className="relative grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <button type="button" onClick={() => connectEvm("metamask")} className="rounded-2xl border border-white/10 bg-white/[.035] p-4 text-left font-semibold transition hover:-translate-y-0.5 hover:border-cyan-300/25 hover:bg-white/[.07]">MetaMask</button>
+        <button type="button" onClick={connectPhantom} className="rounded-2xl border border-white/10 bg-white/[.035] p-4 text-left font-semibold transition hover:-translate-y-0.5 hover:border-cyan-300/25 hover:bg-white/[.07]">Phantom</button>
+        <button type="button" onClick={() => connectEvm("coinbase")} className="rounded-2xl border border-white/10 bg-white/[.035] p-4 text-left font-semibold transition hover:-translate-y-0.5 hover:border-cyan-300/25 hover:bg-white/[.07]">Coinbase Wallet</button>
+        <button type="button" onClick={() => connectEvm("browser")} className="rounded-2xl border border-white/10 bg-white/[.035] p-4 text-left font-semibold transition hover:-translate-y-0.5 hover:border-cyan-300/25 hover:bg-white/[.07]">Other EVM wallet</button>
       </div>
-      <p className={`mt-5 font-mono text-xs ${connected ? "text-lime-300" : "text-slate-400"}`} aria-live="polite">
+      <p className={`relative mt-5 font-mono text-xs ${connected ? "text-emerald-300" : "text-slate-400"}`} aria-live="polite">
         {status}
       </p>
     </div>
