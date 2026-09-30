@@ -31,6 +31,8 @@ type EcosystemPayload = {
     state: string;
     visibility: string;
     description: string;
+    destinationKind: string;
+    directProfileUrlConfigured: boolean;
   }>;
   redirects: {
     canonicalOrigin: string;
@@ -207,7 +209,7 @@ export function EcosystemDashboard() {
         </div>
       </section>
 
-      <section className="rounded-[2rem] border border-white/10 bg-white/[.025] p-6 sm:p-8">
+      <section id="profiles" className="scroll-mt-24 rounded-[2rem] border border-white/10 bg-white/[.025] p-6 sm:p-8">
         <div className="mb-6">
           <p className="font-mono text-[10px] font-bold uppercase tracking-[.18em] text-cyan-300">Connected profiles / accounts</p>
           <h3 className="mt-1 text-2xl font-black">Existing GEM platform profiles</h3>
@@ -217,7 +219,7 @@ export function EcosystemDashboard() {
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           {payload.profiles.map((profile) => (
-            <a key={profile.id} href={profile.href} target="_blank" rel="noopener noreferrer" className="group rounded-2xl border border-white/10 bg-black/20 p-5 transition hover:-translate-y-0.5 hover:border-cyan-300/25">
+            <a key={profile.id} href={`/api/digital-hub/profiles/${profile.id}`} target="_blank" rel="noopener noreferrer" className="group rounded-2xl border border-white/10 bg-black/20 p-5 transition hover:-translate-y-0.5 hover:border-cyan-300/25">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <Image src={payload.brand.logo} alt="" width={38} height={38} className="rounded-xl" />
@@ -232,17 +234,21 @@ export function EcosystemDashboard() {
               </div>
               <p className="mt-5 text-xs leading-5 text-slate-400">{profile.description}</p>
               <div className="mt-4 flex items-center justify-between gap-3">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{profile.visibility}</span>
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-200">Open profile <ExternalLink className="h-3.5 w-3.5" /></span>
+                <span className="font-mono text-[10px] uppercase tracking-wider text-slate-500">
+                  {profile.visibility} · {profile.directProfileUrlConfigured ? "direct route" : "provider home"}
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-200">
+                  {profile.directProfileUrlConfigured ? "Open profile" : "Open provider"} <ExternalLink className="h-3.5 w-3.5" />
+                </span>
               </div>
             </a>
           ))}
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section id="market-references" className="scroll-mt-24 grid gap-4 lg:grid-cols-3">
         {payload.marketSources.map((source) => (
-          <a key={source.id} href={source.href} target="_blank" rel="noopener noreferrer" className="group rounded-3xl border border-white/10 bg-white/[.04] p-6 transition hover:-translate-y-1 hover:border-amber-300/25">
+          <a key={source.id} href={`/api/digital-hub/market/${source.id}`} target="_blank" rel="noopener noreferrer" className="group rounded-3xl border border-white/10 bg-white/[.04] p-6 transition hover:-translate-y-1 hover:border-amber-300/25">
             <div className="flex items-center justify-between">
               <div className="rounded-2xl border border-white/10 bg-black/20 p-3"><Radio className="h-5 w-5 text-amber-300" /></div>
               <ExternalLink className="h-4 w-4 text-slate-600 transition group-hover:text-amber-300" />
@@ -274,7 +280,7 @@ export function EcosystemDashboard() {
               ))}
             </div>
           </div>
-          <a href={payload.community.href} className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-cyan-300 px-6 font-bold text-slate-950 transition hover:-translate-y-0.5">
+          <a href="/api/digital-hub/community" className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-cyan-300 px-6 font-bold text-slate-950 transition hover:-translate-y-0.5">
             Open Community Hub <Globe2 className="h-4 w-4" />
           </a>
         </div>

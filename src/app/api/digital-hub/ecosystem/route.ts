@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { digitalHubEcosystem } from "@/lib/digital-hub/ecosystem";
+import {
+  digitalHubEcosystem,
+  publicDigitalHubProfiles,
+} from "@/lib/digital-hub/ecosystem";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +16,7 @@ export async function GET() {
       generatedAt: new Date().toISOString(),
       brand: digitalHubEcosystem.brand,
       wallets: digitalHubEcosystem.wallets,
-      profiles: digitalHubEcosystem.profiles,
+      profiles: publicDigitalHubProfiles(),
       redirects: {
         canonicalOrigin: digitalHubEcosystem.brand.publicUrl,
         walletReturnPath: digitalHubEcosystem.brand.walletReturnPath,
