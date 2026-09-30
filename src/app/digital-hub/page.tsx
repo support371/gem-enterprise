@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ArrowRight, CheckCircle2, CircleDot, ExternalLink, ShieldCheck } from "lucide-react";
-import { DigitalHubClient, ReferralActions, WalletConnector } from "./DigitalHubClient";
+import { ReferralActions, WalletConnector } from "./DigitalHubClient";
 import { publicDigitalHubCatalog } from "@/lib/digital-hub/catalog";
 
 export const metadata: Metadata = {
