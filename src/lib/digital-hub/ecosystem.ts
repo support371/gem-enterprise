@@ -54,6 +54,8 @@ export const digitalHubEcosystem = {
       visibility: "public-profile",
       description:
         "Existing GEM Web3/social profile. The public profile presence is separate from optional Farcaster Mini App wallet-host registration.",
+      destinationKind: "provider-home",
+      directProfileUrlConfigured: false,
     },
     {
       id: "forex-com",
@@ -64,6 +66,8 @@ export const digitalHubEcosystem = {
       visibility: "private-account",
       description:
         "Existing FOREX.com account/profile route. Account details remain private and authentication stays with FOREX.com.",
+      destinationKind: "provider-account-login",
+      directProfileUrlConfigured: true,
     },
   ],
   marketSources: [
@@ -100,8 +104,53 @@ export const digitalHubEcosystem = {
   },
 } as const;
 
+function safeHttpsOverride(value: string | undefined) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 export type DigitalHubWalletId = (typeof digitalHubEcosystem.wallets)[number]["id"];
+export type DigitalHubProfileId = (typeof digitalHubEcosystem.profiles)[number]["id"];
+export type DigitalHubMarketSourceId = (typeof digitalHubEcosystem.marketSources)[number]["id"];
 
 export function getDigitalHubWallet(walletId: string) {
   return digitalHubEcosystem.wallets.find((wallet) => wallet.id === walletId) ?? null;
+}
+
+
+export function getDigitalHubProfile(profileId: string) {
+  const profile = digitalHubEcosystem.profiles.find((item) => item.id === profileId);
+  if (!profile) return null;
+
+  if (profile.id === "farcaster") {
+    const exactProfileUrl = safeHttpsOverride(process.env.FARCASTER_PROFILE_URL);
+    return exactProfileUrl
+      ? {
+          ...profile,
+          href: exactProfileUrl,
+          destinationKind: "exact-profile" as const,
+          directProfileUrlConfigured: true as const,
+        }
+      : profile;
+  }
+
+  if (profile.id === "forex-com") {
+    const accountUrl = safeHttpsOverride(process.env.FOREX_ACCOUNT_URL);
+    return accountUrl ? { ...profile, href: accountUrl } : profile;
+  }
+
+  return profile;
+}
+
+export function publicDigitalHubProfiles() {
+  return digitalHubEcosystem.profiles.map((profile) => getDigitalHubProfile(profile.id)!);
+}
+
+export function getDigitalHubMarketSource(sourceId: string) {
+  return digitalHubEcosystem.marketSources.find((source) => source.id === sourceId) ?? null;
 }
