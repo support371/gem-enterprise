@@ -51,7 +51,7 @@ function walletRuntimeState(id: string, evmProviders: EipProvider[], phantomDete
   if (id === "metamask") return evmProviders.some((provider) => provider.isMetaMask && !provider.isCoinbaseWallet) ? "detected now" : "configured";
   if (id === "coinbase") return evmProviders.some((provider) => provider.isCoinbaseWallet) ? "detected now" : "configured";
   if (id === "phantom") return phantomDetected ? "detected now" : "configured";
-  if (id === "farcaster") return "host route ready";
+  if (id === "farcaster") return "registration required";
   if (id === "other-web3") return evmProviders.length > 0 ? `${evmProviders.length} EVM provider${evmProviders.length === 1 ? "" : "s"} detected` : "discovery ready";
   return "configured";
 }
@@ -111,7 +111,7 @@ export function EcosystemDashboard() {
     return [
       ["Injected EVM", payload.adapters.injectedEvm ? "LIVE" : "OFF"],
       ["Phantom injected", payload.adapters.phantomInjected ? "LIVE" : "OFF"],
-      ["Farcaster route", payload.adapters.farcasterMiniAppRoute ? "READY" : "OFF"],
+      ["Farcaster Mini App", payload.adapters.farcasterMiniAppRoute ? "LIVE" : "REGISTRATION NEEDED"],
       ["Reown multi-wallet", payload.adapters.reownAppKit.configured ? "LIVE" : "PROJECT ID NEEDED"],
     ] as const;
   }, [payload]);
