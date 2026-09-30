@@ -191,7 +191,11 @@ export default function DigitalHubPage() {
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {hub.services.map((service, index) => (
-              <article key={service.id} className={`group min-h-64 rounded-3xl border border-white/10 bg-slate-950/40 p-6 transition hover:-translate-y-1 hover:border-amber-300/25 ${index === 0 ? "xl:col-span-2" : ""}`}>
+              <a
+                key={service.id}
+                href={`/api/digital-hub/services/${service.id}`}
+                className={`group flex min-h-64 flex-col rounded-3xl border border-white/10 bg-slate-950/40 p-6 transition hover:-translate-y-1 hover:border-amber-300/25 hover:bg-slate-950/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${index === 0 ? "xl:col-span-2" : ""}`}
+              >
                 <div className="flex items-center justify-between">
                   <span className="font-mono text-xs font-bold text-amber-300">{String(index + 1).padStart(2, "0")}</span>
                   <span className="inline-flex items-center gap-2 rounded-full bg-white/5 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-wide text-slate-300">
@@ -201,7 +205,10 @@ export default function DigitalHubPage() {
                 </div>
                 <h3 className="mt-14 text-2xl font-black tracking-tight">{service.title}</h3>
                 <p className="mt-3 max-w-xl text-sm leading-relaxed text-slate-400">{service.description}</p>
-              </article>
+                <span className="mt-auto inline-flex items-center gap-2 pt-7 text-sm font-bold text-amber-200 transition group-hover:gap-3 group-hover:text-amber-100">
+                  {service.actionLabel} <ArrowRight className="h-4 w-4" />
+                </span>
+              </a>
             ))}
           </div>
         </div>

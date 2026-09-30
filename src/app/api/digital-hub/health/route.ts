@@ -40,8 +40,10 @@ export async function GET() {
       capabilities: {
         catalog: true,
         referralRouting: true,
+        serviceRouting: true,
         interactionPersistence: healthy,
         browserWalletDiscovery: true,
+        walletSessionLifecycle: true,
         walletCustody: false,
         privateKeyCollection: false,
       },

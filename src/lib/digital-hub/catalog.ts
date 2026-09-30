@@ -32,6 +32,8 @@ export const digitalHubCatalog = {
       state: "available",
       description:
         "Security assessment, monitoring, threat-intelligence support, incident-readiness planning, and scoped client advisory work.",
+      href: "/services",
+      actionLabel: "Open cybersecurity services",
     },
     {
       id: "crypto-market",
@@ -39,6 +41,8 @@ export const digitalHubCatalog = {
       state: "controlled",
       description:
         "Market review, signal interpretation, exchange-readiness workflows, and risk controls. Live execution is never represented as enabled unless its provider gate is actually verified.",
+      href: "/intel/news",
+      actionLabel: "Open market intelligence",
     },
     {
       id: "workspace",
@@ -46,6 +50,8 @@ export const digitalHubCatalog = {
       state: "controlled",
       description:
         "One client identity, organization, workspace, service record, and governed management surface.",
+      href: "/app/workspace",
+      actionLabel: "Open client workspace",
     },
     {
       id: "social",
@@ -53,6 +59,8 @@ export const digitalHubCatalog = {
       state: "controlled",
       description:
         "Planning, approval, publishing, verification, and analytics across authorized provider accounts.",
+      href: "/app/social-media",
+      actionLabel: "Open social operations",
     },
     {
       id: "digital-hub",
@@ -60,6 +68,8 @@ export const digitalHubCatalog = {
       state: "available",
       description:
         "A configurable public hub joining verified offers, referrals, wallet routes, services, communities, and disclosures.",
+      href: "/get-started?service=digital-hub",
+      actionLabel: "Start a Digital Hub request",
     },
   ],
 } as const;
@@ -73,4 +83,11 @@ export function publicDigitalHubCatalog() {
       hubLinkSchema.parse(connection),
     ),
   };
+}
+
+
+export type DigitalHubServiceId = (typeof digitalHubCatalog.services)[number]["id"];
+
+export function getDigitalHubService(serviceId: string) {
+  return digitalHubCatalog.services.find((service) => service.id === serviceId) ?? null;
 }

@@ -25,6 +25,20 @@ describe("Digital Hub production stack", () => {
     expect(isAllowedDigitalHubEvent(wallet)).toBe(true);
     expect(
       isAllowedDigitalHubEvent({
+        event: "service_open",
+        target: "social",
+        path: "/digital-hub",
+      }),
+    ).toBe(true);
+    expect(
+      isAllowedDigitalHubEvent({
+        event: "wallet_disconnected",
+        target: "metamask",
+        path: "/digital-hub",
+      }),
+    ).toBe(true);
+    expect(
+      isAllowedDigitalHubEvent({
         event: "referral_open",
         target: "phantom",
         path: "/digital-hub",
@@ -61,6 +75,12 @@ describe("Digital Hub production stack", () => {
     expect(health).toContain('fallback: backend === "supabase_gateway" ? "vercel_analytics" : null');
     expect(referral).toContain("NextResponse.redirect");
     expect(referral).toContain('event: "referral_open"');
+    const serviceRoute = source("src/app/api/digital-hub/services/[serviceId]/route.ts");
+    const walletRoute = source("src/app/api/digital-hub/wallet/route.ts");
+    expect(serviceRoute).toContain('event: "service_open"');
+    expect(serviceRoute).toContain("getDigitalHubService");
+    expect(walletRoute).toContain('mode: "non_custodial_browser_session"');
+    expect(walletRoute).toContain("storesWalletAddresses: false");
   });
 
   it("uses the redesigned layered background and backend status surface", () => {
@@ -70,5 +90,12 @@ describe("Digital Hub production stack", () => {
     expect(page).toContain("Digital Hub runtime");
     expect(page).toContain("/api/digital-hub/health");
     expect(page).toContain('/api/digital-hub/referral/btcc');
+    expect(page).toContain('/api/digital-hub/services/');
+    const client = source("src/app/digital-hub/DigitalHubClient.tsx");
+    expect(client).toContain("eip6963:requestProvider");
+    expect(client).toContain("accountsChanged");
+    expect(client).toContain("chainChanged");
+    expect(client).toContain("Disconnect GEM session");
+    expect(client).not.toContain("\\n      <div");
   });
 });
