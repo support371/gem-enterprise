@@ -36,6 +36,8 @@ describe("Digital Hub production stack", () => {
     const backend = source("src/lib/digital-hub/backend.ts");
     const gateway = source("src/lib/supabase-gateway.ts");
     expect(backend).toContain("publicAuditGateway");
+    expect(backend).toContain('track("DigitalHubInteraction"');
+    expect(backend).toContain('persistence: "vercel_analytics"');
     expect(backend).toContain('resource: "digital_hub"');
     expect(backend).toContain("containsWalletAddress: false");
     expect(backend).toContain("containsCredential: false");
@@ -55,7 +57,8 @@ describe("Digital Hub production stack", () => {
     const health = source("src/app/api/digital-hub/health/route.ts");
     const referral = source("src/app/api/digital-hub/referral/btcc/route.ts");
     expect(health).toContain('service: "gem-digital-hub"');
-    expect(health).toContain("interactionPersistence: healthy");
+    expect(health).toContain("interactionPersistence: {");
+    expect(health).toContain('fallback: backend === "supabase_gateway" ? "vercel_analytics" : null');
     expect(referral).toContain("NextResponse.redirect");
     expect(referral).toContain('event: "referral_open"');
   });
