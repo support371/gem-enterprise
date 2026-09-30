@@ -100,8 +100,14 @@ describe("Digital Hub production stack", () => {
     expect(ecosystem).toContain("Real-time preview");
     expect(ecosystem).toContain("Wallet connection dashboard");
     expect(ecosystem).toContain("Open Community Hub");
-    expect(ecosystem).toContain("Yahoo Finance");
     expect(ecosystem).toContain("/api/digital-hub/ecosystem");
+    const ecosystemConfig = source("src/lib/digital-hub/ecosystem.ts");
+    expect(ecosystemConfig).toContain("Yahoo Finance");
+    expect(ecosystemConfig).toContain("Investopedia");
+    expect(ecosystemConfig).toContain("Forbes Web3");
+    expect(ecosystemConfig).toContain("Discord");
+    expect(ecosystemConfig).toContain("Reddit");
+    expect(ecosystemConfig).toContain("Slack");
     const client = source("src/app/digital-hub/DigitalHubClient.tsx");
     expect(client).toContain("eip6963:requestProvider");
     expect(client).toContain("accountsChanged");
