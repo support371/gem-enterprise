@@ -23,6 +23,15 @@ type EcosystemPayload = {
     fallbackUrl: string;
     state: string;
   }>;
+  profiles: Array<{
+    id: string;
+    name: string;
+    kind: string;
+    href: string;
+    state: string;
+    visibility: string;
+    description: string;
+  }>;
   redirects: {
     canonicalOrigin: string;
     walletReturnPath: string;
@@ -51,7 +60,6 @@ function walletRuntimeState(id: string, evmProviders: EipProvider[], phantomDete
   if (id === "metamask") return evmProviders.some((provider) => provider.isMetaMask && !provider.isCoinbaseWallet) ? "detected now" : "configured";
   if (id === "coinbase") return evmProviders.some((provider) => provider.isCoinbaseWallet) ? "detected now" : "configured";
   if (id === "phantom") return phantomDetected ? "detected now" : "configured";
-  if (id === "farcaster") return "registration required";
   if (id === "other-web3") return evmProviders.length > 0 ? `${evmProviders.length} EVM provider${evmProviders.length === 1 ? "" : "s"} detected` : "discovery ready";
   return "configured";
 }
@@ -196,6 +204,39 @@ export function EcosystemDashboard() {
               })}
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-white/10 bg-white/[.025] p-6 sm:p-8">
+        <div className="mb-6">
+          <p className="font-mono text-[10px] font-bold uppercase tracking-[.18em] text-cyan-300">Connected profiles / accounts</p>
+          <h3 className="mt-1 text-2xl font-black">Existing GEM platform profiles</h3>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+            These are existing GEM-operated profiles or account destinations. A profile can exist even when an optional wallet-host or API integration is not yet registered.
+          </p>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          {payload.profiles.map((profile) => (
+            <a key={profile.id} href={profile.href} target="_blank" rel="noopener noreferrer" className="group rounded-2xl border border-white/10 bg-black/20 p-5 transition hover:-translate-y-0.5 hover:border-cyan-300/25">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Image src={payload.brand.logo} alt="" width={38} height={38} className="rounded-xl" />
+                  <div>
+                    <h4 className="font-bold text-white">{profile.name}</h4>
+                    <p className="mt-0.5 text-[11px] text-slate-500">{profile.kind}</p>
+                  </div>
+                </div>
+                <span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 font-mono text-[9px] font-bold uppercase text-emerald-300">
+                  {profile.state}
+                </span>
+              </div>
+              <p className="mt-5 text-xs leading-5 text-slate-400">{profile.description}</p>
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <span className="font-mono text-[10px] uppercase tracking-wider text-slate-500">{profile.visibility}</span>
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-200">Open profile <ExternalLink className="h-3.5 w-3.5" /></span>
+              </div>
+            </a>
+          ))}
         </div>
       </section>
 

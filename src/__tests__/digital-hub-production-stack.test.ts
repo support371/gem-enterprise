@@ -85,6 +85,7 @@ describe("Digital Hub production stack", () => {
     expect(ecosystemRoute).toContain("NEXT_PUBLIC_REOWN_PROJECT_ID");
     expect(ecosystemRoute).toContain("NEXT_PUBLIC_PHANTOM_APP_ID");
     expect(ecosystemRoute).toContain("walletReturnUrl");
+    expect(ecosystemRoute).toContain("digitalHubEcosystem.profiles");
   });
 
   it("uses the redesigned layered background and backend status surface", () => {
@@ -99,9 +100,14 @@ describe("Digital Hub production stack", () => {
     const ecosystem = source("src/app/digital-hub/EcosystemDashboard.tsx");
     expect(ecosystem).toContain("Real-time preview");
     expect(ecosystem).toContain("Wallet connection dashboard");
+    expect(ecosystem).toContain("Existing GEM platform profiles");
+    expect(ecosystem).toContain("Open profile");
     expect(ecosystem).toContain("Open Community Hub");
     expect(ecosystem).toContain("/api/digital-hub/ecosystem");
     const ecosystemConfig = source("src/lib/digital-hub/ecosystem.ts");
+    expect(ecosystemConfig).toContain("Farcaster");
+    expect(ecosystemConfig).toContain("FOREX.com");
+    expect(ecosystemConfig).toContain("profile-present");
     expect(ecosystemConfig).toContain("Yahoo Finance");
     expect(ecosystemConfig).toContain("Investopedia");
     expect(ecosystemConfig).toContain("Forbes Web3");

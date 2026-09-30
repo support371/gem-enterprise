@@ -28,7 +28,7 @@ export async function GET() {
     {
       ok: healthy,
       service: "gem-digital-hub",
-      version: "2026.09.2",
+      version: "2026.09.3",
       backend,
       persistence,
       interactionPersistence: {
@@ -45,6 +45,7 @@ export async function GET() {
         browserWalletDiscovery: true,
         walletSessionLifecycle: true,
         ecosystemPreviewApi: true,
+        profileConnections: true,
         marketReferenceRoutes: true,
         communityHubRoute: true,
         reownAppKitConfigured: Boolean(process.env.NEXT_PUBLIC_REOWN_PROJECT_ID),

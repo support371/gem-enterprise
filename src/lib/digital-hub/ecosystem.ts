@@ -35,15 +35,6 @@ export const digitalHubEcosystem = {
       state: "live",
     },
     {
-      id: "farcaster",
-      name: "Farcaster",
-      kind: "web3-host",
-      ecosystems: ["Base", "Ethereum", "EVM"],
-      connection: "Farcaster Mini App EIP-1193 wallet host; manifest ownership registration required",
-      fallbackUrl: "https://farcaster.xyz",
-      state: "registration-required",
-    },
-    {
       id: "other-web3",
       name: "Other Web3 wallets",
       kind: "multi-wallet",
@@ -51,6 +42,28 @@ export const digitalHubEcosystem = {
       connection: "EIP-6963 discovery + Reown/AppKit expansion gate",
       fallbackUrl: "https://walletguide.walletconnect.network/",
       state: "discovery-live",
+    },
+  ],
+  profiles: [
+    {
+      id: "farcaster",
+      name: "Farcaster",
+      kind: "web3-profile",
+      href: "https://farcaster.xyz",
+      state: "profile-present",
+      visibility: "public-profile",
+      description:
+        "Existing GEM Web3/social profile. The public profile presence is separate from optional Farcaster Mini App wallet-host registration.",
+    },
+    {
+      id: "forex-com",
+      name: "FOREX.com",
+      kind: "trading-account-profile",
+      href: "https://www.forex.com/en/account-login/",
+      state: "profile-present",
+      visibility: "private-account",
+      description:
+        "Existing FOREX.com account/profile route. Account details remain private and authentication stays with FOREX.com.",
     },
   ],
   marketSources: [
