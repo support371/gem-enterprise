@@ -118,7 +118,6 @@ export function WalletConnector() {
   const [chainId, setChainId] = useState<string | null>(null);
   const [evmCandidates, setEvmCandidates] = useState<EvmCandidate[]>([]);
   const candidatesRef = useRef<EvmCandidate[]>([]);
-  const selectedEvmRef = useRef<EvmProvider | null>(null);
   const cleanupEvmRef = useRef<(() => void) | null>(null);
 
   const addCandidate = useCallback((candidate: EvmCandidate) => {
@@ -139,7 +138,6 @@ export function WalletConnector() {
     nextChainId: string | null,
   ) => {
     clearEvmListeners();
-    selectedEvmRef.current = provider;
     setConnected(true);
     setConnectedTarget(target);
     setAddress(account);
@@ -298,7 +296,6 @@ export function WalletConnector() {
       const value = result.publicKey?.toString();
       if (!value) throw new Error("No public account returned");
       clearEvmListeners();
-      selectedEvmRef.current = null;
       setConnected(true);
       setConnectedTarget("phantom");
       setAddress(value);
@@ -313,7 +310,6 @@ export function WalletConnector() {
   function disconnectLocal() {
     const target = connectedTarget;
     clearEvmListeners();
-    selectedEvmRef.current = null;
     setConnected(false);
     setConnectedTarget(null);
     setAddress(null);
