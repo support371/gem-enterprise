@@ -13,8 +13,21 @@ export const digitalHubEventSchema = z.object({
     "referral_open",
     "wallet_connect_attempt",
     "wallet_connected",
+    "wallet_disconnected",
+    "service_open",
   ]),
-  target: z.enum(["btcc", "metamask", "phantom", "coinbase", "browser"]),
+  target: z.enum([
+    "btcc",
+    "metamask",
+    "phantom",
+    "coinbase",
+    "browser",
+    "cybersecurity",
+    "crypto-market",
+    "workspace",
+    "social",
+    "digital-hub",
+  ]),
   path: z.literal("/digital-hub").optional(),
 });
 
@@ -25,6 +38,8 @@ const eventTargets: Record<DigitalHubEvent["event"], ReadonlySet<DigitalHubEvent
   referral_open: new Set(["btcc"]),
   wallet_connect_attempt: new Set(["metamask", "phantom", "coinbase", "browser"]),
   wallet_connected: new Set(["metamask", "phantom", "coinbase", "browser"]),
+  wallet_disconnected: new Set(["metamask", "phantom", "coinbase", "browser"]),
+  service_open: new Set(["cybersecurity", "crypto-market", "workspace", "social", "digital-hub"]),
 };
 
 export function isAllowedDigitalHubEvent(event: DigitalHubEvent) {
