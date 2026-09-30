@@ -39,9 +39,9 @@ export const digitalHubEcosystem = {
       name: "Farcaster",
       kind: "web3-host",
       ecosystems: ["Base", "Ethereum", "EVM"],
-      connection: "Farcaster Mini App EIP-1193 wallet host",
+      connection: "Farcaster Mini App EIP-1193 wallet host; manifest ownership registration required",
       fallbackUrl: "https://farcaster.xyz",
-      state: "route-ready",
+      state: "registration-required",
     },
     {
       id: "other-web3",
