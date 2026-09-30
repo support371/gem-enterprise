@@ -11,7 +11,9 @@ export async function GET() {
       hub: publicDigitalHubCatalog(),
       capabilities: {
         referralRouting: true,
+        serviceRouting: true,
         browserWalletDiscovery: true,
+        walletSessionLifecycle: true,
         walletCustody: false,
         privateKeyCollection: false,
         liveTradingFromPublicHub: false,
