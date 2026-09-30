@@ -137,6 +137,26 @@ export default function CommunityHubPage() {
         </div>
       </section>
 
+      <section className="border-t border-white/10 bg-[#071521] py-16">
+        <div className="container mx-auto max-w-7xl px-6">
+          <Badge className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-1.5 text-xs uppercase tracking-widest text-cyan-200">
+            Reference communications
+          </Badge>
+          <h2 className="mt-5 text-3xl font-black text-white md:text-4xl">Community communication routes</h2>
+          <p className="mt-4 max-w-3xl leading-7 text-slate-400">
+            This is the GEM destination for community chat, events, member circles, knowledge, and community affairs as those capabilities move from preview to production. Discord, Reddit, and Slack are reserved here as external reference-communication connectors; no GEM server, subreddit, or Slack workspace URL is published until its real organization-owned destination is verified.
+          </p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            {["Discord", "Reddit", "Slack"].map((provider) => (
+              <div key={provider} className="rounded-2xl border border-white/10 bg-white/[.035] p-5">
+                <p className="font-bold text-white">{provider}</p>
+                <p className="mt-2 font-mono text-[10px] font-bold uppercase tracking-wider text-amber-300">Placeholder · verification required</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="border-t border-white/10 bg-white/[0.02] py-24">
         <div className="container mx-auto grid max-w-7xl items-center gap-16 px-6 lg:grid-cols-2">
           <div>
