@@ -21,7 +21,7 @@ export async function GET() {
       adapters: {
         injectedEvm: true,
         phantomInjected: true,
-        farcasterMiniAppRoute: true,
+        farcasterMiniAppRoute: false,
         reownAppKit: {
           configured: reownConfigured,
           projectIdRequired: true,
