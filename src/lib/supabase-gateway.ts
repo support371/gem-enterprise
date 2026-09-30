@@ -455,8 +455,9 @@ export interface PublicAuditGatewayEntry {
 
 /**
  * Persists a non-authenticated, non-sensitive public interaction through the
- * existing Supabase audit table. The table's RLS policy permits inserts but
- * not anonymous reads. Never pass credentials, wallet addresses, IPs, or
+ * existing Supabase audit table when the deployed PostgREST grants permit it.
+ * The caller owns a first-party fallback when public insertion is unavailable.
+ * Never pass credentials, wallet addresses, IPs, or
  * authentication material through this helper.
  */
 export async function publicAuditGateway(
