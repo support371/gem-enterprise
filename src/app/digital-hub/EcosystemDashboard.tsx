@@ -47,13 +47,6 @@ type EcosystemPayload = {
 type EipProvider = { isMetaMask?: boolean; isCoinbaseWallet?: boolean };
 type Eip6963Event = CustomEvent<{ info?: { uuid?: string; name?: string }; provider?: EipProvider }>;
 
-declare global {
-  interface Window {
-    ethereum?: EipProvider & { providers?: EipProvider[] };
-    phantom?: { solana?: unknown };
-  }
-}
-
 function walletRuntimeState(id: string, evmProviders: EipProvider[], phantomDetected: boolean) {
   if (id === "metamask") return evmProviders.some((provider) => provider.isMetaMask && !provider.isCoinbaseWallet) ? "detected now" : "configured";
   if (id === "coinbase") return evmProviders.some((provider) => provider.isCoinbaseWallet) ? "detected now" : "configured";
@@ -85,14 +78,18 @@ export function EcosystemDashboard() {
 
   useEffect(() => {
     const providers: EipProvider[] = [];
+    const runtimeWindow = window as typeof window & {
+      ethereum?: EipProvider & { providers?: EipProvider[] };
+      phantom?: { solana?: unknown };
+    };
     const add = (provider?: EipProvider) => {
       if (!provider || providers.includes(provider)) return;
       providers.push(provider);
       setEvmProviders([...providers]);
     };
 
-    (window.ethereum?.providers ?? (window.ethereum ? [window.ethereum] : [])).forEach(add);
-    setPhantomDetected(Boolean(window.phantom?.solana));
+    (runtimeWindow.ethereum?.providers ?? (runtimeWindow.ethereum ? [runtimeWindow.ethereum] : [])).forEach(add);
+    setPhantomDetected(Boolean(runtimeWindow.phantom?.solana));
 
     const onAnnounce = (event: Event) => {
       add((event as Eip6963Event).detail?.provider);
