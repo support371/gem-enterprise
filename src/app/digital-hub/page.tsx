@@ -12,6 +12,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { ReferralActions, WalletConnector } from "./DigitalHubClient";
+import { EcosystemDashboard } from "./EcosystemDashboard";
 import { publicDigitalHubCatalog } from "@/lib/digital-hub/catalog";
 
 export const metadata: Metadata = {
@@ -110,7 +111,9 @@ export default function DigitalHubPage() {
         <div className="mx-auto flex min-h-14 max-w-7xl flex-wrap items-center gap-x-7 gap-y-2 py-3 font-mono text-[11px] font-bold uppercase tracking-[.12em] text-slate-400">
           <a href="#referral" className="transition hover:text-amber-300">Referral</a>
           <a href="#connections" className="transition hover:text-amber-300">Connections</a>
+          <a href="#wallets" className="transition hover:text-amber-300">Wallets</a>
           <a href="#services" className="transition hover:text-amber-300">Services</a>
+          <a href="/community-hub" className="transition hover:text-amber-300">Community</a>
           <a href="#journey" className="transition hover:text-amber-300">Client journey</a>
           <a href="/api/digital-hub" className="ml-auto inline-flex items-center gap-1 text-cyan-200 transition hover:text-white">
             Live API <ExternalLink className="h-3 w-3" />
@@ -171,7 +174,10 @@ export default function DigitalHubPage() {
             ))}
           </div>
 
-          <WalletConnector />
+          <EcosystemDashboard />
+          <div id="wallet-connect" className="mt-8 scroll-mt-24">
+            <WalletConnector />
+          </div>
         </div>
       </section>
 
