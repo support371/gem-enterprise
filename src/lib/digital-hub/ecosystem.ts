@@ -75,9 +75,10 @@ export const digitalHubEcosystem = {
   ],
   community: {
     name: "GEM Enterprise Community Hub",
-    href: "https://www.gemcybersecurityassist.com/community-hub",
+    href: "https://www.gemcybersecurityassist.com/hub",
+    alias: "https://www.gemcybersecurityassist.com/community-hub",
     description:
-      "GEM's community destination for the current community preview and the future home of chat, events, member circles, knowledge, and community affairs.",
+      "GEM's controlled community destination and the future home of chat, events, member circles, knowledge, and community affairs as those capabilities are verified.",
     communicationReferences: [
       { name: "Discord", state: "placeholder" },
       { name: "Reddit", state: "placeholder" },
