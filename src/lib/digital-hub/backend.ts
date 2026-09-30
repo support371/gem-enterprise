@@ -1,5 +1,6 @@
 import { AuditAction } from "@prisma/client";
 import { z } from "zod";
+import { track } from "@vercel/analytics/server";
 import { db } from "@/lib/db";
 import {
   publicAuditGateway,
@@ -46,26 +47,50 @@ export async function persistDigitalHubEvent(event: DigitalHubEvent) {
   };
 
   if (shouldUseSupabaseGateway()) {
-    await publicAuditGateway({
-      action: "admin_action",
-      resource: "digital_hub",
-      resourceId: eventId,
-      metadata,
-    });
-  } else {
-    await db.auditLog.create({
-      data: {
-        id: eventId,
-        userId: null,
-        action: AuditAction.admin_action,
+    try {
+      await publicAuditGateway({
+        action: "admin_action",
         resource: "digital_hub",
         resourceId: eventId,
         metadata,
-      },
-    });
+      });
+      return { eventId, persisted: true as const, persistence: "supabase_audit" as const };
+    } catch (error) {
+      // Production gateway deployments intentionally keep the Supabase service
+      // role out of Vercel. If anonymous audit insertion is not granted, retain
+      // the interaction through the already-enabled first-party Vercel
+      // Analytics backend instead of failing the public action.
+      await track("DigitalHubInteraction", {
+        event: event.event,
+        target: event.target,
+      });
+      console.info("[digital-hub:event-recorded]", JSON.stringify({
+        eventId,
+        event: event.event,
+        target: event.target,
+        persistence: "vercel_analytics",
+        supabaseAudit: "unavailable",
+      }));
+      return {
+        eventId,
+        persisted: true as const,
+        persistence: "vercel_analytics" as const,
+      };
+    }
   }
 
-  return { eventId, persisted: true as const };
+  await db.auditLog.create({
+    data: {
+      id: eventId,
+      userId: null,
+      action: AuditAction.admin_action,
+      resource: "digital_hub",
+      resourceId: eventId,
+      metadata,
+    },
+  });
+
+  return { eventId, persisted: true as const, persistence: "prisma_audit" as const };
 }
 
 type RateBucket = { count: number; resetAt: number };

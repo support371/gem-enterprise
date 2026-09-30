@@ -31,6 +31,11 @@ export async function GET() {
       version: "2026.09.1",
       backend,
       persistence,
+      interactionPersistence: {
+        primary: backend === "supabase_gateway" ? "supabase_audit" : "prisma_audit",
+        fallback: backend === "supabase_gateway" ? "vercel_analytics" : null,
+        failClosedIfAllBackendsFail: true,
+      },
       administratorConfigured,
       capabilities: {
         catalog: true,

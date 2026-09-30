@@ -30,7 +30,7 @@ const journey = [
 
 const backendSignals = [
   ["Server catalog", "Provider and service states are rendered from application configuration."],
-  ["Persistent events", "Validated interactions are written into GEM's production audit persistence."],
+  ["Persistent events", "Validated interactions use GEM audit persistence with first-party analytics fallback when the gateway blocks anonymous audit writes."],
   ["Non-custodial", "Wallet approval remains inside the wallet; GEM does not collect keys or seed phrases."],
 ];
 
