@@ -81,6 +81,10 @@ describe("Digital Hub production stack", () => {
     expect(serviceRoute).toContain("getDigitalHubService");
     expect(walletRoute).toContain('mode: "non_custodial_browser_session"');
     expect(walletRoute).toContain("storesWalletAddresses: false");
+    const ecosystemRoute = source("src/app/api/digital-hub/ecosystem/route.ts");
+    expect(ecosystemRoute).toContain("NEXT_PUBLIC_REOWN_PROJECT_ID");
+    expect(ecosystemRoute).toContain("NEXT_PUBLIC_PHANTOM_APP_ID");
+    expect(ecosystemRoute).toContain("walletReturnUrl");
   });
 
   it("uses the redesigned layered background and backend status surface", () => {
@@ -91,6 +95,19 @@ describe("Digital Hub production stack", () => {
     expect(page).toContain("/api/digital-hub/health");
     expect(page).toContain('/api/digital-hub/referral/btcc');
     expect(page).toContain('/api/digital-hub/services/');
+    expect(page).toContain("EcosystemDashboard");
+    const ecosystem = source("src/app/digital-hub/EcosystemDashboard.tsx");
+    expect(ecosystem).toContain("Real-time preview");
+    expect(ecosystem).toContain("Wallet connection dashboard");
+    expect(ecosystem).toContain("Open Community Hub");
+    expect(ecosystem).toContain("/api/digital-hub/ecosystem");
+    const ecosystemConfig = source("src/lib/digital-hub/ecosystem.ts");
+    expect(ecosystemConfig).toContain("Yahoo Finance");
+    expect(ecosystemConfig).toContain("Investopedia");
+    expect(ecosystemConfig).toContain("Forbes Web3");
+    expect(ecosystemConfig).toContain("Discord");
+    expect(ecosystemConfig).toContain("Reddit");
+    expect(ecosystemConfig).toContain("Slack");
     const client = source("src/app/digital-hub/DigitalHubClient.tsx");
     expect(client).toContain("eip6963:requestProvider");
     expect(client).toContain("accountsChanged");
