@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowRight, ExternalLink, Globe2, Radio, RefreshCw, Users2, WalletCards } from "lucide-react";
 
 type EcosystemPayload = {
@@ -63,7 +63,7 @@ export function EcosystemDashboard() {
   const [phantomDetected, setPhantomDetected] = useState(false);
   const [refreshedAt, setRefreshedAt] = useState<string>("");
 
-  async function refreshApi() {
+  const refreshApi = useCallback(async () => {
     try {
       const response = await fetch("/api/digital-hub/ecosystem", { cache: "no-store" });
       const data = (await response.json()) as EcosystemPayload;
@@ -74,7 +74,7 @@ export function EcosystemDashboard() {
     } catch {
       setApiState("error");
     }
-  }
+  }, []);
 
   useEffect(() => {
     const providers: EipProvider[] = [];
@@ -104,7 +104,7 @@ export function EcosystemDashboard() {
       window.clearInterval(interval);
       window.removeEventListener("eip6963:announceProvider", onAnnounce as EventListener);
     };
-  }, []);
+  }, [refreshApi]);
 
   const readiness = useMemo(() => {
     if (!payload) return [];
