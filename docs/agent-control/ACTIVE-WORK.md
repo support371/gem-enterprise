@@ -145,3 +145,18 @@ Snapshot: 2026-09-25 UTC. Refresh live GitHub state before mutation.
 | BLOCKER CLASS | SOURCE |
 | LAST VERIFIED HEAD | Old PR head `3699dd5135acee4b5b1dc2c5c39674a195a5c666`; 41 commits behind current `main` |
 | NEXT SAFE ACTION | Compare old intent with current main and reimplement only behavior still missing; do not rebase blindly. |
+
+## Member Workspace Showcase
+
+| Field | Value |
+|---|---|
+| TASK | [MEMBER-WORKSPACE-SHOWCASE](tasks/MEMBER-WORKSPACE-SHOWCASE.md) |
+| OWNER | Codex / community navigation lane |
+| SOURCE PR/ISSUE | Issue #389; owner request 2026-10-01 |
+| BASE SHA | `7175341a328b522fdf181bf4f5ee78d6c3376f41` |
+| WORKING BRANCH | `codex/community-member-workspace-showcase` |
+| OWNED FILES/SCOPE | Shared member-workspace showcase; `/community`, `/community-hub` layout, `/app/community` insertions; focused rendering checks; this lane's task record |
+| FORBIDDEN OVERLAP | Auth/session; Prisma; provider credentials; workspace OS, ads, social, and reserved PR lanes; production changes |
+| STATUS | IMPLEMENTED — six focused tests and scoped ESLint pass; full verify blocked by missing database environment; canonical preview pending |
+| BLOCKER CLASS | HOSTED GATES / OWNER MERGE |
+| NEXT SAFE ACTION | Verify focused rendering and canonical preview; retain separate private workspace access; no merge without owner authorization. |
