@@ -39,11 +39,20 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const result = parsed.data as {
+    jobId: string;
+    status: "completed" | "failed" | "timed_out";
+    exitCode: number | null;
+    durationMs: number;
+    stdout?: string;
+    stderr?: string;
+  };
+
   try {
     await completeCommandRunnerJob({
       workspaceId: config.workspaceId,
       hostId: auth.hostId,
-      ...parsed.data,
+      ...result,
     });
   } catch (error) {
     const code = error instanceof Error ? error.message : "COMMAND_RESULT_REJECTED";
