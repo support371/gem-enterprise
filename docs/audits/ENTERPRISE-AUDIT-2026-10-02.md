@@ -74,7 +74,7 @@ The six pre-existing test failures are digital-hub-fullstack, public-truth-routi
 
 ## Repair branches, files and deployment status
 
-All five modified Sites use isolated `codex/enterprise-audit-repair-20261002` branches. Their initial repair commits were pushed; the signed Lead follow-up must also be pushed and verified. No source main was merged or updated. Sites source-version saving requires the configured source branch HEAD, so an isolated repair SHA is not falsely saved/deployed as main. Runtime access-policy revisions are the only live changes.
+All five modified Sites use isolated `codex/enterprise-audit-repair-20261002` branches. Their final repair commits, including the signed Lead follow-up, were pushed successfully. No source main was merged or updated. Sites source-version saving requires the configured source branch HEAD, so an isolated repair SHA is not falsely saved/deployed as main. Runtime access-policy revisions are the only live changes.
 
 | Sites source directory | Final local repair SHA |
 |---|---|
@@ -84,7 +84,7 @@ All five modified Sites use isolated `codex/enterprise-audit-repair-20261002` br
 | gem-secure-recovery | `af7b67253ce4833af493012947566ddd2ece372d` |
 | gem-community-operations | `c76f7899e93285d9e59742f31a0e6a6ad91dc13c` |
 
-Changed Enterprise files: product registry and exclusion test; platform evidence plus environment/deployment-plan/repository/sync routes; password reset transaction and tests; enterpriseInquiryHandoff helper and admin intake handoff route/test; control-plane task and audit records. Changed Sites files and commit manifests are in `enterprise-audit-artifacts/site-repair-commits.json`, with service-specific ENTERPRISE-REPAIR.md in each repository. Enterprise repair branch SHA and review URL are recorded in the delivery manifest after publishing the draft branch.
+Changed Enterprise files: product registry and exclusion test; platform evidence plus environment/deployment-plan/repository/sync routes; password reset transaction and tests; enterpriseInquiryHandoff helper and admin intake handoff route/test; control-plane task and audit records. Changed Sites files and commit manifests are in `enterprise-audit-artifacts/site-repair-commits.json`, with service-specific ENTERPRISE-REPAIR.md in each repository. Enterprise implementation commit: `7842ca97995ea12ed93e88e7ac2fccde9f6a27d8`. Draft review: https://github.com/support371/gem-enterprise/pull/391. The final documentation head and all changed paths are retained in the delivery/source manifest.
 
 ## Remaining blockers and safe next work
 
