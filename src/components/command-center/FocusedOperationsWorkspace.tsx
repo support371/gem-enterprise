@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, ShieldCheck } from "lucide-react";
 import { LiveCommandCenterSnapshot } from "@/components/command-center/LiveCommandCenterSnapshot";
+import { CommandRunnerPanel } from "@/components/command-center/CommandRunnerPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { commandCenterSections, type CommandCenterSection } from "@/lib/commandCenter";
@@ -79,6 +80,8 @@ export function FocusedOperationsWorkspace({ section }: { section: CommandCenter
           </Button>
         </aside>
       </section>
+
+      {section === "development" ? <CommandRunnerPanel /> : null}
     </div>
   );
 }
