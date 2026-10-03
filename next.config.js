@@ -87,6 +87,8 @@ const nextConfig = {
 
   async redirects() {
     return [
+      { source: '/community', destination: '/hub', permanent: false },
+      { source: '/community-hub', destination: '/hub', permanent: false },
       { source: '/blog', destination: '/resources', permanent: true },
       {
         source: '/enterprise-demo',
