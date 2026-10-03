@@ -2,6 +2,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { publicDigitalHubCatalog } from "@/lib/digital-hub/catalog";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { WalletConnector } from "@/app/digital-hub/DigitalHubClient";
 
 const source = (relativePath: string) =>
   fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
@@ -33,6 +36,8 @@ describe("Digital Hub full-stack rebuild", () => {
     expect(page).toContain('href="/api/digital-hub"');
     expect(client).toContain('method: "eth_requestAccounts"');
     expect(client).toContain("window.phantom?.solana");
-    expect(client).not.toMatch(/seed phrase|private key.*input/i);
+    const markup = renderToStaticMarkup(createElement(WalletConnector));
+    expect(markup).toContain("GEM does not request a seed phrase, private key");
+    expect(markup).not.toMatch(/<(?:input|textarea)\b/i);
   });
 });

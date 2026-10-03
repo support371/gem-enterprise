@@ -93,7 +93,9 @@ export function buildSocialAutopilotSlots(input: {
       slots.length > 0
         ? slots[slots.length - 1].getTime() + policy.minSpacingMinutes * 60_000
         : earliest.getTime();
-    candidate.setTime(Math.max(candidate.getTime(), minimum));
+    // Leave room for every remaining slot, even when jitter shifts a slot later.
+    const latest = lastWindow.getTime() - (count - index - 1) * policy.minSpacingMinutes * 60_000;
+    candidate.setTime(Math.min(Math.max(candidate.getTime(), minimum), latest));
     if (candidate > lastWindow || candidate >= dayEnd) break;
     slots.push(candidate);
   }
