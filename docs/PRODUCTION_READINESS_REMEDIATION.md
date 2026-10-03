@@ -33,3 +33,13 @@ Acceptance: configure the approved endpoint, allow the exact host, exercise simu
 6. Keep unsupported financial execution, custody and regulated decisions disabled pending a defined service scope and approvals.
 
 Publishing a cloud environment snapshots development files; it does not merge application changes or prove live production behavior.
+
+## Local end-to-end harness and dependency hardening
+
+Run `node scripts/local-customer-e2e.cjs` against the local production-mode server and disposable development database. The harness rejects non-loopback targets, creates unique temporary fixtures, and removes them afterward. It exercises two tenants, customer/staff authorization, request assignment and closure, project delivery, independent weekly-update review, audit persistence, membership suspension and session revocation. Fixtures are provisioned directly: this does not establish production intake/invitation email or gateway behavior.
+
+Next.js, PostCSS, Sharp and Nodemailer were updated to security-fixed versions; compatible Browserslist dependencies were refreshed. Native PNG encode/decode and local MIME generation were checked. No email was delivered externally. The production dependency audit decreased from 20 findings after the initial Next.js patch to five: four low and one high, with no critical/moderate findings. The remaining high `braces` advisory has no published patch and appears through Tailwind's chokidar/micromatch build-tool dependency path. This is a residual review item, not a clean audit or proof of non-exploitability. Do not accept untrusted build/glob configuration; reassess when an upstream fix is released. Development-dependency advisories require a separate full audit review.
+
+Staff request mutations now require same-origin submission and rate limiting in addition to active-account/staff authorization. Provider and document-upload activation gates remain unchanged.
+
+Latest local validation: `verify:preview` passed schema and public-claims checks, zero-warning lint, TypeScript, and 950 tests across 148 files. The production build passed. After restarting that build, the local harness passed 23 HTTP checks, including rejection of missing/untrusted origins for staff mutations. These are API/database checks with directly provisioned fixtures, not browser automation or live production acceptance. Production gates above remain open.
