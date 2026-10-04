@@ -28,6 +28,17 @@ describe("WhatsApp platform integration", () => {
     expect(routes).toContain('path: "/whatsapp"');
   });
 
+  it("connects the authenticated portal to WhatsApp operations", () => {
+    const portal = source("src/app/app/whatsapp/page.tsx");
+    const platformNavigation = source("src/lib/platformNavigation.ts");
+    const messages = source("src/app/app/messages/page.tsx");
+
+    expect(portal).toContain("WhatsApp Operations");
+    expect(portal).toContain("Mobile operator console");
+    expect(platformNavigation).toContain('href: "/app/whatsapp"');
+    expect(messages).toContain('title: "WhatsApp Operations"');
+  });
+
   it("keeps sensitive material out of ordinary WhatsApp chat", () => {
     const page = source("src/app/whatsapp/page.tsx");
 
