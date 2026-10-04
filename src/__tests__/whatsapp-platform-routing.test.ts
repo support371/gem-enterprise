@@ -19,11 +19,13 @@ describe("WhatsApp platform integration", () => {
     const layout = source("src/app/layout.tsx");
     const contact = source("src/app/contact/page.tsx");
     const sitemap = source("src/app/sitemap.xml/route.ts");
+    const routes = source("src/lib/siteRoutes.ts");
 
     expect(navigation).toContain('path: "/whatsapp"');
     expect(layout).toContain("<WhatsAppQuickContact />");
     expect(contact).toContain('href="/whatsapp"');
     expect(sitemap).toContain('"/whatsapp"');
+    expect(routes).toContain('path: "/whatsapp"');
   });
 
   it("keeps sensitive material out of ordinary WhatsApp chat", () => {
