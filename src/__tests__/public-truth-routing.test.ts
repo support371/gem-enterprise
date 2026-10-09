@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -40,6 +40,23 @@ describe("public truth routing", () => {
         },
       ]),
     );
+  });
+
+  it("keeps unverified community claims behind a disclosed, no-index preview", async () => {
+    const redirects = await nextConfig.redirects();
+    expect(redirects).toContainEqual({
+      source: "/community",
+      destination: "/community-hub",
+      permanent: false,
+    });
+
+    const previewSource = readFileSync(
+      join(process.cwd(), "src/app/community-hub/page.tsx"),
+      "utf8",
+    );
+    expect(previewSource).toContain("Fictional interface preview");
+    expect(previewSource).toContain("No live members, opportunities");
+    expect(previewSource).toContain("index: false");
   });
 
   it("permanently routes open registration to controlled onboarding", async () => {
