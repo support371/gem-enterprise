@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Activity, AlertTriangle, Plus, Send, Users, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -92,12 +92,12 @@ export function OrganizationWorkspaceOperatingSystem({
     setReviewNote("");
   }
 
-  function closeReview() {
+  const closeReview = useCallback(() => {
     if (busy) return;
     setReviewTarget(null);
     setReviewNote("");
     setReviewError(null);
-  }
+  }, [busy]);
 
   useEffect(() => {
     if (!reviewTarget) return;
@@ -107,7 +107,7 @@ export function OrganizationWorkspaceOperatingSystem({
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [reviewTarget]);
+  }, [reviewTarget, closeReview]);
 
   return (
     <div className="space-y-6">

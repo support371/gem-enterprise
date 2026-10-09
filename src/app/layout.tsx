@@ -37,6 +37,14 @@ export const metadata: Metadata = {
     locale: "en_US",
     siteName: "GEM Enterprise",
   },
+  icons: {
+    icon: [
+      { url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/apple-touch-icon.png",
+    apple: "/apple-touch-icon.png",
+  },
   robots: {
     index: true,
     follow: true,
