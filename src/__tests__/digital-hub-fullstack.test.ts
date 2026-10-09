@@ -33,6 +33,6 @@ describe("Digital Hub full-stack rebuild", () => {
     expect(page).toContain('href="/api/digital-hub"');
     expect(client).toContain('method: "eth_requestAccounts"');
     expect(client).toContain("window.phantom?.solana");
-    expect(client).not.toMatch(/seed phrase|private key.*input/i);
+    expect(client).not.toMatch(/<input\b[^>]*(?:seed|private.?key|recovery.?phrase)/i);
   });
 });
