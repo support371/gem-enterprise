@@ -6,6 +6,16 @@ import { publicDigitalHubCatalog } from "@/lib/digital-hub/catalog";
 const source = (relativePath: string) =>
   fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
 
+const hasWalletSecretField = (tsxSource: string) => {
+  const fields = tsxSource.match(/<(?:input|textarea)\b[^>]*>/gi) ?? [];
+  const labels = Array.from(
+    tsxSource.matchAll(/<(label|FormLabel)\b[^>]*>[\s\S]*?<\/\1>/gi),
+    (match) => match[0],
+  );
+  const secretName = /\b(?:seed[\s_-]*phrase|recovery[\s_-]*phrase|backup[\s_-]*phrase|private[\s_-]*key|mnemonic)\b/i;
+  return [...fields, ...labels].some((field) => secretName.test(field));
+};
+
 describe("Digital Hub full-stack rebuild", () => {
   it("exposes only validated public catalog data", () => {
     const hub = publicDigitalHubCatalog();
@@ -33,6 +43,14 @@ describe("Digital Hub full-stack rebuild", () => {
     expect(page).toContain('href="/api/digital-hub"');
     expect(client).toContain('method: "eth_requestAccounts"');
     expect(client).toContain("window.phantom?.solana");
-    expect(client).not.toMatch(/<input\b[^>]*(?:seed|private.?key|recovery.?phrase)/i);
+    expect(hasWalletSecretField(client)).toBe(false);
+  });
+
+  it("rejects recovery fields and associated JSX labels without flagging safety disclaimers", () => {
+    expect(hasWalletSecretField('<label htmlFor="wallet-seed">Seed phrase</label><input id="wallet-seed" />')).toBe(true);
+    expect(hasWalletSecretField('<FormLabel>Recovery phrase</FormLabel><textarea />')).toBe(true);
+    expect(hasWalletSecretField('<textarea name="privateKey"></textarea>')).toBe(true);
+    expect(hasWalletSecretField('<input aria-label="Mnemonic" />')).toBe(true);
+    expect(hasWalletSecretField('<p>GEM does not request a seed phrase or private key.</p>')).toBe(false);
   });
 });

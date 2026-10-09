@@ -38,8 +38,11 @@ export const metadata: Metadata = {
     siteName: "GEM Enterprise",
   },
   icons: {
-    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
-    shortcut: "/favicon.svg",
+    icon: [
+      { url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/apple-touch-icon.png",
     apple: "/apple-touch-icon.png",
   },
   robots: {
