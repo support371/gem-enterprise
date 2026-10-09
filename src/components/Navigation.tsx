@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, memo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ArrowRight, ChevronDown, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -196,7 +197,7 @@ function NavigationContent() {
       <div className="mx-auto flex h-20 max-w-screen-2xl items-center justify-between px-5 sm:px-6 lg:h-16 lg:px-8">
         <Link href="/" className="group flex shrink-0 items-center gap-3" onClick={closeMobile}>
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[hsl(185,100%,45%)]/10 ring-1 ring-[hsl(185,100%,45%)]/30 transition-all group-hover:bg-[hsl(185,100%,45%)]/20 group-hover:ring-[hsl(185,100%,45%)]/60 lg:h-9 lg:w-9 lg:rounded-xl">
-            <img src="/favicon.svg" alt="" aria-hidden="true" className="h-8 w-8 lg:h-6 lg:w-6" />
+            <Image src="/favicon.svg" alt="" aria-hidden="true" width={32} height={32} unoptimized className="h-8 w-8 lg:h-6 lg:w-6" />
           </div>
           <div className="flex flex-col leading-none">
             <span className="text-xl font-bold tracking-[0.18em] text-[hsl(185,100%,45%)] lg:text-base">GEM</span>
