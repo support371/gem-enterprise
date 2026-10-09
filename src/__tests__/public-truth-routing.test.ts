@@ -1,4 +1,6 @@
 import { createRequire } from "node:module";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const require = createRequire(import.meta.url);
@@ -11,19 +13,11 @@ const nextConfig = require("../../next.config.js") as {
 describe("public truth routing", () => {
   it("routes public demo and preview entry points to controlled production pages", async () => {
     const redirects = await nextConfig.redirects();
+    expect(existsSync(join(process.cwd(), "src/app/community/page.tsx"))).toBe(true);
+    expect(existsSync(join(process.cwd(), "src/app/hub/page.tsx"))).toBe(true);
 
     expect(redirects).toEqual(
       expect.arrayContaining([
-        {
-          source: "/community",
-          destination: "/hub",
-          permanent: false,
-        },
-        {
-          source: "/community-hub",
-          destination: "/hub",
-          permanent: false,
-        },
         {
           source: "/enterprise-demo",
           destination: "/enterprise-solutions",
