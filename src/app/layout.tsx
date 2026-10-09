@@ -37,6 +37,11 @@ export const metadata: Metadata = {
     locale: "en_US",
     siteName: "GEM Enterprise",
   },
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
   robots: {
     index: true,
     follow: true,
